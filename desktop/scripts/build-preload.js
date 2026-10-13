@@ -5,7 +5,7 @@ const path = require("path");
 
 const root = path.join(__dirname, "..");
 const src = process.env.LODICA_HELPER ||
-  path.join(root, "..", "lodica", "app", "src", "main", "assets", "extensions", "helper", "content.js");
+  path.join(root, "..", "android", "app", "src", "main", "assets", "extensions", "helper", "content.js");
 let js = fs.readFileSync(src, "utf8");
 
 function swap(from, to) {
