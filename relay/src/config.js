@@ -16,6 +16,9 @@ const cfg = {
   tokenPath: env.LODICA_TOKEN_PATH || '/etc/lodica-relay/token',
   tlsCert: env.LODICA_TLS_CERT || '/etc/lodica-relay/tls/tunnel.crt',
   tlsKey: env.LODICA_TLS_KEY || '/etc/lodica-relay/tls/tunnel.key',
+  // API may use its own cert (lodica.<domain>); defaults to the proxy cert
+  apiTlsCert: env.LODICA_API_TLS_CERT || env.LODICA_TLS_CERT || '/etc/lodica-relay/tls/tunnel.crt',
+  apiTlsKey: env.LODICA_API_TLS_KEY || env.LODICA_TLS_KEY || '/etc/lodica-relay/tls/tunnel.key',
   dataDir: env.LODICA_DATA_DIR || '/var/lib/lodica-relay',
   mailDomain: env.LODICA_MAIL_DOMAIN || '',
   aliasRe: /^[a-z0-9][a-z0-9.-]{0,63}$/,

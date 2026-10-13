@@ -52,15 +52,11 @@ The relay is a server you host yourself (code in `relay/`). You need a Debian or
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
 ```
 
-It installs Node and the relay, gets a certificate, and prints a token. The relay has its own TCP ports, **44741** (API) and **44742** (tunnel), and never touches ports 80/443 or an existing web server. It opens those two in ufw only. Open them in your host's web firewall too if it has one.
+It installs Node and the relay, installs [Caddy](https://caddyserver.com) if it is missing, and prints a token. Caddy routes `lodica.example.com` and `tunnel.example.com` and gets and renews their Let's Encrypt certificates by itself, so ports 80/443 must be reachable from the internet. If Caddy already runs, its existing sites are left alone: only hostnames it does not serve yet are added in `/etc/caddy/lodica-relay.caddy`, and the Caddyfile is backed up first. The relay itself has its own TCP ports, **44741** (API) and **44742** (tunnel). It opens those two in ufw only. Open them in your host's web firewall too if it has one.
 
-The certificate comes from Let's Encrypt through [acme.sh](https://github.com/acmesh-official/acme.sh). If port 80 is free it works by itself. If you already run a web server on 80, use one of these (the variables go through `sudo env`):
+To use your own certificate instead of Caddy's:
 
 ```sh
-# DNS validation, no ports needed (any acme.sh DNS plugin, here Cloudflare)
-curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_ACME_DNS=dns_cf CF_Token=xxxx bash -s -- example.com
-# no DNS API: LODICA_ACME_DNS=manual prints TXT records to add, then run the same command again
-# or your own certificate for lodica.example.com and tunnel.example.com
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem bash -s -- example.com
 ```
 

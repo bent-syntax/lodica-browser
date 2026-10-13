@@ -1,14 +1,14 @@
 #!/bin/sh
 # Lodica relay installer for a fresh Debian/Ubuntu server.
 #   curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
-# Needs: root, and DNS records for lodica.<domain> and tunnel.<domain> pointing at this server.
-# The relay uses its own ports (API 44741, proxy 44742). It never touches ports 80/443 or any
-# existing web server (Caddy, nginx, Apache). Safe to run again: it updates the code, keeps your token.
+# Needs: root, and DNS records for lodica.<domain> and tunnel.<domain> pointing at this server,
+# with ports 80/443 reachable (Caddy uses them to get the certificates).
+# Caddy is installed if missing. Its existing sites are left alone; only missing hostnames are added
+# through /etc/caddy/lodica-relay.caddy. The relay itself uses its own ports (API 44741, proxy 44742).
+# Safe to run again: it updates the code and keeps your token.
 #
-# Certificate (needed because the apps check it). Pick one:
-#   LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem   use a cert you already have (copied)
-#   LODICA_ACME_DNS=dns_cf  (plus that provider's variables, e.g. CF_Token=...)   Let's Encrypt via DNS, no ports
-#   (nothing)  Let's Encrypt over port 80, only if port 80 is free
+# Optional: use a certificate you already have instead of Caddy's:
+#   LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem
 set -eu
 
 DOMAIN="${1:-}"
@@ -37,10 +37,10 @@ for h in "$API_HOST" "$TUN_HOST"; do
   elif [ -n "$MY_IP" ] && [ "$got" != "$MY_IP" ]; then echo "  warning: $h -> $got, but this server is $MY_IP"; fi
 done
 
-say "installing packages (nothing on ports 80/443 is touched)"
+say "installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq git curl openssl ca-certificates cron socat >/dev/null
+apt-get install -y -qq git curl openssl ca-certificates >/dev/null
 
 node_ok() { command -v node >/dev/null && [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 20 ]; }
 if ! node_ok; then
@@ -67,51 +67,112 @@ cat > "$ETC/relay.env" <<ENV
 LODICA_MAIL_DOMAIN=$DOMAIN
 LODICA_API_PORT=$API_PORT
 LODICA_PROXY_PORT=$PROXY_PORT
+LODICA_API_TLS_CERT=$ETC/tls/lodica.crt
+LODICA_API_TLS_KEY=$ETC/tls/lodica.key
+LODICA_TLS_CERT=$ETC/tls/tunnel.crt
+LODICA_TLS_KEY=$ETC/tls/tunnel.key
 ENV
 chmod 640 "$ETC/relay.env"; chown root:lodica-relay "$ETC/relay.env"
 
-# ---- certificate for lodica.<domain> and tunnel.<domain> ----
-CRT="$ETC/tls/tunnel.crt"; KEY="$ETC/tls/tunnel.key"
-put_cert() { # $1=cert $2=key
-  install -m 640 -o root -g lodica-relay "$2" "$KEY.new"; install -m 640 -o root -g lodica-relay "$1" "$CRT.new"
-  mv -f "$KEY.new" "$KEY"; mv -f "$CRT.new" "$CRT"
+# ---- certificates: Caddy gets and renews them for lodica.<domain> and tunnel.<domain> ----
+TLS="$ETC/tls"
+put_cert() { # $1=cert $2=key $3=name
+  install -m 640 -o root -g lodica-relay "$2" "$TLS/$3.key.new"; install -m 640 -o root -g lodica-relay "$1" "$TLS/$3.crt.new"
+  mv -f "$TLS/$3.key.new" "$TLS/$3.key"; mv -f "$TLS/$3.crt.new" "$TLS/$3.crt"
 }
 if [ -n "${LODICA_TLS_CERT:-}" ] && [ -n "${LODICA_TLS_KEY:-}" ]; then
   say "using the certificate you supplied"
-  put_cert "$LODICA_TLS_CERT" "$LODICA_TLS_KEY"
-elif ! { [ -s "$CRT" ] && openssl x509 -in "$CRT" -noout -checkhost "$API_HOST" 2>/dev/null | grep -q "does match" \
-        && openssl x509 -in "$CRT" -noout -checkhost "$TUN_HOST" 2>/dev/null | grep -q "does match" \
-        && openssl x509 -in "$CRT" -noout -checkend 604800 >/dev/null 2>&1; }; then
-  [ -s "$CRT" ] && say "existing certificate does not cover $API_HOST and $TUN_HOST (or expires soon): getting a new one"
-  ACME=/root/.acme.sh/acme.sh
-  if [ ! -x "$ACME" ]; then
-    say "installing acme.sh (Let's Encrypt client)"
-    curl -fsSL https://get.acme.sh | sh -s email="admin@$DOMAIN" >/dev/null 2>&1 </dev/null || die "could not install acme.sh"
+  put_cert "$LODICA_TLS_CERT" "$LODICA_TLS_KEY" lodica
+  put_cert "$LODICA_TLS_CERT" "$LODICA_TLS_KEY" tunnel
+else
+  if ! command -v caddy >/dev/null; then
+    say "installing Caddy (it routes the domain and gets the certificates)"
+    apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https gnupg >/dev/null </dev/null
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key </dev/null | gpg --batch --yes --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+      || die "could not download the Caddy signing key"
+    curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt </dev/null > /etc/apt/sources.list.d/caddy-stable.list \
+      || die "could not add the Caddy apt repository"
+    apt-get update -qq </dev/null
+    apt-get install -y -qq caddy >/dev/null </dev/null || die "could not install Caddy"
   fi
-  "$ACME" --set-default-ca --server letsencrypt >/dev/null 2>&1 || true
-  RELOAD="systemctl restart lodica-relay"
-  if [ "${LODICA_ACME_DNS:-}" = "manual" ]; then
-    # No DNS API: run once to get two TXT records, add them, run the same command again.
-    if [ -d "/root/.acme.sh/${API_HOST}_ecc" ] || [ -d "/root/.acme.sh/${API_HOST}" ]; then
-      say "checking the TXT records"
-      "$ACME" --renew --force --ecc -d "$API_HOST" -d "$TUN_HOST" --yes-I-know-dns-manual-mode-enough-go-ahead-please </dev/null || die "TXT records not found yet. Wait a few minutes and run the same command again"
-    else
-      "$ACME" --issue --keylength ec-256 --dns -d "$API_HOST" -d "$TUN_HOST" --yes-I-know-dns-manual-mode-enough-go-ahead-please </dev/null || true
-      die "add the TXT record(s) shown above in your DNS, wait a few minutes, then run the same command again"
-    fi
-  elif [ -n "${LODICA_ACME_DNS:-}" ]; then
-    say "getting a certificate with DNS validation ($LODICA_ACME_DNS)"
-    "$ACME" --issue --keylength ec-256 --dns "$LODICA_ACME_DNS" -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check the DNS provider variables"
-  elif ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE '[:.]80$'; then
-    die "port 80 is in use here, so Let's Encrypt cannot validate over it. Run again with LODICA_ACME_DNS=<acme.sh dns plugin> (see https://github.com/acmesh-official/acme.sh/wiki/dnsapi) plus its variables, or give LODICA_TLS_CERT and LODICA_TLS_KEY."
+  CADDYFILE=/etc/caddy/Caddyfile
+  mkdir -p /etc/caddy; [ -f "$CADDYFILE" ] || touch "$CADDYFILE"
+
+  # Only add hostnames Caddy does not already serve, so existing sites are never touched.
+  MISSING=""
+  KNOWN=$(caddy adapt --config "$CADDYFILE" --adapter caddyfile 2>/dev/null </dev/null || true)
+  for h in "$API_HOST" "$TUN_HOST"; do
+    printf '%s' "$KNOWN" | grep -q "\"$h\"" || MISSING="$MISSING${MISSING:+, }$h"
+  done
+  DROPIN=/etc/caddy/lodica-relay.caddy
+  if [ -n "$MISSING" ]; then
+    say "adding $MISSING to Caddy"
+    printf '# Managed by the Lodica relay installer\n%s {\n\trespond "ok"\n}\n' "$MISSING" > "$DROPIN"
+    grep -qF "import $DROPIN" "$CADDYFILE" || {
+      cp -a "$CADDYFILE" "$CADDYFILE.bak.lodica-$(date +%s)"
+      printf '\nimport %s\n' "$DROPIN" >> "$CADDYFILE"
+    }
   else
-    say "getting a certificate over port 80 (it is free right now)"
-    "$ACME" --issue --keylength ec-256 --standalone -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check DNS for $API_HOST and $TUN_HOST and that port 80 is reachable"
+    say "Caddy already serves $API_HOST and $TUN_HOST"
   fi
-  "$ACME" --install-cert --ecc -d "$API_HOST" --key-file "$KEY" --fullchain-file "$CRT" --reloadcmd "chgrp lodica-relay $KEY $CRT; chmod 640 $KEY $CRT; $RELOAD" </dev/null >/dev/null
-  chgrp lodica-relay "$KEY" "$CRT"; chmod 640 "$KEY" "$CRT"
+  caddy validate --config "$CADDYFILE" --adapter caddyfile </dev/null >/dev/null 2>&1 || die "Caddy rejected the config. Check: caddy validate --config $CADDYFILE"
+  systemctl enable caddy >/dev/null 2>&1 || true
+  if systemctl is-active --quiet caddy; then timeout 60 systemctl reload caddy </dev/null || timeout 60 systemctl restart caddy </dev/null
+  else timeout 60 systemctl start caddy </dev/null; fi
+  systemctl is-active --quiet caddy || die "Caddy is not running: journalctl -u caddy"
+
+  cat > /usr/local/sbin/lodica-relay-certsync <<SYNC
+#!/bin/sh
+# Copies the certificates Caddy manages into $TLS for the relay; restarts the relay when one changed.
+changed=0
+for pair in "lodica:$API_HOST" "tunnel:$TUN_HOST"; do
+  name=\${pair%%:*}; host=\${pair#*:}
+  src=\$(find /var/lib/caddy /root/.local/share/caddy -path "*/certificates/*/\$host/\$host.crt" 2>/dev/null | head -n1)
+  [ -n "\$src" ] || continue
+  key="\${src%.crt}.key"
+  [ -s "\$key" ] || continue
+  if ! cmp -s "\$src" "$TLS/\$name.crt" || ! cmp -s "\$key" "$TLS/\$name.key"; then
+    install -m 640 -o root -g lodica-relay "\$key" "$TLS/\$name.key.new"
+    install -m 640 -o root -g lodica-relay "\$src" "$TLS/\$name.crt.new"
+    mv -f "$TLS/\$name.key.new" "$TLS/\$name.key"; mv -f "$TLS/\$name.crt.new" "$TLS/\$name.crt"
+    changed=1
+  fi
+done
+[ "\$changed" = 1 ] && systemctl try-restart lodica-relay
+exit 0
+SYNC
+  chmod 755 /usr/local/sbin/lodica-relay-certsync
+  cat > /etc/systemd/system/lodica-relay-certsync.service <<UNIT
+[Unit]
+Description=Copy Caddy certificates for the Lodica relay
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lodica-relay-certsync
+UNIT
+  cat > /etc/systemd/system/lodica-relay-certsync.timer <<UNIT
+[Unit]
+Description=Keep the Lodica relay certificates in sync with Caddy
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+  say "waiting for Caddy to get the certificates (up to 2 minutes)"
+  for i in $(seq 1 24); do
+    /usr/local/sbin/lodica-relay-certsync
+    [ -s "$TLS/lodica.crt" ] && [ -s "$TLS/tunnel.crt" ] && break
+    sleep 5
+  done
+  [ -s "$TLS/lodica.crt" ] && [ -s "$TLS/tunnel.crt" ] || die "Caddy has no certificate for $API_HOST / $TUN_HOST yet. Check that both names point to this server and ports 80/443 are reachable from the internet, then see: journalctl -u caddy"
+  systemctl daemon-reload
+  systemctl enable --now lodica-relay-certsync.timer >/dev/null 2>&1
 fi
-[ -s "$CRT" ] && [ -s "$KEY" ] || die "no certificate in $ETC/tls"
+[ -s "$TLS/lodica.crt" ] && [ -s "$TLS/tunnel.crt" ] || die "no certificate in $TLS"
 
 cat > /etc/systemd/system/lodica-relay.service <<UNIT
 [Unit]
@@ -178,6 +239,6 @@ Lodica relay is installed.
 
 Paste the token into the Lodica app (Setup, last step). The domain is already filled in.
 Keep the token private. It is also stored in $ETC/token.
-Ports used: $API_PORT and $PROXY_PORT (TCP). Nothing on 80/443 was changed.
+Ports used: $API_PORT and $PROXY_PORT (TCP). Caddy (80/443) obtains and renews the certificates; its existing sites were not changed.
 Cloud firewalls (not ufw) must be opened in your provider's panel for those two ports.
 DONE

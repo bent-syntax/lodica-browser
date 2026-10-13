@@ -496,17 +496,17 @@ function start(log) {
     return server;
   };
   const server = tune(https.createServer({
-    cert: fs.readFileSync(cfg.tlsCert), key: fs.readFileSync(cfg.tlsKey),
+    cert: fs.readFileSync(cfg.apiTlsCert), key: fs.readFileSync(cfg.apiTlsKey),
     minVersion: 'TLSv1.2', ALPNProtocols: ['http/1.1'], handshakeTimeout: 15e3,
   }, handler));
   server.listen({ host: cfg.apiHost, port: cfg.apiPort, ipv6Only: false }, () => log(`api: listening on [${cfg.apiHost}]:${cfg.apiPort}`));
   // Cert renewals: reload hourly when the files change.
-  let st = [fs.statSync(cfg.tlsCert).mtimeMs, fs.statSync(cfg.tlsKey).mtimeMs].join('/');
+  let st = [fs.statSync(cfg.apiTlsCert).mtimeMs, fs.statSync(cfg.apiTlsKey).mtimeMs].join('/');
   setInterval(() => {
     try {
-      const n = [fs.statSync(cfg.tlsCert).mtimeMs, fs.statSync(cfg.tlsKey).mtimeMs].join('/');
+      const n = [fs.statSync(cfg.apiTlsCert).mtimeMs, fs.statSync(cfg.apiTlsKey).mtimeMs].join('/');
       if (n === st) return;
-      server.setSecureContext({ cert: fs.readFileSync(cfg.tlsCert), key: fs.readFileSync(cfg.tlsKey), minVersion: 'TLSv1.2' });
+      server.setSecureContext({ cert: fs.readFileSync(cfg.apiTlsCert), key: fs.readFileSync(cfg.apiTlsKey), minVersion: 'TLSv1.2' });
       st = n; log('api: TLS cert reloaded');
     } catch (e) { log('api: cert reload failed: ' + e.message); }
   }, cfg.certCheckMs).unref();
