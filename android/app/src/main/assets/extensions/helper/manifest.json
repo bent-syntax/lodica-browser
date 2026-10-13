@@ -1,0 +1,51 @@
+{
+  "manifest_version": 2,
+  "name": "Lodica Helper",
+  "version": "1.2",
+  "description": "Built-in Lodica helper: VPS routing, hidden-email sign-ups and page options.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "helper@lodica.example.com"
+    }
+  },
+  "permissions": [
+    "proxy",
+    "<all_urls>",
+    "nativeMessaging",
+    "nativeMessagingFromContent",
+    "geckoViewAddons",
+    "storage",
+    "webRequest",
+    "webRequestBlocking"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "css": [
+        "yt.css"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "incognito": "spanning"
+}

@@ -1,0 +1,92 @@
+// Lodica Search pages (lodica://search/): results from the VPS search API, AI box answered locally.
+const path = require("path");
+const { ipcMain } = require("electron");
+const relay = require("./relay");
+const prefs = require("./prefs");
+
+const PRELOAD = path.join(__dirname, "..", "preload", "search.js");
+let ai = null, suggest = null, topSites = null;
+
+function init(deps) {
+  ai = deps.ai; suggest = deps.suggest; topSites = deps.topSites;
+  for (const ses of deps.sessions) {
+    try { ses.registerPreloadScript({ type: "frame", id: "lodica-search", filePath: PRELOAD }); } catch (e) { console.error("search preload", e.message); }
+  }
+  ipcMain.handle("search-msg", (e, msg) => {
+    const url = e.senderFrame?.url || "";
+    if (!url.startsWith("lodica://search/")) return undefined;
+    return handle(msg);
+  });
+}
+
+async function handle(msg) {
+  if (!msg || typeof msg !== "object") return undefined;
+  if (msg.type === "state") return { api: relay.available, base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
+  if (msg.type === "quick") return setQuick(msg.list);
+  if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
+  if (msg.type === "search") return search(msg);
+  if (msg.type === "ask") return ask(msg);
+  if (msg.type === "suggest") return suggest ? suggest(String(msg.q || "").slice(0, 200)) : [];
+  if (msg.type === "top") return topSites ? topSites() : [];
+  if (msg.type === "icon") return icon(msg.h);
+  return undefined;
+}
+
+// Own shortcuts for the start page: up to 24 http(s) sites, each with an optional short name.
+function setQuick(list) {
+  if (!Array.isArray(list)) return false;
+  const out = [];
+  for (const it of list.slice(0, 24)) {
+    try {
+      const u = new URL(String(it && it.url || ""));
+      if (u.protocol !== "http:" && u.protocol !== "https:") continue;
+      out.push({ url: u.href, title: String(it.title || "").slice(0, 40) });
+    } catch {}
+  }
+  prefs.set("quickSites", out);
+  return out;
+}
+
+async function search(msg) {
+  if (!relay.available) return { error: "Lodica Search is not available in this build." };
+  const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
+  if (msg.c) qs.set("c", String(msg.c));
+  if (msg.l) qs.set("l", String(msg.l));
+  try {
+    const r = await fetch(relay.API + "/api/search?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(20000) });
+    if (!r.ok) return { error: "Search failed (" + r.status + ")" };
+    return await r.json();
+  } catch {
+    return { error: "Search server unreachable" };
+  }
+}
+
+// Site icons for the result circles. Fetched from the site itself (no third-party icon service), cached in memory.
+const icons = new Map();
+function icon(host) {
+  host = String(host || "").toLowerCase();
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) return { url: null };
+  if (!icons.has(host)) icons.set(host, fetchIcon(host));
+  return icons.get(host).then(url => ({ url }));
+}
+async function fetchIcon(host) {
+  try {
+    const r = await fetch("https://" + host + "/favicon.ico", { signal: AbortSignal.timeout(4000), redirect: "follow" });
+    const type = (r.headers.get("content-type") || "").split(";")[0];
+    if (!r.ok || !/^image\/(x-icon|vnd\.microsoft\.icon|png|svg\+xml|webp|gif|jpeg)$/.test(type)) return null;
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > 200000) return null;
+    return "data:" + type + ";base64," + buf.toString("base64");
+  } catch { return null; }
+}
+
+function ask(msg) {
+  if (!ai || !prefs.p.ai || !ai.status().connected) return { error: "AI is not connected" };
+  const q = String(msg.q || "").slice(0, 1000), ctx = String(msg.ctx || "").slice(0, 600);
+  return Promise.race([
+    ai.ask(q, ctx, Array.isArray(msg.history) ? msg.history.slice(-10) : []).catch(e => ({ error: e.message || "AI failed" })),
+    new Promise(r => setTimeout(() => r({ error: "AI took too long" }), 90000)),
+  ]);
+}
+
+module.exports = { init };

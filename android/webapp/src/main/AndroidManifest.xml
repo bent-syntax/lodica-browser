@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The *_PLACEHOLDER strings are replaced in the binary manifest by Lodica (engine/WebApps.kt). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <queries>
+        <package android:name="be.syntaxya.lodica" />
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic"
+        android:label="LODICA_LABEL_PLACEHOLDER">
+        <meta-data android:name="lodica.url" android:value="LODICA_URL_PLACEHOLDER" />
+        <meta-data android:name="lodica.host" android:value="LODICA_HOST_PLACEHOLDER" />
+
+        <activity
+            android:name=".Launch"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

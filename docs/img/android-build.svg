@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" font-family="Helvetica,Arial,sans-serif"><rect width="900" height="330" fill="#f4f7fb"/>
+<text x="450" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#10203a">Android build</text>
+<rect x="40" y="70" width="380" height="60" rx="14" fill="#cfe3ff" stroke="#2b3a55" stroke-width="2"/><text x="230" y="106" text-anchor="middle" font-size="20" fill="#10203a">git clone + cd lodica-browser/android</text>
+<rect x="40" y="150" width="380" height="60" rx="14" fill="#d6f5d6" stroke="#2b3a55" stroke-width="2"/><text x="230" y="186" text-anchor="middle" font-size="20" fill="#10203a">echo sdk.dir=$ANDROID_HOME &gt; local.properties</text>
+<rect x="40" y="230" width="380" height="60" rx="14" fill="#ffe9b8" stroke="#2b3a55" stroke-width="2"/><text x="230" y="266" text-anchor="middle" font-size="20" fill="#10203a">./gradlew assembleDebug</text>
+<rect x="480" y="130" width="380" height="80" rx="14" fill="#e8d9ff" stroke="#2b3a55" stroke-width="2"/><text x="670" y="176" text-anchor="middle" font-size="20" fill="#10203a">app/build/outputs/apk/debug/*.apk</text>
+<path d="M420 260L480 190" stroke="#2b3a55" stroke-width="3"/><text x="670" y="250" text-anchor="middle" font-size="16" fill="#10203a">adb install &lt;apk&gt; or copy to phone</text></svg>

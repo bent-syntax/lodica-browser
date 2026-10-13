@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -c * push origin HEAD)",
+      "Bash(gh release create *)"
+    ]
+  }
+}

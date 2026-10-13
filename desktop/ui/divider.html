@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Lodica split</title>
+<link rel="stylesheet" href="themes.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{position:relative;cursor:col-resize;user-select:none}
+#line{position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--high)}
+body:hover #line,body.drag #line{background:var(--amber)}
+#x{position:absolute;left:1px;top:6px;width:12px;height:22px;border:0;border-radius:6px;background:var(--raised);color:var(--muted);font:12px/1 system-ui,sans-serif;cursor:pointer}
+#x:hover{background:var(--coral-bg);color:var(--coral)}
+</style>
+</head>
+<body>
+<div id="line"></div>
+<button id="x" title="End split" aria-label="End split">&#x2715;</button>
+<script src="js/divider.js"></script>
+</body>
+</html>

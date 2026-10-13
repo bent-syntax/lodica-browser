@@ -1,0 +1,59 @@
+// Updater against a fake relay. Run: node test/updater.js (plain node, no electron).
+const http = require("http");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const crypto = require("crypto");
+const assert = require("assert");
+const Module = require("module");
+const orig = Module._load;
+Module._load = function (r, ...a) { return r === "electron" ? {} : orig.call(this, r, ...a); };
+const up = require("../main/updater");
+
+const body = crypto.randomBytes(300000);
+const sum = crypto.createHash("sha256").update(body).digest("hex");
+let newer = true, badSum = false, seenAuth = [];
+const srv = http.createServer((req, res) => {
+  seenAuth.push(req.headers.authorization);
+  if (req.headers.authorization !== "Bearer tok") { res.writeHead(401); return res.end(); }
+  if (req.url.startsWith("/api/update/check")) {
+    assert(req.url.includes("app=desktop") && req.url.includes("platform=linux") && req.url.includes("version=1.0.0"));
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({ version: "1.1.0", name: "v1.1.0", notes: "n", file: "Lodica-1.1.0.AppImage", size: body.length, sha256: sum, newer }));
+  }
+  if (req.url.startsWith("/api/update/download")) {
+    res.writeHead(200, { "Content-Length": body.length, "X-Sha256": badSum ? "0".repeat(64) : sum });
+    return res.end(body);
+  }
+  res.writeHead(404); res.end();
+});
+
+(async () => {
+  await new Promise(r => srv.listen(0, "127.0.0.1", r));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "upd-"));
+  const pushes = [];
+  const env = { api: "http://127.0.0.1:" + srv.address().port, token: "tok", available: true, version: "1.0.0", platform: "linux", dir: () => dir };
+  up._setEnv(env);
+  let s = await up.check();
+  assert.equal(s.state, "available"); assert.equal(s.version, "1.1.0");
+  s = await up.download();
+  assert.equal(s.state, "ready"); assert(fs.readFileSync(s.path).equals(body));
+  assert(!fs.existsSync(s.path + ".part"));
+  // checksum mismatch discards the file
+  up._reset(); badSum = true;
+  await up.check(); s = await up.download();
+  assert.equal(s.state, "error"); assert(/Checksum/.test(s.message));
+  assert(!fs.readdirSync(dir).some(f => f.endsWith(".part")));
+  // up to date
+  up._reset(); newer = false; s = await up.check();
+  assert.equal(s.state, "latest");
+  // wrong token -> error, not crash
+  up._setEnv({ ...env, token: "bad" }); up._reset(); s = await up.check();
+  assert.equal(s.state, "error");
+  // no relay configured
+  up._setEnv({ ...env, available: false }); up._reset(); s = await up.check();
+  assert.equal(s.state, "error");
+  fs.rmSync(dir, { recursive: true });
+  srv.close();
+  console.log("updater: all PASS");
+})().catch(e => { console.error("FAIL", e); process.exit(1); });

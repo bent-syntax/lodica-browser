@@ -1,0 +1,11 @@
+node_modules/
+build/
+dist/
+.gradle/
+.kotlin/
+local.properties
+keystore/
+*.jks
+config.json
+relay-token
+*.env

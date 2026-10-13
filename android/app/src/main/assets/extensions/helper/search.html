@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Lodica Search</title>
+<link rel="stylesheet" href="search.css">
+</head>
+<body>
+<header>
+  <a class="brand" href="search.html" aria-label="Lodica Search">
+    <svg viewBox="30 18 48 52" width="28" height="30" aria-hidden="true">
+      <defs><linearGradient id="k" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F59E0B"/><stop offset="1" stop-color="#F43F5E"/></linearGradient></defs>
+      <path d="M54 22 72 42 54 66 36 42Z" fill="url(#k)"/>
+      <path d="M54 22v20H36Z" fill="#fff" fill-opacity=".2"/>
+    </svg>
+    <span>Lodica</span>
+  </a>
+  <div id="fw"><form id="f" role="search">
+    <input id="q" name="q" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search the web" enterkeyhint="search">
+    <button type="button" id="x" aria-label="Clear" hidden>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4Z" fill="currentColor"/></svg>
+    </button>
+    <button type="submit" aria-label="Search">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.6 10.8l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" fill="currentColor"/></svg>
+    </button>
+  </form><div id="sg" hidden></div></div>
+  <nav id="tabs">
+    <a data-c="" href="#">All</a>
+    <a data-c="images" href="#">Images</a>
+  </nav>
+</header>
+<main id="main">
+  <section id="ai" hidden>
+    <div class="ai-head"><span class="spark">✦</span> AI answer <span class="ai-note">on this phone</span></div>
+    <div id="ai-body"></div>
+    <div id="ai-thread"></div>
+    <form id="ai-follow" hidden autocomplete="off"><input id="ai-q" type="text" placeholder="Ask a follow-up…" maxlength="1000" enterkeyhint="send"><button id="ai-send" type="submit">Ask</button></form>
+  </section>
+  <div id="top"></div>
+  <div id="topbar" hidden><a href="#" id="edit">Edit shortcuts</a></div>
+  <form id="addsite" hidden autocomplete="off"><input id="as-n" type="text" placeholder="Name" maxlength="24"><input id="as-u" type="text" inputmode="url" placeholder="example.com" maxlength="300"><button type="submit">Add</button></form>
+  <label id="autorow" hidden><input type="checkbox" id="auto"> Show most visited sites</label>
+  <div id="note"></div>
+  <div id="results"></div>
+  <nav id="pages"></nav>
+</main>
+<script src="search.js"></script>
+</body>
+</html>

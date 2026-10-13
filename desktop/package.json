@@ -1,0 +1,100 @@
+{
+  "name": "lodica-desktop",
+  "productName": "Lodica",
+  "version": "1.5.0",
+  "description": "Lodica browser for Windows",
+  "author": "Lodica contributors",
+  "license": "MIT",
+  "main": "main/main.js",
+  "scripts": {
+    "config": "node scripts/gen-config.js && node scripts/build-preload.js",
+    "themes": "node scripts/build-themes.js",
+    "icon": "node scripts/gen-icon.js",
+    "start": "npm run config && electron .",
+    "dist": "npm run config && npm run icon && electron-builder --win nsis portable --x64",
+    "dist:linux": "npm run config && npm run icon && electron-builder --linux AppImage deb --x64"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@ghostery/adblocker-electron": "2.18.2"
+  },
+  "devDependencies": {
+    "electron": "44.6.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "be.syntaxya.lodica",
+    "productName": "Lodica",
+    "copyright": "Lodica contributors",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**",
+      "pdf/**",
+      "preload/**",
+      "ui/**",
+      "search/**",
+      "config.json",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "icon": "build/icon.png",
+      "signAndEditExecutable": true,
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Lodica",
+      "artifactName": "Lodica-Setup-${version}.exe"
+    },
+    "portable": {
+      "artifactName": "Lodica-Portable-${version}.exe"
+    },
+    "protocols": [
+      {
+        "name": "Web",
+        "schemes": [
+          "http",
+          "https"
+        ]
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "htm",
+          "html"
+        ],
+        "name": "HTML document",
+        "role": "Viewer"
+      }
+    ],
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Network",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "maintainer": "Lodica contributors",
+      "artifactName": "Lodica-${version}.${ext}",
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "Lodica"
+        }
+      },
+      "syncDesktopName": true
+    }
+  },
+  "homepage": "https://example.com",
+  "desktopName": "lodica.desktop"
+}

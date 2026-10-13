@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="graphite">#FF111827</color>
+    <color name="graphite_raised">#FF1F2937</color>
+    <color name="amber">#FFF59E0B</color>
+    <color name="coral">#FFF43F5E</color>
+</resources>

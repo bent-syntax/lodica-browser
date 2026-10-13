@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>Lodica tabs</title>
+<link rel="stylesheet" href="themes.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font:13px/1 system-ui,"Segoe UI",sans-serif;color:var(--mist);user-select:none;display:flex;align-items:center;gap:4px;padding:0 6px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outline:none}
+#tabs{flex:0 1 auto;min-width:0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#tabs::-webkit-scrollbar{display:none}
+.t{flex:0 1 180px;min-width:72px;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
+.t:hover{background:var(--hover2)}
+.t.cur{background:var(--high);box-shadow:inset 0 -2px 0 var(--amber)}
+.t.priv .l{color:var(--coral)}
+.t.split{box-shadow:inset 0 -2px var(--amber)}
+.t .l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t .x{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none;font-size:14px}
+.t .x:hover{background:var(--hover2);color:var(--mist)}
+.add,.mail{height:28px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center}
+.add{width:28px;font-size:18px;color:var(--muted)}.add:hover{background:var(--hover);color:var(--mist)}
+.mail{margin-left:auto;padding:0 12px;background:var(--amber);color:var(--bg);font-weight:600}
+.nav{display:flex;gap:2px;flex:none}
+.nb{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--mist)}
+.nb:hover{background:var(--hover)}
+.nb:disabled{opacity:.35;cursor:default;background:none}
+.nb svg{width:18px;height:18px;fill:currentColor}
+#list{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:4px}
+body.vert{flex-direction:column;align-items:stretch;padding:6px 6px 6px 6px;gap:6px}
+body.vert .nav{justify-content:space-between}
+body.vert #list{flex:0 1 auto;min-height:0;flex-direction:column;align-items:stretch;overflow-y:auto;scrollbar-width:thin}
+body.vert #tabs{flex-direction:column;overflow:visible;flex:none}
+body.vert .t{flex:none;min-width:0;width:100%}
+body.vert .add{width:100%;justify-content:flex-start;padding-left:11px}
+body.vert .mail{margin:auto 0 0 0;padding:0;height:32px;width:100%}
+body.vert.fold{padding:6px 4px;align-items:center}
+body.vert.fold .nav{flex-direction:column;align-items:center}
+body.vert.fold #list,body.vert.fold #tabs{align-items:center}
+body.vert.fold .t{width:34px;padding:0;justify-content:center}
+body.vert.fold .t .l{flex:none;text-align:center;overflow:visible;text-overflow:clip;width:1em}
+.t .fv{width:16px;height:16px;border-radius:3px;flex:none;object-fit:contain}
+.t .fl{width:16px;height:16px;border-radius:4px;flex:none;background:var(--hover2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+body.vert .t{padding-left:9px}
+body.vert.fold .t .l{display:none}
+body.vert.fold .t{padding:0}
+body.vert.fold .t .x{display:none}
+body.vert.fold .add{width:34px;padding:0;justify-content:center}
+body.vert.fold .mail{font-size:0;width:34px}
+body.vert.fold .mail::before{content:"@";font-size:14px}
+#grip{position:fixed;top:0;right:0;bottom:0;width:5px;cursor:col-resize}
+#grip:hover,#grip.on{background:var(--amber-bg)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="nav">
+<button id="back" class="nb" title="Back (Alt+Left)" disabled></button>
+<button id="fwd" class="nb" title="Forward (Alt+Right)" disabled></button>
+<button id="rel" class="nb" title="Reload (F5)"></button>
+<button id="fold" class="nb hidden" title="Collapse panel"></button>
+</div>
+<div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab">+</button></div>
+<button id="mail" class="mail hidden" title="Fill the sign-up form with the dummy mail">Use dummy mail</button>
+<div id="grip" class="hidden"></div>
+<script src="js/top.js"></script>
+</body>
+</html>

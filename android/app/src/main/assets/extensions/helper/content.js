@@ -1,0 +1,1078 @@
+"use strict";
+
+// Spots email/login fields (also inside iframes and shadow DOM) and lets the app fill a hidden
+// @your-domain alias, then the one-time code mailed to it. Reports sign-in pages so the app can
+// keep those sites off the VPS. The top frame always connects so the menu action works on any
+// page; subframes connect once they hold a field.
+(() => {
+  const TOP = window === window.top;
+  const KEY = /e-?mail|user-?name|login|identifier|account/i;
+  const SKIP = /search|query|otp|code|phone|tel|zip|postal|captcha|coupon|promo/i;
+  const TEXT = new Set(["", "text", "email"]);
+  const CODE_TYPES = new Set(["", "text", "tel", "number"]);
+  const CODE = /otp|one-?time|verif|code|pin|token|2fa|mfa|passcode/i;
+  const NOT_CODE = /promo|coupon|discount|gift|zip|postal|country|area|phone|search/i;
+  const LOGIN = /log-?in|sign-?(in|up|on)|regist|join|auth|account|identifier|verif/i;
+  let port = null;
+  let last = null;     // last focused email field
+  let lastText = null; // last focused text input, used when nothing matches
+  let seen = false;    // this frame has reported a field
+  let login = false;   // this frame has reported a sign-in page
+  let code = null;     // { value, until }: a code that arrived before its field showed up
+  let user = "";       // last username typed or filled in this frame
+  let sent = "";       // last login reported, so one submit isn't offered twice
+  let signup = null;   // { d: identity from the app, until, pass: password used, done }: fills sign-up forms
+  const SUBMIT = /log-?\s?in|sign-?\s?(in|on|up)|continue|next|submit|enter|verify|weiter|anmelden|connexion|inloggen|aanmelden|volgende|doorgaan/i;
+  const TOGGLE = /show|hide|reveal|toon|verberg|zeig|eye/i;
+
+  const attr = (el, n) => el.getAttribute(n) || "";
+
+  function labelText(el) {
+    let t = attr(el, "aria-label") + " " + attr(el, "placeholder");
+    const root = el.getRootNode();
+    for (const id of attr(el, "aria-labelledby").split(/\s+/)) {
+      const l = id && root.getElementById ? root.getElementById(id) : null;
+      if (l) t += " " + l.textContent;
+    }
+    if (el.labels) for (const l of el.labels) t += " " + l.textContent;
+    return t;
+  }
+
+  function isText(el) {
+    if (!el || el.tagName !== "INPUT" || el.disabled || el.readOnly) return false;
+    return TEXT.has(attr(el, "type").toLowerCase());
+  }
+
+  function isEmailField(el) {
+    if (!isText(el)) return false;
+    if (attr(el, "type").toLowerCase() === "email" || attr(el, "inputmode").toLowerCase() === "email") return true;
+    const ac = attr(el, "autocomplete").toLowerCase();
+    if (/email|username/.test(ac)) return true;
+    const ids = attr(el, "name") + " " + attr(el, "id");
+    return KEY.test(ids + " " + labelText(el)) && !SKIP.test(ids + " " + ac);
+  }
+
+  function visible(el) {
+    return el.isConnected && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+  }
+
+  // All inputs (or other tags), piercing open and closed shadow roots.
+  function inputs(root, out, tags = ["INPUT"]) {
+    for (const el of root.querySelectorAll("*")) {
+      if (tags.includes(el.tagName)) out.push(el);
+      const sr = el.openOrClosedShadowRoot;
+      if (sr) inputs(sr, out, tags);
+    }
+    return out;
+  }
+
+  function fields() {
+    return inputs(document, []).filter((el) => isEmailField(el) && visible(el));
+  }
+
+  function active() {
+    let el = document.activeElement;
+    while (el && el.openOrClosedShadowRoot && el.openOrClosedShadowRoot.activeElement) {
+      el = el.openOrClosedShadowRoot.activeElement;
+    }
+    return el;
+  }
+
+  // Sets a value the way typing would: the native setter (so framework value trackers notice the
+  // change), then input, change and blur, which React, Vue and form validators listen for.
+  function typeIn(el, v) {
+    const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype
+      : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+    if (setter) setter.call(el, v); else el.value = v;
+    el.dispatchEvent(el instanceof HTMLSelectElement
+      ? new Event("input", { bubbles: true, composed: true })
+      : new InputEvent("input", { bubbles: true, composed: true, data: v, inputType: "insertText" }));
+    el.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    el.dispatchEvent(new FocusEvent("blur"));
+    el.dispatchEvent(new FocusEvent("focusout", { bubbles: true, composed: true }));
+  }
+
+  function fill(value) {
+    const a = active();
+    const el = isEmailField(a) ? a
+      : last && visible(last) ? last
+      : fields()[0] || (isText(a) ? a : lastText && visible(lastText) ? lastText : null);
+    if (!el) return false;
+    el.focus();
+    typeIn(el, value);
+    user = value;
+    return true;
+  }
+
+  function isCodeField(el) {
+    if (!el || el.tagName !== "INPUT" || el.disabled || el.readOnly) return false;
+    if (!CODE_TYPES.has(attr(el, "type").toLowerCase())) return false;
+    const ac = attr(el, "autocomplete").toLowerCase();
+    if (ac.includes("one-time-code")) return true;
+    const t = attr(el, "name") + " " + attr(el, "id") + " " + labelText(el);
+    if (NOT_CODE.test(t + " " + ac)) return false;
+    if (CODE.test(t)) return true;
+    const max = el.maxLength;
+    return attr(el, "inputmode").toLowerCase() === "numeric" && (max === 1 || (max >= 4 && max <= 8));
+  }
+
+  const set = (el, v) => { el.focus(); typeIn(el, v); };
+
+  // One input for the whole code, or one box per digit.
+  function fillCode(value) {
+    const all = inputs(document, []).filter((el) => visible(el) && isCodeField(el));
+    const boxes = all.filter((el) => el.maxLength === 1);
+    if (boxes.length >= value.length) {
+      boxes.slice(0, value.length).forEach((el, i) => set(el, value[i]));
+      boxes[value.length - 1].blur();
+      return true;
+    }
+    const one = all.find((el) => el.maxLength !== 1);
+    if (!one) return false;
+    set(one, value);
+    return true;
+  }
+
+  function tryCode() {
+    if (!code) return;
+    if (Date.now() > code.until) { code = null; return; }
+    if (!fillCode(code.value)) return;
+    code = null;
+    if (port) port.postMessage({ type: "coded", ok: true });
+  }
+
+  // Password and code fields mean sign-in; email fields only when the page or label says so.
+  function isLogin(el) {
+    if (!el || el.tagName !== "INPUT" || !visible(el)) return false;
+    if (attr(el, "type").toLowerCase() === "password") return true;
+    if (attr(el, "autocomplete").toLowerCase().includes("one-time-code")) return true;
+    return isEmailField(el) && LOGIN.test(location.href + " " + attr(el, "name") + " " + attr(el, "id") + " " + labelText(el));
+  }
+
+  function reportLogin() {
+    if (login) return;
+    login = true;
+    connect();
+    if (port) port.postMessage({ type: "login", host: location.hostname });
+  }
+
+  const SIGNUP = /sign-?\s?up|regist|create[-_ ]?(an[-_ ])?account|join|new[-_ ]?account|maak[-_ ]?(een[-_ ])?account/i;
+  // Sign-up page: new-password field, two password fields, or sign-up wording. A lone current-password field is sign-in.
+  function isSignup() {
+    const all = inputs(document, []).filter(visible);
+    const pw = all.filter((el) => attr(el, "type").toLowerCase() === "password");
+    if (pw.some((el) => attr(el, "autocomplete").toLowerCase() === "new-password")) return true;
+    if (pw.length >= 2) return true;
+    if (pw.length === 1 && attr(pw[0], "autocomplete").toLowerCase() === "current-password") return false;
+    if (SIGNUP.test(location.pathname + " " + location.search + " " + document.title)) return true;
+    if (all.some((el) => isEmailField(el) && SIGNUP.test(attr(el, "name") + " " + attr(el, "id") + " " + labelText(el)))) return true;
+    const BTN = /^\s*(sign\s?up|create (an )?account|register|registreer|join|get started|maak (een )?account)\b/i;
+    return [...document.querySelectorAll("h1, h2, button, input[type=submit]")].slice(0, 40)
+      .some((el) => el.getClientRects().length > 0 && BTN.test(el.value || el.textContent || ""));
+  }
+
+  function report() {
+    if (port) port.postMessage({ type: "email", focused: isEmailField(active()), signup: isSignup() });
+  }
+
+  function connect() {
+    if (port) return;
+    try {
+      port = browser.runtime.connectNative("lodica");
+    } catch (e) {
+      return;
+    }
+    port.onMessage.addListener((msg) => {
+      if (!msg || typeof msg.value !== "string") return;
+      if (msg.type === "fill") {
+        const ok = fill(msg.value);
+        port.postMessage({ type: "filled", ok });
+        if (ok) startSignup(msg);
+      }
+      if (msg.type === "signup") startSignup(msg);
+      if (msg.type === "reader" && TOP) port.postMessage(article());
+      if (msg.type === "code") {
+        code = { value: msg.value, until: Date.now() + 120000 };
+        tryCode();
+        if (code) watch();
+      }
+    });
+    port.onDisconnect.addListener(() => { port = null; });
+    if (seen) report();
+  }
+
+  function found() {
+    if (seen) return;
+    seen = true;
+    if (port) report(); else connect();
+  }
+
+  // Closed shadow roots retarget the event to the host; fall back to the deep active element.
+  const target = (e) => {
+    const p = e.composedPath()[0];
+    return p && p.tagName === "INPUT" ? p : active();
+  };
+
+  document.addEventListener("focusin", (e) => {
+    const el = target(e);
+    if (isText(el)) lastText = el;
+    if (isLogin(el)) reportLogin();
+    if (!isEmailField(el)) return;
+    last = el;
+    found();
+    if (port) port.postMessage({ type: "focus", on: true, signup: isSignup() });
+  }, true);
+  document.addEventListener("focusout", () => {
+    if (port) setTimeout(() => { if (port) port.postMessage({ type: "focus", on: isEmailField(active()), signup: isSignup() }); }, 0);
+  }, true);
+
+  const isPassword = (el) => el && el.tagName === "INPUT" && attr(el, "type").toLowerCase() === "password";
+
+  function noteUser(el) {
+    if (!isEmailField(el)) return;
+    const v = el.value.trim();
+    if (!v || v === user) return;
+    user = v;
+    connect();
+    if (port) port.postMessage({ type: "user", host: location.hostname, value: v });
+  }
+
+  // Gecko only offers to save on a classic form submit; script logins, alias fills and two-step
+  // pages slip past it, so report what was typed when the user sends the form. Stays on the phone.
+  function capture() {
+    const all = inputs(document, []);
+    const u = all.find((el) => isEmailField(el) && el.value.trim() && visible(el));
+    if (u) noteUser(u);
+    const pws = all.filter((el) => isPassword(el) && el.value);
+    if (!pws.length) return;
+    const pass = (pws.length >= 3 ? pws[1] : pws[0]).value; // change-password forms: current, new, confirm
+    if (signup && pass === signup.pass) return; // the app already stored the generated login
+    const name = u ? u.value.trim() : user;
+    const key = name + "\n" + pass;
+    if (key === sent) return;
+    sent = key;
+    connect();
+    if (port) port.postMessage({ type: "creds", origin: location.origin, user: name, pass });
+  }
+
+  function isSubmit(e) {
+    for (const el of e.composedPath()) {
+      if (!el.tagName) continue;
+      const tag = el.tagName;
+      const type = attr(el, "type").toLowerCase();
+      const button = tag === "BUTTON" || (tag === "INPUT" && /^(submit|button|image)$/.test(type)) || attr(el, "role") === "button";
+      if (!button) continue;
+      const text = (el.textContent || el.value || "") + " " + attr(el, "aria-label");
+      if (TOGGLE.test(text + " " + attr(el, "class"))) return false;
+      if (tag === "BUTTON" && (type === "" || type === "submit") && el.form) return true;
+      if (tag === "INPUT" && (type === "submit" || type === "image")) return true;
+      return SUBMIT.test(text);
+    }
+    return false;
+  }
+
+  document.addEventListener("submit", capture, true);
+  document.addEventListener("keydown", (e) => { if (e.key === "Enter" && target(e)?.tagName === "INPUT") capture(); }, true);
+  document.addEventListener("click", (e) => { if (isSubmit(e)) capture(); }, true);
+  document.addEventListener("change", (e) => noteUser(target(e)), true);
+  window.addEventListener("pagehide", capture);
+
+  // Returns true when there is nothing left to watch for.
+  function scan() {
+    const all = inputs(document, []).filter(visible);
+    if (!seen && all.some(isEmailField)) found();
+    if (!login && all.some(isLogin)) reportLogin();
+    tryCode();
+    if (signup && Date.now() > signup.until) signup = null;
+    if (signup) signupFill();
+    return seen && login && !code && !signup;
+  }
+
+  // Single-page login flows render or reveal the form late; keep watching, throttled.
+  let obs = null;
+  function watch() {
+    if (obs) return;
+    let timer = 0;
+    obs = new MutationObserver(() => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = 0;
+        if (scan()) { obs.disconnect(); obs = null; }
+      }, 800);
+    });
+    obs.observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class", "hidden"],
+    });
+  }
+
+  // --- Sign-up: the alias goes in every mail field (confirm ones too), the generated password in
+  // every new-password field, plus username, name, birthday and the required terms box, so a
+  // sign-up needs no typing. Only empty fields are touched; phone numbers and captchas are left.
+  const MAIL = /e-?mail|courriel|correo|mail.?addr/i;
+  const USERNAME = /user-?name|nick|handle|screen.?name|gebruikersnaam|benutzername|pseudo|login.?name/i;
+  const FIRST = /first.?name|fname|given|voornaam|vorname|pr[eé]nom|nombre/i;
+  const LAST = /last.?name|lname|surname|family|achternaam|nachname|apellido/i;
+  const FULL = /full.?name|your.?name|volledige.?naam|display.?name/i;
+  const BDAY = /birth|bday|dob|geboort|geburt|naissance|nacimiento/i;
+  const TERMS = /terms|agree|accept|privacy|condition|policy|voorwaarden|akkoord|datenschutz|agb|cgu|nutzungsbedingungen/i;
+  const OPTIONAL = /newsletter|nieuwsbrief|marketing|offer|promo|news|updates|aanbieding|werbung|partner|sms|third|subscribe|mailing|deals|inspiration|advert|reclame|publicit|commercial/i;
+  const ticked = new WeakSet(); // terms boxes clicked once, so a page that unticks one wins
+
+  const ids = (el) => attr(el, "name") + " " + attr(el, "id") + " " + labelText(el);
+  const ac = (el) => attr(el, "autocomplete").toLowerCase();
+  const empty = (el) => !el.value.trim();
+
+  function isMail(el) {
+    if (!isText(el)) return false;
+    return attr(el, "type").toLowerCase() === "email" || attr(el, "inputmode").toLowerCase() === "email" ||
+      ac(el).includes("email") || MAIL.test(ids(el));
+  }
+
+  function isUsername(el) {
+    return isText(el) && !isMail(el) && (ac(el).includes("username") || USERNAME.test(ids(el)));
+  }
+
+  function nameKind(el) {
+    if (!isText(el) || isMail(el) || isUsername(el)) return "";
+    const a = ac(el);
+    if (a.includes("given-name")) return "first";
+    if (a.includes("family-name")) return "last";
+    if (/(^|\s)name$/.test(a)) return "full";
+    if (SKIP.test(attr(el, "name") + " " + attr(el, "id")) || BDAY.test(ids(el))) return "";
+    const t = ids(el);
+    if (FIRST.test(t)) return "first";
+    if (LAST.test(t)) return "last";
+    if (FULL.test(t) || /^(name|naam|nom|fullname)$/i.test(attr(el, "name"))) return "full";
+    return "";
+  }
+
+  // "full", "day", "month", "year" or "" for fields asking for a date of birth.
+  function bdayPart(el) {
+    const a = ac(el);
+    if (a === "bday") return "full";
+    const m = a.match(/bday-(day|month|year)/);
+    if (m) return m[1];
+    const raw = ids(el);
+    if (!BDAY.test(raw) && !/^(day|month|year|dd|mm|yyyy)$/i.test(attr(el, "name"))) return "";
+    const t = raw.replace(/birth.?day|bday|geburtstag|verjaardag|geboortedag/gi, " ");
+    const isY = /year|jaar|jahr|ann[eé]e|a[nñ]o|yyyy/i.test(t), isM = /month|maand|monat|mois|mes\b|\bmm\b/i.test(t),
+      isD = /day|dag|tag|jour|d[ií]a|\bdd\b/i.test(t);
+    // A format hint such as "mm/dd/yyyy" names several parts: that is one full-date field.
+    if (isY + isM + isD > 1) return "full";
+    return isY ? "year" : isM ? "month" : isD ? "day" : "full";
+  }
+
+  // Fixed dummy details, the same on every site. The identity may override them (d.addr, d.bday);
+  // the app does not send them yet, so these defaults apply. They match the desktop app.
+  const ADDR0 = { street: "Rue de la Loi", number: "16", postcode: "1000", city: "Brussels", state: "Brussels-Capital Region", country: "Belgium" };
+  const BDAY0 = { year: 1994, month: 5, day: 17 };
+  const MONTH_RE = [/^jan|^ene/, /^f[eé]b|^fév/, /^m[aä]r|^maa|^mrt/, /^apr|^avr|^abr/, /^may|^mei|^mai|^mag/, /^juin|^jun/,
+    /^juil|^jul/, /^aug|^aou|^ago/, /^sep|^set/, /^o[ck]t|^okt|^out/, /^nov/, /^d[ei]c|^dez/];
+  const pad2 = (n) => String(n).padStart(2, "0");
+
+  // A required field is one the page marks: required, aria-required, or a "*" in its label.
+  function isRequired(el) {
+    if (el.required || attr(el, "aria-required") === "true") return true;
+    let t = labelText(el) + " " + (el.closest("label")?.textContent || "");
+    const prev = el.previousElementSibling;
+    if (prev && prev.textContent.length < 80) t += " " + prev.textContent;
+    const par = el.parentElement;
+    if (par && par.querySelectorAll("input,select,textarea").length === 1) {
+      const l = par.querySelector("label");
+      if (l && l.textContent.length < 80) t += " " + l.textContent;
+    }
+    return /[*\u2217\uFF0A]/.test(t);
+  }
+
+  // Month number of an option text or value: "5", "05", "05 - May", "mei", "Mai".
+  function monthOf(t) {
+    t = t.trim().toLowerCase();
+    const n = t.match(/^0*(\d{1,2})(\D|$)/);
+    if (n) return Number(n[1]);
+    const i = MONTH_RE.findIndex((r) => r.test(t));
+    return i < 0 ? 0 : i + 1;
+  }
+
+  function pickOption(sel, part, B) {
+    const n = { day: B.day, month: B.month, year: B.year }[part];
+    if (!n) return null;
+    const opts = [...sel.options].filter((o) => !o.disabled);
+    const ok = (t) => t.trim() && (part === "month" ? monthOf(t) === n : new RegExp("^\\s*0*" + n + "(\\D|$)").test(t));
+    return opts.find((o) => ok(o.value) || ok(o.text)) ||
+      (part === "month" && opts.filter((o) => o.value).length === 12 ? opts.filter((o) => o.value)[n - 1] : null);
+  }
+
+  function pickText(sel, re) {
+    return [...sel.options].filter((o) => !o.disabled).find((o) => re.test(o.value.trim()) || re.test(o.text.trim())) || null;
+  }
+
+  // Date text in the field's own format: ISO for type=date, else read from the placeholder, label or
+  // pattern (dd-mm-yyyy, mm/dd/yyyy, yyyy-mm-dd, dd.mm.yyyy, jj/mm/aaaa, TT.MM.JJJJ ...).
+  const TOK = "(?:d{1,2}|t{1,2}|m{1,2}|y{2,4}|j{1,4}|a{2,4})";
+  const FMT = new RegExp("(?:^|[^a-z])(" + TOK + ")\\s*([/.\\-])\\s*(" + TOK + ")\\s*\\2\\s*(" + TOK + ")(?![a-z])", "i");
+  const tokKind = (t) => { const c = t[0].toLowerCase(); return c === "d" || c === "t" ? "day" : c === "m" ? "month" : c === "j" ? (t.length >= 3 ? "year" : "day") : "year"; };
+
+  function dateText(el, B) {
+    const part = (k, len) => k === "day" ? (len === 1 ? String(B.day) : pad2(B.day))
+      : k === "month" ? (len === 1 ? String(B.month) : pad2(B.month)) : (len === 2 ? String(B.year).slice(2) : String(B.year));
+    if (attr(el, "type").toLowerCase() === "date") return B.year + "-" + pad2(B.month) + "-" + pad2(B.day);
+    const hint = [labelText(el), attr(el, "title"), attr(el, "pattern"), attr(el, "data-format"), attr(el, "data-date-format")].join(" ");
+    const m = hint.match(FMT);
+    if (m) return [m[1], m[3], m[4]].map((t) => part(tokKind(t), t.length)).join(m[2]);
+    const pat = attr(el, "pattern");
+    const sep = (pat.match(/[/.\-]/) || ["/"])[0];
+    if (/^\^?\\d\{4\}/.test(pat)) return B.year + sep + pad2(B.month) + sep + pad2(B.day);
+    if (el.maxLength === 8) return pad2(B.day) + pad2(B.month) + B.year;
+    return pad2(B.day) + sep + pad2(B.month) + sep + B.year;
+  }
+
+  // Single day, month or year inputs: month as 1-12 or 01-12 following the placeholder.
+  function partText(el, kind, B) {
+    if (kind === "day") return /^\s*d\s*$/i.test(attr(el, "placeholder")) ? String(B.day) : pad2(B.day);
+    if (kind === "month") return /^\s*m\s*$/i.test(attr(el, "placeholder")) ? String(B.month) : pad2(B.month);
+    return el.maxLength === 2 ? String(B.year).slice(2) : String(B.year);
+  }
+
+  // Address fields: "street", "number", "postcode", "city", "state", "country" or "".
+  const NOT_ADDR = /e-?mail|phone|\btel\b|fax|ip.?addr|card|company|bedrijf|firma|line.?[23]|apt\b|suite|unit\b|flat\b|apartment|appartement|\bbus\b/i;
+  function addrKind(el) {
+    const a = ac(el);
+    if (/postal-code/.test(a)) return "postcode";
+    if (/address-level2/.test(a)) return "city";
+    if (/address-level1/.test(a)) return "state";
+    if (/country/.test(a)) return "country";
+    if (/street-address|address-line1/.test(a)) return "street";
+    if (/address-line[23]/.test(a)) return "";
+    const raw = attr(el, "name") + " " + attr(el, "id") + " " + labelText(el);
+    if (BDAY.test(raw) || NOT_ADDR.test(raw) || MAIL.test(raw)) return "";
+    if (/zip|postal|postcode|\bplz\b|postleitzahl/i.test(raw)) return "postcode";
+    if (/country|\bpays\b|\bland\b|nation|pa[ií]s/i.test(raw)) return "country";
+    if (/\bstate\b|province|provincie|\bregion|gewest|bundesland|canton/i.test(raw)) return "state";
+    if (/\bcity\b|\btown\b|\bstad\b|gemeente|\bville\b|\bort\b|plaats|locality|commune/i.test(raw)) return "city";
+    if (/house.?(no|num|nr)|huisnummer|hausnummer|street.?(no|num|nr)|\bn°/i.test(raw)) return "number";
+    if (/street|straat|stra[sß]e|adres|address|\brue\b|\baddr/i.test(raw)) return "street";
+    return "";
+  }
+
+  function setSelect(sel, opt) {
+    typeIn(sel, opt.value);
+  }
+
+  function startSignup(msg) {
+    if (typeof msg.pass !== "string" || !msg.pass) return;
+    signup = { d: msg, until: Date.now() + 300000, pass: "", done: false };
+    signupFill();
+    watch();
+  }
+
+  function signupFill() {
+    const d = signup.d;
+    const all = inputs(document, [], ["INPUT", "SELECT"]).filter(visible);
+    let lastSet = null;
+    const put = (el, v) => { set(el, el.maxLength > 0 ? v.slice(0, el.maxLength) : v); lastSet = el; };
+    const mails = all.filter(isMail);
+
+    const A = { ...ADDR0, ...(d.addr || {}) }, B = { ...BDAY0, ...(d.bday || {}) };
+    const hasNumber = all.some((el) => el.tagName === "INPUT" && addrKind(el) === "number");
+    const addrText = { street: hasNumber ? A.street : A.street + " " + A.number, number: A.number, postcode: A.postcode, city: A.city, state: A.state, country: A.country };
+    const addrPick = { country: /^\s*(be|bel|bgm)\s*$|b[eé]lg/i, state: /brus|bruxel/i, city: /brus|bruxel/i };
+
+    for (const el of all) {
+      if (el.tagName === "SELECT") {
+        // Only required selects: a date part, country, state or city.
+        if (el.disabled || el.selectedIndex > 0 || !isRequired(el)) continue;
+        const bp = bdayPart(el);
+        const k = bp ? "" : addrKind(el);
+        const opt = bp ? pickOption(el, bp, B) : addrPick[k] ? pickText(el, addrPick[k]) : null;
+        if (opt) setSelect(el, opt);
+        continue;
+      }
+      if (isMail(el)) { if (empty(el)) put(el, d.value); continue; }
+      if (isUsername(el)) {
+        // An alias that landed in a username box moves to the mail box when the form has one.
+        if (empty(el) || (el.value === d.value && mails.length)) put(el, d.user);
+        continue;
+      }
+      const type = attr(el, "type").toLowerCase();
+      const numeric = (type === "tel" || type === "number") && !el.disabled && !el.readOnly;
+      if (!isText(el) && type !== "date" && !numeric) continue;
+      if (!empty(el)) continue;
+      if (numeric) {
+        const k = addrKind(el);
+        if ((k === "postcode" || k === "number") && isRequired(el)) put(el, addrText[k]);
+        continue;
+      }
+      if (!isRequired(el)) continue;
+      const part = bdayPart(el);
+      if (part) { put(el, part === "full" ? dateText(el, B) : partText(el, part, B)); continue; }
+      const kind = nameKind(el);
+      if (kind) { put(el, kind === "first" ? d.first : kind === "last" ? d.last : d.first + " " + d.last); continue; }
+      const ak = addrKind(el);
+      if (ak) put(el, addrText[ak]);
+    }
+
+    // Passwords: on sign-up pages only the new ones; one shared value cut to the tightest maxLength.
+    const pws = all.filter((el) => isPassword(el) && !el.disabled && !el.readOnly);
+    const fresh = pws.filter((el) => ac(el).includes("new-password"));
+    const targets = fresh.length ? fresh : pws.filter((el) => ac(el).includes("current-password")).length ? [] : pws;
+    if (!signup.pass) {
+      let p = d.pass;
+      for (const el of targets) if (el.maxLength > 0 && el.maxLength < p.length) p = p.slice(0, el.maxLength);
+      if (targets.length) signup.pass = p;
+    }
+    for (const el of targets) if (!el.value) { set(el, signup.pass); lastSet = el; }
+
+    for (const el of inputs(document, [])) {
+      if (attr(el, "type").toLowerCase() !== "checkbox" || el.checked || el.disabled || ticked.has(el)) continue;
+      // Judge by the box's own label; the surrounding text only when it has none (it may hold other boxes).
+      const own = labelText(el) + " " + (el.closest("label")?.textContent || "");
+      const t = own.trim() ? own : (el.parentElement?.textContent || "").slice(0, 300);
+      if (!TERMS.test(t) || OPTIONAL.test(t)) continue;
+      if (!visible(el) && !(el.parentElement && visible(el.parentElement))) continue;
+      ticked.add(el);
+      el.click();
+    }
+
+    if (lastSet) lastSet.blur();
+    if (!signup.done && signup.pass && targets.some((el) => el.value === signup.pass)) {
+      signup.done = true;
+      sent = d.value + "\n" + signup.pass;
+      connect();
+      if (port) port.postMessage({ type: "signed", origin: location.origin, pass: signup.pass });
+    }
+  }
+
+
+  // --- Page options: cookie-banner rejection, forced dark, playback speed (all set by the app) ---
+
+  const REJECT = /^\s*(reject|decline|deny|refuse|disagree|weigeren|afwijzen|alles weigeren|alles afwijzen|alle ablehnen|ablehnen|tout refuser|refuser|rechazar|rifiuta|rejeitar|continuer sans accepter|continue without accepting|only (strictly )?(necessary|essential|required)|(use |accept )?(only )?(necessary|essential|required) (cookies )?only|alleen (noodzakelijk|functioneel|essenti)|nur (notwendige|essenzielle|erforderliche)|uniquement (les )?(n[ée]cessaires|essentiels)|necessary only|essential only)/i;
+  const CONSENT = /cookie|consent|gdpr|privacy|tracking|cmp|didomi|onetrust|cybot|usercentrics|sp_message|qc-cmp|truste|osano|klaro|tarteaucitron|toestemming|einwilligung/i;
+  const CONSENT_TEXT = /cookie|consent|privacy|gdpr|toestemming|einwilligung/i;
+  // Buttons that only ever mean "reject all".
+  const CMP_BUTTONS = [
+    "#onetrust-reject-all-handler", ".ot-pc-refuse-all-handler", "#CybotCookiebotDialogBodyButtonDecline",
+    "#CybotCookiebotDialogBodyLevelButtonLevelOptinDeclineAll", "[data-testid='uc-deny-all-button']",
+    "#didomi-notice-disagree-button", ".didomi-continue-without-agreeing", ".sp_choice_type_REJECT_ALL",
+    ".cmpboxbtnno", "#truste-consent-required", ".fc-cta-do-not-consent", ".osano-cm-denyAll",
+    ".cky-btn-reject", "#cookie_action_close_header_reject", ".cc-deny", "#tarteaucitronAllDenied2",
+    ".klaro .cn-decline", "[data-cookiefirst-action='reject']", ".iubenda-cs-reject-btn",
+  ];
+  // Selectors that also match other buttons (Quantcast's secondary button can be "More options", Google's form holds Accept too): the label must read as a rejection.
+  const CMP_LABELLED = [
+    ".qc-cmp2-summary-buttons button[mode='secondary']", ".qc-cmp2-footer button",
+    "form[action*='consent.google'] button", "form[action*='consent.youtube'] button",
+    "#sp_message_container button", "[class*='sp_choice_type'] button",
+  ];
+  const BANNER_SEL = "[id*='cookie' i],[class*='cookie' i],[id*='consent' i],[class*='consent' i],[id*='gdpr' i],[class*='gdpr' i],[id*='cmp' i],[class*='cmp-' i]";
+  let page = {};
+  let cookieUntil = 0;
+  let cookieDone = false;
+  let cookieClicks = 0;
+  let cookieObs = null;
+  let cookieSeen = 0;
+  const clicked = new WeakSet();
+
+  function visible(el) {
+    if (!el || !el.getClientRects().length) return false;
+    const st = getComputedStyle(el);
+    return st.visibility !== "hidden" && st.display !== "none" && +st.opacity !== 0;
+  }
+
+  function inBanner(el) {
+    for (let n = el, i = 0; n && n !== document.body && i < 12; n = n.parentElement, i++) {
+      if (CONSENT.test((n.id || "") + " " + (typeof n.className === "string" ? n.className : "") + " " + (n.getAttribute("aria-label") || ""))) return true;
+    }
+    // Consent iframes (Sourcepoint, Google) hold nothing but the dialog: judge by the frame's own text.
+    if (!TOP) return document.body.textContent.length < 6000 && CONSENT_TEXT.test(document.body.textContent);
+    // Banners without telling ids: a small container whose text talks about cookies.
+    const box = el.closest("div,section,aside,dialog,form,footer");
+    return !!box && box.textContent.length < 3000 && CONSENT_TEXT.test(box.textContent);
+  }
+
+  const labelOf = (el) => (el.value || el.textContent || el.getAttribute("aria-label") || "").trim();
+
+  function findReject() {
+    for (const sel of CMP_BUTTONS) {
+      let el = null;
+      try { el = document.querySelector(sel); } catch { /* bad selector */ }
+      if (visible(el) && !clicked.has(el)) return el;
+    }
+    for (const sel of CMP_LABELLED) {
+      for (const el of document.querySelectorAll(sel)) {
+        if (REJECT.test(labelOf(el)) && visible(el) && !clicked.has(el)) return el;
+      }
+    }
+    for (const el of document.querySelectorAll("button, a[role=button], [role=button], input[type=button], input[type=submit], a")) {
+      const label = labelOf(el);
+      if (label.length > 60 || !REJECT.test(label)) continue;
+      if (visible(el) && !clicked.has(el) && inBanner(el)) return el;
+    }
+    return null;
+  }
+
+  // Last resort when no reject button exists: hide the fixed-position consent dialog and give the page its scroll back.
+  function hideBanners() {
+    let hidden = false;
+    for (const el of document.querySelectorAll(BANNER_SEL)) {
+      if (el === document.body || el === document.documentElement || el.dataset.lodicaHidden) continue;
+      if (!visible(el)) continue;
+      const pos = getComputedStyle(el).position;
+      if (pos !== "fixed" && pos !== "sticky") continue;
+      const text = el.textContent;
+      if (text.length > 4000 || !CONSENT_TEXT.test(text) || !el.querySelector("button, a, input")) continue;
+      el.dataset.lodicaHidden = "1";
+      el.style.setProperty("display", "none", "important");
+      hidden = true;
+    }
+    if (hidden) {
+      for (const e of [document.documentElement, document.body]) {
+        if (e && /hidden|clip/.test(getComputedStyle(e).overflow)) e.style.setProperty("overflow", "auto", "important");
+      }
+    }
+    return hidden;
+  }
+
+  function rejectCookies() {
+    if (cookieDone || !page.cookies) return;
+    const hit = findReject();
+    if (hit) {
+      cookieDone = true;
+      clicked.add(hit);
+      hit.click();
+      // A second dialog (preferences step, late banner) may follow: allow a few more clicks.
+      if (++cookieClicks < 3) setTimeout(() => { cookieDone = false; }, 1500);
+      return;
+    }
+    if (!TOP) return;
+    // No reject button after a few seconds: the banner probably has none we know, so hide it.
+    if (!cookieSeen) { if (document.querySelector(BANNER_SEL)) cookieSeen = Date.now(); return; }
+    if (Date.now() - cookieSeen > 3000) hideBanners();
+  }
+
+  function watchCookies() {
+    if (!page.cookies || cookieObs) return;
+    cookieUntil = Date.now() + 60000;
+    rejectCookies();
+    let queued = false;
+    cookieObs = new MutationObserver(() => {
+      if (Date.now() > cookieUntil) { cookieObs.disconnect(); return; }
+      if (queued) return;
+      queued = true;
+      setTimeout(() => { queued = false; rejectCookies(); }, 250);
+    });
+    cookieObs.observe(document.documentElement, { childList: true, subtree: true });
+    // The hide fallback waits on a timer too: a banner that never mutates again must still go.
+    const tick = setInterval(() => { if (Date.now() > cookieUntil) clearInterval(tick); else rejectCookies(); }, 2000);
+  }
+
+  function luminance(c) {
+    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(c || "");
+    if (!m || (m[4] !== undefined && +m[4] < 0.1)) return -1;
+    return (0.2126 * m[1] + 0.7152 * m[2] + 0.0722 * m[3]) / 255;
+  }
+
+  // Force dark: a hue-preserving lightness remap. Each element's computed text, background and border
+  // colours are converted to HSL and only the lightness is changed (backgrounds go dark, text goes light),
+  // so a blue stays blue. Images, video, canvas, iframes and svg internals are never touched. Pages that
+  // already ship a dark mode are skipped. Remapped values are written as inline !important styles, with
+  // the previous inline values remembered so that switching the option off restores the page exactly.
+  const DARK_PROPS = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"];
+  const DARK_SKIP = new Set(["IMG", "VIDEO", "CANVAS", "PICTURE", "IFRAME", "EMBED", "OBJECT", "SOURCE", "SCRIPT", "STYLE", "LINK", "META", "HEAD", "TITLE", "NOSCRIPT", "BR", "WBR"]);
+  const DARK_MAX = 12000;
+  let darkRecs = new WeakMap();
+  let darkTouched = [];
+  let darkObs = null;
+  let darkQueue = [];
+  let darkTimer = 0;
+  let darkCount = 0;
+
+  function parseRgb(c) {
+    const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?/.exec(c || "");
+    if (!m) return null;
+    let a = 1;
+    if (m[4] !== undefined) a = m[4].endsWith("%") ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+    return [+m[1], +m[2], +m[3], a];
+  }
+
+  function rgbToHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+    if (mx === mn) return [0, 0, l];
+    const d = mx - mn;
+    const s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    let h;
+    if (mx === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    return [h * 60, s, l];
+  }
+
+  function remapColor(c, kind) {
+    const p = parseRgb(c);
+    if (!p) return null;
+    const hsl = rgbToHsl(p[0], p[1], p[2]);
+    let l = hsl[2], s = hsl[1];
+    if (kind === "bg") { l = l >= 0.5 ? 0.1 + (1 - l) * 0.3 : Math.max(0.08, l * 0.6); s *= 0.85; }
+    else if (kind === "text") { l = 0.64 + (1 - l) * 0.3; }
+    else { l = 0.2 + (1 - l) * 0.28; s *= 0.85; }
+    const rgb = hslToRgb(hsl[0], s, l);
+    return { css: "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + p[3] + ")", rgb };
+  }
+
+  function hslToRgb(h, s, l) {
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => Math.round((l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))) * 255);
+    return [f(0), f(8), f(4)];
+  }
+
+  // True when the page already styles itself for a dark scheme.
+  function pageIsDark() {
+    const bg = [document.body, document.documentElement].map((e) => e && luminance(getComputedStyle(e).backgroundColor)).find((l) => l >= 0);
+    if (bg !== undefined && bg < 0.4) return true;
+    const meta = document.querySelector("meta[name='color-scheme']");
+    if (meta && /^\s*dark\s*$/i.test(meta.content || "")) return true;
+    let scanned = 0;
+    const scan = (rules) => {
+      for (const r of rules) {
+        if (++scanned > 6000) return false;
+        if (r.media && /prefers-color-scheme:\s*dark/i.test(r.media.mediaText || "")) return true;
+        if (r.cssRules && scan(r.cssRules)) return true;
+      }
+      return false;
+    };
+    for (const sh of document.styleSheets) {
+      try { if (scan(sh.cssRules)) return true; } catch (e) { /* cross-origin sheet: unreadable */ }
+    }
+    return false;
+  }
+
+  function darkSet(el, prop, value) {
+    let rec = darkRecs.get(el);
+    if (!rec.saved) { rec.saved = {}; darkTouched.push(new WeakRef(el)); }
+    if (!(prop in rec.saved)) rec.saved[prop] = [el.style.getPropertyValue(prop), el.style.getPropertyPriority(prop)];
+    el.style.setProperty(prop, value, "important");
+  }
+
+  function darkElement(el, parentRec) {
+    const rec = { oc: null, nc: null, keep: false, saved: null };
+    // oc is the original text colour as [r,g,b], nc the remapped one (null when left alone).
+    darkRecs.set(el, rec);
+    if (DARK_SKIP.has(el.tagName)) { rec.keep = true; return; }
+    const root = el === document.documentElement || el === document.body;
+    const cs = getComputedStyle(el);
+    const col = (parseRgb(cs.color) || [0, 0, 0, 1]).slice(0, 3);
+    const same = (a, b) => !!a && !!b && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+    rec.oc = col;
+    if (parentRec && parentRec.keep && !root) { rec.keep = true; return; }
+    const bgImg = cs.backgroundImage !== "none";
+    if (bgImg && !root) { rec.keep = true; return; }
+    if (parentRec && (same(parentRec.oc, col) || same(parentRec.nc, col))) {
+      // Inherited from the parent, which already carries the new colour (or keeps the old one).
+      rec.oc = parentRec.oc;
+      rec.nc = parentRec.nc;
+    } else {
+      const nc = remapColor(cs.color, "text");
+      if (nc) { darkSet(el, "color", nc.css); rec.nc = nc.rgb; }
+    }
+    const bg = parseRgb(cs.backgroundColor);
+    if (bg && bg[3] > 0) darkSet(el, "background-color", remapColor(cs.backgroundColor, "bg").css);
+    else if (el === document.documentElement) darkSet(el, "background-color", "hsl(0,0%,10%)");
+    for (const side of ["top", "right", "bottom", "left"]) {
+      if (cs.getPropertyValue("border-" + side + "-style") === "none" || parseFloat(cs.getPropertyValue("border-" + side + "-width")) === 0) continue;
+      const bc = remapColor(cs.getPropertyValue("border-" + side + "-color"), "border");
+      if (bc) darkSet(el, "border-" + side + "-color", bc.css);
+    }
+  }
+
+  function darkWalk(root) {
+    const parents = (n) => (n.parentElement && darkRecs.get(n.parentElement)) || null;
+    const visit = (el) => {
+      if (darkCount >= DARK_MAX || darkRecs.has(el)) return;
+      darkCount++;
+      darkElement(el, parents(el));
+    };
+    const tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (n) => (n.namespaceURI === "http://www.w3.org/2000/svg" && n.localName !== "svg" ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    });
+    const list = [];
+    if (root.nodeType === 1) list.push(root);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) list.push(n);
+    return list.map((el) => () => visit(el));
+  }
+
+  function darkPump() {
+    darkTimer = 0;
+    if (!page.dark) return;
+    const t0 = performance.now();
+    while (darkQueue.length && performance.now() - t0 < 12) darkQueue.shift()();
+    if (darkQueue.length) darkTimer = setTimeout(darkPump, 16);
+  }
+
+  function darkEnqueue(root) {
+    for (const job of darkWalk(root)) darkQueue.push(job);
+    if (!darkTimer) darkTimer = setTimeout(darkPump, 0);
+  }
+
+  function darkStop() {
+    if (darkObs) { darkObs.disconnect(); darkObs = null; }
+    clearTimeout(darkTimer); darkTimer = 0;
+    darkQueue = [];
+    for (const ref of darkTouched) {
+      const el = ref.deref();
+      const rec = el && darkRecs.get(el);
+      if (!rec || !rec.saved) continue;
+      for (const prop in rec.saved) {
+        const [v, pri] = rec.saved[prop];
+        if (v) el.style.setProperty(prop, v, pri); else el.style.removeProperty(prop);
+      }
+    }
+    darkTouched = [];
+    darkRecs = new WeakMap();
+    darkCount = 0;
+  }
+
+  function applyDark() {
+    if (!TOP) return;
+    let st = document.getElementById("lodica-dark");
+    const want = !!page.dark;
+    if (want && !st) {
+      if (pageIsDark()) return; // the site brings its own dark mode
+      st = document.createElement("style");
+      st.id = "lodica-dark";
+      st.textContent = "html{color-scheme:dark!important}";
+      (document.head || document.documentElement).appendChild(st);
+      darkEnqueue(document.documentElement);
+      let pending = new Set();
+      let queued = false;
+      darkObs = new MutationObserver((muts) => {
+        for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) pending.add(n);
+        if (queued || !pending.size) return;
+        queued = true;
+        setTimeout(() => {
+          queued = false;
+          const nodes = [...pending];
+          pending = new Set();
+          for (const n of nodes) if (n.isConnected) darkEnqueue(n);
+        }, 200);
+      });
+      darkObs.observe(document.documentElement, { childList: true, subtree: true });
+    } else if (!want && st) {
+      st.remove();
+      darkStop();
+    }
+  }
+
+  function applySpeed(el) {
+    const r = +page.speed || 1;
+    for (const m of el ? [el] : document.querySelectorAll("video, audio")) {
+      if (m.playbackRate !== r) m.playbackRate = r;
+    }
+  }
+  document.addEventListener("play", (e) => { if (page.speed && page.speed !== 1) applySpeed(e.target); }, true);
+  document.addEventListener("ratechange", (e) => {
+    const r = +page.speed || 1;
+    if (r !== 1 && Math.abs(e.target.playbackRate - r) > 0.01 && e.target.playbackRate === 1) e.target.playbackRate = r;
+  }, true);
+
+  // Video quality (#35): YouTube only, through its player API. A per-site value beats the global default.
+  const YT = /(^|\.)(youtube\.com|youtube-nocookie\.com)$/.test(location.hostname);
+  const QUALITY = [[144, "tiny"], [240, "small"], [360, "medium"], [480, "large"], [720, "hd720"],
+    [1080, "hd1080"], [1440, "hd1440"], [2160, "hd2160"]];
+  function qualityTarget() {
+    const qs = page.qualities || {};
+    let h = location.hostname.replace(/^(www|m)\./, "");
+    while (h) {
+      if (qs[h]) return +qs[h];
+      const i = h.indexOf(".");
+      h = i < 0 ? "" : h.slice(i + 1);
+    }
+    return +page.quality || 720;
+  }
+  let qualityTimer = 0;
+  function applyQuality(tries) {
+    if (!YT) return;
+    const want = qualityTarget();
+    try {
+      localStorage.setItem("yt-player-quality", JSON.stringify({
+        data: JSON.stringify({ quality: want, previousQuality: want }),
+        expiration: Date.now() + 31536000000, creation: Date.now(),
+      }));
+    } catch (e) { /* storage blocked */ }
+    const el = document.getElementById("movie_player");
+    const pl = el && el.wrappedJSObject;
+    let levels = [];
+    try { levels = pl && pl.getAvailableQualityLevels ? Array.from(pl.getAvailableQualityLevels()) : []; } catch (e) { /* not ready */ }
+    if (!levels.length) {
+      if ((tries || 0) < 10) { clearTimeout(qualityTimer); qualityTimer = setTimeout(() => applyQuality((tries || 0) + 1), 800); }
+      return;
+    }
+    const known = QUALITY.filter(([, n]) => levels.includes(n));
+    if (!known.length) return;
+    const pick = (known.filter(([px]) => px <= want).pop() || known[0])[1];
+    try {
+      if (pl.getPlaybackQuality && pl.getPlaybackQuality() === pick) return;
+      if (pl.setPlaybackQualityRange) pl.setPlaybackQualityRange(pick, pick);
+      if (pl.setPlaybackQuality) pl.setPlaybackQuality(pick);
+    } catch (e) { /* player API changed */ }
+  }
+  if (YT) {
+    document.addEventListener("loadeddata", () => applyQuality(), true);
+    document.addEventListener("play", () => applyQuality(), true);
+    document.addEventListener("yt-navigate-finish", () => applyQuality(), true);
+  }
+
+  function usePage(p) {
+    const prev = page;
+    page = p || {};
+    applyDark();
+    if ((+prev.speed || 1) !== (+page.speed || 1)) applySpeed();
+    if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
+    watchCookies();
+  }
+
+  try {
+    browser.storage.local.get("page").then((r) => usePage(r.page), () => {});
+    browser.storage.onChanged.addListener((ch) => { if (ch.page) usePage(ch.page.newValue); });
+  } catch (e) { /* storage unavailable */ }
+
+  // --- Reader view: the app asks the top frame for the main text ---
+
+  function article() {
+    let best = null, bestLen = 0;
+    const scores = new Map();
+    for (const p of document.querySelectorAll("p")) {
+      const len = p.textContent.trim().length;
+      if (len < 40) continue;
+      const box = p.parentElement;
+      if (!box) continue;
+      const v = (scores.get(box) || 0) + len;
+      scores.set(box, v);
+      if (v > bestLen) { best = box; bestLen = v; }
+    }
+    const root = best && best.closest("article, main, [role=main]") || best || document.body;
+    const parts = [];
+    for (const el of root.querySelectorAll("h1, h2, h3, h4, p, li, blockquote, pre")) {
+      if (el.closest("nav, footer, aside, form, figure figcaption, [aria-hidden=true]")) continue;
+      if (el.parentElement && el.parentElement.closest("p, li, blockquote")) continue;
+      const t = el.textContent.replace(/\s+/g, " ").trim();
+      if (t.length < (/^H/.test(el.tagName) ? 2 : 25)) continue;
+      parts.push(/^H/.test(el.tagName) ? "## " + t : el.tagName === "LI" ? "• " + t : t);
+    }
+    const title = (document.querySelector("h1") || {}).textContent || document.title;
+    return { type: "article", title: (title || "").trim(), text: parts.join("\n\n").slice(0, 200000) };
+  }
+
+  // --- Data meter: bytes this page pulled over the network, reported in deltas ---
+
+  let reportedBytes = 0;
+  function reportData() {
+    if (!TOP || !port || !performance.getEntriesByType) return;
+    let total = 0;
+    for (const e of performance.getEntriesByType("navigation").concat(performance.getEntriesByType("resource"))) {
+      total += e.transferSize || 0;
+    }
+    if (total > reportedBytes) {
+      port.postMessage({ type: "data", host: location.hostname.replace(/^www\./, ""), used: total - reportedBytes });
+      reportedBytes = total;
+    }
+  }
+  if (TOP) {
+    setTimeout(reportData, 5000);
+    setInterval(reportData, 30000);
+    addEventListener("pagehide", reportData);
+  }
+
+  // --- Bot challenges: a Cloudflare, Akamai or GoDaddy check page asks the app for compatibility mode ---
+
+  function challenged() {
+    const title = document.title || "";
+    const html = document.documentElement ? document.documentElement.innerHTML.slice(0, 60000) : "";
+    const text = (document.body && document.body.innerText || "").slice(0, 4000);
+    if (/challenges\.cloudflare\.com|cf-challenge|cf_chl_opt|cf-turnstile/i.test(html) &&
+        /just a moment|attention required|een ogenblik|verify you are human|checking your browser/i.test(title + " " + text)) return true;
+    if (/^access denied/i.test(title) && /edgesuite\.net|reference\s*#/i.test(html)) return true;
+    if (/godaddy|sucuri/i.test(html) &&
+        /is this a vpn|captcha|verify you are human|access denied|are you a robot/i.test(title + " " + text)) return true;
+    return false;
+  }
+  let challengeSent = false;
+  function checkChallenge() {
+    if (challengeSent || !port || !challenged()) return;
+    challengeSent = true;
+    port.postMessage({ type: "challenge", host: location.hostname });
+  }
+  if (TOP) {
+    addEventListener("load", () => setTimeout(checkChallenge, 300));
+    setTimeout(checkChallenge, 2500);
+  }
+
+  // Icons the page links, biggest first, so a web app can use the site's own logo (#33).
+  function icons() {
+    const size = (l) => {
+      const s = (l.getAttribute("sizes") || "").toLowerCase();
+      if (s.includes("any") || /\.svg(\?|$)/i.test(l.href) || (l.type || "").includes("svg")) return 10000;
+      return Math.max(0, ...s.split(/\s+/).map((x) => parseInt(x, 10) || 0)) || (/apple-touch/i.test(l.rel) ? 180 : 16);
+    };
+    const list = [...document.querySelectorAll("link[rel~='icon' i], link[rel~='apple-touch-icon' i], link[rel~='apple-touch-icon-precomposed' i]")]
+      .filter((l) => l.href).sort((a, b) => size(b) - size(a)).map((l) => l.href);
+    if (port && list.length) port.postMessage({ type: "icons", list: [...new Set(list)].slice(0, 12) });
+  }
+  if (TOP) {
+    addEventListener("load", () => setTimeout(icons, 500));
+    if (document.readyState === "complete") setTimeout(icons, 500);
+  }
+
+  if (TOP) connect();
+  if (!scan()) watch();
+})();
+
+// Double tap selects the word under the finger, triple tap selects the whole block of text.
+// Form fields keep the native behaviour.
+(() => {
+  const BLOCK = "p,li,td,th,dd,dt,blockquote,pre,h1,h2,h3,h4,h5,h6,figcaption,article,section,div";
+  let taps = 0, last = 0, lx = 0, ly = 0, sx = 0, sy = 0, moved = false;
+
+  const select = (x, y, count) => {
+    const pos = document.caretPositionFromPoint && document.caretPositionFromPoint(x, y);
+    if (!pos || !pos.offsetNode) return;
+    const sel = getSelection();
+    if (count === 2) {
+      sel.collapse(pos.offsetNode, pos.offset);
+      sel.modify("move", "backward", "word");
+      sel.modify("extend", "forward", "word");
+    } else {
+      const el = (pos.offsetNode.nodeType === 1 ? pos.offsetNode : pos.offsetNode.parentElement)?.closest(BLOCK);
+      if (!el) return;
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+  };
+
+  addEventListener("touchstart", e => {
+    if (e.touches.length !== 1) { taps = 0; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; moved = false;
+  }, { passive: true, capture: true });
+
+  addEventListener("touchmove", e => {
+    const t = e.touches[0];
+    if (t && Math.hypot(t.clientX - sx, t.clientY - sy) > 12) moved = true;
+  }, { passive: true, capture: true });
+
+  addEventListener("touchend", e => {
+    const t = e.changedTouches[0];
+    if (moved || !t) { taps = 0; return; }
+    const now = Date.now();
+    const near = Math.hypot(t.clientX - lx, t.clientY - ly) < 30;
+    taps = now - last < 350 && near ? taps + 1 : 1;
+    last = now; lx = t.clientX; ly = t.clientY;
+    if (taps < 2) return;
+    const el = e.target;
+    if (el && el.closest && el.closest("input,textarea,select,[contenteditable='true'],a,button")) return;
+    select(t.clientX, t.clientY, Math.min(taps, 3));
+    if (taps >= 3) taps = 0;
+  }, { passive: true, capture: true });
+})();

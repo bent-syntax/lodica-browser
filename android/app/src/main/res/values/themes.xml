@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Lodica" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/graphite</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">@color/amber</item>
+    </style>
+
+    <style name="Theme.Lodica.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/graphite</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimationDuration">300</item>
+        <item name="postSplashScreenTheme">@style/Theme.Lodica</item>
+    </style>
+</resources>

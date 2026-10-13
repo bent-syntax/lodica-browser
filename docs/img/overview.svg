@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" font-family="Helvetica,Arial,sans-serif"><rect width="900" height="240" fill="#f4f7fb"/>
+<rect x="40" y="80" width="240" height="80" rx="14" fill="#cfe3ff" stroke="#2b3a55" stroke-width="2"/><text x="160" y="126" text-anchor="middle" font-size="20" fill="#10203a">1. Get the code</text>
+<rect x="330" y="80" width="240" height="80" rx="14" fill="#d6f5d6" stroke="#2b3a55" stroke-width="2"/><text x="450" y="126" text-anchor="middle" font-size="20" fill="#10203a">2. Build or install</text>
+<rect x="620" y="80" width="240" height="80" rx="14" fill="#ffe9b8" stroke="#2b3a55" stroke-width="2"/><text x="740" y="126" text-anchor="middle" font-size="20" fill="#10203a">3. Open and browse</text>
+<path d="M280 120H330M570 120H620" stroke="#2b3a55" stroke-width="3" marker-end="url(#a)"/><defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#2b3a55"/></marker></defs>
+<text x="450" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#10203a">Lodica setup in three steps</text></svg>

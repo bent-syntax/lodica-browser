@@ -1,0 +1,331 @@
+// Lodica main process: window, UI view, protocol, shortcuts and module wiring.
+const path = require("path");
+const keys = require("./keys");
+const fs = require("fs");
+const { pathToFileURL } = require("url");
+const {
+  app, BaseWindow, BrowserWindow, WebContentsView, protocol, net, session,
+  clipboard, powerMonitor, Notification,
+} = require("electron");
+
+const ROOT = path.join(__dirname, "..");
+const SEARCH_DIR = path.join(ROOT, "search");
+const PDF_DIR = path.join(ROOT, "pdf");
+const ICON = path.join(ROOT, "build", "icon.png");
+const PRIVATE = "lodica-private";
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+  process.exit(0);
+}
+
+app.userAgentFallback = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${String(process.versions.chrome).split(".")[0]}.0.0.0 Safari/537.36`;
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: "lodica", privileges: { standard: true, secure: true, supportFetchAPI: true } },
+]);
+
+let win = null, uiView = null, topView = null, dividerView = null, lastClip = "";
+let M = null; // feature modules, loaded after ready (safeStorage)
+const pendingArgs = [];
+
+function serveLodica(req) {
+  let u;
+  try { u = new URL(req.url); } catch { return new Response("Bad request", { status: 400 }); }
+  if (u.hostname === "error") return require("./errorpage").serve(req.url);
+  if (u.hostname === "pdf") return servePdf(req, u);
+  if (u.hostname !== "search") return new Response("Not found", { status: 404 });
+  let rel;
+  try { rel = decodeURIComponent(u.pathname); } catch { return new Response("Bad request", { status: 400 }); }
+  if (!rel || rel === "/") rel = "/search.html";
+  if (rel.startsWith("/_bg/")) {
+    const name = rel.slice(5);
+    if (!/^[\w.-]+\.(png|jpe?g|webp|gif|avif)$/i.test(name)) return new Response("Forbidden", { status: 403 });
+    const custom = path.join(app.getPath("userData"), "bg", name);
+    if (!fs.existsSync(custom)) return new Response("Not found", { status: 404 });
+    return net.fetch(pathToFileURL(custom).toString());
+  }
+  const file = path.resolve(SEARCH_DIR, "." + rel);
+  if (file !== SEARCH_DIR && !file.startsWith(SEARCH_DIR + path.sep)) return new Response("Forbidden", { status: 403 });
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return new Response("Not found", { status: 404 });
+  return net.fetch(pathToFileURL(file).toString());
+}
+
+// Bundled pdf.js viewer. Remote and local PDFs go through /f?u=<url> so the viewer reads them same-origin.
+function servePdf(req, u) {
+  if (u.pathname === "/f") {
+    const target = u.searchParams.get("u") || "";
+    if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
+    const headers = {};
+    const range = req.headers.get("range");
+    if (range) headers.Range = range;
+    return net.fetch(target, { headers });
+  }
+  let rel;
+  try { rel = decodeURIComponent(u.pathname); } catch { return new Response("Bad request", { status: 400 }); }
+  const file = path.resolve(PDF_DIR, "." + rel);
+  if (!file.startsWith(PDF_DIR + path.sep)) return new Response("Forbidden", { status: 403 });
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return new Response("Not found", { status: 404 });
+  return net.fetch(pathToFileURL(file).toString());
+}
+
+function registerProtocol(ses) {
+  try { ses.protocol.handle("lodica", serveLodica); } catch (e) { console.error("lodica protocol", e.message); }
+}
+
+const sessions = () => [session.defaultSession, session.fromPartition(PRIVATE)];
+
+function openApp(url) {
+  if (!/^https?:\/\//i.test(String(url || ""))) return null;
+  const w = new BrowserWindow({
+    width: 1000, height: 760, minWidth: 400, minHeight: 500, backgroundColor: "#ffffff",
+    autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
+    webPreferences: { sandbox: true, contextIsolation: true, session: session.defaultSession },
+  });
+  w.setMenuBarVisibility(false);
+  w.webContents.setUserAgent(M.prefs.userAgentValue());
+  w.webContents.setWindowOpenHandler(({ url: u }) => {
+    if (/^https?:\/\//i.test(u)) M.tabs.create({ url: u });
+    return { action: "deny" };
+  });
+  w.loadURL(url).catch(() => {});
+  return w;
+}
+
+function handleArgs(argv) {
+  if (!M) { pendingArgs.push(argv); return; }
+  let opened = false;
+  for (const a of argv.slice(1)) {
+    if (a === "--new-tab") { M.tabs.create({}); opened = true; }
+    else if (a === "--private") { M.tabs.create({ private: true }); opened = true; }
+    else if (a.startsWith("--app=")) { openApp(a.slice(6)); opened = true; }
+    else if (a.startsWith("--sheet=")) { if (openSheet(a.slice(8))) opened = true; }
+    else if (/^https?:\/\//i.test(a)) { M.tabs.create({ url: a }); opened = true; }
+    else if (/\.pdf$/i.test(a) && fs.existsSync(a)) { M.tabs.create({ url: pathToFileURL(path.resolve(a)).toString() }); opened = true; }
+    else if (/\.html?$/i.test(a) && fs.existsSync(a)) { M.tabs.create({ url: pathToFileURL(path.resolve(a)).toString() }); opened = true; }
+  }
+  return opened;
+}
+
+const SHEETS = new Set(["reader", "inbox", "history", "downloads", "passwords", "meter", "remind", "speed",
+  "quality", "closed", "memory", "menu", "settings", "switcher", "ai", "aichat", "preview"]);
+
+function openSheet(name, data) {
+  if (!M || !SHEETS.has(name)) return false;
+  focusWindow();
+  M.ui.push("sheet", { name, data });
+  return true;
+}
+
+function focusWindow() {
+  if (!win || win.isDestroyed()) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+app.on("second-instance", (_e, argv) => {
+  focusWindow();
+  handleArgs(argv);
+});
+
+let altAlone = false;
+
+function shortcut(e, input) {
+  if (!M) return;
+  const { ui } = M;
+  const k = input.key;
+  if (input.type === "keyUp") {
+    if (k === "Alt" && altAlone) { altAlone = false; ui.push("shortcut", "menu"); }
+    return;
+  }
+  if (input.type !== "keyDown") return;
+  if (k !== "Alt") altAlone = false;
+  else if (!input.isAutoRepeat) altAlone = true;
+  if (k === "Escape" && !input.control && !input.meta && !input.alt && !input.shift) { ui.push("shortcut", "escape"); return; }
+  const id = M.commands.keyActionFor(keys.fromInput(input));
+  if (!id) return;
+  e.preventDefault();
+  M.commands.runKey(id);
+}
+
+function onView(t, wc) {
+  wc.on("before-input-event", shortcut);
+  M.commands.applyAgent(t, wc);
+  // Sites flagged desktopInput need the desktop UA from the first request, even in a mobile-site tab.
+  wc.on("did-start-navigation", (e) => {
+    if (!e.isMainFrame || e.isSameDocument || wc.isDestroyed()) return;
+    let host = "";
+    try { host = new URL(e.url).hostname; } catch { /* keep empty */ }
+    const ua = M.prefs.agentFor(t, host);
+    if (wc.getUserAgent() !== ua) wc.setUserAgent(ua);
+  });
+}
+
+function checkClipboard() {
+  if (!M) return;
+  let text = "";
+  try { text = clipboard.readText().trim(); } catch { return; }
+  if (!text || text === lastClip || text.length > 2000 || /\s/.test(text)) return;
+  lastClip = text;
+  if (!/^https?:\/\/[^\s]+$/i.test(text)) return;
+  try { new URL(text); } catch { return; }
+  if (text === M.tabs.current()?.url) return;
+  M.ui.push("clipboard", { url: text });
+}
+
+function createWindow() {
+  win = new BaseWindow({
+    width: 1200, height: 800, minWidth: 400, minHeight: 500, backgroundColor: "#111827",
+    title: "Lodica", autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
+  });
+  win.setMenuBarVisibility?.(false);
+  uiView = new WebContentsView({
+    webPreferences: { preload: path.join(ROOT, "preload", "ui.js"), contextIsolation: true, sandbox: true },
+  });
+  uiView.setBackgroundColor("#00000000");
+  uiView.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  uiView.webContents.on("will-navigate", e => e.preventDefault());
+  topView = new WebContentsView({
+    webPreferences: { preload: path.join(ROOT, "preload", "ui.js"), contextIsolation: true, sandbox: true },
+  });
+  topView.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  topView.webContents.on("will-navigate", e => e.preventDefault());
+  dividerView = new WebContentsView({
+    webPreferences: { preload: path.join(ROOT, "preload", "ui.js"), contextIsolation: true, sandbox: true },
+  });
+  dividerView.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  dividerView.webContents.on("will-navigate", e => e.preventDefault());
+  win.contentView.addChildView(topView);
+  win.contentView.addChildView(uiView);
+}
+
+function loadModules() {
+  const r = n => require("./" + n);
+  return {
+    store: r("store"), prefs: r("prefs"), relay: r("relay"), history: r("history"), vault: r("vault"),
+    meter: r("meter"), helper: r("helper"), ai: r("ai"), search: r("search"), net: r("net"),
+    pctabs: r("pctabs"), downloads: r("downloads"), remind: r("remind"), webapps: r("webapps"),
+    perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
+  };
+}
+
+function wire(m) {
+  const { ui, tabs } = m;
+  const ses = sessions();
+  const helperUi = {
+    ...ui,
+    push: (ev, data) => {
+      if (ev === "tab" && data && data.id !== tabs.current()?.id) return;
+      ui.push(ev, data);
+    },
+  };
+  m.helper.init({ tabs, ui: helperUi, vault: m.vault, meter: m.meter });
+  m.ai.init({ onChange: s => ui.push("ai", s) });
+  m.net.init({ tabs, meter: m.meter, ui, sessions: ses });
+  m.pctabs.init({ tabs, ui, ai: m.ai });
+  m.downloads.init({ ui, sessions: ses });
+  m.remind.init({ tabs, win: () => win });
+  m.webapps.init({ tabs, openApp });
+  m.perms.init({ ui, tabs, sessions: ses });
+  m.serial.init({ ui, sessions: ses });
+  m.updater.init({ ui });
+  m.extensions.init();
+  m.commands.init({ ...m, win: () => win });
+  m.search.init({ ai: m.ai, sessions: ses, suggest: m.commands.suggest, topSites: m.commands.topSitesFor });
+
+  m.relay.events.on("change", () => ui.push("relay", m.relay.state));
+  m.relay.events.on("mail", (alias, mail) => {
+    ui.push("mail", { site: alias?.site, link: m.relay.confirmLink(mail), alias: alias?.address });
+    if (Notification.isSupported()) {
+      const n = new Notification({ title: "Confirmation mail", body: alias?.site ? `From ${alias.site}` : "New confirmation mail" });
+      n.on("click", () => openSheet("inbox"));
+      n.show();
+    }
+  });
+  m.prefs.events.on("change", key => {
+    ui.push("prefs", m.prefs.p);
+    tabs.refresh();
+    if (key === "vertTabs" || key === "vertWidth" || key === "vertCollapsed") { ui.fit(); tabs.fit(); }
+    if (key === "userAgent") for (const t of tabs.all()) { const wc = tabs.wcOf(t); if (wc) m.commands.applyAgent(t, wc); }
+  });
+
+  tabs.init({
+    win, ui, helper: m.helper,
+    divider: dividerView,
+    raise: () => { if (win && !win.isDestroyed()) win.contentView.addChildView(uiView); },
+    onView,
+    onChange: () => m.pctabs.schedule(),
+  });
+}
+
+// Native Wayland when available, X11 otherwise. No effect on Windows.
+if (process.platform === "linux") app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+
+app.whenReady().then(() => {
+  for (const ses of sessions()) registerProtocol(ses);
+  createWindow();
+  const m = loadModules();
+  m.ui.init(win, uiView);
+  m.ui.initTop(topView);
+  m.ui.initDivider(dividerView);
+  M = m;
+  wire(m);
+  try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
+  uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));
+  dividerView.webContents.loadFile(path.join(ROOT, "ui", "divider.html")).catch(e => console.error("divider load", e.message));
+  topView.webContents.loadFile(path.join(ROOT, "ui", "top.html")).catch(e => console.error("top load", e.message));
+  // A dying UI renderer must not leave a dead window: log it and reload the view.
+  const errorpage = require("./errorpage");
+  for (const v of [uiView, topView]) {
+    v.webContents.on("render-process-gone", (_, d) => {
+      errorpage.crashLog({ kind: "ui-render-process-gone", reason: d?.reason, exitCode: d?.exitCode });
+      if (d?.reason !== "clean-exit" && !v.webContents.isDestroyed()) setImmediate(() => { try { v.webContents.reload(); } catch { /* closing */ } });
+    });
+  }
+  process.on("uncaughtException", e => errorpage.crashLog({ kind: "uncaughtException", reason: String(e && e.message).slice(0, 200) }));
+  process.on("unhandledRejection", e => errorpage.crashLog({ kind: "unhandledRejection", reason: String(e && e.message || e).slice(0, 200) }));
+  m.ui.setRefocus(() => { try { m.tabs.wcOf()?.focus(); } catch { /* closing */ } });
+  m.ui.fit();
+  m.tabs.fit();
+
+  win.on("resize", () => { m.ui.fit(); m.tabs.fit(); });
+  win.on("maximize", () => { m.ui.fit(); m.tabs.fit(); });
+  win.on("unmaximize", () => { m.ui.fit(); m.tabs.fit(); });
+  win.on("app-command", (_e, cmd) => {
+    if (cmd === "browser-backward") m.commands.mouse("back");
+    else if (cmd === "browser-forward") m.commands.mouse("forward");
+  });
+  win.on("focus", checkClipboard);
+  win.on("minimize", () => m.tabs.setLocked(true));
+  win.on("closed", () => { win = null; app.quit(); });
+  powerMonitor.on("lock-screen", () => m.tabs.setLocked(true));
+
+  if (process.platform === "win32") {
+    app.setUserTasks([
+      { program: process.execPath, arguments: argsFor("--new-tab"), iconPath: process.execPath, iconIndex: 0, title: "New tab", description: "Open a new tab" },
+      { program: process.execPath, arguments: argsFor("--private"), iconPath: process.execPath, iconIndex: 0, title: "New private tab", description: "Open a new private tab" },
+      { program: process.execPath, arguments: argsFor("--sheet=history"), iconPath: process.execPath, iconIndex: 0, title: "History", description: "Show history" },
+      { program: process.execPath, arguments: argsFor("--sheet=downloads"), iconPath: process.execPath, iconIndex: 0, title: "Downloads", description: "Show downloads" },
+      { program: process.execPath, arguments: argsFor("--sheet=inbox"), iconPath: process.execPath, iconIndex: 0, title: "Relay inbox", description: "Show confirmation mails" },
+    ]);
+  }
+
+  const archive = () => { try { m.tabs.autoArchive(m.prefs.p.autoArchiveDays); } catch (e) { console.error("auto-archive", e.message); } };
+  archive();
+  setInterval(archive, 60 * 60 * 1000).unref?.();
+
+  handleArgs(process.argv);
+  while (pendingArgs.length) handleArgs(pendingArgs.shift());
+});
+
+function argsFor(flag) {
+  return app.isPackaged ? flag : `"${path.resolve(ROOT)}" ${flag}`;
+}
+
+app.on("before-quit", () => {
+  try { M?.commands.closePreview(); } catch { /* window gone */ }
+  try { M?.store.flush(); } catch (e) { console.error("flush", e.message); }
+});
+
+app.on("window-all-closed", () => app.quit());

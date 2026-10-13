@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" font-family="Helvetica,Arial,sans-serif"><rect width="900" height="330" fill="#f4f7fb"/>
+<text x="450" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#10203a">Desktop build</text>
+<rect x="40" y="70" width="380" height="60" rx="14" fill="#cfe3ff" stroke="#2b3a55" stroke-width="2"/><text x="230" y="106" text-anchor="middle" font-size="20" fill="#10203a">cd lodica-browser/desktop</text>
+<rect x="40" y="150" width="380" height="60" rx="14" fill="#d6f5d6" stroke="#2b3a55" stroke-width="2"/><text x="230" y="186" text-anchor="middle" font-size="20" fill="#10203a">npm ci</text>
+<rect x="40" y="230" width="380" height="60" rx="14" fill="#ffe9b8" stroke="#2b3a55" stroke-width="2"/><text x="230" y="266" text-anchor="middle" font-size="20" fill="#10203a">npm start</text>
+<rect x="480" y="130" width="380" height="80" rx="14" fill="#e8d9ff" stroke="#2b3a55" stroke-width="2"/><text x="670" y="176" text-anchor="middle" font-size="20" fill="#10203a">npm run dist / dist:linux</text>
+<text x="670" y="250" text-anchor="middle" font-size="16" fill="#10203a">installers appear in desktop/dist/</text></svg>
