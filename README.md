@@ -59,6 +59,7 @@ The certificate comes from Let's Encrypt through [acme.sh](https://github.com/ac
 ```sh
 # DNS validation, no ports needed (any acme.sh DNS plugin, here Cloudflare)
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_ACME_DNS=dns_cf CF_Token=xxxx bash -s -- example.com
+# no DNS API: LODICA_ACME_DNS=manual prints TXT records to add, then run the same command again
 # or your own certificate for lodica.example.com and tunnel.example.com
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem bash -s -- example.com
 ```

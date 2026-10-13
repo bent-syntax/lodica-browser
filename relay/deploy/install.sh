@@ -79,7 +79,10 @@ put_cert() { # $1=cert $2=key
 if [ -n "${LODICA_TLS_CERT:-}" ] && [ -n "${LODICA_TLS_KEY:-}" ]; then
   say "using the certificate you supplied"
   put_cert "$LODICA_TLS_CERT" "$LODICA_TLS_KEY"
-elif [ ! -s "$CRT" ]; then
+elif ! { [ -s "$CRT" ] && openssl x509 -in "$CRT" -noout -checkhost "$API_HOST" 2>/dev/null | grep -q "does match" \
+        && openssl x509 -in "$CRT" -noout -checkhost "$TUN_HOST" 2>/dev/null | grep -q "does match" \
+        && openssl x509 -in "$CRT" -noout -checkend 604800 >/dev/null 2>&1; }; then
+  [ -s "$CRT" ] && say "existing certificate does not cover $API_HOST and $TUN_HOST (or expires soon): getting a new one"
   ACME=/root/.acme.sh/acme.sh
   if [ ! -x "$ACME" ]; then
     say "installing acme.sh (Let's Encrypt client)"
@@ -87,16 +90,25 @@ elif [ ! -s "$CRT" ]; then
   fi
   "$ACME" --set-default-ca --server letsencrypt >/dev/null 2>&1 || true
   RELOAD="systemctl restart lodica-relay"
-  if [ -n "${LODICA_ACME_DNS:-}" ]; then
+  if [ "${LODICA_ACME_DNS:-}" = "manual" ]; then
+    # No DNS API: run once to get two TXT records, add them, run the same command again.
+    if [ -d "/root/.acme.sh/${API_HOST}_ecc" ] || [ -d "/root/.acme.sh/${API_HOST}" ]; then
+      say "checking the TXT records"
+      "$ACME" --renew --force --ecc -d "$API_HOST" -d "$TUN_HOST" --yes-I-know-dns-manual-mode-enough-go-ahead-please </dev/null || die "TXT records not found yet. Wait a few minutes and run the same command again"
+    else
+      "$ACME" --issue --keylength ec-256 --dns -d "$API_HOST" -d "$TUN_HOST" --yes-I-know-dns-manual-mode-enough-go-ahead-please </dev/null || true
+      die "add the TXT record(s) shown above in your DNS, wait a few minutes, then run the same command again"
+    fi
+  elif [ -n "${LODICA_ACME_DNS:-}" ]; then
     say "getting a certificate with DNS validation ($LODICA_ACME_DNS)"
-    "$ACME" --issue --dns "$LODICA_ACME_DNS" -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check the DNS provider variables"
+    "$ACME" --issue --keylength ec-256 --dns "$LODICA_ACME_DNS" -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check the DNS provider variables"
   elif ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE '[:.]80$'; then
     die "port 80 is in use here, so Let's Encrypt cannot validate over it. Run again with LODICA_ACME_DNS=<acme.sh dns plugin> (see https://github.com/acmesh-official/acme.sh/wiki/dnsapi) plus its variables, or give LODICA_TLS_CERT and LODICA_TLS_KEY."
   else
     say "getting a certificate over port 80 (it is free right now)"
-    "$ACME" --issue --standalone -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check DNS for $API_HOST and $TUN_HOST and that port 80 is reachable"
+    "$ACME" --issue --keylength ec-256 --standalone -d "$API_HOST" -d "$TUN_HOST" </dev/null || die "certificate failed. Check DNS for $API_HOST and $TUN_HOST and that port 80 is reachable"
   fi
-  "$ACME" --install-cert -d "$API_HOST" --key-file "$KEY" --fullchain-file "$CRT" --reloadcmd "chgrp lodica-relay $KEY $CRT; chmod 640 $KEY $CRT; $RELOAD" </dev/null >/dev/null
+  "$ACME" --install-cert --ecc -d "$API_HOST" --key-file "$KEY" --fullchain-file "$CRT" --reloadcmd "chgrp lodica-relay $KEY $CRT; chmod 640 $KEY $CRT; $RELOAD" </dev/null >/dev/null
   chgrp lodica-relay "$KEY" "$CRT"; chmod 640 "$KEY" "$CRT"
 fi
 [ -s "$CRT" ] && [ -s "$KEY" ] || die "no certificate in $ETC/tls"
