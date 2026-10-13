@@ -54,8 +54,8 @@ import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
 
-// Point this at the installer of the relay you host; the relay is not part of this repository.
-private const val INSTALL_URL = "https://example.com/lodica-relay/install.sh"
+// Installer for the relay in this repository (relay/deploy/install.sh).
+private const val INSTALL_URL = "https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh"
 
 /** First-run setup: browse without a server, or link the app to your own relay step by step. */
 @Composable
@@ -117,7 +117,7 @@ fun SetupScreen() {
                         Title("You're set")
                         Body("Hidden email, the inbox, tab sharing, the tunnel and Lodica Search now use your server.")
                         Title("Optional: receiving mail")
-                        Body("Hidden addresses need mail delivered to your server. Add this DNS record, then install Exim as described in your relay documentation:")
+                        Body("Hidden addresses need mail delivered to your server. Add this DNS record, then install Exim on the server:")
                         Code(ctx, "${d(clean)}    MX 10    lodica.${d(clean)}", "${d(clean)} MX 10 lodica.${d(clean)}")
                         Body("Without it everything else still works, you just won't receive confirmation mails.")
                     }

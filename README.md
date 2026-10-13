@@ -9,7 +9,7 @@ A privacy-focused browser for Android (GeckoView) and desktop (Electron), with v
 | `android/` | Android app (Kotlin, Jetpack Compose, GeckoView). Package id `be.syntaxya.lodica`. |
 | `desktop/` | Desktop app (Electron). |
 
-Both apps share one version number. Everything works without a server. A relay is only needed for the optional hidden email, tab sharing and search features, and the relay is not part of this repository.
+Both apps share one version number. Everything works without a server. A relay is only needed for the optional hidden email, tab sharing and search features. The relay lives in `relay/` in this repository.
 
 ## Android
 
@@ -46,7 +46,13 @@ npm run dist          # Windows installer (untested)
 
 ![Relay overview](docs/img/relay.svg)
 
-The relay is a server you host yourself. To link one:
+The relay is a server you host yourself (code in `relay/`). You need a Debian or Ubuntu VPS and a domain with a wildcard DNS record (`*.example.com`) pointing at the VPS. Then run, as root on the server:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
+```
+
+It installs Node, Caddy and the relay, gets certificates, opens ports 80, 443 and 3443, and prints a token. Running it again updates the relay and keeps the token. The app's setup wizard shows this same command with your domain filled in. To link the apps:
 
 - **Android:** open the setup wizard from Settings, enter your domain, then paste the token.
 - **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.

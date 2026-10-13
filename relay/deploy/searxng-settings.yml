@@ -1,0 +1,19 @@
+# /etc/searxng/settings.yml for Lodica Search. Generate secret_key with: openssl rand -hex 32
+# Only the JSON API is used, and only by the relay on 127.0.0.1.
+use_default_settings: true
+general:
+  instance_name: "Lodica Search"
+server:
+  secret_key: "CHANGE_ME"
+  bind_address: "127.0.0.1"
+  port: 8888
+  limiter: false
+  public_instance: false
+  image_proxy: false
+  method: "GET"
+search:
+  safe_search: 0
+  formats:
+    - json
+ui:
+  static_use_hash: true

@@ -1,0 +1,22 @@
+[Unit]
+Description=SearXNG (Lodica Search backend, JSON on 127.0.0.1:8888)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=searxng
+Group=searxng
+Environment=SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml
+WorkingDirectory=/opt/searxng/src
+ExecStart=/opt/searxng/venv/bin/python -m searx.webapp
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/searxng
+PrivateTmp=true
+PrivateDevices=true
+
+[Install]
+WantedBy=multi-user.target
