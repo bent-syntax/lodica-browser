@@ -52,10 +52,21 @@ The relay is a server you host yourself (code in `relay/`). You need a Debian or
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
 ```
 
-It installs Node, Caddy and the relay, gets certificates, opens ports 80, 443 and 3443, and prints a token. Running it again updates the relay and keeps the token. The app's setup wizard shows this same command with your domain filled in. To link the apps:
+It installs Node and the relay, gets a certificate, and prints a token. The relay has its own TCP ports, **44741** (API) and **44742** (tunnel), and never touches ports 80/443 or an existing web server. It opens those two in ufw only. Open them in your host's web firewall too if it has one.
+
+The certificate comes from Let's Encrypt through [acme.sh](https://github.com/acmesh-official/acme.sh). If port 80 is free it works by itself. If you already run a web server on 80, use one of these (the variables go through `sudo env`):
+
+```sh
+# DNS validation, no ports needed (any acme.sh DNS plugin, here Cloudflare)
+curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_ACME_DNS=dns_cf CF_Token=xxxx bash -s -- example.com
+# or your own certificate for lodica.example.com and tunnel.example.com
+curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem bash -s -- example.com
+```
+
+Set `LODICA_API_PORT` / `LODICA_PROXY_PORT` to use other ports (the apps expect the defaults). Running it again updates the relay and keeps the token. The app's setup wizard shows this same command with your domain filled in. To link the apps:
 
 - **Android:** open the setup wizard from Settings, enter your domain, then paste the token.
-- **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
+- **Desktop:** run `LODICA_API=https://lodica.<domain>:44741 LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
 
 Without a relay these features stay hidden and the browser works normally.
 

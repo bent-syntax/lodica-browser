@@ -27,7 +27,7 @@ browser.webRequest.onBeforeRequest.addListener((d) => {
   } catch (e) { return {}; }
 }, { urls: ["http://*/*", "https://*/*"], types: ["main_frame", "sub_frame", "xmlhttprequest", "image", "script", "stylesheet", "media", "font", "other"] }, ["blocking"]);
 
-const tunnel = () => ({ type: "https", host: "tunnel." + domain, port: 3443 });
+const tunnel = () => ({ type: "https", host: "tunnel." + domain, port: 44742 });
 const DIRECT = { type: "direct" };
 
 // Identity providers and payment flows stay on the device's own connection: they tend to
@@ -169,7 +169,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     if (msg.c) qs.set("c", String(msg.c));
     if (msg.l) qs.set("l", String(msg.l));
     try {
-      const r = await fetch("https://lodica." + domain + "/api/search?" + qs, { headers: { Authorization: "Bearer " + cfg.api }, credentials: "omit" });
+      const r = await fetch("https://lodica." + domain + ":44741/api/search?" + qs, { headers: { Authorization: "Bearer " + cfg.api }, credentials: "omit" });
       if (!r.ok) return { error: "Search failed (" + r.status + ")" };
       return await r.json();
     } catch (e) {

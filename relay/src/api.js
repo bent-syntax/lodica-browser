@@ -1,6 +1,7 @@
 'use strict';
-// Local HTTP API (127.0.0.1:3400), exposed by Caddy at https://lodica.<domain>/{api,t}/*.
+// HTTPS API on its own port (default 44741): https://lodica.<domain>:44741/{api,t}/*.
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
@@ -21,9 +22,11 @@ const stats = { requests: 0, authFail: 0, mailListed: 0, mailDeleted: 0, tabPut:
 
 // ---------- helpers ----------
 function clientIp(req) {
-  // Caddy appends the real client address as the last X-Forwarded-For entry.
+  // Behind your own reverse proxy (loopback listener only) the proxy appends the real client
+  // address as the last X-Forwarded-For entry. Direct connections are never trusted for it.
+  const ra = req.socket.remoteAddress || '';
   const xff = req.headers['x-forwarded-for'];
-  if (typeof xff === 'string' && xff) {
+  if ((ra === '127.0.0.1' || ra === '::1' || ra === '::ffff:127.0.0.1') && typeof xff === 'string' && xff) {
     const parts = xff.split(',');
     return parts[parts.length - 1].trim() || req.socket.remoteAddress;
   }
@@ -478,17 +481,38 @@ function start(log) {
   fs.mkdirSync(TAB_DIR, { recursive: true, mode: 0o700 });
   fs.mkdirSync(MAIL_DIR, { recursive: true, mode: 0o700 });
   search.start();
-  const server = http.createServer((req, res) => {
+  const handler = (req, res) => {
     route(req, res).catch((e) => {
       stats.errors++;
       log('api error: ' + (e && e.code ? e.code : 'internal'));
       if (!res.headersSent) sendText(req, res, 500, 'internal error'); else res.destroy();
     });
-  });
-  server.headersTimeout = 20e3;
-  server.requestTimeout = 60e3;
-  server.keepAliveTimeout = 30e3;
-  server.listen(cfg.apiPort, cfg.apiHost, () => log(`api: listening on ${cfg.apiHost}:${cfg.apiPort}`));
+  };
+  const tune = (server) => {
+    server.headersTimeout = 20e3;
+    server.requestTimeout = 60e3;
+    server.keepAliveTimeout = 30e3;
+    server.on('tlsClientError', () => {});
+    return server;
+  };
+  const server = tune(https.createServer({
+    cert: fs.readFileSync(cfg.tlsCert), key: fs.readFileSync(cfg.tlsKey),
+    minVersion: 'TLSv1.2', ALPNProtocols: ['http/1.1'], handshakeTimeout: 15e3,
+  }, handler));
+  server.listen({ host: cfg.apiHost, port: cfg.apiPort, ipv6Only: false }, () => log(`api: listening on [${cfg.apiHost}]:${cfg.apiPort}`));
+  // Cert renewals: reload hourly when the files change.
+  let st = [fs.statSync(cfg.tlsCert).mtimeMs, fs.statSync(cfg.tlsKey).mtimeMs].join('/');
+  setInterval(() => {
+    try {
+      const n = [fs.statSync(cfg.tlsCert).mtimeMs, fs.statSync(cfg.tlsKey).mtimeMs].join('/');
+      if (n === st) return;
+      server.setSecureContext({ cert: fs.readFileSync(cfg.tlsCert), key: fs.readFileSync(cfg.tlsKey), minVersion: 'TLSv1.2' });
+      st = n; log('api: TLS cert reloaded');
+    } catch (e) { log('api: cert reload failed: ' + e.message); }
+  }, cfg.certCheckMs).unref();
+  if (cfg.apiLocalPort) {
+    tune(http.createServer(handler)).listen(cfg.apiLocalPort, '127.0.0.1', () => log(`api: loopback http on 127.0.0.1:${cfg.apiLocalPort}`));
+  }
   const runSweep = () => sweep(log);
   setTimeout(runSweep, 10e3).unref();
   setInterval(runSweep, cfg.sweepMs).unref();

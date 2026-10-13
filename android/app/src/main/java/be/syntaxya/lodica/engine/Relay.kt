@@ -73,7 +73,7 @@ object Relay {
     private const val DEFAULT_DOMAIN = ""
     /** The relay's domain, as set up in the app. Empty until a server is linked. */
     var DOMAIN: String = DEFAULT_DOMAIN; private set
-    val API: String get() = "https://lodica.$DOMAIN"
+    val API: String get() = "https://lodica.$DOMAIN:44741"
     const val ACTION_MAIL = "be.syntaxya.lodica.MAIL"
     const val EXTRA_MAIL = "mail"
     private const val CHANNEL = "mail"
@@ -166,7 +166,7 @@ object Relay {
 
     /** Blocking. Null when the server answers and accepts the token, else a short reason. */
     fun check(domain: String, tok: String): String? {
-        val c = runCatching { URL("https://lodica.$domain/api/aliases").openConnection() as HttpURLConnection }.getOrNull()
+        val c = runCatching { URL("https://lodica.$domain:44741/api/aliases").openConnection() as HttpURLConnection }.getOrNull()
             ?: return "That domain doesn't look right"
         return try {
             c.connectTimeout = 10_000; c.readTimeout = 10_000; c.useCaches = false
@@ -177,11 +177,11 @@ object Relay {
                 else -> "The server answered with $code"
             }
         } catch (e: javax.net.ssl.SSLException) {
-            "HTTPS failed. DNS is probably not ready or Caddy has no certificate yet"
+            "HTTPS failed. DNS is probably not ready or the server has no valid certificate yet"
         } catch (e: java.net.UnknownHostException) {
             "lodica.$domain doesn't resolve yet. Check the DNS record"
         } catch (e: IOException) {
-            "Can't reach lodica.$domain (${e.javaClass.simpleName}). Check that ports 80 and 443 are open"
+            "Can't reach lodica.$domain (${e.javaClass.simpleName}). Check that ports 44741 and 44742 are open"
         } finally {
             c.disconnect()
         }

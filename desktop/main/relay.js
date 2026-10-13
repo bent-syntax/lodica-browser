@@ -245,7 +245,7 @@ function pacScript() {
   for (var i = 0; i < d.length; i++) if (under(host, d[i])) return "DIRECT";
   if (${SENSITIVE}.test(host)) return "DIRECT";
   if (url.substring(0, 5) === "http:" && ${SENSITIVE}.test(url.replace(/^http:\\/\\/[^\\/]*/, ""))) return "DIRECT";
-  return "HTTPS tunnel.${DOMAIN}:3443";
+  return "HTTPS tunnel.${DOMAIN}:44742";
 }`;
 }
 

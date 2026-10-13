@@ -95,7 +95,7 @@ Excluded: tab spaces, AI summary (#17), CAPTCHA solving.
 ## Implementation notes (VPS features)
 - Token: `keystore/relay-token` (gitignored) becomes `BuildConfig.RELAY_TOKEN`; when empty, all VPS features hide.
 - #5 VPS routing: built-in helper extension (`assets/extensions/helper`) sets `proxy.onRequest` to
-  `tunnel.example.com:3443`. Off by default (Settings > Route through VPS); local/private hosts bypass.
+  `tunnel.example.com:44742`. Off by default (Settings > Route through VPS); local/private hosts bypass.
   The address bar shows a lock icon while the page is routed.
 - #2 Hidden email: "Use hidden email" chip (or menu item) on focused email fields fills `<site>-<6>@example.com`.
   The app polls `/api/mail` every 5 s for up to 5 min and shows a notification and banner with "Open link"/"View".

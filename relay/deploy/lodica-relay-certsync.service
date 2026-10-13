@@ -1,6 +1,0 @@
-[Unit]
-Description=Copy the tunnel cert for lodica-relay
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/sbin/lodica-relay-certsync

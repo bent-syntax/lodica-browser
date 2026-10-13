@@ -6,9 +6,13 @@ const crypto = require('crypto');
 const env = process.env;
 const cfg = {
   proxyHost: env.LODICA_PROXY_HOST || '::',
-  proxyPort: Number(env.LODICA_PROXY_PORT || 3443),
-  apiHost: env.LODICA_API_HOST || '127.0.0.1',
-  apiPort: Number(env.LODICA_API_PORT || 3400),
+  proxyPort: Number(env.LODICA_PROXY_PORT || 44742),
+  // Public HTTPS API (same cert as the proxy). Ports 44741/44742 are unassigned and not used by
+  // common services, so the relay can sit next to a web server on 80/443 without touching it.
+  apiHost: env.LODICA_API_HOST || '::',
+  apiPort: Number(env.LODICA_API_PORT || 44741),
+  // Optional plain-HTTP loopback listener for use behind your own reverse proxy (0 = off).
+  apiLocalPort: Number(env.LODICA_API_LOCAL_PORT || 0),
   tokenPath: env.LODICA_TOKEN_PATH || '/etc/lodica-relay/token',
   tlsCert: env.LODICA_TLS_CERT || '/etc/lodica-relay/tls/tunnel.crt',
   tlsKey: env.LODICA_TLS_KEY || '/etc/lodica-relay/tls/tunnel.key',

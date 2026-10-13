@@ -107,10 +107,10 @@ fun SetupScreen() {
                     }
                     4 -> {
                         Title("Run this on the server")
-                        Body("Log in over SSH, then paste this one command. It installs Node, Caddy (HTTPS certificates) and the Lodica relay, and starts them.")
+                        Body("Log in over SSH, then paste this one command. It installs Node and the Lodica relay and starts it on its own ports. It does not touch ports 80/443 or any web server you already run.")
                         Code(ctx, "curl -fsSL $INSTALL_URL | sudo bash -s -- ${d(clean)}")
                         Body("When it finishes it prints your token, a long random string. Keep that screen open: you need it in the next step.")
-                        Body("It also opens ports 80, 443 and 3443 if the server uses ufw. If your host has a separate firewall in its web panel, open those there. Running the command again is safe.")
+                        Body("The relay uses TCP ports 44741 (API) and 44742 (tunnel). It opens them in ufw if ufw is active. If your host has a separate firewall in its web panel, open those two there. HTTPS needs a certificate: if port 80 is free it gets one by itself, otherwise add LODICA_ACME_DNS=<dns plugin> or LODICA_TLS_CERT and LODICA_TLS_KEY in front of the command (see the README). Running the command again is safe.")
                     }
                     5 -> LinkStep(ctx, clean, ok) { step++ }
                     else -> {
