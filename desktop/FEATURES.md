@@ -11,7 +11,7 @@ Excluded: tab spaces, AI summary (#17), CAPTCHA solving.
    Saved login for the site wins, unlocked with fingerprint. No CAPTCHA solving.
 3. (done) Tabs restored after closing the app, including back history and scroll position.
 4. (done) Physics-based animations: swipe address bar to switch tabs, swipe-back with previous-page preview, pull to refresh.
-5. (done) All traffic routed via the example.com VPS (pure tunnel, no MITM).
+5. (done) All traffic routed via your own VPS (pure tunnel, no MITM). Link it in Settings > VPS with your domain and relay token.
 
 ## Extras
 6. (done) Bottom address bar.

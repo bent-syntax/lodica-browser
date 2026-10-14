@@ -175,7 +175,7 @@ function initPayload() {
     qualities: d.prefs.QUALITIES, tab: d.tabs.info(t),
     tabs: { count: o.filter(x => !x.private).length, privateCount: o.filter(x => x.private).length },
     version: app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
-    relay: { available: !!d.relay.available }, ai: d.ai.status(),
+    relay: { available: !!d.relay.available, domain: d.relay.DOMAIN }, ai: d.ai.status(),
     locked: d.tabs.isLocked() && o.some(x => x.private), pinSet: d.vault.pinSet(),
   };
 }
@@ -338,6 +338,9 @@ function init(deps) {
   on("reader", () => (cur() ? helper.reader(cur()) : null));
 
   on("relay.state", () => relay.state);
+  on("relay.link", async (domain, token) => { const r = await relay.link(str(domain), str(token)); if (r.ok) require("./net").applyProxy(); return r; });
+  on("relay.unlink", () => { const r = relay.unlink(); require("./net").applyProxy(); return r; });
+  on("relay.info", () => relay.linked());
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));

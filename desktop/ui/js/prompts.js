@@ -93,7 +93,7 @@ async function onPrompt(p) {
   if (!p) return;
   if (p.kind === "dismiss" || p.dismiss) { const L = PROMPTS.get(p.id); if (L) L.close(); return; }
   const o = { title: p.title, message: p.message, ok: p.ok, cancel: p.cancel, extra: p.extra, options: p.options,
-    value: p.value, user: p.user, modal: true, key: "prompt-" + p.id, onLayer: (L) => PROMPTS.set(p.id, L) };
+    value: p.value, user: p.user, secret: p.secret, placeholder: p.placeholder, modal: true, key: "prompt-" + p.id, onLayer: (L) => PROMPTS.set(p.id, L) };
   let r;
   if (p.kind === "auth") r = await authDialog(o);
   else if (p.kind === "pin") r = await pinDialog(o);

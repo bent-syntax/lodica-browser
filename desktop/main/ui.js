@@ -115,7 +115,7 @@ function prompt(opts) {
   push("prompt", {
     id, kind: opts.kind || "confirm", title: opts.title || "", message: opts.message || "",
     ok: opts.ok || "OK", cancel: opts.cancel || "Cancel", extra: opts.extra, options: opts.options,
-    value: opts.value, user: opts.user,
+    value: opts.value, user: opts.user, secret: opts.secret, placeholder: opts.placeholder,
   });
   return wait(id);
 }

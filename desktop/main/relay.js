@@ -8,14 +8,21 @@ const prefs = require("./prefs");
 let config = {};
 try { config = require(path.join(__dirname, "..", "config.json")); } catch { config = {}; }
 
-const API = config.api || "";
-const DOMAIN = config.domain || "";
-const TOKEN = config.token || "";
+const PORT_API = 44741;
+// A link made in Settings (domain + token, stored encrypted) wins over the build-time config.json.
+const linked = store.loadSecret("relayLink", null);
+let API = "", DOMAIN = "", TOKEN = "", available = false, proxyAuth = "";
+function configure(c) {
+  DOMAIN = (c && c.domain) || "";
+  API = (c && c.api) || "";
+  TOKEN = (c && c.token) || "";
+  available = TOKEN.length > 0 && API.length > 0;
+  proxyAuth = available ? "Basic " + Buffer.from("lodica:" + TOKEN).toString("base64") : "";
+}
+configure(linked && linked.domain ? { domain: linked.domain, token: linked.token, api: `https://lodica.${linked.domain}:${PORT_API}` } : config);
 const POLL = 5000;
 const WATCH = 5 * 60 * 1000;
 
-const available = TOKEN.length > 0 && API.length > 0;
-const proxyAuth = available ? "Basic " + Buffer.from("lodica:" + TOKEN).toString("base64") : "";
 
 const events = new EventEmitter();
 const state = { aliases: store.load("aliases", []), mails: [], incoming: null, loading: false, error: null };
@@ -249,8 +256,37 @@ function pacScript() {
 }`;
 }
 
+const cleanDomain = d => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^(lodica|tunnel)\./, "").replace(/[/:].*$/, "");
+
+/** Checks the domain and token against the relay, then saves the link and switches to it. */
+async function link(domain, token) {
+  domain = cleanDomain(domain); token = String(token || "").trim();
+  if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/.test(domain)) return { ok: false, error: "Enter the domain you gave the installer, like example.com" };
+  if (!token) return { ok: false, error: "Enter the token from /etc/lodica-relay/token" };
+  const api = `https://lodica.${domain}:${PORT_API}`;
+  try {
+    const h = await fetch(api + "/api/health", { signal: AbortSignal.timeout(10000) });
+    if (!h.ok) return { ok: false, error: "Server answered HTTP " + h.status };
+    const a = await fetch(api + "/api/aliases", { headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(10000) });
+    if (a.status === 401 || a.status === 403) return { ok: false, error: "Token rejected" };
+  } catch (e) { return { ok: false, error: `Can't reach lodica.${domain}:${PORT_API}. Check DNS and that ports ${PORT_API} and 44742 are open` }; }
+  if (!store.saveSecret("relayLink", { domain, token })) return { ok: false, error: "Can't store the token: no system keyring available" };
+  configure({ domain, token, api });
+  changed(); refresh();
+  return { ok: true, domain };
+}
+
+function unlink() {
+  try { require("fs").unlinkSync(require("path").join(require("electron").app.getPath("userData"), "relayLink.bin")); } catch {}
+  configure(config);
+  changed();
+  return { ok: true };
+}
+
 module.exports = {
-  API, DOMAIN, available, token: TOKEN, proxyAuth, state, events, request, fetchMail, refresh, deleteMail,
+  get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
+  get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
+  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, fetchMail, refresh, deleteMail,
   forget, siteOf, newAlias, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };

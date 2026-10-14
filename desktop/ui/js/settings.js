@@ -66,10 +66,38 @@ function secBrowsing() {
 }
 // 3. VPS
 function secVps() {
-  if (!S.relayAvail) return [secHead("VPS"), setRow("Not configured in this build", null)];
-  return [secHead("VPS"),
-    setToggle("routeVps", "Route through VPS", "Send browsing through tunnel.example.com. Logins and payments stay direct"),
-    setRow("Inbox", null, ico("chevron", "chev"), () => openInbox())];
+  const link = () => {
+    SET.vpsMsg = "";
+    textDialog({ title: "Link your server", message: "The domain you gave the installer, like example.com", ok: "Next", placeholder: "example.com" }).then((domain) => {
+      if (!domain) return;
+      textDialog({ title: "Access token", message: "Run `sudo cat /etc/lodica-relay/token` on your server", ok: "Link", secret: true }).then(async (token) => {
+        if (!token) return;
+        SET.vpsMsg = "Connecting...";
+        refreshSettings();
+        const r = await inv("relay.link", domain, token);
+        if (r && r.ok) { S.relayAvail = true; S.relay = Object.assign({}, S.relay, { available: true, domain: r.domain }); SET.vpsMsg = ""; }
+        else SET.vpsMsg = (r && r.error) || "Couldn't link";
+        refreshSettings();
+      });
+    });
+  };
+  const unlink = async () => {
+    await inv("relay.unlink");
+    const r = await inv("relay.info");
+    S.relayAvail = !!(r && r.domain); S.relay = Object.assign({}, S.relay, { available: S.relayAvail, domain: r && r.domain });
+    refreshSettings();
+  };
+  const out = [secHead("VPS")];
+  if (S.relayAvail) {
+    const d = S.relay && S.relay.domain;
+    out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
+      setToggle("routeVps", "Route through VPS", `Send browsing through tunnel.${d || "your-domain"}. Logins and payments stay direct`),
+      setRow("Inbox", null, ico("chevron", "chev"), () => openInbox()));
+  } else {
+    out.push(setRow("Link your server", "Enter the domain and token from the Lodica relay installer", ico("chevron", "chev"), link));
+  }
+  if (SET.vpsMsg) out.push(h("div", { class: "set-note", text: SET.vpsMsg }));
+  return out;
 }
 // 4. Tabs on PC
 function secPcTabs() {
