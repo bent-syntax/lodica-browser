@@ -98,5 +98,6 @@ const png = Buffer.concat([
   chunk("IHDR", ihdr), chunk("IDAT", zlib.deflateSync(raw, { level: 9 })), chunk("IEND", Buffer.alloc(0)),
 ]);
 const out = path.join(__dirname, "..", "build", "icon.png");
+fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, png);
 console.log("icon written", out);
