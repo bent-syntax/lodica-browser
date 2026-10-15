@@ -269,7 +269,10 @@ async function link(domain, token) {
     if (!h.ok) return { ok: false, error: "Server answered HTTP " + h.status };
     const a = await fetch(api + "/api/aliases", { headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(10000) });
     if (a.status === 401 || a.status === 403) return { ok: false, error: "Token rejected" };
-  } catch (e) { return { ok: false, error: `Can't reach lodica.${domain}:${PORT_API}. Check DNS and that ports ${PORT_API} and 44742 are open` }; }
+  } catch (e) {
+    const why = (e && e.cause && (e.cause.code || e.cause.message)) || (e && (e.name === "TimeoutError" ? "timed out" : e.message)) || "unknown error";
+    return { ok: false, error: `Can't reach lodica.${domain}:${PORT_API} (${why}). Check DNS and that ports ${PORT_API} and 44742 are open` };
+  }
   if (!store.saveSecret("relayLink", { domain, token })) return { ok: false, error: "Can't store the token: no system keyring available" };
   configure({ domain, token, api });
   changed(); refresh();
