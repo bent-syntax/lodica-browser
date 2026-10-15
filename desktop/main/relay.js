@@ -8,18 +8,21 @@ const prefs = require("./prefs");
 let config = {};
 try { config = require(path.join(__dirname, "..", "config.json")); } catch { config = {}; }
 
+// Port 443 first (passes restrictive networks, relay installs from v1.6); 44741/44742 are the older direct ports.
 const PORT_API = 44741;
 // A link made in Settings (domain + token, stored encrypted) wins over the build-time config.json.
 const linked = store.loadSecret("relayLink", null);
 let API = "", DOMAIN = "", TOKEN = "", available = false, proxyAuth = "";
+let tunnelPort = 443;
 function configure(c) {
   DOMAIN = (c && c.domain) || "";
   API = (c && c.api) || "";
+  tunnelPort = /:44741$/.test(API) ? 44742 : 443;
   TOKEN = (c && c.token) || "";
   available = TOKEN.length > 0 && API.length > 0;
   proxyAuth = available ? "Basic " + Buffer.from("lodica:" + TOKEN).toString("base64") : "";
 }
-configure(linked && linked.domain ? { domain: linked.domain, token: linked.token, api: `https://lodica.${linked.domain}:${PORT_API}` } : config);
+configure(linked && linked.domain ? { domain: linked.domain, token: linked.token, api: linked.api || `https://lodica.${linked.domain}` } : config);
 const POLL = 5000;
 const WATCH = 5 * 60 * 1000;
 
@@ -252,7 +255,7 @@ function pacScript() {
   for (var i = 0; i < d.length; i++) if (under(host, d[i])) return "DIRECT";
   if (${SENSITIVE}.test(host)) return "DIRECT";
   if (url.substring(0, 5) === "http:" && ${SENSITIVE}.test(url.replace(/^http:\\/\\/[^\\/]*/, ""))) return "DIRECT";
-  return "HTTPS tunnel.${DOMAIN}:44742";
+  return "HTTPS tunnel.${DOMAIN}:${tunnelPort}";
 }`;
 }
 
@@ -263,17 +266,22 @@ async function link(domain, token) {
   domain = cleanDomain(domain); token = String(token || "").trim();
   if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?\.[a-z]{2,}$/.test(domain)) return { ok: false, error: "Enter the domain you gave the installer, like example.com" };
   if (!token) return { ok: false, error: "Enter the token from /etc/lodica-relay/token" };
-  const api = `https://lodica.${domain}:${PORT_API}`;
-  try {
-    const h = await fetch(api + "/api/health", { signal: AbortSignal.timeout(10000) });
-    if (!h.ok) return { ok: false, error: "Server answered HTTP " + h.status };
-    const a = await fetch(api + "/api/aliases", { headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(10000) });
-    if (a.status === 401 || a.status === 403) return { ok: false, error: "Token rejected" };
-  } catch (e) {
-    const why = (e && e.cause && (e.cause.code || e.cause.message)) || (e && (e.name === "TimeoutError" ? "timed out" : e.message)) || "unknown error";
-    return { ok: false, error: `Can't reach lodica.${domain}:${PORT_API} (${why}). Check DNS and that ports ${PORT_API} and 44742 are open` };
+  let api = "", fail = null;
+  for (const cand of [`https://lodica.${domain}`, `https://lodica.${domain}:${PORT_API}`]) {
+    try {
+      const h = await fetch(cand + "/api/health", { signal: AbortSignal.timeout(10000) });
+      if (!h.ok) { fail = "Server answered HTTP " + h.status; continue; }
+      const a = await fetch(cand + "/api/aliases", { headers: { Authorization: "Bearer " + token }, signal: AbortSignal.timeout(10000) });
+      if (a.status === 401 || a.status === 403) return { ok: false, error: "Token rejected" };
+      if (!/json/i.test(a.headers.get("content-type") || "")) { fail = "That address is not a Lodica relay"; continue; }
+      api = cand; break;
+    } catch (e) {
+      const why = (e && e.cause && (e.cause.code || e.cause.message)) || (e && (e.name === "TimeoutError" ? "timed out" : e.message)) || "unknown error";
+      fail = `Can't reach lodica.${domain} (${why}). Check DNS, then re-run the relay installer on the server so it serves port 443`;
+    }
   }
-  if (!store.saveSecret("relayLink", { domain, token })) return { ok: false, error: "Can't store the token: no system keyring available" };
+  if (!api) return { ok: false, error: fail || "Can't reach the server" };
+  if (!store.saveSecret("relayLink", { domain, token, api })) return { ok: false, error: "Can't store the token: no system keyring available" };
   configure({ domain, token, api });
   changed(); refresh();
   return { ok: true, domain };

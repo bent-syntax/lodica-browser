@@ -4,7 +4,7 @@
 // the AI box is answered on the phone by the app's Claude Code bridge, never by the VPS.
 
 let BASE = "";
-browser.storage.local.get("domain").then((r) => { if (r && r.domain) BASE = "https://lodica." + r.domain + ":44741"; }, () => {});
+browser.storage.local.get(["domain", "legacy"]).then((r) => { if (r && r.domain) BASE = "https://lodica." + r.domain + (r.legacy ? ":44741" : ""); }, () => {});
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const q = (params.get("q") || "").trim();

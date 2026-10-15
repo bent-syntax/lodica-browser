@@ -52,7 +52,7 @@ The relay is a server you host yourself (code in `relay/`). You need a Debian or
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
 ```
 
-It installs Node and the relay, installs [Caddy](https://caddyserver.com) if it is missing, and prints a token. Caddy routes `lodica.example.com` and `tunnel.example.com` and gets and renews their Let's Encrypt certificates by itself, so ports 80/443 must be reachable from the internet. If Caddy already runs, its existing sites are left alone: only hostnames it does not serve yet are added in `/etc/caddy/lodica-relay.caddy`, and the Caddyfile is backed up first. The relay itself has its own TCP ports, **44741** (API) and **44742** (tunnel). It opens those two in ufw only. Open them in your host's web firewall too if it has one.
+It installs Node and the relay, installs [Caddy](https://caddyserver.com) if it is missing, and prints a token. Caddy routes `lodica.example.com` and `tunnel.example.com` and gets and renews their Let's Encrypt certificates by itself, so ports 80/443 must be reachable from the internet. If Caddy already runs, its existing sites are left alone: only hostnames it does not serve yet are added in `/etc/caddy/lodica-relay.caddy`, and the Caddyfile is backed up first. Everything is reachable on port **443**, so networks that block unusual ports still work: a small SNI router inside the relay owns 443, sends `lodica.<domain>` to the relay API and `tunnel.<domain>` to the relay proxy, and passes every other name to Caddy, which the installer moves to port 8443 (`https_port` in the Caddyfile). Nothing is decrypted by the router. The relay also keeps its own TCP ports **44741** (API) and **44742** (tunnel) as a fallback for older clients; the installer opens those in ufw. Open 80, 443 and those two in your host's web firewall too if it has one. Tune the router with `LODICA_EDGE_PORT`, `LODICA_EDGE_FALLBACK_PORT`, `LODICA_EDGE_API_HOST` and `LODICA_EDGE_TUNNEL_HOST` in `/etc/lodica-relay/relay.env`.
 
 To use your own certificate instead of Caddy's:
 
@@ -63,7 +63,7 @@ curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/rel
 Set `LODICA_API_PORT` / `LODICA_PROXY_PORT` to use other ports (the apps expect the defaults). Running it again updates the relay and keeps the token. The app's setup wizard shows this same command with your domain filled in. To link the apps:
 
 - **Android:** open the setup wizard from Settings, enter your domain, then paste the token.
-- **Desktop:** run `LODICA_API=https://lodica.<domain>:44741 LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
+- **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
 
 Without a relay these features stay hidden and the browser works normally.
 

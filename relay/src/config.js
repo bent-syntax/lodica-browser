@@ -13,6 +13,11 @@ const cfg = {
   apiPort: Number(env.LODICA_API_PORT || 44741),
   // Optional plain-HTTP loopback listener for use behind your own reverse proxy (0 = off).
   apiLocalPort: Number(env.LODICA_API_LOCAL_PORT || 0),
+  // Optional port-443 front door (0 = off): SNI routing to the API, the proxy or the web server.
+  edgePort: Number(env.LODICA_EDGE_PORT || 0),
+  edgeFallbackPort: Number(env.LODICA_EDGE_FALLBACK_PORT || 8443),
+  edgeApiHost: (env.LODICA_EDGE_API_HOST || '').toLowerCase(),
+  edgeTunnelHost: (env.LODICA_EDGE_TUNNEL_HOST || '').toLowerCase(),
   tokenPath: env.LODICA_TOKEN_PATH || '/etc/lodica-relay/token',
   tlsCert: env.LODICA_TLS_CERT || '/etc/lodica-relay/tls/tunnel.crt',
   tlsKey: env.LODICA_TLS_KEY || '/etc/lodica-relay/tls/tunnel.key',
@@ -65,13 +70,18 @@ function tokenOk(candidate) {
 // Simple per-IP auth-failure limiter (brute-force damping).
 const fails = new Map();
 const FAIL_WINDOW = 15 * 60e3, FAIL_MAX = 20;
+// Connections relayed by the edge (see edge.js) all come from loopback, so the real client is
+// unknown there; the token is 256-bit random, so skip the limiter rather than lock everyone out.
+const isLoopback = (ip) => ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
 function limited(ip) {
+  if (isLoopback(ip)) return false;
   const f = fails.get(ip);
   if (!f) return false;
   if (Date.now() - f.start > FAIL_WINDOW) { fails.delete(ip); return false; }
   return f.n >= FAIL_MAX;
 }
 function noteFail(ip) {
+  if (isLoopback(ip)) return;
   const now = Date.now();
   const f = fails.get(ip);
   if (!f || now - f.start > FAIL_WINDOW) fails.set(ip, { start: now, n: 1 });

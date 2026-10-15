@@ -3,6 +3,7 @@
 // Routes page traffic through the Lodica VPS tunnel when the app turns it on.
 // The app owns the setting and the credential; it pushes {type:"config"} over the native port.
 
+let legacy = false; // relay installed before port 443 support: API on 44741, tunnel on 44742
 let domain = ""; // the relay's domain; the app pushes the real one in the config
 let dns = []; // the user's own names: [name, target] pairs from the app
 
@@ -27,7 +28,7 @@ browser.webRequest.onBeforeRequest.addListener((d) => {
   } catch (e) { return {}; }
 }, { urls: ["http://*/*", "https://*/*"], types: ["main_frame", "sub_frame", "xmlhttprequest", "image", "script", "stylesheet", "media", "font", "other"] }, ["blocking"]);
 
-const tunnel = () => ({ type: "https", host: "tunnel." + domain, port: 44742 });
+const tunnel = () => ({ type: "https", host: "tunnel." + domain, port: legacy ? 44742 : 443 });
 const DIRECT = { type: "direct" };
 
 // Identity providers and payment flows stay on the device's own connection: they tend to
@@ -169,7 +170,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     if (msg.c) qs.set("c", String(msg.c));
     if (msg.l) qs.set("l", String(msg.l));
     try {
-      const r = await fetch("https://lodica." + domain + ":44741/api/search?" + qs, { headers: { Authorization: "Bearer " + cfg.api }, credentials: "omit" });
+      const r = await fetch("https://lodica." + domain + (legacy ? ":44741" : "") + "/api/search?" + qs, { headers: { Authorization: "Bearer " + cfg.api }, credentials: "omit" });
       if (!r.ok) return { error: "Search failed (" + r.status + ")" };
       return await r.json();
     } catch (e) {
@@ -224,6 +225,7 @@ function connect() {
   port.onMessage.addListener((msg) => {
     if (msg && msg.type === "config") {
       if (/^[a-z0-9.-]+$/i.test(String(msg.domain || ""))) domain = String(msg.domain).toLowerCase();
+      legacy = !!msg.legacy;
       dns = Array.isArray(msg.dns) ? msg.dns.filter((p) => Array.isArray(p) && p.length === 2).map((p) => [String(p[0]).toLowerCase(), String(p[1])]) : [];
       cfg = {
         enabled: !!msg.enabled,
@@ -235,7 +237,7 @@ function connect() {
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
-      browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain });
+      browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain, legacy });
       ready();
     } else if (msg && msg.type === "answer") {
       const done = asks.get(msg.id);

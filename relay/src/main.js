@@ -2,6 +2,7 @@
 const { cfg, loadToken } = require('./config');
 const api = require('./api');
 const proxy = require('./proxy');
+const edge = require('./edge');
 
 const log = (msg) => console.log(msg);   // journald adds timestamps
 
@@ -12,6 +13,7 @@ setInterval(() => {
 
 const apiServer = api.start(log);
 const proxyServer = proxy.start(log);
+const edgeServer = cfg.edgePort ? edge.start(log) : null;
 
 // Counters only; never hostnames, IPs or tokens.
 function logStats() {
@@ -27,6 +29,7 @@ function shutdown(sig) {
   logStats();
   apiServer.close();
   proxyServer.close();
+  if (edgeServer) edgeServer.close();
   setTimeout(() => process.exit(0), 3000).unref();
 }
 process.on('SIGTERM', () => shutdown('SIGTERM'));

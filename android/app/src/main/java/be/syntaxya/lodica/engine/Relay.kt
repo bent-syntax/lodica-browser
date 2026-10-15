@@ -73,7 +73,9 @@ object Relay {
     private const val DEFAULT_DOMAIN = ""
     /** The relay's domain, as set up in the app. Empty until a server is linked. */
     var DOMAIN: String = DEFAULT_DOMAIN; private set
-    val API: String get() = "https://lodica.$DOMAIN:44741"
+    /** True for relays installed before port 443 support: the API is on 44741 and the tunnel on 44742. */
+    var legacyPorts = false; private set
+    val API: String get() = "https://lodica.$DOMAIN" + if (legacyPorts) ":44741" else ""
     const val ACTION_MAIL = "be.syntaxya.lodica.MAIL"
     const val EXTRA_MAIL = "mail"
     private const val CHANNEL = "mail"
@@ -112,6 +114,8 @@ object Relay {
         val rp = app.getSharedPreferences("relay", Context.MODE_PRIVATE)
         rp.getString("domain", null)?.takeIf { validDomain(it) }?.let { DOMAIN = it }
         rp.getString("token", null)?.takeIf { it.length >= 16 }?.let { token = it }
+        // Installs linked before port 443 existed keep using the old ports until the user re-links.
+        legacyPorts = rp.getBoolean("legacy", rp.contains("domain") && !rp.contains("legacy"))
         if (rp.getBoolean("off", false)) token = ""
         val raw = app.getSharedPreferences("aliases", Context.MODE_PRIVATE).getString("list", null)
         if (raw != null) runCatching { aliases.addAll(json.decodeFromString<List<Alias>>(raw)) }
@@ -149,7 +153,8 @@ object Relay {
     fun configure(domain: String, newToken: String) {
         DOMAIN = domain
         token = newToken
-        app.getSharedPreferences("relay", Context.MODE_PRIVATE).edit().putString("domain", domain).putString("token", newToken).putBoolean("off", false).apply()
+        app.getSharedPreferences("relay", Context.MODE_PRIVATE).edit().putString("domain", domain).putString("token", newToken).putBoolean("off", false).putBoolean("legacy", probedLegacy).apply()
+        legacyPorts = probedLegacy
         mails.clear(); error = null
         Helper.push()
         refresh()
@@ -164,15 +169,25 @@ object Relay {
         Helper.push()
     }
 
-    /** Blocking. Null when the server answers and accepts the token, else a short reason. */
+    private var probedLegacy = false
+
+    /** Blocking. Null when the server answers and accepts the token, else a short reason. Tries port 443 first, then the old 44741. */
     fun check(domain: String, tok: String): String? {
-        val c = runCatching { URL("https://lodica.$domain:44741/api/aliases").openConnection() as HttpURLConnection }.getOrNull()
+        val first = checkAt(domain, tok, "")
+        if (first == null) { probedLegacy = false; return null }
+        val old = checkAt(domain, tok, ":44741")
+        if (old == null) { probedLegacy = true; return null }
+        return if (first.startsWith("The server is there")) first else old.takeIf { it.startsWith("The server is there") } ?: first
+    }
+
+    private fun checkAt(domain: String, tok: String, port: String): String? {
+        val c = runCatching { URL("https://lodica.$domain$port/api/aliases").openConnection() as HttpURLConnection }.getOrNull()
             ?: return "That domain doesn't look right"
         return try {
             c.connectTimeout = 10_000; c.readTimeout = 10_000; c.useCaches = false
             c.setRequestProperty("Authorization", "Bearer $tok")
             when (val code = c.responseCode) {
-                200 -> null
+                200 -> if (c.contentType.orEmpty().contains("json")) null else "That address is not a Lodica relay"
                 401, 403 -> "The server is there, but the token is wrong"
                 else -> "The server answered with $code"
             }
@@ -181,7 +196,7 @@ object Relay {
         } catch (e: java.net.UnknownHostException) {
             "lodica.$domain doesn't resolve yet. Check the DNS record"
         } catch (e: IOException) {
-            "Can't reach lodica.$domain (${e.javaClass.simpleName}). Check that ports 44741 and 44742 are open"
+            "Can't reach lodica.$domain (${e.javaClass.simpleName}). Re-run the relay installer on the server so it serves port 443"
         } finally {
             c.disconnect()
         }

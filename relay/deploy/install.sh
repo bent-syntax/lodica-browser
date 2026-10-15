@@ -115,11 +115,33 @@ else
   else
     say "Caddy already serves $API_HOST and $TUN_HOST"
   fi
+  # Port 443 is the only port most restrictive networks allow, so the relay takes it and passes
+  # every other site through to Caddy, which moves to a different HTTPS port (certificates still
+  # come from port 80, so existing sites keep working).
+  EDGE_FALLBACK=$(grep -Eo '^[[:space:]]*https_port[[:space:]]+[0-9]+' "$CADDYFILE" | awk '{print $2}' | head -n1)
+  if [ -z "$EDGE_FALLBACK" ]; then
+    EDGE_FALLBACK=8443
+    cp -a "$CADDYFILE" "$CADDYFILE.bak.lodica-edge-$(date +%s)"
+    if grep -Eq '^\{[[:space:]]*$' "$CADDYFILE"; then
+      sed -i '0,/^{[[:space:]]*$/s//{\n\thttps_port '"$EDGE_FALLBACK"'/' "$CADDYFILE"
+    else
+      { printf '{\n\thttps_port %s\n}\n\n' "$EDGE_FALLBACK"; cat "$CADDYFILE"; } > "$CADDYFILE.new" && mv "$CADDYFILE.new" "$CADDYFILE"
+    fi
+    RESTART_CADDY=1
+  fi
   caddy validate --config "$CADDYFILE" --adapter caddyfile </dev/null >/dev/null 2>&1 || die "Caddy rejected the config. Check: caddy validate --config $CADDYFILE"
   systemctl enable caddy >/dev/null 2>&1 || true
-  if systemctl is-active --quiet caddy; then timeout 60 systemctl reload caddy </dev/null || timeout 60 systemctl restart caddy </dev/null
+  if systemctl is-active --quiet caddy && [ -z "${RESTART_CADDY:-}" ]; then timeout 60 systemctl reload caddy </dev/null || timeout 60 systemctl restart caddy </dev/null
+  elif systemctl is-active --quiet caddy; then timeout 60 systemctl restart caddy </dev/null
   else timeout 60 systemctl start caddy </dev/null; fi
   systemctl is-active --quiet caddy || die "Caddy is not running: journalctl -u caddy"
+  cat >> "$ETC/relay.env" <<ENV
+LODICA_EDGE_PORT=443
+LODICA_EDGE_FALLBACK_PORT=$EDGE_FALLBACK
+LODICA_EDGE_API_HOST=$API_HOST
+LODICA_EDGE_TUNNEL_HOST=$TUN_HOST
+ENV
+  EDGE=1
 
   cat > /usr/local/sbin/lodica-relay-certsync <<SYNC
 #!/bin/sh
@@ -191,6 +213,8 @@ EnvironmentFile=-$ETC/github.env
 Restart=always
 RestartSec=2
 NoNewPrivileges=true
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 ProtectSystem=strict
 ProtectHome=true
 ReadWritePaths=/var/lib/lodica-relay
@@ -228,7 +252,8 @@ sleep 2
 systemctl is-active --quiet lodica-relay || die "relay did not start: journalctl -u lodica-relay"
 
 TOKEN=$(cat "$ETC/token")
-if curl -fsS -m 10 -H "Authorization: Bearer $TOKEN" "https://$API_HOST:$API_PORT/api/health" >/dev/null 2>&1; then OK="yes"; else OK="not yet (check DNS and the firewall)"; fi
+CHECK_PORT=$API_PORT; [ -n "${EDGE:-}" ] && CHECK_PORT=443
+if curl -fsS -m 10 -H "Authorization: Bearer $TOKEN" "https://$API_HOST:$CHECK_PORT/api/health" >/dev/null 2>&1; then OK="yes"; else OK="not yet (check DNS and the firewall)"; fi
 
 cat <<DONE
 
@@ -239,6 +264,7 @@ Lodica relay is installed.
 
 Paste the token into the Lodica app (Setup, last step). The domain is already filled in.
 Keep the token private. It is also stored in $ETC/token.
-Ports used: $API_PORT and $PROXY_PORT (TCP). Caddy (80/443) obtains and renews the certificates; its existing sites were not changed.
+Ports used: 443 (the apps use this first, it works on restricted networks), plus $API_PORT and $PROXY_PORT (TCP) as a fallback.
+The relay answers on 443 and passes every other site through to Caddy (now on its HTTPS port ${EDGE_FALLBACK:-8443}); its existing sites keep working. Caddy still gets the certificates through port 80.
 Cloud firewalls (not ufw) must be opened in your provider's panel for those two ports.
 DONE
