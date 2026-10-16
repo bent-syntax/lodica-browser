@@ -238,6 +238,21 @@
     if (port) port.postMessage({ type: "user", host: location.hostname, value: v });
   }
 
+  // A login field the user emptied by hand stays empty: Gecko's saved-login fill (untrusted input
+  // events) must not refill it. Typing in it again lifts the lock.
+  const cleared = new WeakSet();
+  function credField(el) {
+    return el instanceof HTMLInputElement && (isPassword(el) || isEmailField(el) || /username|current-password/i.test(attr(el, "autocomplete")));
+  }
+  for (const type of ["input", "change"]) {
+    document.addEventListener(type, (e) => {
+      const el = e.target;
+      if (!credField(el)) return;
+      if (e.isTrusted) { if (el.value) cleared.delete(el); else cleared.add(el); }
+      else if (cleared.has(el) && el.value) el.value = "";
+    }, true);
+  }
+
   // Gecko only offers to save on a classic form submit; script logins, alias fills and two-step
   // pages slip past it, so report what was typed when the user sends the form. Stays on the phone.
   function capture() {
