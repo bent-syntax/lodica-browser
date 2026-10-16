@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.6.0
+- Lodica Search keeps its results, the AI answer and your scroll position when you go back from a page, instead of searching again. Results appear before the theme and AI state arrive.
+- Server chat and the in-page search link handling from 1.5.2 are included.
+- The Android-only changes of this release (settings redesign, authenticator, setup entry points) are not in the desktop app.
+
 ## 1.5.2
 - Server chat: one shared room for everyone linked to the same server (menu > Server chat; needs the updated relay). Messages are not end-to-end encrypted and are kept 24 hours.
 - Typing a link into the in-page search bar opens it directly instead of searching.

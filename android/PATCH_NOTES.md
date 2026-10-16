@@ -1,5 +1,14 @@
 # Patch notes
 
+## 1.6.0
+- Android: settings redone. Every row has an icon, sections are quieter, and the tabs fade into each other. Items that appeared under two tabs are now in one place: search suggestions sit with Search, AI chats with AI, server chat with Mail, and the "Tabs on PC" header is now "Sync".
+- Android: the flat look replaces the purple-pink gradients on the start page wordmark and the page-load bar.
+- Android: tapping the address bar no longer shows the open-tabs strip above it.
+- Lodica Search keeps its results, the AI answer and your scroll position when you go back from a page, instead of searching again (Android and desktop). Results appear before the theme and AI state arrive.
+- Android: if you skipped server setup, Settings now offers it at the top of General and under VPS, and choosing Lodica Search without a server starts the setup.
+- Includes everything from 1.5.2 (authenticator, server chat, offline-server fallback, sign-in tracking-protection pause).
+- Not tested on a real device.
+
 ## 1.5.2
 - Android: built-in authenticator (Settings > Identity & mail). Add a 2FA secret or otpauth:// link; the current code is filled into verification-code fields on that site and can be copied.
 - Android: server chat, one shared room for everyone linked to the same server (needs the updated relay). Messages are not end-to-end encrypted and are kept 24 hours.

@@ -350,7 +350,8 @@ private fun StartPage(modifier: Modifier) {
         Spacer(Modifier.height(10.dp))
         Text(
             "Lodica",
-            style = MaterialTheme.typography.headlineMedium.copy(brush = KiteGradient),
+            style = MaterialTheme.typography.headlineMedium,
+            color = Mist,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp,
         )

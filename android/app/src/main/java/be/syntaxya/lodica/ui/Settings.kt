@@ -6,7 +6,15 @@ import be.syntaxya.lodica.engine.CustomTheme
 import android.view.WindowManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -139,11 +147,20 @@ fun SettingsScreen() {
             SettingsTabs.forEachIndexed { i, label -> Chip(label, tab == i) { tab = i } }
         }
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp)) {
-            when (tab) {
+            AnimatedContent(
+                tab,
+                transitionSpec = { fadeIn(tween(200, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
+                contentAlignment = Alignment.TopStart, label = "settingsTab",
+            ) { page ->
+            when (page) {
                 0 -> {
             if (!Relay.available) LinkRow("Set up your server (hidden email, tab sharing, Lodica Search)") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             Section("Search")
             EnginePicker()
+            SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
+            LinkRow("Clear suggestions", Coral) {
+                confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
+            }
 
 
                     Section("Browsing")
@@ -157,6 +174,7 @@ fun SettingsScreen() {
 
             Section("AI")
             AiSection()
+            LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
 
             Section("Web apps")
             SilentInstallSection()
@@ -190,7 +208,7 @@ fun SettingsScreen() {
 
 
             if (Relay.available) {
-                Section("Tabs on PC")
+                Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link
                 if (PcTabs.enabled && link != null) {
@@ -253,12 +271,6 @@ fun SettingsScreen() {
                     Prefs.updateRouteVps(it)
                 }
                     }
-                    Section("Search suggestions")
-                    SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
-                    LinkRow("Clear suggestions", Coral) {
-                        confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
-                    }
-
                     Section("Custom DNS")
                     DnsSection()
 
@@ -266,8 +278,6 @@ fun SettingsScreen() {
             ChromeImportSection()
 
                     Section("Privacy")
-            LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
-            if (Relay.available) LinkRow("Server chat") { Ui.screen = Screen.Room }
             LinkRow("History") { Ui.screen = Screen.History }
             LinkRow("Clear history", Coral) {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
@@ -300,6 +310,7 @@ fun SettingsScreen() {
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                         )
                     } else {
+                        LinkRow("Server chat") { Ui.screen = Screen.Room }
                         LinkRow("Inbox") { Ui.screen = Screen.Inbox }
                         LinkRow("Disconnect server") { Relay.disconnect() }
                     }
@@ -347,6 +358,7 @@ fun SettingsScreen() {
             Spacer(Modifier.height(24.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Kite(40.dp) }
                 }
+            }
             }
         }
     }
@@ -616,8 +628,8 @@ internal fun TopBar(title: String, onBack: () -> Unit) {
 @Composable
 internal fun Section(title: String) {
     Text(
-        title.uppercase(), color = Amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp,
-        modifier = Modifier.padding(start = 20.dp, top = 22.dp, bottom = 6.dp),
+        title, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 4.dp),
     )
 }
 
@@ -626,9 +638,11 @@ private fun EnginePicker() {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
-            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 20.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            RowTile(Icons.Rounded.Search)
+            Spacer(Modifier.width(14.dp))
             Text("Search engine", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(Prefs.search.label, color = Muted, fontSize = 14.sp)
         }
@@ -713,15 +727,56 @@ private fun bytes(b: Long): String = when {
     else -> "$b B"
 }
 
+/** Settings icon for a row, picked from its title so every row lines up with a tile. */
+internal fun rowIcon(title: String): ImageVector {
+    val t = title.lowercase()
+    fun has(vararg k: String) = k.any { t.contains(it) }
+    return when {
+        has("clear", "reset", "disconnect", "forget", "delete", "remove") -> Icons.Rounded.DeleteOutline
+        has("history") -> Icons.Rounded.History
+        has("password") -> Icons.Rounded.Key
+        has("authenticator") -> Icons.Rounded.Shield
+        has("inbox", "mail") -> Icons.Rounded.Email
+        has("chat") -> Icons.Rounded.ChatBubbleOutline
+        has("search", "suggest") -> Icons.Rounded.Search
+        has("ai ") -> Icons.Rounded.AutoAwesome
+        has("https", "cookie", "block", "privacy", "permission", "tracking") -> Icons.Rounded.Shield
+        has("dns") -> Icons.Rounded.Dns
+        has("vps", "server", "tunnel", "route") -> Icons.Rounded.VpnKey
+        has("desktop") -> Icons.Rounded.DesktopWindows
+        has("language") -> Icons.Rounded.Language
+        has("quality", "speed", "video") -> Icons.Rounded.Speed
+        has("theme", "colour", "color", "dark", "widget", "background") -> Icons.Rounded.Palette
+        has("tab") -> Icons.Rounded.Tab
+        has("download") -> Icons.Rounded.Download
+        has("gesture", "swipe", "bars") -> Icons.Rounded.Gesture
+        has("update", "what's new", "up to date") -> Icons.Rounded.Update
+        has("extension") -> Icons.Rounded.Extension
+        has("web app", "install") -> Icons.Rounded.Apps
+        has("import") -> Icons.Rounded.Download
+        has("set up", "setup") -> Icons.Rounded.Settings
+        else -> Icons.Rounded.Tune
+    }
+}
+
+@Composable
+private fun RowTile(icon: ImageVector, tint: androidx.compose.ui.graphics.Color = Muted) {
+    Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+    }
+}
+
 @Composable
 internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 20.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        RowTile(rowIcon(title))
+        Spacer(Modifier.width(14.dp))
         Column(Modifier.weight(1f)) {
             Text(title, color = Mist, fontSize = 15.sp)
-            Text(sub, color = Muted, fontSize = 12.sp)
+            Text(sub, color = Muted, fontSize = 12.sp, lineHeight = 16.sp)
         }
         Spacer(Modifier.width(12.dp))
         Switch(
@@ -736,10 +791,12 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg by animateColorAsState(if (selected) Amber else GraphiteRaised, tween(180), label = "chipBg")
+    val fg by animateColorAsState(if (selected) Graphite else Mist, tween(180), label = "chipFg")
     Text(
-        label, color = if (selected) Graphite else Mist, fontSize = 13.sp,
+        label, color = fg, fontSize = 13.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-        modifier = Modifier.clip(RoundedCornerShape(50)).background(if (selected) Amber else GraphiteRaised)
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(bg)
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
@@ -747,9 +804,11 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 internal fun LinkRow(title: String, color: androidx.compose.ui.graphics.Color = Mist, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        RowTile(rowIcon(title), if (color == Mist) Muted else color)
+        Spacer(Modifier.width(14.dp))
         Text(title, color = color, fontSize = 15.sp, modifier = Modifier.weight(1f))
         Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Muted)
     }

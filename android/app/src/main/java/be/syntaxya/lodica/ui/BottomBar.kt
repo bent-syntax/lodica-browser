@@ -152,7 +152,7 @@ private fun LoadLine(tab: Tab?) {
     }
     val alpha by animateFloatAsState(if (loading) 1f else 0f, tween(if (loading) 120 else 420), label = "load")
     Box(Modifier.fillMaxWidth().height(2.dp).graphicsLayer { this.alpha = alpha }) {
-        Box(Modifier.fillMaxWidth(fill.value).fillMaxHeight().background(KiteGradient))
+        Box(Modifier.fillMaxWidth(fill.value).fillMaxHeight().background(Amber))
     }
 }
 
