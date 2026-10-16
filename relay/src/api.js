@@ -11,6 +11,7 @@ const { parseMessage } = require('./mime');
 const page = require('./tabs-page');
 const search = require('./search');
 const updates = require('./updates');
+const chat = require('./chat');
 
 // Exim delivers every recipient to one maildir (tainted local parts cannot name
 // directories); the alias comes from the Envelope-to header Exim adds per delivery.
@@ -355,6 +356,12 @@ async function route(req, res) {
     if (m !== 'DELETE') return not('DELETE');
     if (!authed(req, res)) return;
     return mailDelete(req, res, r[1]);
+  }
+  if (p === '/api/chat') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? chat.get(req, res, url, h) : chat.post(req, res, clientIp(req), h);
   }
   if (p === '/api/theme') {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
