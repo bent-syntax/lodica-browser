@@ -1,14 +1,19 @@
 'use strict';
 // Same-server chat. Every client of a server holds the same token, so the server has one shared room.
 // Messages live in memory only (last 200, 24 h) and are delivered in real time by long polling:
-//   GET  /api/chat?after=<id>&wait=<seconds>   -> { messages: [{id,name,text,at}], last }
-//   POST /api/chat  { name, text }              -> the stored message
+//   GET  /api/chat?after=<id>&wait=<seconds>&room=<room>  -> { messages: [{id,name,text,at,room}], last }
+//   POST /api/chat  { name, text, room }                  -> the stored message
+//   GET  /api/chat/rooms                                  -> [{room, at, count}] for the non-default rooms
+// A room is just a label: "" is the shared server room, "dm:<a>|<b>" a private chat between two device
+// names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
+// device of a server holds the same token.
 const MAX_LOG = 200;
 const TTL = 24 * 3600e3;
 const WAIT_MAX = 25;
 const MAX_WAITERS = 200;
 const NAME_MAX = 32;
 const TEXT_MAX = 2000;
+const ROOM_RE = /^(dm:[^|\s]{1,32}\|[^|\s]{1,32}|grp:[\w .-]{1,32})$/;
 const RATE_N = 20, RATE_WINDOW = 10e3; // posts per client address
 
 let seq = 0;
@@ -20,14 +25,18 @@ function prune(now = Date.now()) {
   while (log.length && (log.length > MAX_LOG || now - log[0].at > TTL)) log.shift();
 }
 
-function since(after) {
+function cleanRoom(v) {
+  return typeof v === 'string' && ROOM_RE.test(v) ? v : '';
+}
+
+function since(after, room = '') {
   prune();
-  return log.filter((m) => m.id > after);
+  return log.filter((m) => m.id > after && m.room === room);
 }
 
 function wake() {
   for (const w of [...waiters]) {
-    const msgs = since(w.after);
+    const msgs = since(w.after, w.room);
     if (msgs.length) w.done(msgs);
   }
 }
@@ -38,15 +47,16 @@ function get(req, res, url, h) {
   const afterRaw = q.get('after');
   const after = afterRaw !== null && /^\d+$/.test(afterRaw) ? Number(afterRaw) : null;
   const wait = Math.min(WAIT_MAX, Math.max(0, Number(q.get('wait')) || 0));
+  const room = cleanRoom(q.get('room'));
   // First call (no cursor): the recent history so a new client has context.
   if (after === null) {
-    prune();
-    return h.sendJson(req, res, 200, { messages: log.slice(-50), last: seq });
+    return h.sendJson(req, res, 200, { messages: since(-1, room).slice(-50), last: seq });
   }
-  const msgs = since(after);
+  const msgs = since(after, room);
   if (msgs.length || !wait || waiters.size >= MAX_WAITERS) return h.sendJson(req, res, 200, { messages: msgs, last: seq });
   const w = {
     after,
+    room,
     done(list) {
       clearTimeout(timer);
       waiters.delete(w);
@@ -75,14 +85,27 @@ async function post(req, res, ip, h) {
   const text = typeof b?.text === 'string' ? b.text.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, TEXT_MAX) : '';
   const name = clean(b?.name, NAME_MAX) || 'Anonymous';
   if (!text) return h.sendText(req, res, 400, 'empty message');
-  const msg = { id: ++seq, name, text, at: Date.now() };
+  const msg = { id: ++seq, name, text, at: Date.now(), room: cleanRoom(b?.room) };
   log.push(msg);
   prune();
   wake();
   h.sendJson(req, res, 200, msg);
 }
 
+/** GET /api/chat/rooms: the private and group rooms that currently hold messages. */
+function rooms(req, res, h) {
+  prune();
+  const by = new Map();
+  for (const m of log) {
+    if (!m.room) continue;
+    const r = by.get(m.room) || { room: m.room, at: 0, count: 0 };
+    r.at = m.at; r.count++;
+    by.set(m.room, r);
+  }
+  h.sendJson(req, res, 200, { rooms: [...by.values()] });
+}
+
 /** Test hook. */
 function reset() { seq = 0; log.length = 0; rate.clear(); for (const w of [...waiters]) w.done([]); }
 
-module.exports = { get, post, reset };
+module.exports = { get, post, rooms, reset };

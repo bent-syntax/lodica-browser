@@ -9,7 +9,16 @@ A privacy-focused browser for Android (GeckoView) and desktop (Electron), with v
 | `android/` | Android app (Kotlin, Jetpack Compose, GeckoView). Package id `be.syntaxya.lodica`. |
 | `desktop/` | Desktop app (Electron). |
 
-Both apps share one version number. Everything works without a server. A relay is only needed for the optional hidden email, tab sharing and search features. The relay lives in `relay/` in this repository.
+Both apps share one version number (currently 1.7.0).
+
+## Highlights
+
+- Search uses the engine you choose, on the start page, in the widget and on desktop.
+- Quick sites on the start page, custom DNS rules (domain to redirect, as many as you like).
+- With a relay: hidden email, tab sharing, server chat with private chats and groups, and notifications for new versions and new messages.
+- Android widgets: search bar, shortcuts and quick sites.
+
+ Everything works without a server. A relay is only needed for the optional hidden email, tab sharing and search features. The relay lives in `relay/` in this repository.
 
 ## Android
 

@@ -36,6 +36,7 @@ object Engine {
         Playback.init(ctx)
         History.init(ctx)
         Relay.init(ctx)
+        Notifier.schedule(ctx)
         PcTabs.init(ctx)
         Memory.init(ctx)
         Ai.init(ctx)

@@ -2,4 +2,6 @@
 <resources>
     <string name="app_name">Lodica</string>
     <string name="widget_search">Lodica search bar</string>
+    <string name="widget_shortcuts">Lodica shortcuts</string>
+    <string name="widget_sites">Lodica quick sites</string>
 </resources>

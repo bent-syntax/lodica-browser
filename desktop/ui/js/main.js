@@ -72,6 +72,7 @@ function subscribe() {
   on("prefs", (d) => { if (d) S.prefs = d; loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
   on("relay", (d) => { S.relay = Object.assign({}, S.relay, d || {}); refreshInbox(); refreshSettings(); });
   on("downloads", (list) => refreshDownloads(list));
+  on("openRoom", (r) => { openRoom(); if (r) inv("room.select", r); });
   on("room", (d) => { ROOM.state = d || ROOM.state; if (ROOM.L) roomRender(); });
   on("ai.chats", (c) => { CHAT.chats = c || []; if (CHAT.L && !CHAT.busy) chatRender(); });
   on("ai", (d) => { S.ai = Object.assign({}, S.ai, d || {}); refreshSettings(); });

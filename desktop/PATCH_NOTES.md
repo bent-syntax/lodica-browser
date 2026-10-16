@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.7.0
+- The search box on the home screen uses the search engine chosen in Settings.
+- Desktop notifications for a new browser version and for new messages while the chat is closed (checked every 5 minutes).
+- Server chat has private chats with one device and group chats. Use "+" in the chat header; right-click a chat tab to remove it. Messages in other chats are kept apart from the shared room.
+
 ## 1.6.1
 - New look. Settings has an icon sidebar and rows grouped in rounded cards, toggles and chips animate, theme tiles no longer show an oval selection ring, dialogs and sheets have softer corners and shadows, the tab switcher cards lift on hover, and the Server chat menu entry has its own icon.
 

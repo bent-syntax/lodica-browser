@@ -1062,10 +1062,10 @@ private fun WidgetEditor() {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("pill" to "Pill", "rounded" to "Rounded", "square" to "Square").forEach { (k, l) ->
                 val on = Prefs.widgetShape == k
-                TextButton(onClick = { Prefs.updateWidget(text, k); SearchWidget.refresh(ctx) }) { Text(if (on) "• $l" else l) }
+                TextButton(onClick = { Prefs.updateWidget(text, k); Prefs.refreshWidgets(ctx) }) { Text(if (on) "• $l" else l) }
             }
         }
-        Button(onClick = { Prefs.updateWidget(text, Prefs.widgetShape); SearchWidget.refresh(ctx) }) { Text("Update widget") }
+        Button(onClick = { Prefs.updateWidget(text, Prefs.widgetShape); Prefs.refreshWidgets(ctx) }) { Text("Update widget") }
         Text("The widget uses your theme colours. Add it from the home screen widget list.", color = Muted)
     }
 }
@@ -1267,6 +1267,7 @@ private fun ChromeImportSection() {
     LinkRow("Import history (History.json)") { hist.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun DnsSection() {
     var rules by remember { mutableStateOf(false) }
@@ -1279,23 +1280,46 @@ private fun DnsSection() {
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
     )
     if (rules) {
-        var draft by remember { mutableStateOf(Prefs.dnsRules) }
-        AlertDialog(
-            onDismissRequest = { rules = false },
-            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            title = { Text("Own domain names") },
-            text = {
-                Column {
-                    Text("One per line: name, space, target. A name can be .home, *.lab.me or a full host. A target is a host, an IP or a URL. Only works in this browser, loads directly without the VPS.", fontSize = 13.sp)
-                    OutlinedTextField(
-                        draft, { draft = it }, Modifier.fillMaxWidth().padding(top = 8.dp),
-                        placeholder = { Text(".home 192.168.1.10:8080", color = Muted) }, colors = fieldColors,
-                    )
+        val sheet = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var pairs by remember { mutableStateOf(Prefs.dnsPairs()) }
+        var from by remember { mutableStateOf("") }
+        var to by remember { mutableStateOf("") }
+        fun save(l: List<List<String>>) { pairs = l; Prefs.updateDnsRules(l.joinToString("\n") { it[0] + " " + it[1] }) }
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { rules = false }, sheetState = sheet, containerColor = GraphiteRaised,
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+                Text("Own domain names", color = Mist, fontSize = 18.sp)
+                Text("Opening the domain loads the redirect target instead. Works in this browser only, without the VPS. A domain can be go.ogle, .home or *.lab.me.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                OutlinedTextField(
+                    from, { from = it }, Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true,
+                    label = { Text("Domain to set", color = Muted) }, placeholder = { Text("go.ogle", color = Muted) }, colors = fieldColors,
+                )
+                OutlinedTextField(
+                    to, { to = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
+                    label = { Text("Domain to redirect to", color = Muted) }, placeholder = { Text("google.com", color = Muted) }, colors = fieldColors,
+                )
+                val f = from.trim().substringAfter("://").substringBefore('/').trimEnd('.').lowercase()
+                val t = to.trim().let { if (it.contains("://")) it else it.substringBefore(' ') }.let { if (it.contains("://")) it else it.lowercase() }
+                Button(
+                    onClick = { save(pairs.filter { it[0] != f } + listOf(listOf(f, t))); from = ""; to = "" },
+                    enabled = f.isNotEmpty() && !f.contains(' ') && t.isNotEmpty() && !t.contains(' '),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite),
+                ) { Text("Add") }
+                LazyColumn(Modifier.padding(top = 8.dp).heightIn(max = 280.dp)) {
+                    items(pairs) { p ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(p[0], color = Mist, fontSize = 15.sp)
+                                Text("→ " + p[1], color = Muted, fontSize = 13.sp)
+                            }
+                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(Icons.Rounded.Delete, "Remove", tint = Muted) }
+                        }
+                    }
                 }
-            },
-            confirmButton = { TextButton(onClick = { Prefs.updateDnsRules(draft); rules = false }) { Text("Save", color = Amber) } },
-            dismissButton = { TextButton(onClick = { rules = false }) { Text("Cancel", color = Muted) } },
-        )
+            }
+        }
     }
     if (server) {
         var draft by remember { mutableStateOf(Prefs.dnsServer) }

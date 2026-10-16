@@ -28,6 +28,7 @@ import androidx.fragment.app.FragmentActivity
 import be.syntaxya.lodica.engine.Engine
 import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.Notifier
 import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.tabs.TabStore
@@ -104,6 +105,21 @@ class MainActivity : HostActivity() {
             Relay.incoming = null
             Relay.selected = i.getStringExtra(Relay.EXTRA_MAIL)
             Ui.screen = Screen.Inbox
+            return
+        }
+        if (i.action == Notifier.ACTION_OPEN) {
+            Ui.menuOpen = false
+            Ui.screen = if (i.getStringExtra(Notifier.EXTRA_TARGET) == Notifier.TARGET_CHAT) Screen.Room else Screen.Settings
+            return
+        }
+        if (i.action == ShortcutsWidget.ACTION_SHORTCUT) {
+            Ui.closeAll()
+            when (i.getStringExtra(ShortcutsWidget.EXTRA_TO)) {
+                "chat" -> Ui.screen = Screen.Room
+                "inbox" -> Ui.screen = Screen.Inbox
+                "settings" -> Ui.screen = Screen.Settings
+                else -> { TabManager.open(TabManager.HOME); window.decorView.post { Ui.editing = true } }
+            }
             return
         }
         if (i.action == SearchWidget.ACTION_SEARCH) {

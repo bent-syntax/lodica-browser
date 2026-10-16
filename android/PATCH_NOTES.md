@@ -1,5 +1,14 @@
 # Patch notes
 
+## 1.7.0
+- Search from the start page and the search widget uses the search engine chosen in Settings, not always DuckDuckGo.
+- Settings, DNS: entries like `go.ogle` to `Google.com` are accepted. Add a rule in a sheet with a domain field and a redirect field; any number of rules can be added and removed.
+- The start page has quick sites like the desktop. Long-press a tile to remove it.
+- Sending a chat message no longer crashes the app (network and list-scroll failures are caught).
+- Notifications for a new browser version and for new chat messages. They are checked about every 15 minutes in the background, and a tap opens Settings or the chat.
+- Private chats with one device and group chats. In Server chat use "+" to open a private chat by device name or a group by group name. Chats others start with your device name appear by themselves.
+- Three home-screen widgets: search bar, shortcuts (new tab, chat, inbox, settings) and quick sites.
+
 ## 1.6.1
 - Android: fixes the Settings screen of 1.6.0, where the rows of a tab were drawn on top of each other.
 - Desktop: new look. Settings has an icon sidebar and rows grouped in rounded cards, toggles and chips animate, theme tiles no longer show an oval selection ring, dialogs and sheets have softer corners and shadows, the tab switcher cards lift on hover, and the Server chat menu entry has its own icon.

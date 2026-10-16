@@ -96,6 +96,18 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_search" />
         </receiver>
+        <receiver android:name=".ui.ShortcutsWidget" android:exported="false" android:label="@string/widget_shortcuts">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_shortcuts" />
+        </receiver>
+        <receiver android:name=".ui.SitesWidget" android:exported="false" android:label="@string/widget_sites">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sites" />
+        </receiver>
         <service android:name=".engine.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
 
         <!-- Second text-selection entry; MainActivity tells them apart by component name. -->

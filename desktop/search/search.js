@@ -69,12 +69,15 @@ function asUrl(v) {
 
 function setup() {
   $("q").value = q;
-  $("f").addEventListener("submit", (e) => {
+  $("f").addEventListener("submit", async (e) => {
     e.preventDefault();
     const v = $("q").value.trim();
     if (!v) return;
     const dest = asUrl(v);
     if (dest) { location.href = dest; return; }
+    // Read the chosen engine fresh: the start page's own state load may not have finished or may predate a Settings change.
+    const st = await ask1({ type: "state" });
+    if (st) { engine = st.engine || ""; noServer = st.api === false; }
     // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
     if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
     // No server connected: skip Lodica Search and use a plain web search so the browser works on its own.

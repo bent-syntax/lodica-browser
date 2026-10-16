@@ -38,6 +38,12 @@ server.listen(0, '127.0.0.1', async () => {
     const got = (await poll).json;
     assert.strictEqual(got.messages.length, 1); assert.strictEqual(got.messages[0].name, 'Bob');
     assert.ok(Date.now() - t0 < 3000, 'long poll returned promptly');
+    // Private and group rooms stay apart from the shared room.
+    const dm = (await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'psst', room: 'dm:Ann|Bob' })).json;
+    assert.strictEqual(dm.room, 'dm:Ann|Bob');
+    assert.ok((await call(port, 'GET', '/api/chat')).json.messages.every((x) => x.room === ''));
+    assert.strictEqual((await call(port, 'GET', '/api/chat?room=dm:Ann%7CBob')).json.messages.length, 1);
+    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'x', room: 'bogus' })).json.room, '');
     // Rate limit: more than 20 posts in the window are refused.
     let limited = 0;
     for (let i = 0; i < 25; i++) if ((await call(port, 'POST', '/api/chat', { text: 'x' })).status === 429) limited++;

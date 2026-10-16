@@ -47,6 +47,9 @@ object Prefs {
     var dummyLogin by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
+    /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
+    var quickSites by mutableStateOf(""); private set
+    var quickAuto by mutableStateOf(true); private set
     /** Own DNS-over-HTTPS server; blank keeps the built-in one. */
     var dnsServer by mutableStateOf(""); private set
     var autoArchiveDays by mutableStateOf(14); private set
@@ -103,6 +106,8 @@ object Prefs {
         httpsOnly = sp.getBoolean("httpsOnly", true)
         dummyLogin = sp.getBoolean("dummyLogin", true)
         dnsRules = sp.getString("dnsRules", "") ?: ""
+        quickSites = sp.getString("quickSites", "") ?: ""
+        quickAuto = sp.getBoolean("quickAuto", true)
         dnsServer = sp.getString("dnsServer", "") ?: ""
         autoArchiveDays = sp.getInt("autoArchiveDays", 14)
         desktopDefault = sp.getBoolean("desktopDefault", false)
@@ -139,7 +144,13 @@ object Prefs {
         }.toMap()
     }
 
-    fun updateTheme(v: String) { theme = v; sp.edit().putString("theme", v).apply(); Helper.push(); appCtx?.let { be.syntaxya.lodica.ui.SearchWidget.refresh(it) } }
+    /** Redraws every placed home-screen widget. */
+    fun refreshWidgets(c: android.content.Context) {
+        be.syntaxya.lodica.ui.SearchWidget.refresh(c)
+        be.syntaxya.lodica.ui.ShortcutsWidget.refresh(c)
+        be.syntaxya.lodica.ui.SitesWidget.refresh(c)
+    }
+    fun updateTheme(v: String) { theme = v; sp.edit().putString("theme", v).apply(); Helper.push(); appCtx?.let { refreshWidgets(it) } }
     fun updateWidget(text: String, shape: String) {
         widgetText = text.take(40); widgetShape = shape
         sp.edit().putString("widgetText", widgetText).putString("widgetShape", shape).apply()
@@ -164,9 +175,20 @@ object Prefs {
     }
     fun updateGestureBarHide(v: Boolean) { gestureBarHide = v; sp.edit().putBoolean("gestureBarHide", v).apply() }
 
-    fun updateSearch(v: SearchEngine) { search = v; sp.edit().putString("search", v.name).apply() }
+    fun updateSearch(v: SearchEngine) { search = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
     fun updateDarkPages(v: Boolean) { darkPages = v; sp.edit().putBoolean("darkPages", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateHttpsOnly(v: Boolean) { httpsOnly = v; sp.edit().putBoolean("httpsOnly", v).apply(); Engine.applyPrefs() }
+    /** User shortcuts as (url, name) pairs. */
+    fun quickList(): List<Pair<String, String>> = quickSites.lines().mapNotNull { l ->
+        val u = l.substringBefore('\t').trim()
+        if (u.isEmpty()) null else u to l.substringAfter('\t', "").trim()
+    }
+    fun updateQuick(l: List<Pair<String, String>>) {
+        quickSites = l.joinToString("\n") { it.first + "\t" + it.second.replace('\n', ' ').replace('\t', ' ') }
+        sp.edit().putString("quickSites", quickSites).apply()
+        appCtx?.let { refreshWidgets(it) }
+    }
+    fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
     fun updateDnsRules(v: String) { dnsRules = v.trim(); sp.edit().putString("dnsRules", dnsRules).apply(); Helper.push() }
     fun updateDnsServer(v: String) {
         val u = v.trim()
@@ -181,7 +203,7 @@ object Prefs {
     fun dnsPairs(): List<List<String>> = dnsRules.lines().mapNotNull { raw ->
         val line = raw.substringBefore(" #").trim()
         if (line.isEmpty() || line.startsWith("#")) return@mapNotNull null
-        val t = line.split(Regex("\\s*(->|=>|=|,)\\s*|\\s+")).filter { it.isNotEmpty() }
+        val t = line.split(Regex("\\s*(->|=>|→|=|,)\\s*|\\s+")).filter { it.isNotEmpty() }
         if (t.size != 2) return@mapNotNull null
         fun isIp(x: String) = Regex("^(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?$").matches(x) || x.startsWith("[")
         var (a, b) = t

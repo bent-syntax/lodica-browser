@@ -91,7 +91,7 @@ fun ChatsScreen() {
             val state = rememberLazyListState()
             val msgs = chat?.messages.orEmpty()
             val busy = Chats.sending != null && Chats.sending == (open ?: Chats.sending)
-            LaunchedEffect(msgs.size, busy) { if (msgs.isNotEmpty()) state.animateScrollToItem(msgs.size) }
+            LaunchedEffect(msgs.size, busy) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size) } }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = state, contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(msgs.size) { i ->
                     val m = msgs[i]

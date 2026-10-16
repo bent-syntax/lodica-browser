@@ -158,12 +158,15 @@ function asUrl(v) {
 
 function setup() {
   $("q").value = q;
-  $("f").addEventListener("submit", (e) => {
+  $("f").addEventListener("submit", async (e) => {
     e.preventDefault();
     const v = $("q").value.trim();
     if (!v) return;
     const dest = asUrl(v);
     if (dest) { location.href = dest; return; }
+    // Read the chosen engine fresh: the initial state load may not have finished yet.
+    const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+    if (st) { hasApi = !!st.api; engine = st.engine || ""; }
     // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
     if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
     // Without a relay there is no search API, so the question goes to DuckDuckGo instead.
@@ -327,7 +330,7 @@ async function run() {
     .catch(() => ({ error: "Search unavailable" }));
   if (!data || data.error) {
     const st = await statePromise;
-    if (st && st.api === false) { location.replace("https://duckduckgo.com/?q=" + encodeURIComponent(q)); return; }
+    if (st && st.api === false) { location.replace((st.engine || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
     $("results").replaceChildren(el("div", { class: "ans" }, (data && data.error) || "Search unavailable"));
     return;
   }
@@ -338,7 +341,7 @@ async function run() {
   if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
   if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
   const state = await statePromise;
-  if (state && state.api === false) { location.replace("https://duckduckgo.com/?q=" + encodeURIComponent(q)); return; }
+  if (state && state.api === false) { location.replace((state.engine || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
   // Private tabs never send the question to the AI.
   applyTheme(state && state.theme);
   if (state && state.ai && !cat && page === 1 && !priv) ask(data, cached && cached.ai);

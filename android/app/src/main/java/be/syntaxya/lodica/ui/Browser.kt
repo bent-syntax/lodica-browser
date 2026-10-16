@@ -10,6 +10,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -334,11 +339,20 @@ fun go(input: String) {
     TabManager.load(text)
 }
 
+private class Shortcut(val url: String, val title: String, val mine: Boolean)
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun StartPage(modifier: Modifier) {
-    val sites by produceState(emptyList<Visit>(), TabManager.current) {
+    val top by produceState(emptyList<Visit>(), TabManager.current) {
         value = withContext(Dispatchers.IO) { runCatching { History.topSites(8) }.getOrDefault(emptyList()) }
     }
+    val mine = Prefs.quickList()
+    val seen = mine.map { runCatching { android.net.Uri.parse(it.first).host.orEmpty() }.getOrDefault("") }.toSet()
+    val auto = if (Prefs.quickAuto) top.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in seen }.take(maxOf(0, 8 - mine.size)) else emptyList()
+    val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, it.title, false) }
+    var adding by remember { mutableStateOf(false) }
+    var removing by remember { mutableStateOf<Shortcut?>(null) }
     Box(modifier) {
     StartBackdrop(Modifier.fillMaxSize())
     Column(
@@ -356,29 +370,70 @@ private fun StartPage(modifier: Modifier) {
             letterSpacing = 1.sp,
         )
         Spacer(Modifier.height(36.dp))
-        sites.chunked(4).forEach { row ->
+        val cells: List<Shortcut?> = if (mine.size < 24) tiles + listOf(null) else tiles
+        cells.chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                row.forEach { SiteTile(it) }
+                row.forEach { s ->
+                    if (s == null) SiteTile("+", "Add", { adding = true }, null)
+                    else SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null)
+                }
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
         }
     }
     }
+    if (adding) {
+        var url by remember { mutableStateOf("") }
+        var name by remember { mutableStateOf("") }
+        val colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+        )
+        AlertDialog(
+            onDismissRequest = { adding = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Add quick site") },
+            text = {
+                Column {
+                    OutlinedTextField(name, { name = it }, singleLine = true, label = { Text("Name", color = Muted) }, colors = colors)
+                    OutlinedTextField(url, { url = it }, Modifier.padding(top = 8.dp), singleLine = true, label = { Text("Address", color = Muted) }, placeholder = { Text("example.com", color = Muted) }, colors = colors)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val u = url.trim().let { if (it.isEmpty() || Regex("^[a-z][a-z0-9+.-]*:", RegexOption.IGNORE_CASE).containsMatchIn(it)) it else "https://$it" }
+                    if (u.isNotEmpty()) Prefs.updateQuick(Prefs.quickList() + (u to name.trim().ifEmpty { android.net.Uri.parse(u).host.orEmpty().removePrefix("www.") }))
+                    adding = false
+                }) { Text("Add", color = Amber) }
+            },
+            dismissButton = { TextButton(onClick = { adding = false }) { Text("Cancel", color = Muted) } },
+        )
+    }
+    removing?.let { r ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Remove ${r.title.ifBlank { r.url }}?") },
+            confirmButton = { TextButton(onClick = { Prefs.updateQuick(Prefs.quickList().filter { it.first != r.url }); removing = null }) { Text("Remove", color = Amber) } },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel", color = Muted) } },
+        )
+    }
 }
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun SiteTile(v: Visit) {
-    val host = remember(v.url) { runCatching { android.net.Uri.parse(v.url).host.orEmpty() }.getOrDefault("").removePrefix("www.") }
+private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: (() -> Unit)?) {
+    val host = remember(url) { runCatching { android.net.Uri.parse(url).host.orEmpty() }.getOrDefault("").removePrefix("www.") }
     Column(
-        Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).clickable { TabManager.load(v.url) }.padding(vertical = 6.dp),
+        Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = onLong).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
-            Text(host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+            Text(if (url == "+") "+" else host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
         }
         Spacer(Modifier.height(6.dp))
         Text(
-            v.title.ifBlank { host }, color = Muted, fontSize = 11.sp,
+            title.ifBlank { host }, color = Muted, fontSize = 11.sp,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
     }

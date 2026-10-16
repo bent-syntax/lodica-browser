@@ -346,6 +346,10 @@ function init(deps) {
   on("room.stop", () => { room.stop(); return true; });
   on("room.send", text => room.send(str(text)));
   on("room.name", name => room.setName(str(name)));
+  on("room.select", r => room.select(str(r)));
+  on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
+  on("room.remove", r => room.removeChat(str(r)));
+  on("room.discover", () => room.discover());
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 

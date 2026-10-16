@@ -29,6 +29,35 @@ let win = null, uiView = null, topView = null, dividerView = null, lastClip = ""
 let M = null; // feature modules, loaded after ready (safeStorage)
 const pendingArgs = [];
 
+/** Desktop notifications: a new browser version, and new chat messages while the chat is closed. */
+function startNotifier(m) {
+  let seenVersion = "";
+  const tick = async () => {
+    if (!Notification.isSupported() || !m.relay.available) return;
+    try {
+      const st = await m.updater.check();
+      if (st.state === "available" && st.version !== seenVersion) {
+        seenVersion = st.version;
+        const n = new Notification({ title: `Lodica ${st.version} is available`, body: "Open Settings to download the update." });
+        n.on("click", () => openSheet("settings"));
+        n.show();
+      }
+    } catch {}
+    try {
+      for (const g of await m.room.peek()) {
+        const n = new Notification({
+          title: g.messages.length === 1 ? `New message in ${g.where}` : `${g.messages.length} new messages in ${g.where}`,
+          body: g.messages.slice(-3).map(x => `${x.name}: ${x.text}`).join("\n"),
+        });
+        n.on("click", () => { m.ui.push("openRoom", g.room); win.show(); });
+        n.show();
+      }
+    } catch {}
+  };
+  setTimeout(tick, 15000);
+  setInterval(tick, 5 * 60 * 1000);
+}
+
 function serveLodica(req) {
   let u;
   try { u = new URL(req.url); } catch { return new Response("Bad request", { status: 400 }); }
@@ -244,6 +273,7 @@ function wire(m) {
       n.show();
     }
   });
+  startNotifier(m);
   m.prefs.events.on("change", key => {
     ui.push("prefs", m.prefs.p);
     tabs.refresh();

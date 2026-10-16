@@ -4,19 +4,24 @@ const relay = require("./relay");
 const store = require("./store");
 
 const events = new EventEmitter();
-const state = { messages: [], error: null, name: store.load("roomName", "") || "Me" };
+const state = { messages: [], error: null, name: store.load("roomName", "") || "Me", room: "", chats: store.load("roomChats", []) || [] };
 let running = false, last = -1, gen = 0;
+
+const clean = n => String(n || "").replace(/[\s|]/g, "_").slice(0, 32);
+const roomQ = r => (r ? "&room=" + encodeURIComponent(r) : "");
 
 function changed() { events.emit("change"); }
 
 async function loop(my) {
   while (running && my === gen) {
     try {
-      const q = last < 0 ? "" : `?after=${last}&wait=20`;
+      const room = state.room;
+      const q = last < 0 ? "?" + roomQ(room).slice(1) : `?after=${last}&wait=20${roomQ(room)}`;
       const [status, body] = await relay.request("GET", "/api/chat" + q, 35000);
       if (status !== 200) throw new Error("HTTP " + status);
       const o = JSON.parse(body);
-      const fresh = (o.messages || []).filter(m => !state.messages.some(x => x.id === m.id));
+      if (my !== gen) return;
+      const fresh = (o.messages || []).filter(m => (m.room || "") === room && !state.messages.some(x => x.id === m.id));
       if (fresh.length) state.messages = state.messages.concat(fresh).slice(-200);
       last = typeof o.last === "number" ? o.last : last;
       if (fresh.length || state.error) { state.error = null; changed(); }
@@ -44,13 +49,76 @@ function setName(v) {
   return state.name;
 }
 
+/** Room id of the private chat between this device's name and [peer]. */
+function dm(peer) { return "dm:" + [clean(state.name), clean(peer)].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1).join("|"); }
+function group(name) { return "grp:" + String(name || "").replace(/[^\w .-]/g, "").trim().slice(0, 32); }
+function label(r) {
+  if (!r) return "Everyone";
+  if (r.startsWith("grp:")) return r.slice(4);
+  return r.slice(3).split("|").find(x => x !== clean(state.name)) || r.slice(3);
+}
+
+function addChat(r) {
+  if (typeof r === "string" && r.length > 4 && !state.chats.includes(r)) { state.chats.push(r); store.save("roomChats", () => state.chats); }
+  changed();
+  return state;
+}
+
+function removeChat(r) {
+  state.chats = state.chats.filter(x => x !== r);
+  store.save("roomChats", () => state.chats);
+  return state.room === r ? select("") : (changed(), state);
+}
+
+/** Switches conversation and restarts the long poll. */
+function select(r) {
+  state.room = String(r || ""); state.messages = []; state.error = null; last = -1;
+  const was = running;
+  gen++;
+  if (was) loop(gen);
+  changed();
+  return state;
+}
+
+/** Private chats others have started with this device's name. */
+async function discover() {
+  try {
+    const [status, body] = await relay.request("GET", "/api/chat/rooms", 15000);
+    if (status !== 200) return state;
+    const me = clean(state.name);
+    for (const x of JSON.parse(body).rooms || []) if (x.room.startsWith("dm:") && x.room.slice(3).split("|").includes(me)) addChat(x.room);
+  } catch {}
+  return state;
+}
+
 /** Posts a message; resolves to an error string or null. */
 async function send(text) {
   try {
-    const [status] = await relay.request("POST", "/api/chat", 15000, { name: state.name, text: String(text || "") });
+    const [status] = await relay.request("POST", "/api/chat", 15000, { name: state.name, text: String(text || ""), room: state.room });
     if (status === 200) { if (running) { /* the poll delivers it */ } return null; }
     return status === 429 ? "Slow down a little" : "Server answered " + status;
   } catch { return "Can't reach the server"; }
 }
 
-module.exports = { state, events, start, stop, send, setName };
+// Background check for the notifier: new messages from others in any room, while the chat is closed.
+let bgLast = -1;
+async function peek() {
+  if (!relay.available || running) return [];
+  const out = [];
+  let newLast = bgLast;
+  for (const r of ["", ...state.chats]) {
+    try {
+      const [status, body] = await relay.request("GET", `/api/chat?after=${Math.max(bgLast, 0)}${roomQ(r)}`, 15000);
+      if (status !== 200) continue;
+      const o = JSON.parse(body);
+      newLast = Math.max(newLast, o.last || 0);
+      if (bgLast < 0) continue;
+      const mine = (o.messages || []).filter(m => m.name !== state.name);
+      if (mine.length) out.push({ room: r, where: r ? label(r) : "server chat", messages: mine });
+    } catch {}
+  }
+  bgLast = newLast;
+  return out;
+}
+
+module.exports = { state, events, start, stop, send, setName, select, addChat, removeChat, dm, group, label, discover, peek };

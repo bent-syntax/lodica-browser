@@ -363,6 +363,11 @@ async function route(req, res) {
     const h = { sendJson, sendText, readBody };
     return m === 'GET' ? chat.get(req, res, url, h) : chat.post(req, res, clientIp(req), h);
   }
+  if (p === '/api/chat/rooms') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return chat.rooms(req, res, { sendJson, sendText, readBody });
+  }
   if (p === '/api/theme') {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
     if (!authed(req, res)) return;
