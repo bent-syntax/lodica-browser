@@ -8,10 +8,12 @@ const SET_SECTION_TAB = { search: "general", browsing: "general", vps: "general"
   appearance: "appearance", theme: "appearance", pctabs: "tabs", tabs: "tabs", privacy: "privacy", keys: "keys", keybinds: "keys",
   identity: "identity", mail: "identity", about: "about", updates: "about" };
 
+const SET_ICONS = { general: "settings", appearance: "palette", tabs: "tabs", privacy: "shield", keys: "key", identity: "email", about: "reader" };
 function setTabBar() {
   return h("div", { class: "sp-tabs", role: "tablist" }, SET_TABS.map(([id, label]) =>
-    h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab", text: label,
-      act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } })));
+    h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab",
+      act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } },
+      ico(SET_ICONS[id] || "settings"), h("span", { text: label }))));
 }
 function setTabBody(tab) {
   switch (tab) {

@@ -24,8 +24,21 @@ function renderSettings() {
   clear(b); clear(SET.L.side);
   add(SET.L.side, [setTabBar()]);
   $("#sp-title", SET.L.el).textContent = (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
-  add(b, [h("div", { class: "set-pane" }, setTabBody(SET.tab))]);
+  const pane = h("div", { class: "set-pane" }, setTabBody(SET.tab));
+  cardify(pane);
+  add(b, [pane]);
   b.scrollTop = top;
+}
+/** Groups every run of rows between two section headings into one rounded card. */
+function cardify(pane) {
+  const kids = Array.from(pane.children);
+  pane.replaceChildren();
+  let card = null;
+  for (const k of kids) {
+    if (k.classList.contains("set-sec")) { pane.append(k); card = null; continue; }
+    if (!card) { card = h("div", { class: "set-card" }); pane.append(card); }
+    card.append(k);
+  }
 }
 function secHead(name, id) { return h("div", { class: "set-sec", text: name, data: { sec: id || name.toLowerCase() } }); }
 function setRow(title, sub, side, act, cls) {

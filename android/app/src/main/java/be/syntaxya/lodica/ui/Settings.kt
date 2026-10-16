@@ -152,6 +152,7 @@ fun SettingsScreen() {
                 transitionSpec = { fadeIn(tween(200, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
                 contentAlignment = Alignment.TopStart, label = "settingsTab",
             ) { page ->
+            Column(Modifier.fillMaxWidth()) {
             when (page) {
                 0 -> {
             if (!Relay.available) LinkRow("Set up your server (hidden email, tab sharing, Lodica Search)") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
@@ -358,6 +359,7 @@ fun SettingsScreen() {
             Spacer(Modifier.height(24.dp))
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Kite(40.dp) }
                 }
+            }
             }
             }
         }

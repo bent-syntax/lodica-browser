@@ -24,7 +24,7 @@ function openMenu() {
       cell("apps", "Install as app", async () => { const r = await inv("webapps.install"); toast(r && r.text || "Couldn't install"); }, "", home || !!t.private),
       cell("serial", "Serial monitor", () => openSerial()),
       cell("key", "Passwords", () => openPasswords()),
-      cell("inbox", "Server chat", () => openRoom(), "", !S.relayAvail),
+      cell("chat", "Server chat", () => openRoom(), "", !S.relayAvail),
       cell("ai", "AI chat", () => openAiChat(), "", !(S.prefs.ai && S.ai && S.ai.connected)),
       cell("settings", "Settings", () => openSettings()),
     ];

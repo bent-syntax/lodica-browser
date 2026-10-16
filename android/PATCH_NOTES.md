@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.6.1
+- Android: fixes the Settings screen of 1.6.0, where the rows of a tab were drawn on top of each other.
+- Desktop: new look. Settings has an icon sidebar and rows grouped in rounded cards, toggles and chips animate, theme tiles no longer show an oval selection ring, dialogs and sheets have softer corners and shadows, the tab switcher cards lift on hover, and the Server chat menu entry has its own icon.
+
 ## 1.6.0
 - Android: Appearance page redone like the desktop one. Round theme swatches, a live mini-browser preview that follows the theme, round buttons for the start page background (none, gradient, colour, image) and a preview of the background with its dim and blur.
 - Typing in the Lodica Search box now uses the search engine chosen in Settings. Lodica Search is only used when it is the chosen engine (Android and desktop).

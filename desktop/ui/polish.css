@@ -1,0 +1,77 @@
+/* Visual layer over ui.css: type, spacing, cards, motion. Colours still come from the theme variables. */
+html:root[data-theme]{--grad:var(--amber);--radius:12px;--ease:cubic-bezier(.2,.7,.2,1)}
+body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Inter",Roboto,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+button{transition:background .16s var(--ease),color .16s var(--ease),border-color .16s var(--ease),transform .12s var(--ease),box-shadow .16s var(--ease)}
+button:active{transform:scale(.97)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid color-mix(in srgb,var(--amber) 70%,transparent);outline-offset:2px}
+
+/* Bottom bar */
+#bar{height:60px;padding:0 10px;gap:4px;box-shadow:0 -1px 0 color-mix(in srgb,var(--high) 70%,transparent)}
+.ib{border-radius:12px}
+.pill{height:40px;border-radius:12px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 80%,transparent);transition:box-shadow .16s var(--ease)}
+.pill:focus-within{box-shadow:inset 0 0 0 2px var(--amber)}
+
+/* Layers, sheets and dialogs */
+.layer>.dim{backdrop-filter:blur(3px);animation:fadeIn .18s var(--ease)}
+.sheet,.dialog{border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.14)}
+.dialog{animation:popIn .2s var(--ease)}
+.opt,.mcell{border-radius:10px;transition:background .14s var(--ease)}
+.opt:hover,.mcell:hover{background:var(--hover2)}
+.btn{border-radius:10px}
+.btn.fill{box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 4px 12px color-mix(in srgb,var(--amber) 35%,transparent)}
+.toast{border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.28);animation:popIn .22s var(--ease)}
+
+/* Settings: nav */
+.sp-side{width:248px;padding:20px 12px;gap:4px}
+.sp-tabs{display:flex;flex-direction:column;gap:4px}
+.sp-tab{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;font-size:14px;position:relative}
+.sp-tab .ico{width:20px;height:20px;flex:none;opacity:.8}
+.sp-tab.sel{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.sp-tab.sel .ico{opacity:1}
+.sp-tab.sel::before{content:"";position:absolute;left:-12px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--amber)}
+
+/* Settings: content as cards */
+.sp-head{padding:20px 28px 10px 40px}
+.sp-head h2{font-size:26px;font-weight:650;letter-spacing:-.02em}
+.sp-body .set-pane{max-width:780px;margin:0 auto;padding:0 32px 24px;animation:paneIn .28s var(--ease)}
+.set-sec{padding:26px 6px 8px;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.set-card{background:var(--raised);border-radius:16px;box-shadow:0 0 0 1px color-mix(in srgb,var(--high) 55%,transparent);overflow:hidden}
+.set-card>.set-row{padding:14px 18px;min-height:60px;transition:background .14s var(--ease)}
+.set-card>*+*{border-top:1px solid color-mix(in srgb,var(--high) 55%,transparent)}
+.set-card>.set-note{padding:10px 18px 12px}
+.set-card>.chips{padding:12px 18px}
+.set-card>.swatches{padding:14px 18px}
+.set-row .t1{font-size:15px;font-weight:500}
+.set-row .t2{margin-top:3px;line-height:1.35}
+.set-row select,.set-row .set-input{border-radius:10px;background:var(--bg);border:1px solid var(--high)}
+.chip{border-radius:999px;padding:7px 14px;transition:background .16s var(--ease),color .16s var(--ease),transform .12s var(--ease)}
+.chip:not(.sel):hover{background:var(--hover2)}
+
+/* Toggle */
+.sw-t{width:44px;height:26px;border-radius:13px;transition:background .2s var(--ease)}
+.sw-t::after{width:20px;height:20px;top:3px;left:3px;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .22s var(--ease),background .2s var(--ease)}
+.sw-t.on::after{transform:translateX(18px)}
+
+/* Theme swatches: the base rule made these ellipses; keep rounded tiles and round bg swatches */
+.swatches{gap:12px}
+.swatches .theme-sw{aspect-ratio:auto;border-radius:14px;width:96px;padding:8px;transition:transform .16s var(--ease),background .16s var(--ease),border-color .16s var(--ease)}
+.swatches .theme-sw:hover{transform:translateY(-2px)}
+.swatches .theme-sw.sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 10%,transparent)}
+.theme-chip{border-radius:9px;height:46px}
+.swatches .bg-sw{width:44px;height:44px;aspect-ratio:1;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px var(--high);transition:transform .16s var(--ease),border-color .16s var(--ease)}
+.swatches .bg-sw:hover{transform:scale(1.08)}
+.swatches .bg-sw.sel{border-color:var(--bg);box-shadow:0 0 0 2px var(--amber)}
+.theme-prev{border-radius:14px;box-shadow:0 0 0 1px var(--high);overflow:hidden}
+
+/* Tab switcher */
+.sw-head{padding:16px 20px 10px}
+.sw-grid{gap:16px}
+.sw-grid>*{border-radius:14px;transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.sw-grid>*:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.22)}
+.sw-fab{border-radius:14px;height:44px}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1}}
+@keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.theme-prev,.bg-prev{margin:16px auto;max-width:440px}
