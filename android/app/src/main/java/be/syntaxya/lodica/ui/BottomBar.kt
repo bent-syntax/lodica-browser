@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.KeyboardDoubleArrowRight
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
@@ -324,6 +325,12 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
             if (Ai.connected) {
                 IconButton(onClick = { askAi(query.text.trim()); Ui.editing = false }) {
                     Icon(Icons.Rounded.AutoAwesome, "Ask AI", tint = Amber)
+                }
+            }
+            if (query.text.length > 28) {
+                // Long links need no manual scrolling: jump the text marker to the end.
+                IconButton(onClick = { onQuery(query.copy(selection = TextRange(query.text.length))); focus.requestFocus() }) {
+                    Icon(Icons.Rounded.KeyboardDoubleArrowRight, "Cursor to end", tint = Muted)
                 }
             }
             IconButton(onClick = { onQuery(TextFieldValue()) }) { Icon(Icons.Rounded.Close, "Clear", tint = Muted) }
