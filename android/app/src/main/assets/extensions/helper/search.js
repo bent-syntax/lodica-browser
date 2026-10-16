@@ -147,12 +147,23 @@ function setupHome() {
 // Learn early whether a relay exists, and apply the app theme.
 browser.runtime.sendMessage({ type: "state" }).then((st) => { hasApi = !!(st && st.api); applyTheme(st && st.theme); }, () => {});
 
+/** A typed link (scheme, or a dotted host / localhost / IPv4 with no spaces) opens directly instead of searching. */
+function asUrl(v) {
+  if (/\s/.test(v)) return null;
+  if (/^https?:\/\/\S+$/i.test(v)) return v;
+  if (/^(localhost|(\d{1,3}\.){3}\d{1,3})(:\d+)?([/?#]\S*)?$/i.test(v)) return "http://" + v;
+  if (/^([a-z0-9-]+\.)+[a-z]{2,}(:\d+)?([/?#]\S*)?$/i.test(v)) return "https://" + v;
+  return null;
+}
+
 function setup() {
   $("q").value = q;
   $("f").addEventListener("submit", (e) => {
     e.preventDefault();
     const v = $("q").value.trim();
     if (!v) return;
+    const dest = asUrl(v);
+    if (dest) { location.href = dest; return; }
     // Without a relay there is no search API, so the question goes to DuckDuckGo instead.
     if (hasApi === false) location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(v);
     else location.href = href({ q: v, c: cat });
