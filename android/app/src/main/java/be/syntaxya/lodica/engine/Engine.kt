@@ -19,7 +19,11 @@ object Engine {
     private fun dohUri() = Prefs.dnsServer.ifBlank { "https://mozilla.cloudflare-dns.com/dns-query" }
 
     /** Applies the user's own DNS server to the running engine. */
-    fun applyDns() { rt?.settings?.setTrustedRecursiveResolverUri(dohUri()) }
+    fun applyDns() {
+        val s = rt?.settings ?: return
+        s.setTrustedRecursiveResolverMode(GeckoRuntimeSettings.TRR_MODE_FIRST)
+        s.setTrustedRecursiveResolverUri(dohUri())
+    }
 
     fun runtime(ctx: Context): GeckoRuntime =
         rt ?: synchronized(this) { rt ?: create(ctx.applicationContext).also { rt = it } }

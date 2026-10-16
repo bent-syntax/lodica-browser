@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.5.1
+- Android: "Own domain names" is more forgiving. It accepts "name target", "name=target", "name, target", "name -> target", hosts-file order ("192.168.1.10 nas.home") and "# comments". Before, any line that did not match exactly two space-separated words was dropped without a message.
+- Android: saving a custom DNS server now also re-applies DNS over HTTPS mode in the running browser.
+- Desktop has no own-DNS feature, so nothing changed there. Only the version number moved to stay in step.
+- Not tested on a real device. I could not reproduce the original failure, so this fixes the likely causes.
+
 ## 1.5.0
 Desktop and Android now share the same version number.
 - Desktop: the start page background no longer shows only half. The header is transparent on the home page.

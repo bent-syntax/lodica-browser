@@ -174,9 +174,21 @@ object Prefs {
         sp.edit().putString("dnsServer", dnsServer).apply()
         Engine.applyDns()
     }
-    /** Parsed own-DNS lines as [name, target] pairs. */
-    fun dnsPairs(): List<List<String>> = dnsRules.lines().map { it.trim().split(Regex("\\s+")) }
-        .filter { it.size == 2 && !it[0].startsWith("#") }
+    /**
+     * Parsed own-DNS lines as [name, target] pairs. Forgiving: "name target", "name=target", "name, target",
+     * "name -> target", hosts-file order ("192.168.1.10 nas.home"), trailing "# comments" and a scheme on the name.
+     */
+    fun dnsPairs(): List<List<String>> = dnsRules.lines().mapNotNull { raw ->
+        val line = raw.substringBefore(" #").trim()
+        if (line.isEmpty() || line.startsWith("#")) return@mapNotNull null
+        val t = line.split(Regex("\\s*(->|=>|=|,)\\s*|\\s+")).filter { it.isNotEmpty() }
+        if (t.size != 2) return@mapNotNull null
+        fun isIp(x: String) = Regex("^(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?$").matches(x) || x.startsWith("[")
+        var (a, b) = t
+        if (isIp(a) && !isIp(b) && !b.contains("://")) { val x = a; a = b; b = x }
+        a = a.substringAfter("://").substringBefore('/').trimEnd('.')
+        if (a.isEmpty()) null else listOf(a, b)
+    }
     /** True when the typed host matches one of the user's own names, so it loads instead of being searched. */
     fun isCustomHost(host: String): Boolean {
         val h = host.lowercase()
