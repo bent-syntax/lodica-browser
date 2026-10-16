@@ -10,7 +10,7 @@ const params = new URLSearchParams(location.search);
 const q = (params.get("q") || "").trim();
 const page = Math.min(10, Math.max(1, parseInt(params.get("p"), 10) || 1));
 const cat = params.get("c") === "images" ? "images" : "";
-let hasApi = null;
+let hasApi = null, engine = "";
 const lang = (navigator.language || "").slice(0, 2).toLowerCase();
 
 // Colours come from the app theme through the helper; without them the stylesheet defaults apply.
@@ -145,7 +145,7 @@ function setupHome() {
 }
 
 // Learn early whether a relay exists, and apply the app theme.
-browser.runtime.sendMessage({ type: "state" }).then((st) => { hasApi = !!(st && st.api); applyTheme(st && st.theme); }, () => {});
+browser.runtime.sendMessage({ type: "state" }).then((st) => { hasApi = !!(st && st.api); engine = (st && st.engine) || ""; applyTheme(st && st.theme); }, () => {});
 
 /** A typed link (scheme, or a dotted host / localhost / IPv4 with no spaces) opens directly instead of searching. */
 function asUrl(v) {
@@ -164,6 +164,8 @@ function setup() {
     if (!v) return;
     const dest = asUrl(v);
     if (dest) { location.href = dest; return; }
+    // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
+    if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
     // Without a relay there is no search API, so the question goes to DuckDuckGo instead.
     if (hasApi === false) location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(v);
     else location.href = href({ q: v, c: cat });

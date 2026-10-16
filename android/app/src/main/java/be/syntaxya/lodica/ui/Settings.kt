@@ -1041,26 +1041,8 @@ private fun ThemePicker() {
         "Colours the browser, start page and settings. Websites keep their own.", color = Muted, fontSize = 13.sp,
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
     )
-    ThemeChoices.forEach { (key, label) ->
-        val pal = Palettes.firstOrNull { it.key == key }
-        Row(
-            Modifier.fillMaxWidth().clickable { Prefs.updateTheme(key) }.padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.width(60.dp)) {
-                if (pal == null) {
-                    Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFF101418)))
-                    Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(0xFFF4F1EA)))
-                } else {
-                    listOf(pal.bg, pal.raised, pal.accent).forEach {
-                        Box(Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).background(Color(it)))
-                    }
-                }
-            }
-            Text(label, color = if (Prefs.theme == key) Amber else Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            if (Prefs.theme == key) Text("Active", color = Amber, fontSize = 12.sp)
-        }
-    }
+    ThemeSwatches()
+    ThemePreview()
     CustomThemeEditor()
 }
 
@@ -1157,35 +1139,21 @@ private fun StartBackgroundSettings() {
             } else Toast.makeText(ctx, "Could not read that image", Toast.LENGTH_SHORT).show()
         }
     }
-    Row(
-        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Chip("None", Prefs.startBg == "none") { Prefs.updateStartBg("none") }
-        Chip("Gradient", Prefs.startBg == "gradient") {
-            if (Prefs.startBg != "gradient") Prefs.updateStartBg("gradient", StartBg.Gradients[0].key)
-        }
-        Chip("Colour", Prefs.startBg == "color") {
-            if (Prefs.startBg != "color") Prefs.updateStartBg("color", StartBg.Colors[0])
-        }
-        Chip("Image", Prefs.startBg == "image") {
-            if (StartBg.imageFile(ctx).exists()) Prefs.updateStartBg("image") else pick.launch("image/*")
-        }
-    }
+    BackgroundTypes(
+        onNone = { Prefs.updateStartBg("none") },
+        onGradient = { if (Prefs.startBg != "gradient") Prefs.updateStartBg("gradient", StartBg.Gradients[0].key) },
+        onColour = { if (Prefs.startBg != "color") Prefs.updateStartBg("color", StartBg.Colors[0]) },
+        onImage = { if (StartBg.imageFile(ctx).exists()) Prefs.updateStartBg("image") else pick.launch("image/*") },
+    )
+    if (Prefs.startBg != "none") StartPreview()
     when (Prefs.startBg) {
         "gradient" -> Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             StartBg.Gradients.forEach { g ->
-                val on = Prefs.startBgValue == g.key
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)).background(StartBg.brush(g))
-                            .border(if (on) 2.dp else 0.dp, if (on) Amber else Color.Transparent, RoundedCornerShape(12.dp))
-                            .clickable { Prefs.updateStartBg("gradient", g.key) },
-                    )
-                    Text(g.label, color = if (on) Amber else Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
+                RoundChoice(g.label, Prefs.startBgValue == g.key, onClick = { Prefs.updateStartBg("gradient", g.key) }) {
+                    Box(Modifier.fillMaxSize().background(StartBg.brush(g)))
                 }
             }
         }
@@ -1194,12 +1162,9 @@ private fun StartBackgroundSettings() {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             StartBg.Colors.forEach { hex ->
-                val on = Prefs.startBgValue.equals(hex, true)
-                Box(
-                    Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).background(StartBg.parseColor(hex))
-                        .border(if (on) 2.dp else 1.dp, if (on) Amber else GraphiteHigh, RoundedCornerShape(22.dp))
-                        .clickable { Prefs.updateStartBg("color", hex) },
-                )
+                RoundChoice("", Prefs.startBgValue.equals(hex, true), onClick = { Prefs.updateStartBg("color", hex) }) {
+                    Box(Modifier.fillMaxSize().background(StartBg.parseColor(hex)))
+                }
             }
         }
         "image" -> Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {

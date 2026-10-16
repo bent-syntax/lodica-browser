@@ -56,6 +56,7 @@ function favicon(host) {
 }
 
 let noServer = false;
+let engine = "";
 
 /** A typed link (scheme, or a dotted host / localhost / IPv4 with no spaces) opens directly instead of searching. */
 function asUrl(v) {
@@ -74,6 +75,8 @@ function setup() {
     if (!v) return;
     const dest = asUrl(v);
     if (dest) { location.href = dest; return; }
+    // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
+    if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
     // No server connected: skip Lodica Search and use a plain web search so the browser works on its own.
     if (noServer) location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(v);
     else location.href = href({ q: v, c: cat });
@@ -118,6 +121,7 @@ function saveQuick() { return ask1({ type: "quick", list: quick }); }
 function topSites() {
   Promise.all([ask1({ type: "state" }), ask1({ type: "top" })]).then(([st, items]) => {
     if (st && st.api === false) noServer = true;
+    engine = (st && st.engine) || "";
     if (st && st.base) BASE = st.base;
     quick = st && Array.isArray(st.quick) ? st.quick : [];
     auto = !st || st.auto !== false;

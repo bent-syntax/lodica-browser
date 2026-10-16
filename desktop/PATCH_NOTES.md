@@ -1,6 +1,7 @@
 # Patch notes
 
 ## 1.6.0
+- Typing in the Lodica Search box now uses the search engine chosen in Settings. Lodica Search is only used when it is the chosen engine.
 - Lodica Search keeps its results, the AI answer and your scroll position when you go back from a page, instead of searching again. Results appear before the theme and AI state arrive.
 - Server chat and the in-page search link handling from 1.5.2 are included.
 - The Android-only changes of this release (settings redesign, authenticator, setup entry points) are not in the desktop app.

@@ -1,6 +1,8 @@
 # Patch notes
 
 ## 1.6.0
+- Android: Appearance page redone like the desktop one. Round theme swatches, a live mini-browser preview that follows the theme, round buttons for the start page background (none, gradient, colour, image) and a preview of the background with its dim and blur.
+- Typing in the Lodica Search box now uses the search engine chosen in Settings. Lodica Search is only used when it is the chosen engine (Android and desktop).
 - Android: settings redone. Every row has an icon, sections are quieter, and the tabs fade into each other. Items that appeared under two tabs are now in one place: search suggestions sit with Search, AI chats with AI, server chat with Mail, and the "Tabs on PC" header is now "Sync".
 - Android: the flat look replaces the purple-pink gradients on the start page wordmark and the page-load bar.
 - Android: tapping the address bar no longer shows the open-tabs strip above it.

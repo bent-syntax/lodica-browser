@@ -43,7 +43,7 @@ const DIRECT_HOSTS = [
 ];
 const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i;
 
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, theme: null };
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, theme: null, engine: "" };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -161,7 +161,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: !!cfg.api, ai: cfg.ai && !!native, theme: cfg.theme };
+    return { api: !!cfg.api, ai: cfg.ai && !!native, theme: cfg.theme, engine: cfg.engine };
   }
   if (msg.type === "search") {
     await configured;
@@ -234,6 +234,7 @@ function connect() {
         lite: Array.isArray(msg.lite) ? msg.lite.map(String) : [],
         api: String(msg.api || ""),
         ai: !!msg.ai,
+        engine: /^https:\/\/[^\s]*%s/.test(String(msg.engine || "")) ? String(msg.engine) : "",
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
