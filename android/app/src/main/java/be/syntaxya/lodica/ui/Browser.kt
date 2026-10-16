@@ -95,6 +95,7 @@ fun LodicaRoot() {
         Overlay(Ui.screen == Screen.Passwords) { PasswordsScreen() }
         Overlay(Ui.screen == Screen.Inbox) { InboxScreen() }
         Overlay(Ui.screen == Screen.Chats) { ChatsScreen() }
+        Overlay(Ui.screen == Screen.Room) { RoomScreen() }
         PromptDialogs()
         if (Ui.menuOpen) MenuSheet()
         TabManager.contextMenu?.let { ContextMenuSheet(it) }

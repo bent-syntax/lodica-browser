@@ -222,18 +222,18 @@ object Relay {
     // ---- HTTP -------------------------------------------------------------------------------
 
     /** Blocking. Returns (status, body). Throws IOException on network failure. */
-    fun request(method: String, path: String, body: ByteArray? = null, type: String? = null): Pair<Int, String> {
-        val (code, bytes) = requestBytes(method, path, body, type)
+    fun request(method: String, path: String, body: ByteArray? = null, type: String? = null, readTimeoutMs: Int = 15_000): Pair<Int, String> {
+        val (code, bytes) = requestBytes(method, path, body, type, readTimeoutMs)
         return code to bytes.toString(Charsets.UTF_8)
     }
 
     /** Same as [request] but returns the raw response body, for binary payloads. */
-    fun requestBytes(method: String, path: String, body: ByteArray? = null, type: String? = null): Pair<Int, ByteArray> {
+    fun requestBytes(method: String, path: String, body: ByteArray? = null, type: String? = null, readTimeoutMs: Int = 15_000): Pair<Int, ByteArray> {
         val c = URL(API + path).openConnection() as HttpURLConnection
         try {
             c.requestMethod = method
             c.connectTimeout = 10_000
-            c.readTimeout = 15_000
+            c.readTimeout = readTimeoutMs
             c.useCaches = false
             c.setRequestProperty("Authorization", "Bearer $token")
             if (body != null) {

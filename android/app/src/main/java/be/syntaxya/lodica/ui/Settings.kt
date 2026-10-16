@@ -269,6 +269,7 @@ fun SettingsScreen() {
 
                     Section("Privacy")
             LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
+            if (Relay.available) LinkRow("Server chat") { Ui.screen = Screen.Room }
             LinkRow("History") { Ui.screen = Screen.History }
             LinkRow("Clear history", Coral) {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
