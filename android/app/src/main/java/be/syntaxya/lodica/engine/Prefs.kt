@@ -286,9 +286,10 @@ object Prefs {
                 isCustomHost(t.substringBefore('/').substringBefore(':')))
         if (looksLikeHost) return withLanguage("https://$t")
         val base = Helper.searchBase
-        if (search == SearchEngine.LODICA && base != null && Relay.available)
+        if (search == SearchEngine.LODICA && base != null && Relay.available && Relay.up)
             return base + "search.html?q=" + android.net.Uri.encode(t)
-        val engine = if (search == SearchEngine.LODICA) SearchEngine.DUCKDUCKGO else search
+        // Linked server offline: fall back to Google. No server at all keeps the DuckDuckGo default.
+        val engine = if (search != SearchEngine.LODICA) search else if (Relay.available) SearchEngine.GOOGLE else SearchEngine.DUCKDUCKGO
         return withLanguage(engine.query.format(android.net.Uri.encode(t)))
     }
 

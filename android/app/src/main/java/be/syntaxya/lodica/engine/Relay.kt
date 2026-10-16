@@ -120,6 +120,23 @@ object Relay {
         val raw = app.getSharedPreferences("aliases", Context.MODE_PRIVATE).getString("list", null)
         if (raw != null) runCatching { aliases.addAll(json.decodeFromString<List<Alias>>(raw)) }
         removed.addAll(app.getSharedPreferences("aliases", Context.MODE_PRIVATE).getStringSet("removed", null).orEmpty())
+        scope.launch { while (true) { checkUp(); delay(30_000) } }
+    }
+
+    /**
+     * Whether the server answered its health check last time. While false, VPS routing is skipped and Lodica
+     * Search falls back to a plain web search, so the browser keeps working with the server offline.
+     */
+    @Volatile var up: Boolean = true; private set
+
+    private fun checkUp() {
+        if (!available || DOMAIN.isEmpty()) return
+        val ok = runCatching {
+            val c = URL("$API/api/health").openConnection() as HttpURLConnection
+            c.connectTimeout = 4000; c.readTimeout = 4000
+            try { c.responseCode in 200..299 } finally { c.disconnect() }
+        }.getOrDefault(false)
+        if (ok != up) { up = ok; main.post { Helper.push() } }
     }
 
     // ---- Setup ------------------------------------------------------------------------------
@@ -428,7 +445,7 @@ object Relay {
 
     /** Whether a request for [url] would go through the tunnel. Mirrors helper/background.js. */
     fun routed(url: String): Boolean {
-        if (!available || !Prefs.routeVps) return false
+        if (!available || !Prefs.routeVps || !up) return false
         val u = runCatching { Uri.parse(url) }.getOrNull() ?: return false
         if (u.scheme != "http" && u.scheme != "https") return false
         val host = u.host?.lowercase() ?: return false

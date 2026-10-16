@@ -77,7 +77,7 @@ object Helper {
     /** Send the current routing config to the background script. Safe before it connects. */
     fun push() {
         val p = background ?: return
-        val on = Relay.available && Prefs.routeVps
+        val on = Relay.available && Prefs.routeVps && Relay.up
         p.postMessage(
             JSONObject().put("type", "config").put("enabled", on).put("auth", if (on) Relay.proxyAuth else "")
                 .put("direct", JSONArray(Prefs.direct.toList()))
