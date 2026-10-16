@@ -24,6 +24,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `shield.toggle` (trust/untrust current host); `lite.toggle`; `compat.toggle`; `desktop.toggle`
 - `share(url?, raw?)` (copies URL without `?query`, toast "Link copied"; `raw` keeps it intact); `copyLink(url)` (same stripping); `copy(text)`; `openExternal(url)`
 - `email.fill` (helper.fill on current tab; also the top view's "Use dummy mail" button); `reader` -> {title,text}|null
+- `room.start` -> state; `room.stop`; `room.send(text)` -> error or null; `room.name(name)` -> name; push `room` (same-server chat)
 - `relay.state` -> state; `relay.refresh`; `relay.delete(id)` -> bool; `relay.forget(address)` -> bool
 - `remind.set(ts)` (current tab title/url) -> {ok, text}
 - `video.speed(v)`; `video.quality(v|null)` (current host; null = default)

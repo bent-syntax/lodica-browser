@@ -205,7 +205,7 @@ function loadModules() {
   return {
     store: r("store"), prefs: r("prefs"), relay: r("relay"), history: r("history"), vault: r("vault"),
     meter: r("meter"), helper: r("helper"), ai: r("ai"), search: r("search"), net: r("net"),
-    pctabs: r("pctabs"), downloads: r("downloads"), remind: r("remind"), webapps: r("webapps"),
+    room: r("room"), pctabs: r("pctabs"), downloads: r("downloads"), remind: r("remind"), webapps: r("webapps"),
     perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
   };
 }
@@ -235,6 +235,7 @@ function wire(m) {
   m.search.init({ ai: m.ai, sessions: ses, suggest: m.commands.suggest, topSites: m.commands.topSitesFor });
 
   m.relay.events.on("change", () => ui.push("relay", m.relay.state));
+  m.room.events.on("change", () => ui.push("room", m.room.state));
   m.relay.events.on("mail", (alias, mail) => {
     ui.push("mail", { site: alias?.site, link: m.relay.confirmLink(mail), alias: alias?.address });
     if (Notification.isSupported()) {

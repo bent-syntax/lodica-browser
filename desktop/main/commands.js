@@ -182,7 +182,7 @@ function initPayload() {
 
 function init(deps) {
   d = deps;
-  const { ui, tabs, prefs, helper, relay, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions } = d;
+  const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
   const host = () => cur()?.host || "";
 
@@ -342,6 +342,10 @@ function init(deps) {
   on("relay.unlink", () => { const r = relay.unlink(); require("./net").applyProxy(); return r; });
   on("relay.info", () => relay.linked());
   on("relay.refresh", () => { relay.refresh(); return true; });
+  on("room.start", () => room.start());
+  on("room.stop", () => { room.stop(); return true; });
+  on("room.send", text => room.send(str(text)));
+  on("room.name", name => room.setName(str(name)));
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 
