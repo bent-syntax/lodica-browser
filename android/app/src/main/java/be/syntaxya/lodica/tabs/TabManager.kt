@@ -57,6 +57,15 @@ object TabManager {
 
     private lateinit var app: Context
     private val main = Handler(Looper.getMainLooper())
+
+    private val LOGIN_PATH = Regex("(^|[/._-])(log-?in|sign-?in|signon|sso|auth(enticate)?|oauth2?)([/._-]|$)", RegexOption.IGNORE_CASE)
+
+    /** True for http(s) pages whose host or path looks like a sign-in step (login, signin, sso, auth, oauth). */
+    private fun isLoginUrl(url: String): Boolean {
+        val u = Uri.parse(url)
+        if (u.scheme != "https" && u.scheme != "http") return false
+        return LOGIN_PATH.containsMatchIn(u.host.orEmpty().substringBefore('.') + "/" + u.path.orEmpty())
+    }
     private val live = LinkedHashSet<Tab>()
     private val closed = ArrayDeque<TabRecord>()
 
@@ -379,6 +388,12 @@ object TabManager {
                 }
             }
             agentFor(tab).let { if (session.settings.userAgentOverride != it) session.settings.userAgentOverride = it }
+            // Sign-in pages load without tracking protection so their auth scripts are not broken; it comes back after.
+            val wantTp = !isLoginUrl(url)
+            if (session.settings.useTrackingProtection != wantTp) {
+                session.settings.useTrackingProtection = wantTp
+                if (!wantTp) main.post { session.reload() }
+            }
             if (!tab.private) History.visit(url)
             save()
         }
