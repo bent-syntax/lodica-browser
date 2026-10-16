@@ -1,5 +1,16 @@
 # Patch notes
 
+## 1.5.2
+- Android: built-in authenticator (Settings > Identity & mail). Add a 2FA secret or otpauth:// link; the current code is filled into verification-code fields on that site and can be copied.
+- Android: server chat, one shared room for everyone linked to the same server (needs the updated relay). Messages are not end-to-end encrypted and are kept 24 hours.
+- Android: when the server is offline, VPS routing is skipped and Lodica Search falls back to Google until it answers again.
+- Android: sign-in pages (login, signin, sso, auth, oauth) load without tracking protection so their scripts keep working.
+- Android: a login field you empty by hand is no longer refilled with the saved value.
+- Android: the address bar has a button that moves the cursor to the end of a long URL.
+- Android: the tab switcher skips blank page captures and no longer hangs if a capture never answers.
+- Typing a link into the in-page search bar opens it directly instead of searching (Android and desktop).
+- Not tested on a real device.
+
 ## 1.5.1
 - Android: "Own domain names" is more forgiving. It accepts "name target", "name=target", "name, target", "name -> target", hosts-file order ("192.168.1.10 nas.home") and "# comments". Before, any line that did not match exactly two space-separated words was dropped without a message.
 - Android: saving a custom DNS server now also re-applies DNS over HTTPS mode in the running browser.

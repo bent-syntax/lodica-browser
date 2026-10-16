@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.5.2
+- Server chat: one shared room for everyone linked to the same server (menu > Server chat; needs the updated relay). Messages are not end-to-end encrypted and are kept 24 hours.
+- Typing a link into the in-page search bar opens it directly instead of searching.
+- The Android-only items of this release (authenticator, sign-in tracking-protection pause, server-offline fallback, address bar, tab switcher) are not in the desktop app yet.
+
 ## 1.5.1
 - Android: "Own domain names" is more forgiving. It accepts "name target", "name=target", "name, target", "name -> target", hosts-file order ("192.168.1.10 nas.home") and "# comments". Before, any line that did not match exactly two space-separated words was dropped without a message.
 - Android: saving a custom DNS server now also re-applies DNS over HTTPS mode in the running browser.
