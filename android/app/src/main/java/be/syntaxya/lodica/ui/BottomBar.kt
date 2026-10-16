@@ -405,11 +405,30 @@ fun openTabs() {
         Ui.screen = Screen.Tabs
         return
     }
-    // Capture while the page is still on screen, then show the switcher.
+    // Capture while the page is still on screen, then show the switcher. A capture that never answers
+    // (compositor paused) must not leave the switcher stuck, so a short timeout opens it anyway.
+    var shown = false
+    fun show() { if (!shown) { shown = true; Ui.screen = Screen.Tabs } }
+    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ show() }, 500)
     g.capturePixels().accept(
-        { b -> if (b != null) tab.thumbnail = shrink(b); Ui.screen = Screen.Tabs },
-        { _ -> Ui.screen = Screen.Tabs },
+        { b ->
+            // A blank frame keeps the previous thumbnail instead of replacing it with an empty card.
+            if (b != null) { if (isBlank(b)) b.recycle() else tab.thumbnail = shrink(b) }
+            show()
+        },
+        { _ -> show() },
     )
+}
+
+/** True when a coarse grid of pixels is one flat colour (or fully transparent): nothing was rendered. */
+private fun isBlank(b: Bitmap): Boolean {
+    if (b.width < 2 || b.height < 2) return true
+    val first = b.getPixel(b.width / 2, b.height / 2)
+    for (i in 1..7) for (j in 1..7) {
+        val p = b.getPixel(b.width * i / 8, b.height * j / 8)
+        if (p != first) return false
+    }
+    return (first ushr 24) == 0 || first == 0xFF000000.toInt()
 }
 
 private fun shrink(b: Bitmap): Bitmap {
