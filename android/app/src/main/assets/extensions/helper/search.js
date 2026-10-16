@@ -258,7 +258,7 @@ function note(data) {
   else if (data.total && page === 1) n.append("About " + data.total.toLocaleString() + " results");
 }
 
-function ask(data) {
+function ask(data, cachedAnswer) {
   const box = $("ai"), body = $("ai-body");
   box.hidden = false;
   body.className = "wait";
@@ -281,7 +281,11 @@ function ask(data) {
       return !!(a && a.text);
     });
   };
-  turn(q, body);
+  if (cachedAnswer) {
+    body.className = ""; body.textContent = cachedAnswer;
+    history.push({ role: "user", text: q }, { role: "assistant", text: cachedAnswer });
+    form.hidden = false;
+  } else turn(q, body).then((ok) => { if (ok) cachePut({ ai: body.textContent }); });
   form.onsubmit = (e) => {
     e.preventDefault();
     const v = input.value.trim();
@@ -294,26 +298,48 @@ function ask(data) {
   };
 }
 
+// Back-navigation (and reloads) reuse the last answer for a query instead of asking the server again.
+const CACHE_MS = 10 * 60e3;
+const ckey = "lodica:" + [q, page, cat, lang].join("|");
+function cacheGet() {
+  if (priv) return null;
+  try {
+    const c = JSON.parse(sessionStorage.getItem(ckey) || "null");
+    return c && Date.now() - c.at < CACHE_MS ? c : null;
+  } catch (e) { return null; }
+}
+function cachePut(patch) {
+  if (priv) return;
+  try { sessionStorage.setItem(ckey, JSON.stringify(Object.assign({ at: Date.now() }, cacheGet() || {}, patch))); } catch (e) { /* storage full */ }
+}
+// Remember where the reader was, so coming back lands on the same result.
+addEventListener("pagehide", () => cachePut({ y: scrollY }));
+
 async function run() {
   if (!setup()) return;
-  skeleton();
-  const [data, state] = await Promise.all([
-    browser.runtime.sendMessage({ type: "search", q, p: page, c: cat, l: /^[a-z]{2}$/.test(lang) ? lang : undefined })
-      .catch(() => ({ error: "Search unavailable" })),
-    browser.runtime.sendMessage({ type: "state" }).catch(() => ({})),
-  ]);
-  if (state && state.api === false) { location.replace("https://duckduckgo.com/?q=" + encodeURIComponent(q)); return; }
+  const cached = cacheGet();
+  if (!cached || !cached.data) skeleton();
+  // Results are drawn as soon as they arrive; the theme/AI state is applied after, not waited for.
+  const statePromise = browser.runtime.sendMessage({ type: "state" }).catch(() => ({}));
+  const data = cached && cached.data ? cached.data : await browser.runtime.sendMessage({ type: "search", q, p: page, c: cat, l: /^[a-z]{2}$/.test(lang) ? lang : undefined })
+    .catch(() => ({ error: "Search unavailable" }));
   if (!data || data.error) {
+    const st = await statePromise;
+    if (st && st.api === false) { location.replace("https://duckduckgo.com/?q=" + encodeURIComponent(q)); return; }
     $("results").replaceChildren(el("div", { class: "ans" }, (data && data.error) || "Search unavailable"));
     return;
   }
-  // Private tabs never send the question to the AI.
-  applyTheme(state && state.theme);
-  if (state && state.ai && !cat && page === 1 && !browser.extension.inIncognitoContext) ask(data);
+  if (!cached) cachePut({ data });
   note(data);
   if (cat === "images") renderImages(data); else renderWeb(data);
   renderPages(data);
   if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
+  if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
+  const state = await statePromise;
+  if (state && state.api === false) { location.replace("https://duckduckgo.com/?q=" + encodeURIComponent(q)); return; }
+  // Private tabs never send the question to the AI.
+  applyTheme(state && state.theme);
+  if (state && state.ai && !cat && page === 1 && !priv) ask(data, cached && cached.ai);
 }
 
 run();

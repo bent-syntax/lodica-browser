@@ -10,8 +10,6 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -173,42 +171,11 @@ private fun BrowserScreen() {
                 Modifier.align(Alignment.BottomCenter).padding(bottom = lift + 8.dp).padding(horizontal = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (Ui.editing) OpenTabsStrip(tab)
                 Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
                 if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
                 Relay.incoming?.let { MailBanner(it) }
             }
             BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
-        }
-    }
-}
-
-/** Open tabs shown above the search bar while typing, so a tab can be picked instead of searching. */
-@Composable
-private fun OpenTabsStrip(current: Tab?) {
-    val shown = TabManager.tabs.filter { !it.locked }
-    if (shown.size < 2) return
-    Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        for (t in shown) {
-            val active = t === current
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = GraphiteRaised,
-                contentColor = if (active) Amber else Mist,
-                shadowElevation = 3.dp,
-                modifier = Modifier.width(150.dp),
-            ) {
-                Text(
-                    t.title.ifBlank { t.url }.ifBlank { "New tab" },
-                    Modifier.clickable { TabManager.select(t); Ui.editing = false }.padding(horizontal = 12.dp, vertical = 9.dp),
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
     }
 }

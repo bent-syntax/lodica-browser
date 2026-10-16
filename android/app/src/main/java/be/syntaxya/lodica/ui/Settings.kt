@@ -141,6 +141,7 @@ fun SettingsScreen() {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp)) {
             when (tab) {
                 0 -> {
+            if (!Relay.available) LinkRow("Set up your server (hidden email, tab sharing, Lodica Search)") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             Section("Search")
             EnginePicker()
 
@@ -246,10 +247,7 @@ fun SettingsScreen() {
 
                     Section("VPS")
                     if (!Relay.available) {
-                        Text(
-                            "No server linked. Run server setup under Identity & mail", color = Muted, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        )
+                        LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
                     } else {
                 SwitchRow("Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct", Prefs.routeVps) {
                     Prefs.updateRouteVps(it)
@@ -638,7 +636,11 @@ private fun EnginePicker() {
             SearchEngine.entries.forEach { e ->
                 DropdownMenuItem(
                     text = { Text(e.label, color = if (e == Prefs.search) Amber else Mist) },
-                    onClick = { Prefs.updateSearch(e); open = false },
+                    onClick = {
+                        Prefs.updateSearch(e); open = false
+                        // Lodica Search needs a server: walk the user through linking one.
+                        if (e == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
+                    },
                 )
             }
         }
