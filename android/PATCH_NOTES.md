@@ -1,6 +1,6 @@
 # Patch notes
 
-## 1.7.0
+## 1.6.2
 - Search from the start page and the search widget uses the search engine chosen in Settings, not always DuckDuckGo.
 - Settings, DNS: entries like `go.ogle` to `Google.com` are accepted. Add a rule in a sheet with a domain field and a redirect field; any number of rules can be added and removed.
 - The start page has quick sites like the desktop. Long-press a tile to remove it.

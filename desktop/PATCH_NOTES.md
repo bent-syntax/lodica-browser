@@ -1,6 +1,6 @@
 # Patch notes
 
-## 1.7.0
+## 1.6.2
 - The search box on the home screen uses the search engine chosen in Settings.
 - Desktop notifications for a new browser version and for new messages while the chat is closed (checked every 5 minutes).
 - Server chat has private chats with one device and group chats. Use "+" in the chat header; right-click a chat tab to remove it. Messages in other chats are kept apart from the shared room.
