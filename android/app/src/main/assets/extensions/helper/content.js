@@ -218,6 +218,8 @@
     const el = target(e);
     if (isText(el)) lastText = el;
     if (isLogin(el)) reportLogin();
+    // A verification-code box: ask the app for a saved authenticator code for this site.
+    if (el && el.tagName === "INPUT" && isCodeField(el)) { connect(); if (port) port.postMessage({ type: "codefield", host: location.hostname }); }
     if (!isEmailField(el)) return;
     last = el;
     found();

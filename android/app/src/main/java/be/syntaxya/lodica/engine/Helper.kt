@@ -171,6 +171,15 @@ object Helper {
         for (f in frames[tab].orEmpty()) f.port.postMessage(msg)
     }
 
+    /** A verification-code field got focus on [host]: answer with the current authenticator code saved for that site. */
+    private fun totpFill(host: String, port: WebExtension.Port) {
+        if (host.isEmpty()) return
+        Vault.totpFor(host).accept({ list ->
+            val code = list?.firstNotNullOfOrNull { Totp.code(it) } ?: return@accept
+            port.postMessage(JSONObject().put("type", "code").put("value", code))
+        }, { })
+    }
+
     /** Asks the tab's top frame for its main text; the answer arrives as an "article" message. */
     fun reader(tab: Tab): Boolean {
         val list = frames[tab]?.takeIf { it.isNotEmpty() } ?: return false
@@ -316,6 +325,7 @@ object Helper {
                                 .filter { it.startsWith("https://") || it.startsWith("http://") || it.startsWith("data:image/") }
                                 .distinct().take(12)
                         }
+                        "codefield" -> totpFill(m.optString("host"), port)
                         "coded" -> if (m.optBoolean("ok")) Toast.makeText(app, "Code filled in", Toast.LENGTH_SHORT).show()
                     }
                 }

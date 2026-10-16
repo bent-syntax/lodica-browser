@@ -291,6 +291,9 @@ fun SettingsScreen() {
             SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
             LinkRow("Passwords") { Ui.screen = Screen.Passwords }
 
+                    Section("Authenticator")
+                    AuthenticatorSection()
+
                     Section("Mail")
                     if (!Relay.available) {
                         Text(

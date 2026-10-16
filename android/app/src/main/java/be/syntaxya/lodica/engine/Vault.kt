@@ -109,6 +109,10 @@ object Vault : Autocomplete.StorageDelegate {
                 "realm TEXT, username TEXT NOT NULL, password TEXT NOT NULL, created INTEGER, used INTEGER, times_used INTEGER DEFAULT 0)"
         )
         d.execSQL("CREATE INDEX IF NOT EXISTS logins_origin ON logins(origin)")
+        d.execSQL(
+            "CREATE TABLE IF NOT EXISTS totp(id TEXT PRIMARY KEY, host TEXT NOT NULL, label TEXT NOT NULL, secret TEXT NOT NULL, " +
+                "digits INTEGER DEFAULT 6, period INTEGER DEFAULT 30, algo TEXT DEFAULT 'SHA1', created INTEGER)"
+        )
         db = d
         return d
     }
@@ -203,4 +207,38 @@ object Vault : Autocomplete.StorageDelegate {
     }
 
     fun delete(guid: String): GeckoResult<Unit> = async(Unit) { d -> d.delete("logins", "guid = ?", arrayOf(guid)); Unit }
+
+    // ---- Authenticator (TOTP) secrets, in the same encrypted database --------------------------------
+
+    fun totpAll(): GeckoResult<List<TotpEntry>> = async(emptyList()) { d ->
+        val out = ArrayList<TotpEntry>()
+        d.rawQuery("SELECT id, host, label, secret, digits, period, algo FROM totp ORDER BY label COLLATE NOCASE", emptyArray()).use { c ->
+            while (c.moveToNext()) out += TotpEntry(c.getString(0), c.getString(1), c.getString(2), c.getString(3), c.getInt(4), c.getInt(5), c.getString(6))
+        }
+        out
+    }
+
+    fun totpAdd(e: TotpEntry): GeckoResult<Unit> = async(Unit) { d ->
+        val cv = ContentValues().apply {
+            put("id", e.id); put("host", e.host); put("label", e.label); put("secret", e.secret)
+            put("digits", e.digits); put("period", e.period); put("algo", e.algo); put("created", System.currentTimeMillis())
+        }
+        d.insertWithOnConflict("totp", null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        Unit
+    }
+
+    fun totpDelete(id: String): GeckoResult<Unit> = async(Unit) { d -> d.delete("totp", "id = ?", arrayOf(id)); Unit }
+
+    /** Entries whose site matches [host] (same site or a subdomain either way), for autofilling a code field. */
+    fun totpFor(host: String): GeckoResult<List<TotpEntry>> = async(emptyList()) { d ->
+        val out = ArrayList<TotpEntry>()
+        d.rawQuery("SELECT id, host, label, secret, digits, period, algo FROM totp WHERE host <> ''", emptyArray()).use { c ->
+            while (c.moveToNext()) {
+                val h = c.getString(1)
+                if (h == host || host.endsWith(".$h") || h.endsWith(".$host"))
+                    out += TotpEntry(c.getString(0), h, c.getString(2), c.getString(3), c.getInt(4), c.getInt(5), c.getString(6))
+            }
+        }
+        out
+    }
 }
