@@ -43,7 +43,7 @@ const DIRECT_HOSTS = [
 ];
 const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i;
 
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", gate: { token: "", hosts: [] } };
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", gate: { token: "", hosts: [] } };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -173,7 +173,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: !!cfg.api, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine };
+    return { api: !!cfg.api, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback };
   }
   if (msg.type === "search") {
     await configured;
@@ -248,6 +248,7 @@ function connect() {
         ai: !!msg.ai,
         aiAlways: !!msg.aiAlways,
         engine: /^https:\/\/[^\s]*%s/.test(String(msg.engine || "")) ? String(msg.engine) : "",
+        fallback: /^https:\/\/[^\s]*%s/.test(String(msg.fallback || "")) ? String(msg.fallback) : "",
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
         gate: {
           token: msg.gate && /^[0-9a-f]{64}$/.test(String(msg.gate.token || "")) ? String(msg.gate.token) : "",

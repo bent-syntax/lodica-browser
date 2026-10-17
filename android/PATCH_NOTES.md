@@ -1,5 +1,16 @@
 # Patch notes
 
+## 1.7.2
+- Settings: reorganised into tabs and sub-tabs on both apps. Mobile now opens on a grouped list of pages and has a back button inside each page; desktop opens on Search. The find box still works.
+- Chat: new messages now raise a notification (a message that mentions you no longer gets filtered out of it).
+- Own domains: the address bar shows the name you typed, not the address it redirects to.
+- Search on Lodica from the start page now uses Lodica when it is your default engine; Google (or your fallback) is used only when the server cannot be reached.
+- App icon: the kite follows the theme colours (all ten built-in themes), not only the dark or light background.
+- Android patch notes for 1.7.1 are now included in the app.
+
+## 1.7.1
+- Fix crash when opening settings (and anything that opens them, such as chat): the settings find index read the tab list before it was created.
+
 ## 1.7.0
 - Settings: reorganised so identical settings sit in the same section on Android and desktop, plus a find box.
 - Redirect domain display now shows only the originating domain.

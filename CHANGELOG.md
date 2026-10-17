@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.2 (versionCode 31)
+- Settings reorganised into tabs and sub-tabs on Android and desktop; the find box still works.
+- Chat messages raise a notification again.
+- Own-domain redirects show the typed domain in the address bar.
+- Search on Lodica uses Lodica when it is the default engine.
+- Android launcher icon kite follows the theme colours.
+- Desktop: taskbar icon follows the theme again, authenticator (PIN-gated, QR screenshot import), and a What's new page.
+
 ## 1.7.1 (versionCode 30)
 - Fix crash when opening settings (and anything that opens them, such as chat): the settings find index read the tab list before it was created.
 

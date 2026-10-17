@@ -99,9 +99,9 @@ object Notifier {
     /** Posts one notification for the messages in [room] that were not written by this device. */
     internal fun chatArrived(ctx: Context, room: String, all: List<JSONObject>) {
         if (Room.listening) return
-        // Only hide own messages when the user chose a name; the default "Me" is shared by every device.
-        val me = Room.name(ctx).takeIf { Room.hasName(ctx) }
-        val msgs = all.filter { me == null || it.optString("name") != me }
+        // No own-name filter: the same name is often used on several devices, and messages sent from this
+        // device are only posted while the chat screen is open, which already suppresses notifications.
+        val msgs = all
         if (msgs.isEmpty()) return
         val text = msgs.takeLast(5).joinToString("\n") { it.optString("name") + ": " + it.optString("text") }
         val where = if (room.isEmpty()) "server chat" else Room.label(ctx, room)

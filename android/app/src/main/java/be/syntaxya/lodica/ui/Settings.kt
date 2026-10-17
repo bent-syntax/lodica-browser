@@ -136,19 +136,22 @@ fun SettingsScreen() {
     var confirm by remember { mutableStateOf<Confirm?>(null) }
     var pairing by remember { mutableStateOf(false) }
     var pairText by remember { mutableStateOf("") }
-    var tab by rememberSaveable { mutableIntStateOf(0) }
+    var tab by rememberSaveable { mutableIntStateOf(-1) }
     var find by rememberSaveable { mutableStateOf("") }
     val scroll = rememberScrollState()
     LaunchedEffect(tab) { scroll.scrollTo(0) }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("Settings") { Ui.screen = Screen.Browser }
+        androidx.activity.compose.BackHandler(enabled = tab >= 0 || find.isNotBlank()) { if (find.isNotBlank()) find = "" else tab = -1 }
+        TopBar(if (tab >= 0) SettingsTabs[tab] else "Settings") { if (tab >= 0) tab = -1 else Ui.screen = Screen.Browser }
         FilterField(find, "Find a setting") { find = it }
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            SettingsTabs.forEachIndexed { i, label -> Chip(label, tab == i) { tab = i } }
+        if (tab >= 0 && find.isBlank()) {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SettingsGroups.first { g -> tab in g.second }.second.forEach { i -> Chip(SettingsTabs[i], tab == i) { tab = i } }
+            }
         }
         if (find.isNotBlank()) {
             val words = find.trim().lowercase().split(" ").filter { it.isNotEmpty() }
@@ -160,6 +163,15 @@ fun SettingsScreen() {
                         Text(e.title, color = Mist, fontSize = 15.sp)
                         Text(SettingsTabs[e.tab], color = Muted, fontSize = 12.sp)
                     }
+                }
+            }
+            return@Column
+        }
+        if (tab < 0) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
+                SettingsGroups.forEach { (group, pages) ->
+                    Section(group)
+                    pages.forEach { i -> LinkRow(SettingsTabs[i]) { tab = i } }
                 }
             }
             return@Column
@@ -187,19 +199,25 @@ fun SettingsScreen() {
             }
 
 
+                }
+                1 -> {
                     Section("Browsing")
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             AgentPicker()
             LanguagePicker()
             QualityPicker()
-
-            Section("Data use")
-            DataMeter()
-
+                    Section("Custom DNS")
+                    DnsSection()
+                }
+                2 -> {
             Section("AI")
             AiSection()
             LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
+                }
+                3 -> {
+            Section("Data use")
+            DataMeter()
 
             Section("Web apps")
             SilentInstallSection()
@@ -207,8 +225,10 @@ fun SettingsScreen() {
             Section("Extensions")
             ExtensionsSection()
 
+                    Section("Import from Chrome")
+            ChromeImportSection()
                 }
-                1 -> {
+                4 -> {
                     Section("Theme")
                     ThemePicker()
                     Section("Search widget")
@@ -219,7 +239,7 @@ fun SettingsScreen() {
                     Section("Start page background")
                     StartBackgroundSettings()
                 }
-                2 -> {
+                5 -> {
             Section("Tabs")
             Text(
                 "Auto-archive tabs unused for", color = Muted, fontSize = 13.sp,
@@ -230,8 +250,9 @@ fun SettingsScreen() {
                     Chip(label, Prefs.autoArchiveDays == d) { Prefs.updateAutoArchiveDays(d) }
                 }
             }
-
-
+                }
+                6 -> {
+            if (!Relay.available) LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             if (Relay.available) {
                 Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
@@ -283,7 +304,7 @@ fun SettingsScreen() {
             }
 
                 }
-                3 -> {
+                7 -> {
                     Section("Blocking")
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
@@ -296,13 +317,9 @@ fun SettingsScreen() {
                     Prefs.updateRouteVps(it)
                 }
                     }
-                    Section("Custom DNS")
-                    DnsSection()
-
-                    Section("Import from Chrome")
-            ChromeImportSection()
-
-                    Section("Privacy")
+                }
+                8 -> {
+                    Section("History & site data")
             LinkRow("History") { Ui.screen = Screen.History }
             LinkRow("Clear history", Coral) {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
@@ -319,8 +336,8 @@ fun SettingsScreen() {
             }
 
                 }
-                4 -> ControlsSection()
-                5 -> {
+                9 -> ControlsSection()
+                10 -> {
                     Section("Identity")
             SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
             LinkRow("Passwords") { Ui.screen = Screen.Passwords }
@@ -328,6 +345,8 @@ fun SettingsScreen() {
                     Section("Authenticator")
                     AuthenticatorSection()
 
+                }
+                11 -> {
                     Section("Server, chat & mail")
                     if (!Relay.available) {
                         Text(
@@ -1070,49 +1089,63 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 
 /** What the settings search looks through: a title, the tab it lives in and extra words people may type. */
 // Must be declared before SettingsIndex: the index reads it during file-level initialisation.
-private val SettingsTabs = listOf("General", "Appearance", "Tabs", "Privacy & blocking", "Controls", "Identity & server", "Updates & about")
+private val SettingsTabs = listOf(
+    "Search", "Sites, language & DNS", "AI answers", "Data, apps & extensions", "Look & theme", "Tab behaviour", "Tabs on PC",
+    "Blocking & VPS", "History & site data", "Controls & gestures", "Identity & passwords", "Server, chat & mail", "Updates & about",
+)
+
+/** Landing list: group title to the pages inside it. */
+private val SettingsGroups = listOf(
+    "Browsing" to listOf(0, 1, 2),
+    "Look & tabs" to listOf(4, 5, 6),
+    "Privacy & security" to listOf(7, 8, 10),
+    "Data & add-ons" to listOf(3),
+    "Controls" to listOf(9),
+    "Server" to listOf(11),
+    "About" to listOf(12),
+)
 
 private val SettingsIndex = listOf(
     SettingsEntry("Search engine", 0, "default duckduckgo lodica fallback"),
     SettingsEntry("Suggest from history", 0, "address bar suggestions"),
     SettingsEntry("Clear suggestions", 0, "past searches"),
     SettingsEntry("Fallback search engine", 0, "lodica search server unavailable"),
-    SettingsEntry("Desktop sites", 0, "request desktop"),
-    SettingsEntry("Show original domain after redirects", 0, "redirect origin address bar"),
-    SettingsEntry("User agent", 0, "browser identity"),
-    SettingsEntry("Language", 0, "accept language"),
-    SettingsEntry("Video quality", 0, "data saver"),
-    SettingsEntry("Data use", 0, "meter bandwidth"),
-    SettingsEntry("AI answers", 0, "ai generate always allow summary assistant"),
-    SettingsEntry("AI chats", 0, "history assistant"),
-    SettingsEntry("Web apps", 0, "install shortcut silent"),
-    SettingsEntry("Extensions", 0, "addons add-ons"),
-    SettingsEntry("Theme", 1, "colours dark light logo icon"),
-    SettingsEntry("Search widget", 1, "home screen"),
-    SettingsEntry("Dark pages", 1, "force dark websites"),
-    SettingsEntry("Start page background", 1, "wallpaper image"),
-    SettingsEntry("Auto-archive tabs", 2, "unused days"),
-    SettingsEntry("Tabs on PC", 2, "sync computer link"),
-    SettingsEntry("HTTPS-only", 3, "secure connections"),
-    SettingsEntry("Reject cookie banners", 3, "consent popups"),
-    SettingsEntry("Route through VPS", 3, "tunnel server proxy"),
-    SettingsEntry("Custom DNS", 3, "dns over https resolver"),
+    SettingsEntry("Desktop sites", 1, "request desktop"),
+    SettingsEntry("Show original domain after redirects", 1, "redirect origin address bar"),
+    SettingsEntry("User agent", 1, "browser identity"),
+    SettingsEntry("Language", 1, "accept language"),
+    SettingsEntry("Video quality", 1, "data saver"),
+    SettingsEntry("Data use", 3, "meter bandwidth"),
+    SettingsEntry("AI answers", 2, "ai generate always allow summary assistant"),
+    SettingsEntry("AI chats", 2, "history assistant"),
+    SettingsEntry("Web apps", 3, "install shortcut silent"),
+    SettingsEntry("Extensions", 3, "addons add-ons"),
+    SettingsEntry("Theme", 4, "colours dark light logo icon"),
+    SettingsEntry("Search widget", 4, "home screen"),
+    SettingsEntry("Dark pages", 4, "force dark websites"),
+    SettingsEntry("Start page background", 4, "wallpaper image"),
+    SettingsEntry("Auto-archive tabs", 5, "unused days"),
+    SettingsEntry("Tabs on PC", 6, "sync computer link"),
+    SettingsEntry("HTTPS-only", 7, "secure connections"),
+    SettingsEntry("Reject cookie banners", 7, "consent popups"),
+    SettingsEntry("Route through VPS", 7, "tunnel server proxy"),
+    SettingsEntry("Custom DNS", 1, "dns over https resolver"),
     SettingsEntry("Import from Chrome", 3, "bookmarks passwords"),
-    SettingsEntry("History", 3, "visited pages"),
-    SettingsEntry("Clear history", 3, "delete"),
-    SettingsEntry("Reset site permissions", 3, "camera microphone location"),
-    SettingsEntry("Clear site data", 3, "cookies cache storage"),
-    SettingsEntry("Controls and gestures", 4, "toggles buttons swipe"),
-    SettingsEntry("Hidden email", 5, "alias sign-up dummy"),
-    SettingsEntry("Passwords", 5, "logins vault"),
-    SettingsEntry("Authenticator", 5, "totp 2fa codes google migration qr"),
-    SettingsEntry("Server chat", 5, "room messages"),
-    SettingsEntry("Instant chat messages", 5, "notifications live battery"),
-    SettingsEntry("Notifications", 5, "test permission alerts"),
-    SettingsEntry("Inbox", 5, "mail"),
-    SettingsEntry("Device gate", 5, "enroll approve code"),
-    SettingsEntry("Server setup", 5, "disconnect link"),
-    SettingsEntry("Version and what's new", 6, "about updates patch notes"),
+    SettingsEntry("History", 8, "visited pages"),
+    SettingsEntry("Clear history", 8, "delete"),
+    SettingsEntry("Reset site permissions", 8, "camera microphone location"),
+    SettingsEntry("Clear site data", 8, "cookies cache storage"),
+    SettingsEntry("Controls and gestures", 9, "toggles buttons swipe"),
+    SettingsEntry("Hidden email", 10, "alias sign-up dummy"),
+    SettingsEntry("Passwords", 10, "logins vault"),
+    SettingsEntry("Authenticator", 10, "totp 2fa codes google migration qr"),
+    SettingsEntry("Server chat", 11, "room messages"),
+    SettingsEntry("Instant chat messages", 11, "notifications live battery"),
+    SettingsEntry("Notifications", 11, "test permission alerts"),
+    SettingsEntry("Inbox", 11, "mail"),
+    SettingsEntry("Device gate", 11, "enroll approve code"),
+    SettingsEntry("Server setup", 11, "disconnect link"),
+    SettingsEntry("Version and what's new", 12, "about updates patch notes"),
 )
 
 

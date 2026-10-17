@@ -408,7 +408,26 @@ function init(deps) {
     return ok;
   });
 
+  const authOk = () => !vault.pinSet() || vault.state().unlocked;
+  on("auth.list", () => (authOk() ? require("./totp").list() : []));
+  on("auth.add", text => (authOk() ? require("./totp").add(str(text)) : 0));
+  on("auth.addImage", async () => {
+    if (!authOk()) return { added: 0, error: "Locked" };
+    const { dialog } = require("electron");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Choose a screenshot of the QR code", properties: ["openFile"], filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }] });
+    if (r.canceled || !r.filePaths[0]) return { canceled: true };
+    return require("./totp").addImage(r.filePaths[0]);
+  });
+  on("auth.remove", id => (authOk() ? require("./totp").remove(str(id)) : false));
+  on("auth.rename", (id, label) => (authOk() ? require("./totp").rename(str(id), str(label)) : false));
+  on("auth.copy", id => {
+    const c = authOk() ? require("./totp").copy(str(id)) : null;
+    if (c) clipboard.writeText(c);
+    return !!c;
+  });
+
   on("update.status", () => updater.status());
+  on("notes.get", () => { try { return require("fs").readFileSync(require("path").join(app.getAppPath(), "PATCH_NOTES.md"), "utf8"); } catch { return ""; } });
   on("update.check", () => updater.check());
   on("update.download", () => updater.download());
   on("update.cancel", () => updater.cancel());

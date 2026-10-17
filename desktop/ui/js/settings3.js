@@ -1,19 +1,31 @@
 "use strict";
 // Settings tabs: Appearance, Keybinds & controls, Identity & mail, plus the tab bar itself.
 
-const SET_TABS = [["general", "General"], ["appearance", "Appearance"], ["tabs", "Tabs"], ["privacy", "Privacy & blocking"],
-  ["keys", "Keybinds & controls"], ["identity", "Identity & server"], ["about", "Updates & About"]];
+// [id, label, group]: the sidebar shows one heading per group, then its small tabs.
+const SET_TABS = [
+  ["search", "Search", "Browsing"], ["sites", "Sites & domains", "Browsing"], ["ai", "AI answers", "Browsing"],
+  ["appearance", "Theme & start page", "Look & tabs"], ["pages", "Page colours", "Look & tabs"], ["tabs", "Tab behaviour", "Look & tabs"], ["pctabs", "Tabs on phone", "Look & tabs"],
+  ["privacy", "Privacy & history", "Privacy & security"], ["https", "HTTPS & upgrades", "Privacy & security"], ["blocking", "Blocking", "Privacy & security"],
+  ["data", "Data use", "Data & add-ons"], ["apps", "Web apps", "Data & add-ons"], ["extensions", "Extensions", "Data & add-ons"],
+  ["keys", "Keybinds & controls", "Controls"],
+  ["vps", "Server & VPS", "Account"], ["identity", "Identity & mail", "Account"], ["auth", "Authenticator", "Account"],
+  ["about", "Updates & About", "About"]];
 // Section ids that other code passes to openSettings() -> the tab that holds them.
-const SET_SECTION_TAB = { search: "general", browsing: "general", vps: "general", data: "general", ai: "general", apps: "general", extensions: "general",
-  appearance: "appearance", theme: "appearance", pctabs: "tabs", tabs: "tabs", privacy: "privacy", keys: "keys", keybinds: "keys",
-  identity: "identity", mail: "identity", about: "about", updates: "about" };
+const SET_SECTION_TAB = { search: "search", browsing: "sites", dns: "sites", vps: "vps", data: "data", ai: "ai", apps: "apps", extensions: "extensions",
+  appearance: "appearance", theme: "appearance", pctabs: "pctabs", tabs: "tabs", privacy: "privacy", keys: "keys", keybinds: "keys",
+  identity: "identity", mail: "identity", auth: "auth", authenticator: "auth", about: "about", updates: "about" };
 
-const SET_ICONS = { general: "settings", appearance: "palette", tabs: "tabs", privacy: "shield", keys: "key", identity: "email", about: "reader" };
+const SET_ICONS = { search: "search", sites: "globe", ai: "settings", appearance: "palette", pages: "palette", tabs: "tabs", pctabs: "tabs", privacy: "shield", https: "shield",
+  blocking: "shield", data: "settings", apps: "settings", extensions: "settings", keys: "key", vps: "settings", identity: "email", auth: "key", about: "reader" };
 function setTabBar() {
-  return h("div", { class: "sp-tabs", role: "tablist" }, SET_TABS.map(([id, label]) =>
-    h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab",
+  const out = []; let last = "";
+  for (const [id, label, group] of SET_TABS) {
+    if (group !== last) { out.push(h("div", { class: "sp-group", text: group })); last = group; }
+    out.push(h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab",
       act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } },
-      ico(SET_ICONS[id] || "settings"), h("span", { text: label }))));
+      ico(SET_ICONS[id] || "settings"), h("span", { text: label })));
+  }
+  return h("div", { class: "sp-tabs", role: "tablist" }, out);
 }
 /** Settings search: every row of every tab whose text matches all typed words, grouped by tab. */
 function setFindBody(q) {
@@ -27,13 +39,24 @@ function setFindBody(q) {
 }
 function setTabBody(tab) {
   switch (tab) {
-    case "appearance": return [secAppearance(), secDarkPages()];
-    case "tabs": return [secPcTabs(), secTabs()];
-    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSuggest()];
+    case "sites": return [secBrowsing(), secDns()];
+    case "ai": return secAi();
+    case "appearance": return secAppearance();
+    case "pages": return secDarkPages();
+    case "tabs": return secTabs();
+    case "pctabs": return secPcTabs();
+    case "privacy": return [secPrivacy(), secSuggest()];
+    case "https": return secHttps();
+    case "blocking": return secBlocking();
+    case "data": return secData();
+    case "apps": return secApps();
+    case "extensions": return secExtensions();
     case "keys": return secKeys();
-    case "identity": return [secVps(), secIdentity()];
+    case "vps": return secVps();
+    case "identity": return secIdentity();
+    case "auth": return typeof secAuth === "function" ? secAuth() : [];
     case "about": return secAbout();
-    default: return [secSearch(), secBrowsing(), secDns(), secData(), secAi(), secApps(), secExtensions()];
+    default: return secSearch();
   }
 }
 

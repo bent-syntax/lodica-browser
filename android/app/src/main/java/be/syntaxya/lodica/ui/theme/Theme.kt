@@ -124,7 +124,7 @@ fun LodicaTheme(content: @Composable () -> Unit) {
     val p = ThemeState.palette
     val view = LocalView.current
     val appCtx = LocalContext.current.applicationContext
-    LaunchedEffect(p.dark) { withContext(Dispatchers.IO) { runCatching { LauncherIcon.apply(appCtx, p.dark) } } }
+    LaunchedEffect(p.key, p.bg, p.accent) { withContext(Dispatchers.IO) { runCatching { LauncherIcon.apply(appCtx, p) } } }
     SideEffect {
         var c = view.context
         while (c is ContextWrapper && c !is Activity) c = c.baseContext

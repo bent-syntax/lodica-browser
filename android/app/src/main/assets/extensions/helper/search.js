@@ -339,7 +339,7 @@ async function run() {
     .catch(() => ({ error: "Search unavailable" }));
   if (!data || data.error) {
     const st = await statePromise;
-    if (st && st.api === false) { location.replace((st.engine || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
+    if (st && st.api === false) { location.replace((st.engine || st.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
     $("results").replaceChildren(el("div", { class: "ans" }, (data && data.error) || "Search unavailable"));
     return;
   }
@@ -350,7 +350,7 @@ async function run() {
   if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
   if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
   const state = await statePromise;
-  if (state && state.api === false) { location.replace((state.engine || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
+  if (state && state.api === false) { location.replace((state.engine || state.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
   // Private tabs never send the question to the AI.
   applyTheme(state && state.theme);
   if (state && state.ai && !cat && page === 1 && !priv) {

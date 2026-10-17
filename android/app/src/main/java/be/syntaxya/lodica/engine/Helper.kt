@@ -91,7 +91,8 @@ object Helper {
                 .put("ai", Ai.connected)
                 .put("aiAlways", Prefs.aiAlways)
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
-                .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available && Relay.up) "" else Prefs.searchFallback.query)
+                .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
+                .put("fallback", Prefs.searchFallback.query)
                 .put("theme", themeJson())
                 .put("gate", Gate.config())
         )

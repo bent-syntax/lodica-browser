@@ -77,3 +77,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .theme-prev,.bg-prev{margin:16px auto;max-width:440px}
 .mcell.pinned{background:var(--hover);outline:1px solid var(--amber,#e8a33d)}
 .dns-row{display:flex;gap:6px;align-items:center}.dns-row input{width:150px}
+.sp-group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);opacity:.75;padding:14px 12px 4px}
+.sp-group:first-child{padding-top:2px}

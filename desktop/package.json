@@ -1,7 +1,7 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
     "@ghostery/adblocker-electron": "2.18.2",
+    "jsqr": "^1.4.0",
     "mammoth": "1.13.0"
   },
   "devDependencies": {
@@ -38,6 +39,7 @@
       "ui/**",
       "search/**",
       "config.json",
+      "PATCH_NOTES.md",
       "package.json"
     ],
     "asar": true,

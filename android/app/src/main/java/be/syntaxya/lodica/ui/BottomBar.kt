@@ -215,6 +215,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                     locked -> "Private tab locked"
                     home -> "Search or type URL"
                     else -> Prefs.searchQuery(tab!!.url)
+                        ?: Prefs.ownNameFor(tab.host)
                         ?: (if (Prefs.showRedirectOrigin && tab.origin.isNotEmpty()) tab.origin else null)
                         ?: tab.host.ifBlank { tab.url }
                 },

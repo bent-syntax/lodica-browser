@@ -236,6 +236,20 @@ object Prefs {
      * Applies the user's own names to a typed URL right here, so a redirect works even before the helper
      * extension has its config. A bare IP target gets http, a host target keeps the URL's scheme, a full URL is used as is.
      */
+    /** Target host -> the own name the user typed or followed, so the address bar can show that name. */
+    private val ownTyped = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /** The own name behind [host] (a custom DNS target), or null. */
+    fun ownNameFor(host: String): String? {
+        if (host.isEmpty() || dnsRules.isBlank()) return null
+        val h = host.lowercase()
+        ownTyped[h]?.let { return it }
+        return dnsPairs().firstOrNull { (n, t) ->
+            !n.startsWith("*") && !n.startsWith(".") &&
+                (runCatching { java.net.URI(if (t.contains("://")) t else "http://$t").host }.getOrNull()?.lowercase() == h)
+        }?.get(0)
+    }
+
     fun applyOwnDns(url: String): String {
         if (dnsRules.isBlank()) return url
         return runCatching {
@@ -250,6 +264,8 @@ object Prefs {
                 }
             }?.get(1) ?: return url
             val rest = (u.rawPath ?: "") + (u.rawQuery?.let { "?$it" } ?: "") + (u.rawFragment?.let { "#$it" } ?: "")
+            runCatching { java.net.URI(if (t.contains("://")) t else "http://$t").host?.lowercase() }.getOrNull()
+                ?.let { if (it != h) ownTyped[it] = h }
             if (Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(t)) {
                 if (rest.isEmpty() || rest == "/") t else java.net.URI(t).resolve(rest).toString()
             } else {
@@ -361,9 +377,10 @@ object Prefs {
                 isCustomHost(t.substringBefore('/').substringBefore(':')))
         if (looksLikeHost) return withLanguage(applyOwnDns("https://$t"))
         val base = Helper.searchBase
-        if (search == SearchEngine.LODICA && base != null && Relay.available && Relay.up)
+        if (search == SearchEngine.LODICA && base != null && Relay.available)
             return base + "search.html?q=" + android.net.Uri.encode(t)
-        // Lodica Search is chosen but the server is down or missing: use the fallback engine.
+        // Lodica Search is chosen but no server is linked or the helper has not loaded: use the fallback engine.
+        // (A server that is merely unreachable is handled by the search page itself, which falls back.)
         val engine = if (search != SearchEngine.LODICA) search else searchFallback
         return withLanguage(engine.query.format(android.net.Uri.encode(t)))
     }

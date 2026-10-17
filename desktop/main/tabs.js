@@ -19,6 +19,17 @@ let closed = []; // newest first: {title,url,entries,index,private}
 
 const privSession = () => session.fromPartition("lodica-private");
 const hostOf = u => { try { return new URL(u).hostname; } catch { return ""; } };
+/** The own domain name (custom DNS rule) that points at this host, so the bar shows the name the user typed. */
+function ownNameFor(host) {
+  const rules = prefs.p.dnsRules;
+  if (!host || !Array.isArray(rules)) return "";
+  const h = host.toLowerCase();
+  const r = rules.find(r => {
+    const from = String(r && r.from || "").trim().toLowerCase(), to = String(r && r.to || "").trim();
+    return from && !from.startsWith("*") && !from.startsWith(".") && hostOf(/^https?:\/\//i.test(to) ? to : "http://" + to).toLowerCase() === h;
+  });
+  return r ? String(r.from).trim() : "";
+}
 const alive = t => !!t.view && !t.view.webContents.isDestroyed();
 const isHome = u => !u || u === "about:blank" || (u.startsWith(HOME) && !/[?&]q=/.test(u));
 
@@ -67,7 +78,7 @@ function info(t) {
     blocked: t.blocked, trusted: prefs.isTrusted(t.host), lite: prefs.isLite(t.host), compat: prefs.isCompat(t.host),
     desktop: t.desktop, emailForm: t.emailForm, emailFocus: t.emailFocus, routed: relay.routed(t.url),
     audio: t.audio, speed: prefs.p.speed, quality: prefs.qualityFor(t.host) ?? prefs.p.quality,
-    origin: prefs.p.showRedirectOrigin && !home ? t.origin || "" : "",
+    origin: home ? "" : (ownNameFor(t.host) || (prefs.p.showRedirectOrigin ? t.origin || "" : "")),
     split: inSplit(t), crashed: t.crashed, locked: locked && t.private, home, lastUsed: t.lastUsed, archived: t.archived,
   };
 }

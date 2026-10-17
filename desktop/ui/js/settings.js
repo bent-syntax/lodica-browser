@@ -1,6 +1,6 @@
 "use strict";
 // Settings sheet: framework and sections 1-5 (Search, Browsing, VPS, Tabs on PC, Tabs).
-const SET = { find: "", tab: "general", keys: null, cap: null, capture: null, L: null, pcLink: null, pcRemote: null, pcSub: false, apps: null, meter: null, usage: null };
+const SET = { find: "", tab: "search", keys: null, cap: null, capture: null, L: null, pcLink: null, pcRemote: null, pcSub: false, apps: null, meter: null, usage: null };
 
 function openSettings(section) {
   if (SET.L) return SET.L;

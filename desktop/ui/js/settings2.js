@@ -100,7 +100,22 @@ function secAbout() {
       h("div", null, h("div", { class: "t1", text: "Lodica " + (S.version || "") }),
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
-    updateRow()];
+    updateRow(),
+    setRow("What's new", "Patch notes for every version", null, openNotes)];
+}
+// Patch notes sheet: the bundled PATCH_NOTES.md, one block per version.
+function openNotes() {
+  return sheet({ title: "What's new", key: "notes", tall: true }, async (b) => {
+    const md = String((await inv("notes.get")) || "");
+    if (!md.trim()) { b.append(h("div", { class: "empty", text: "No patch notes found" })); return; }
+    for (const part of md.split(/^## /m).slice(1)) {
+      const lines = part.split("\n");
+      const items = lines.slice(1).map((l) => l.replace(/^\s*-\s*/, "").trim()).filter(Boolean);
+      b.append(h("div", { class: "row" }, h("div", { class: "main" },
+        h("div", { class: "t1", text: lines[0].trim() }),
+        ...items.map((t) => h("div", { class: "t2", text: "• " + t })))));
+    }
+  });
 }
 // Check for updates: relay checks the private repo, the app downloads and verifies the build.
 function updateRow() {

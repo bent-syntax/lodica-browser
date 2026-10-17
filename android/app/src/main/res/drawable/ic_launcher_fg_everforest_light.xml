@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lodica kite: amber to coral gradient diamond with spars and a bowed tail, sized for the 66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Kite body -->
+    <path android:pathData="M54,22 L72,42 L54,66 L36,42 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="40"
+                android:startY="24"
+                android:endX="66"
+                android:endY="64">
+                <item android:offset="0" android:color="#FF8DA101" />
+                <item android:offset="1" android:color="#FFF85552" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Lighter upper-left facet for depth -->
+    <path
+        android:fillColor="#33FFFFFF"
+        android:pathData="M54,22 L54,42 L36,42 Z" />
+
+    <!-- Spars -->
+    <path
+        android:pathData="M54,23.5 L54,64.5 M37.5,42 L70.5,42"
+        android:strokeColor="#CCFDF6E3"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round" />
+
+    <!-- Tail -->
+    <path
+        android:pathData="M54,66 C50,71 58,75 54,80 C51,83.5 55,85.5 53,88"
+        android:strokeColor="#FFF85552"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round" />
+
+    <!-- Tail bows -->
+    <path
+        android:fillColor="#FF8DA101"
+        android:pathData="M50.5,72 L54,74 L50.5,76 Z M57.5,72 L54,74 L57.5,76 Z" />
+    <path
+        android:fillColor="#FFF85552"
+        android:pathData="M50.5,80 L53.5,82 L50.5,84 Z M56.5,80 L53.5,82 L56.5,84 Z" />
+</vector>
