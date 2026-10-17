@@ -39,6 +39,8 @@ class Tab(
     var canBack by mutableStateOf(false)
     var canFwd by mutableStateOf(false)
     var secure by mutableStateOf(true)
+    var origin by mutableStateOf("")
+    var navStart: String? = null
     var blocked by mutableIntStateOf(0)
     var desktop by mutableStateOf(desktop)
     var lastUsed by mutableStateOf(lastUsed)

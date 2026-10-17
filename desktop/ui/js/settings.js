@@ -72,6 +72,7 @@ function secBrowsing() {
   return [secHead("Browsing"),
     setToggle("darkPages", "Dark pages", "Darken light sites that have no dark mode of their own"),
     setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"),
+    setToggle("showRedirectOrigin", "Show original domain after redirects", "Address bar shows where you came from, with the real host beside it. Lock and security always use the real site"),
     setToggle("desktopDefault", "Desktop sites", "Request desktop pages in new tabs"),
     setRow("Dummy mail hidden sites", (S.prefs.noDummy || []).length ? S.prefs.noDummy.join(", ") : "None. The button shows on sign-up pages",
       (S.prefs.noDummy || []).length ? "Clear" : null, (S.prefs.noDummy || []).length ? () => setPref("noDummy", []) : null),

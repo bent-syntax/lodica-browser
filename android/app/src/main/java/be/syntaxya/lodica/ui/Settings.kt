@@ -266,6 +266,7 @@ fun SettingsScreen() {
                 }
                 3 -> {
                     Section("Blocking")
+            SwitchRow("Show original domain after redirects", "Address bar shows where you came from, with the real host beside it. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
 

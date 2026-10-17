@@ -374,6 +374,10 @@ object TabManager {
             // A restore briefly reports about:blank; don't let it clobber the saved URL.
             if (url == "about:blank" && tab.url != "about:blank") return
             if (Uri.parse(url).host != Uri.parse(tab.url).host) { tab.manifest = null; tab.icons = emptyList() }
+            val from = tab.navStart?.let { Uri.parse(it).host.orEmpty().removePrefix("www.") }.orEmpty()
+            val to = Uri.parse(url).host.orEmpty().removePrefix("www.")
+            tab.origin = if (from.isNotEmpty() && to.isNotEmpty() && from != to && url.startsWith("http")) from else ""
+            tab.navStart = null
             tab.url = url
             tab.trackPerm = perms.firstOrNull { it.permission == GeckoSession.PermissionDelegate.PERMISSION_TRACKING }
             tab.trusted = tab.trackPerm?.value == ContentPermission.VALUE_ALLOW
@@ -406,6 +410,7 @@ object TabManager {
             if (scheme in WEB_SCHEMES) {
                 // Set the user agent before a top-level load reaches a compat site (Google sign-in), not after.
                 if (request.target == GeckoSession.NavigationDelegate.TARGET_WINDOW_CURRENT) {
+                    if (!request.isRedirect) tab.navStart = request.uri
                     val host = Uri.parse(request.uri).host.orEmpty().removePrefix("www.")
                     val ua = if (tab.desktop || Prefs.isCompat(host)) null else Prefs.userAgent.value
                     if (session.settings.userAgentOverride != ua) session.settings.userAgentOverride = ua

@@ -67,6 +67,7 @@ function info(t) {
     blocked: t.blocked, trusted: prefs.isTrusted(t.host), lite: prefs.isLite(t.host), compat: prefs.isCompat(t.host),
     desktop: t.desktop, emailForm: t.emailForm, emailFocus: t.emailFocus, routed: relay.routed(t.url),
     audio: t.audio, speed: prefs.p.speed, quality: prefs.qualityFor(t.host) ?? prefs.p.quality,
+    origin: prefs.p.showRedirectOrigin && !home ? t.origin || "" : "",
     split: inSplit(t), crashed: t.crashed, locked: locked && t.private, home, lastUsed: t.lastUsed, archived: t.archived,
   };
 }
@@ -118,10 +119,16 @@ function wire(t, wc) {
     if (!t.private) history.title(t.url, title);
     persist(); pushTab(t);
   });
+  wc.on("did-start-navigation", d => {
+    if (d.isMainFrame && !d.isSameDocument) t.navStart = d.url;
+  });
   wc.on("did-navigate", (_, navUrl) => {
     const isErr = errorpage.isErrorUrl(navUrl);
     const url = isErr ? errorpage.failedOf(navUrl) || t.url : navUrl;
     Object.assign(t, { url, host: hostOf(url), blocked: 0, emailForm: false, emailFocus: false, icons: [], crashed: false, failUrl: isErr ? url : null });
+    const from = t.navStart ? hostOf(t.navStart) : "";
+    t.origin = !isErr && /^https?:/i.test(t.navStart || "") && from && from !== t.host ? from : "";
+    t.navStart = null;
     snapshot(t);
     if (!t.private && !isErr) history.add(url);
     persist(); pushTab(t);
@@ -129,6 +136,7 @@ function wire(t, wc) {
   wc.on("did-navigate-in-page", (_, url, isMainFrame) => {
     if (!isMainFrame) return;
     t.url = url; t.host = hostOf(url);
+    t.origin = "";
     snapshot(t);
     if (!t.private) history.add(url, t.title);
     persist(); pushTab(t);
