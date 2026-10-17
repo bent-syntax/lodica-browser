@@ -9,7 +9,7 @@ A privacy-focused browser for Android (GeckoView) and desktop (Electron), with v
 | `android/` | Android app (Kotlin, Jetpack Compose, GeckoView). Package id `be.syntaxya.lodica`. |
 | `desktop/` | Desktop app (Electron). |
 
-Both apps share one version number (currently 1.6.4).
+Both apps share one version number (currently 1.7.0).
 
 ## Highlights
 
@@ -73,6 +73,12 @@ Set `LODICA_API_PORT` / `LODICA_PROXY_PORT` to use other ports (the apps expect 
 
 - **Android:** open the setup wizard from Settings, enter your domain, then paste the token.
 - **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
+
+### Device gate and chat notifications
+
+Hosts you list as gated only answer clients that send a per-device token. In the app choose Enroll; it shows an 8-character code (valid 10 minutes, single use). Approve it on the server with `sudo lodica-approve <code>`. The token is sent in the `X-Lodica-Gate` header (not a cookie) and only to the listed hosts. The relay token is shared between devices, so treat the pairing code as the real secret.
+
+On Android, instant chat messages use a foreground service. Allow notifications when asked (POST_NOTIFICATIONS), and accept the battery exemption prompt so the system keeps the connection alive. The "Instant chat messages" switch turns it off. NFC pages: GeckoView has no Web NFC, so `NDEFReader.scan()` and `write()` reject with `NotSupportedError`; the desktop app does not support it either.
 
 Without a relay these features stay hidden and the browser works normally.
 
