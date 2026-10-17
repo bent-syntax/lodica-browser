@@ -187,6 +187,14 @@ function init(deps) {
   const host = () => cur()?.host || "";
 
   on("init", initPayload);
+  on("theme.colors", c => {
+    const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
+    if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.coral)) return;
+    const { nativeImage } = require("electron");
+    require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, coral: c.coral })
+      .then(png => { const w = d.win(); if (w && !w.isDestroyed()) w.setIcon(nativeImage.createFromBuffer(png)); })
+      .catch(() => {});
+  });
   on("go", text => tabs.go(text));
   on("back", () => tabs.back());
   on("forward", () => tabs.forward());

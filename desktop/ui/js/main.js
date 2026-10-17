@@ -110,7 +110,20 @@ const applyTheme = () => {
   const t = (S.prefs && S.prefs.theme) || "system";
   document.documentElement.dataset.theme = t;
   applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme);
+  reportColors();
 };
+
+// Tells main the theme's kite colors so the window icon follows the theme.
+let lastColors = "";
+const reportColors = () => requestAnimationFrame(() => {
+  const cs = getComputedStyle(document.documentElement);
+  const hex = v => { const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v.trim()); if (!m) return ""; const x = m[1]; return "#" + (x.length === 3 ? [...x].map(c => c + c).join("") : x); };
+  const c = { bg: hex(cs.getPropertyValue("--bg")), amber: hex(cs.getPropertyValue("--amber")), coral: hex(cs.getPropertyValue("--coral")) };
+  const k = JSON.stringify(c);
+  if (!c.bg || !c.amber || !c.coral || k === lastColors) return;
+  lastColors = k;
+  inv("theme.colors", c);
+});
 
 async function start() {
   const r = await inv("init");

@@ -79,7 +79,7 @@ function kite(size) {
   s.setAttribute("width", size); s.setAttribute("height", size);
   s.setAttribute("class", "kite");
   s.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">` +
-    `<stop offset="0" stop-color="#F59E0B"/><stop offset="1" stop-color="#F43F5E"/></linearGradient></defs>` +
+    `<stop offset="0" style="stop-color:var(--amber,#F59E0B)"/><stop offset="1" style="stop-color:var(--coral,#F43F5E)"/></linearGradient></defs>` +
     `<path d="M54 22 72 42 54 66 36 42Z" fill="url(#${id})"/><path d="M54 22v20H36Z" fill="#fff" opacity=".2"/>`;
   return s;
 }
