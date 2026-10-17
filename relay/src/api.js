@@ -12,6 +12,7 @@ const page = require('./tabs-page');
 const search = require('./search');
 const updates = require('./updates');
 const chat = require('./chat');
+const enroll = require('./enroll');
 
 // Exim delivers every recipient to one maildir (tainted local parts cannot name
 // directories); the alias comes from the Envelope-to header Exim adds per delivery.
@@ -372,6 +373,16 @@ async function route(req, res) {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
     return chat.users(req, res, url, { sendJson, sendText, readBody });
+  }
+  if (p === '/enroll') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return enroll.post(req, res, clientIp(req), { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/pending\/([^/]+)$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return enroll.take(req, res, clientIp(req), decodeURIComponent(r[1]).slice(0, 32), { sendJson, sendText, readBody });
   }
   if (p === '/api/theme') {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
