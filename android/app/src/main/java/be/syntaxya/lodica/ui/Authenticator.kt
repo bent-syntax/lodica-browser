@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.Totp
 import be.syntaxya.lodica.engine.TotpEntry
+import be.syntaxya.lodica.engine.TotpMigration
 import be.syntaxya.lodica.engine.Vault
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
@@ -53,6 +55,7 @@ fun AuthenticatorSection() {
     var rev by remember { mutableStateOf(0) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var adding by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(false) }
 
     LaunchedEffect(rev) { Vault.totpAll().accept({ entries = it ?: emptyList() }, { }) }
     // Codes tick once a second, but only while this section is on screen.
@@ -92,6 +95,62 @@ fun AuthenticatorSection() {
         }
     }
     LinkRow("Add authenticator code") { adding = true }
+    LinkRow("Import from Google Authenticator") { importing = true }
+
+    if (importing || Ui.pendingMigration != null) {
+        var link by remember { mutableStateOf(Ui.pendingMigration.orEmpty()) }
+        var picked by remember { mutableStateOf<Set<String>>(emptySet()) }
+        val found = remember(link) { TotpMigration.parse(link) }
+        LaunchedEffect(found) { picked = found?.map { it.id }?.toSet().orEmpty() }
+        val close = { importing = false; Ui.pendingMigration = null }
+        AlertDialog(
+            onDismissRequest = close,
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Import from Google Authenticator") },
+            text = {
+                Column {
+                    if (found == null) {
+                        Text(
+                            "In Google Authenticator choose Transfer accounts, Export, and scan the QR code with your camera app or Google Lens: it opens here. Or paste the otpauth-migration:// link.",
+                            fontSize = 13.sp,
+                        )
+                        OutlinedTextField(
+                            link, { link = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
+                            label = { Text("otpauth-migration:// link", color = Muted) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                                focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                            ),
+                        )
+                        if (link.isNotBlank()) Text("No codes found in that link.", fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                    } else {
+                        found.forEach { e ->
+                            Row(
+                                Modifier.fillMaxWidth().clickable { picked = if (e.id in picked) picked - e.id else picked + e.id },
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(e.id in picked, { picked = if (it) picked + e.id else picked - e.id })
+                                Column {
+                                    Text(e.label, color = Mist, fontSize = 15.sp, maxLines = 1)
+                                    Text("${e.digits} digits · ${e.algo}", color = Muted, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = found != null && picked.isNotEmpty(),
+                    onClick = {
+                        found?.filter { it.id in picked }?.forEach { Vault.totpAdd(it).accept({ rev++ }, { }) }
+                        close()
+                    },
+                ) { Text("Import ${picked.size}", color = Amber) }
+            },
+            dismissButton = { TextButton(onClick = close) { Text("Cancel", color = Muted) } },
+        )
+    }
 
     if (adding) {
         var site by remember { mutableStateOf(TabManager.current?.host.orEmpty().removePrefix("www.")) }

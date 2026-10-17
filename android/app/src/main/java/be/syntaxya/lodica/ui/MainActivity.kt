@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import be.syntaxya.lodica.engine.TotpMigration
 import be.syntaxya.lodica.engine.Engine
 import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
@@ -136,6 +137,12 @@ class MainActivity : HostActivity() {
             Ui.menuOpen = false
             if (i.component?.className?.endsWith("PreviewAlias") == true) Ui.preview = url
             else { Ui.screen = Screen.Browser; TabManager.open(url) }
+            return
+        }
+        if (i.action == Intent.ACTION_VIEW && TotpMigration.isLink(i.dataString.orEmpty())) {
+            Ui.pendingMigration = i.dataString
+            Ui.menuOpen = false
+            Ui.screen = Screen.Settings
             return
         }
         val target = when (i.action) {
