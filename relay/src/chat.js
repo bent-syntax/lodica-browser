@@ -8,6 +8,7 @@
 // A room is just a label: "" is the shared server room, "dm:<a>|<b>" a private chat between two device
 // names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
 // device of a server holds the same token.
+const chatfile = require('./chatfile');
 const MAX_LOG = 200;
 const TTL = 24 * 3600e3;
 const WAIT_MAX = 25;
@@ -129,6 +130,28 @@ function users(req, res, url, h) {
 }
 
 /** Test hook. */
-function reset() { seq = 0; log.length = 0; rate.clear(); seen.clear(); for (const w of [...waiters]) w.done([]); }
+function reset() {
+  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); for (const w of [...waiters]) w.done([]); }
 
-module.exports = { get, post, rooms, users, reset };
+/** POST /api/chat/file: an attachment, announced to the room as a normal message that carries `file`. */
+async function postFile(req, res, ip, url, h) {
+  if (!allowed(ip)) return h.sendText(req, res, 429, 'slow down', { 'Retry-After': '10' });
+  const q = url.searchParams;
+  const rawRoom = q.get('room') || '';
+  const room = cleanRoom(rawRoom);
+  if (!room && rawRoom) return h.sendText(req, res, 400, 'bad room');
+  let buf;
+  try { buf = await h.readBody(req, chatfile.MAX_FILE); }
+  catch (e) { return h.sendText(req, res, e.status || 400, e.status === 413 ? 'file too large (5 MB limit)' : 'bad body', { Connection: 'close' }); }
+  const r = chatfile.put(q.get('name'), buf);
+  if (!r.file) return h.sendText(req, res, r.status, r.error);
+  const name = (q.get('from') || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, NAME_MAX) || 'Anonymous';
+  const msg = { id: ++seq, name, text: '\u{1F4CE} ' + r.file.name, at: Date.now(), room, file: r.file };
+  touch(name);
+  log.push(msg);
+  prune();
+  wake();
+  h.sendJson(req, res, 200, msg);
+}
+
+module.exports = { get, post, postFile, rooms, users, reset };

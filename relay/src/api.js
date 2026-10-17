@@ -12,6 +12,7 @@ const page = require('./tabs-page');
 const search = require('./search');
 const updates = require('./updates');
 const chat = require('./chat');
+const chatfile = require('./chatfile');
 const enroll = require('./enroll');
 
 // Exim delivers every recipient to one maildir (tainted local parts cannot name
@@ -363,6 +364,16 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     const h = { sendJson, sendText, readBody };
     return m === 'GET' ? chat.get(req, res, url, h) : chat.post(req, res, clientIp(req), h);
+  }
+  if (p === '/api/chat/file') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return chat.postFile(req, res, clientIp(req), url, { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/chat\/file\/([0-9a-f]{24})$/.exec(p))) {
+    if (m !== 'GET' && m !== 'HEAD') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return chatfile.serve(req, res, r[1], url.searchParams.get('dl') === '1');
   }
   if (p === '/api/chat/rooms') {
     if (m !== 'GET') return not('GET, HEAD');
