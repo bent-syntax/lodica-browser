@@ -189,9 +189,9 @@ function init(deps) {
   on("init", initPayload);
   on("theme.colors", c => {
     const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
-    if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.coral)) return;
+    if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
     const { nativeImage } = require("electron");
-    require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, coral: c.coral })
+    require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => { const w = d.win(); if (w && !w.isDestroyed()) w.setIcon(nativeImage.createFromBuffer(png)); })
       .catch(() => {});
   });

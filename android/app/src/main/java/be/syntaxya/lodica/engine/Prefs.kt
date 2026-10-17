@@ -175,7 +175,7 @@ object Prefs {
     fun updateCustomTheme(c: CustomTheme?) {
         customTheme = c
         sp.edit().apply { if (c == null) remove("customTheme") else putString("customTheme", "${c.bg},${c.text},${c.accent},${c.accent2},${c.at}") }.apply()
-        Helper.push()
+        Helper.push(); appCtx?.let { refreshWidgets(it) }
     }
     fun updateHistorySuggest(v: Boolean) { historySuggest = v; sp.edit().putBoolean("historySuggest", v).apply() }
     fun updateStartBg(kind: String, value: String = "") {
@@ -192,7 +192,7 @@ object Prefs {
     }
     fun updateGestureBarHide(v: Boolean) { gestureBarHide = v; sp.edit().putBoolean("gestureBarHide", v).apply() }
 
-    fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply() }
+    fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply(); Helper.push() }
     fun updateSearch(v: SearchEngine) { searchChosen = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
     fun updateDarkPages(v: Boolean) { darkPages = v; sp.edit().putBoolean("darkPages", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateHttpsOnly(v: Boolean) { httpsOnly = v; sp.edit().putBoolean("httpsOnly", v).apply(); Engine.applyPrefs() }

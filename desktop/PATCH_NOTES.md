@@ -1,5 +1,14 @@
 # Patch notes
 
+## 1.7.3
+- New logo everywhere: launcher icon, in-app logo, start page, widget and the desktop window and taskbar icon. The logo follows your theme: the body takes the theme's text colour and the middle bar takes the accent colour, and it updates when you change theme.
+- Search: the start page and address bar no longer fall back to DuckDuckGo when Lodica Search is your engine and Google is the fallback.
+- Chat: notifications for new chat messages now arrive on Android in the background, not only the test notification.
+- Mobile: desktop-only sites switch to a mobile-friendly layout automatically.
+- Downloads (Android): the Downloads page now lists current downloads with progress and everything you downloaded with the browser, and opens or removes them.
+- Widget: the logo changes colour with the app theme.
+- Linux: a Flatpak package is built alongside the AppImage.
+
 ## 1.7.2
 - Settings: reorganised into tabs and sub-tabs on both apps. Mobile now opens on a grouped list of pages and has a back button inside each page; desktop opens on Search. The find box still works.
 - Chat: new messages now raise a notification (a message that mentions you no longer gets filtered out of it).

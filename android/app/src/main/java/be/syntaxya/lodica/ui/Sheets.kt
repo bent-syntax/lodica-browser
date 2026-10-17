@@ -142,11 +142,7 @@ fun MenuSheet() {
                     if (tab?.desktop == true) Amber else Mist) {
                     tab?.let { TabManager.setDesktop(it, !it.desktop) }
                 })
-                add(MenuItem("downloads", Icons.Rounded.Download, "Downloads") {
-                    runCatching {
-                        ctx.startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                    }
-                })
+                add(MenuItem("downloads", Icons.Rounded.Download, "Downloads") { Ui.screen = Screen.Downloads })
                 add(MenuItem("history", Icons.Rounded.History, "History") { Ui.screen = Screen.History })
                 add(MenuItem("aichats", Icons.Rounded.AutoAwesome, "AI chats") { Ui.screen = Screen.Chats })
                 add(MenuItem("passwords", Icons.Rounded.Key, "Passwords") { Ui.screen = Screen.Passwords })

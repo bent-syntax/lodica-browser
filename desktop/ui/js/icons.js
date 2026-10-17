@@ -72,15 +72,12 @@ function ico(name, cls) {
   return s;
 }
 
-let kiteSeq = 0;
+// The Lodica mark: body follows the text colour, the middle bar the accent, so it recolours with the theme.
 function kite(size) {
-  const id = "kg" + ++kiteSeq;
   const s = document.createElementNS(SVGNS, "svg");
-  s.setAttribute("viewBox", "30 18 48 52");
+  s.setAttribute("viewBox", "20 8 70 90");
   s.setAttribute("width", size); s.setAttribute("height", size);
   s.setAttribute("class", "kite");
-  s.innerHTML = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">` +
-    `<stop offset="0" style="stop-color:var(--amber,#F59E0B)"/><stop offset="1" style="stop-color:var(--coral,#F43F5E)"/></linearGradient></defs>` +
-    `<path d="M54 22 72 42 54 66 36 42Z" fill="url(#${id})"/><path d="M54 22v20H36Z" fill="#fff" opacity=".2"/>`;
+  s.innerHTML = `<path d="M28,8 H40 Q44,8 46.5,12 L49,16 L46.5,20 Q44,24 40,24 H28 A8,8 0 0 1 28,8 Z M28,32 H40 A8,8 0 0 1 40,48 H28 A8,8 0 0 1 28,32 Z M28,80 H54 A8,8 0 0 1 54,96 H28 A8,8 0 0 1 28,80 Z M77,68.5 C84.5,68.5 89,79 89,86.5 C89,92.5 84,96 77,96 C70,96 65,92.5 65,86.5 C65,79 69.5,68.5 77,68.5 Z" style="fill:var(--text,#E5E7EB)"/><path d="M28,56 H44 A8,8 0 0 1 44,72 H28 A8,8 0 0 1 28,56 Z" style="fill:var(--amber,#F59E0B)"/>`;
   return s;
 }

@@ -6,7 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.mozilla.geckoview.GeckoView
 
-enum class Screen { Browser, Tabs, Settings, Passwords, History, Inbox, Chats, Room }
+enum class Screen { Browser, Tabs, Settings, Passwords, History, Inbox, Chats, Room, Downloads }
 
 enum class Picker { Speed, Quality, Remind, RemindAt, Closed }
 
@@ -71,6 +71,7 @@ object Ui {
         finding -> { stopFind(); true }
         editing -> { editing = false; true }
         screen == Screen.Inbox && be.syntaxya.lodica.engine.Relay.selected != null -> { be.syntaxya.lodica.engine.Relay.selected = null; true }
+        screen == Screen.Downloads -> { screen = Screen.Browser; true }
         screen == Screen.Passwords || screen == Screen.History || screen == Screen.Inbox || screen == Screen.Chats || screen == Screen.Room -> { screen = Screen.Settings; true }
         screen != Screen.Browser -> { screen = Screen.Browser; true }
         else -> false

@@ -118,9 +118,9 @@ let lastColors = "";
 const reportColors = () => requestAnimationFrame(() => {
   const cs = getComputedStyle(document.documentElement);
   const hex = v => { const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v.trim()); if (!m) return ""; const x = m[1]; return "#" + (x.length === 3 ? [...x].map(c => c + c).join("") : x); };
-  const c = { bg: hex(cs.getPropertyValue("--bg")), amber: hex(cs.getPropertyValue("--amber")), coral: hex(cs.getPropertyValue("--coral")) };
+  const c = { bg: hex(cs.getPropertyValue("--bg")), amber: hex(cs.getPropertyValue("--amber")), text: hex(cs.getPropertyValue("--text")) };
   const k = JSON.stringify(c);
-  if (!c.bg || !c.amber || !c.coral || k === lastColors) return;
+  if (!c.bg || !c.amber || !c.text || k === lastColors) return;
   lastColors = k;
   inv("theme.colors", c);
 });

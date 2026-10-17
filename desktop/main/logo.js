@@ -1,4 +1,4 @@
-// Renders the Lodica kite icon (tile, gradient kite, spars, tail, bows) to a PNG buffer in any theme colors.
+// Renders the Lodica mark on a tile to a PNG buffer in any theme colors.
 // Pure Node: supersampled rasterizer + zlib PNG encoder, so no browser or native deps are needed.
 const zlib = require("zlib");
 const { Worker, isMainThread, parentPort, workerData } = require("worker_threads");
@@ -14,56 +14,42 @@ const inPoly = (pts, x, y) => {
   }
   return c;
 };
-const segDist = (x, y, [ax, ay], [bx, by]) => {
-  const dx = bx - ax, dy = by - ay;
-  const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1)));
-  return Math.hypot(x - ax - t * dx, y - ay - t * dy);
-};
-const lineDist = (x, y, pts) => {
-  let d = Infinity;
-  for (let i = 1; i < pts.length; i++) d = Math.min(d, segDist(x, y, pts[i - 1], pts[i]));
-  return d;
-};
-const cubic = (p0, p1, p2, p3, n = 24) => Array.from({ length: n + 1 }, (_, i) => {
+const cubic = (p0, p1, p2, p3, n = 20) => Array.from({ length: n + 1 }, (_, i) => {
   const t = i / n, u = 1 - t;
   return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
 });
+const quad = (p0, p1, p2, n = 10) => Array.from({ length: n + 1 }, (_, i) => {
+  const t = i / n, u = 1 - t;
+  return [0, 1].map((k) => u * u * p0[k] + 2 * u * t * p1[k] + t * t * p2[k]);
+});
+const pill = (x, y, w, h = 16) => (px, py) => {
+  const r = h / 2, cx = Math.max(x + r, Math.min(x + w - r, px));
+  return py >= y && py <= y + h && Math.hypot(px - cx, py - (y + r)) <= r;
+};
 
-/** PNG buffer of the kite icon. [c] = {bg, amber, coral} as #rrggbb. */
+// The Lodica mark, viewBox 20 8 70 90: a pointer, three bars (the middle one is the accent) and a drop.
+const MARK = { x: 20, y: 8, w: 70, h: 90 };
+const arc = Array.from({ length: 13 }, (_, i) => { const a = Math.PI / 2 + (Math.PI * i) / 12; return [28 + 8 * Math.cos(a), 16 + 8 * Math.sin(a)]; });
+const pointer = [...arc.reverse(), [28, 8], [40, 8], ...quad([40, 8], [44, 8], [46.5, 12]), [49, 16], [46.5, 20], ...quad([46.5, 20], [44, 24], [40, 24]), [28, 24]];
+const drop = [...cubic([77, 68.5], [84.5, 68.5], [89, 79], [89, 86.5]), ...cubic([89, 86.5], [89, 92.5], [84, 96], [77, 96]),
+  ...cubic([77, 96], [70, 96], [65, 92.5], [65, 86.5]), ...cubic([65, 86.5], [65, 79], [69.5, 68.5], [77, 68.5])];
+const barA = pill(20, 32, 28), barB = pill(20, 56, 32), barC = pill(20, 80, 42);
+
+/** PNG buffer of the mark on a rounded tile. [c] = {bg, text, amber} as #rrggbb: tile, mark body, accent bar. */
 function render(SIZE = 256, c = {}, SS = 4) {
-  const GRAPHITE = hex(c.bg || "#111827"), AMBER = hex(c.amber || "#F59E0B"), CORAL = hex(c.coral || "#F43F5E");
-  const body = [[54, 22], [72, 42], [54, 66], [36, 42]];
-  const facet = [[54, 22], [54, 42], [36, 42]];
-  const tail = [...cubic([54, 66], [50, 71], [58, 75], [54, 80]), ...cubic([54, 80], [51, 83.5], [55, 85.5], [53, 88]).slice(1)];
-  const bows = [
-    [[[50.5, 72], [54, 74], [50.5, 76]], AMBER], [[[57.5, 72], [54, 74], [57.5, 76]], AMBER],
-    [[[50.5, 80], [53.5, 82], [50.5, 84]], CORAL], [[[56.5, 80], [53.5, 82], [56.5, 84]], CORAL],
-  ];
-  const grad = (x, y) => { // linear gradient (40,24) -> (66,64)
-    const dx = 26, dy = 40;
-    const t = Math.max(0, Math.min(1, ((x - 40) * dx + (y - 24) * dy) / (dx * dx + dy * dy)));
-    return AMBER.map((v, i) => v + (CORAL[i] - v) * t);
-  };
+  const TILE = hex(c.bg || "#111827"), INK = hex(c.text || "#E5E7EB"), ACCENT = hex(c.amber || "#F59E0B");
   const roundRect = (x, y, r) => {
     const x0 = VIEW.x, y0 = VIEW.y, x1 = VIEW.x + VIEW.w, y1 = VIEW.y + VIEW.w;
     const cx = Math.max(x0 + r, Math.min(x1 - r, x)), cy = Math.max(y0 + r, Math.min(y1 - r, y));
     return x >= x0 && x <= x1 && y >= y0 && y <= y1 && Math.hypot(x - cx, y - cy) <= r;
   };
-  const over = (dst, [r, g, b, a]) => {
-    const oa = a + dst[3] * (1 - a);
-    if (!oa) return [0, 0, 0, 0];
-    return [(r * a + dst[0] * dst[3] * (1 - a)) / oa, (g * a + dst[1] * dst[3] * (1 - a)) / oa, (b * a + dst[2] * dst[3] * (1 - a)) / oa, oa];
-  };
-
+  const K = 0.66, mx = 54 - (MARK.x + MARK.w / 2) * K, my = 54 - (MARK.y + MARK.h / 2) * K;
   const sample = (x, y) => {
-    let c = [0, 0, 0, 0];
-    if (roundRect(x, y, 18)) c = over(c, GRAPHITE);
-    if (inPoly(body, x, y)) c = over(c, grad(x, y));
-    if (inPoly(facet, x, y)) c = over(c, [255, 255, 255, 0.2]);
-    if (lineDist(x, y, [[54, 23.5], [54, 64.5]]) <= 0.8 || lineDist(x, y, [[37.5, 42], [70.5, 42]]) <= 0.8) c = over(c, hex("#111827", 0.8));
-    if (lineDist(x, y, tail) <= 0.9) c = over(c, CORAL);
-    for (const [tri, col] of bows) if (inPoly(tri, x, y)) c = over(c, col);
-    return c;
+    if (!roundRect(x, y, 18)) return [0, 0, 0, 0];
+    const u = (x - mx) / K, v = (y - my) / K;
+    if (barB(u, v)) return ACCENT;
+    if (barA(u, v) || barC(u, v) || inPoly(pointer, u, v) || inPoly(drop, u, v)) return INK;
+    return TILE;
   };
 
   const raw = Buffer.alloc((SIZE * 4 + 1) * SIZE);

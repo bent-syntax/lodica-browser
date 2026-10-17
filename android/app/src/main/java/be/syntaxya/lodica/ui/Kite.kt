@@ -27,6 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.vector.PathParser
+import be.syntaxya.lodica.ui.theme.Mist
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
@@ -35,30 +38,26 @@ import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Graphite
 
-/** The Lodica kite: amber-to-coral diamond with graphite spars and a trailing tail. */
+/** The Lodica mark (viewBox 20 8 70 90) as path data: the body, and the accent bar that takes the theme's accent colour. */
+internal object Mark {
+    const val BODY = "M28,8 H40 Q44,8 46.5,12 L49,16 L46.5,20 Q44,24 40,24 H28 A8,8 0 0 1 28,8 Z M28,32 H40 A8,8 0 0 1 40,48 H28 A8,8 0 0 1 28,32 Z M28,80 H54 A8,8 0 0 1 54,96 H28 A8,8 0 0 1 28,80 Z M77,68.5 C84.5,68.5 89,79 89,86.5 C89,92.5 84,96 77,96 C70,96 65,92.5 65,86.5 C65,79 69.5,68.5 77,68.5 Z"
+    const val BAR = "M28,56 H44 A8,8 0 0 1 44,72 H28 A8,8 0 0 1 28,56 Z"
+    const val X = 20f; const val Y = 8f; const val W = 70f; const val H = 90f
+}
+
+/** The Lodica mark drawn in the active theme: body in the text colour, bar in the accent. The tail flag is kept for callers and ignored. */
 @Composable
 fun Kite(size: Dp = 64.dp, modifier: Modifier = Modifier, tail: Boolean = true) {
+    val body = remember { PathParser().parsePathString(Mark.BODY).toPath() }
+    val bar = remember { PathParser().parsePathString(Mark.BAR).toPath() }
+    val ink = Mist; val accent = Amber
     Canvas(modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        val top = Offset(w * 0.55f, h * 0.04f)
-        val right = Offset(w * 0.86f, h * 0.34f)
-        val bottom = Offset(w * 0.50f, h * 0.70f)
-        val left = Offset(w * 0.22f, h * 0.30f)
-        val body = Path().apply {
-            moveTo(top.x, top.y); lineTo(right.x, right.y); lineTo(bottom.x, bottom.y); lineTo(left.x, left.y); close()
-        }
-        drawPath(body, Brush.linearGradient(listOf(Amber, Coral), start = top, end = bottom))
-        val spar = w * 0.03f
-        drawLine(Graphite.copy(alpha = 0.55f), top, bottom, spar, StrokeCap.Round)
-        drawLine(Graphite.copy(alpha = 0.55f), left, right, spar, StrokeCap.Round)
-        if (tail) {
-            val t = Path().apply {
-                moveTo(bottom.x, bottom.y)
-                cubicTo(w * 0.40f, h * 0.80f, w * 0.58f, h * 0.86f, w * 0.38f, h * 0.97f)
-            }
-            drawPath(t, Brush.linearGradient(listOf(Coral, Amber.copy(alpha = 0.4f)), start = bottom, end = Offset(w * 0.38f, h)),
-                style = Stroke(w * 0.035f, cap = StrokeCap.Round))
+        val k = minOf(this.size.width / Mark.W, this.size.height / Mark.H) * 0.96f
+        val ox = (this.size.width - Mark.W * k) / 2 - Mark.X * k
+        val oy = (this.size.height - Mark.H * k) / 2 - Mark.Y * k
+        withTransform({ translate(ox, oy); scale(k, k, Offset.Zero) }) {
+            drawPath(body, ink)
+            drawPath(bar, accent)
         }
     }
 }

@@ -1,51 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Lodica kite: amber to coral gradient diamond with spars and a bowed tail, sized for the 66dp adaptive-icon safe zone. -->
+<!-- Lodica mark (viewBox 20 8 70 90) scaled into the 66dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- Kite body -->
-    <path android:pathData="M54,22 L72,42 L54,66 L36,42 Z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="40"
-                android:startY="24"
-                android:endX="66"
-                android:endY="64">
-                <item android:offset="0" android:color="#FFA7C080" />
-                <item android:offset="1" android:color="#FFE67E80" />
-            </gradient>
-        </aapt:attr>
-    </path>
-
-    <!-- Lighter upper-left facet for depth -->
-    <path
-        android:fillColor="#33FFFFFF"
-        android:pathData="M54,22 L54,42 L36,42 Z" />
-
-    <!-- Spars -->
-    <path
-        android:pathData="M54,23.5 L54,64.5 M37.5,42 L70.5,42"
-        android:strokeColor="#CC2D353B"
-        android:strokeWidth="1.6"
-        android:strokeLineCap="round" />
-
-    <!-- Tail -->
-    <path
-        android:pathData="M54,66 C50,71 58,75 54,80 C51,83.5 55,85.5 53,88"
-        android:strokeColor="#FFE67E80"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round" />
-
-    <!-- Tail bows -->
-    <path
-        android:fillColor="#FFA7C080"
-        android:pathData="M50.5,72 L54,74 L50.5,76 Z M57.5,72 L54,74 L57.5,76 Z" />
-    <path
-        android:fillColor="#FFE67E80"
-        android:pathData="M50.5,80 L53.5,82 L50.5,84 Z M56.5,80 L53.5,82 L56.5,84 Z" />
+  <group android:translateX="21" android:translateY="22.2" android:scaleX="0.6" android:scaleY="0.6">
+    <path android:fillColor="#FFD3C6AA" android:pathData="M28,8 H40 Q44,8 46.5,12 L49,16 L46.5,20 Q44,24 40,24 H28 A8,8 0 0 1 28,8 Z M28,32 H40 A8,8 0 0 1 40,48 H28 A8,8 0 0 1 28,32 Z M28,80 H54 A8,8 0 0 1 54,96 H28 A8,8 0 0 1 28,80 Z M77,68.5 C84.5,68.5 89,79 89,86.5 C89,92.5 84,96 77,96 C70,96 65,92.5 65,86.5 C65,79 69.5,68.5 77,68.5 Z" />
+    <path android:fillColor="#FFA7C080" android:pathData="M28,56 H44 A8,8 0 0 1 44,72 H28 A8,8 0 0 1 28,56 Z" />
+  </group>
 </vector>

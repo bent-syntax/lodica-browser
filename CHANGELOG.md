@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.3 (versionCode 32)
+- New logo in the launcher icon, in-app, widget and desktop icons; it follows the theme colours.
+- Search fallback no longer lands on DuckDuckGo; chat notifications fixed on Android.
+- Desktop sites get an automatic mobile layout on Android; Downloads page lists current and finished downloads.
+- Flatpak package added.
+
 ## 1.7.2 (versionCode 31)
 - Settings reorganised into tabs and sub-tabs on Android and desktop; the find box still works.
 - Chat messages raise a notification again.

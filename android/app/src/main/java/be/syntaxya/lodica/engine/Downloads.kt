@@ -8,6 +8,9 @@ import android.os.Environment
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
+import androidx.compose.runtime.mutableStateListOf
+import org.json.JSONArray
+import org.json.JSONObject
 import android.webkit.MimeTypeMap
 import android.widget.Toast
 import org.mozilla.geckoview.GeckoRuntime
@@ -18,8 +21,77 @@ import java.io.File
 import java.io.InputStream
 import java.util.concurrent.Executors
 
+/** One download shown on the Downloads screen. [uri] is where the finished file can be opened from. */
+data class Dl(
+    val id: Long, val name: String, val mime: String, val total: Long, val received: Long,
+    val status: Int, val at: Long, val uri: String? = null,
+) {
+    companion object { const val ACTIVE = 0; const val DONE = 1; const val FAILED = 2 }
+}
+
 /** Writes downloads to the public Downloads folder. */
 object Downloads {
+    /** Newest first. Only touched on the main thread. */
+    val items = mutableStateListOf<Dl>()
+    private var loaded = false
+    private var nextId = System.currentTimeMillis()
+
+    private fun sp(ctx: Context) = ctx.getSharedPreferences("downloads", Context.MODE_PRIVATE)
+
+    /** Reads the saved list once. Downloads that were still running when the app died are marked failed. */
+    fun load(ctx: Context) {
+        if (loaded) return
+        loaded = true
+        val arr = runCatching { JSONArray(sp(ctx).getString("list", "[]")) }.getOrDefault(JSONArray())
+        val list = (0 until arr.length()).mapNotNull { i ->
+            runCatching {
+                val o = arr.getJSONObject(i)
+                Dl(o.getLong("id"), o.getString("name"), o.optString("mime"), o.optLong("total", -1), o.optLong("received"),
+                    o.optInt("status"), o.optLong("at"), o.optString("uri").ifEmpty { null })
+            }.getOrNull()
+        }.map { if (it.status == Dl.ACTIVE) it.copy(status = Dl.FAILED) else it }
+        items.addAll(list)
+    }
+
+    private fun persist(ctx: Context) {
+        val arr = JSONArray()
+        items.filter { it.status != Dl.ACTIVE }.take(100).forEach {
+            arr.put(JSONObject().put("id", it.id).put("name", it.name).put("mime", it.mime).put("total", it.total)
+                .put("received", it.received).put("status", it.status).put("at", it.at).put("uri", it.uri ?: ""))
+        }
+        sp(ctx).edit().putString("list", arr.toString()).apply()
+    }
+
+    private fun update(ctx: Context, id: Long, f: (Dl) -> Dl) = main.post {
+        val i = items.indexOfFirst { it.id == id }
+        if (i >= 0) { items[i] = f(items[i]); if (items[i].status != Dl.ACTIVE) persist(ctx) }
+    }
+
+    fun remove(ctx: Context, d: Dl) { items.remove(d); persist(ctx) }
+
+    fun clearFinished(ctx: Context) { items.removeAll { it.status != Dl.ACTIVE }; persist(ctx) }
+
+    /** Opens a finished download with whatever app handles its type. */
+    fun open(ctx: Context, d: Dl) {
+        val raw = d.uri ?: run { toast(ctx, "File location unknown"); return }
+        var uri = Uri.parse(raw)
+        if (uri.scheme == "file") {
+            // Android 8 and 9: file:// links cannot be shared, so look up the MediaStore entry for the path.
+            val found = runCatching {
+                ctx.contentResolver.query(MediaStore.Files.getContentUri("external"), arrayOf(MediaStore.Files.FileColumns._ID),
+                    MediaStore.Files.FileColumns.DATA + "=?", arrayOf(uri.path), null)?.use {
+                    if (it.moveToFirst()) android.content.ContentUris.withAppendedId(MediaStore.Files.getContentUri("external"), it.getLong(0)) else null
+                }
+            }.getOrNull()
+            if (found == null) { toast(ctx, "Find the file in your Files app, Downloads folder"); return }
+            uri = found
+        }
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW)
+            .setDataAndType(uri, d.mime.ifBlank { "*/*" })
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        runCatching { ctx.startActivity(intent) }.onFailure { toast(ctx, "No app can open this file") }
+    }
+
     private val io = Executors.newFixedThreadPool(2) { r -> Thread(r, "lodica-download") }
     private val main = Handler(Looper.getMainLooper())
 
@@ -61,7 +133,8 @@ object Downloads {
         val name = fileName(response.uri, header(response, "Content-Disposition"), type)
         val ranges = header(response, "Accept-Ranges")?.contains("bytes", ignoreCase = true) == true
         val app = ctx.applicationContext
-        write(app, name, type, body, if (ranges) Resume(Engine.runtime(app), response.uri, private) else null)
+        val total = header(response, "Content-Length")?.trim()?.toLongOrNull() ?: -1L
+        write(app, name, type, total, body, if (ranges) Resume(Engine.runtime(app), response.uri, private) else null)
     }
 
     /** What is needed to ask the server for the rest of a file after the connection drops. */
@@ -77,11 +150,12 @@ object Downloads {
     }.getOrNull()
 
     /** Copies [first] into [out]; when the stream breaks, resumes with Range requests up to 5 times. */
-    private fun copy(first: InputStream, out: java.io.OutputStream, resume: Resume?) {
+    private fun copy(first: InputStream, out: java.io.OutputStream, resume: Resume?, progress: (Long) -> Unit = {}) {
         var input = first
         var done = 0L
         var tries = 0
         val buf = ByteArray(64 * 1024)
+        var lastTick = 0L
         while (true) {
             try {
                 input.use {
@@ -91,6 +165,8 @@ object Downloads {
                         out.write(buf, 0, n)
                         done += n
                         tries = 0
+                        val now = System.currentTimeMillis()
+                        if (now - lastTick > 400) { lastTick = now; progress(done) }
                     }
                 }
             } catch (e: java.io.IOException) {
@@ -112,8 +188,14 @@ object Downloads {
         )
     }
 
-    private fun write(ctx: Context, name: String, type: String?, body: InputStream, resume: Resume?) {
+    private fun write(ctx: Context, name: String, type: String?, total: Long, body: InputStream, resume: Resume?) {
         toast(ctx, "Downloading $name")
+        val id = synchronized(this) { nextId++ }
+        val mimeGuess = type?.takeIf { it.lowercase() !in generic }
+            ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext(name)) ?: "application/octet-stream"
+        main.post { load(ctx); items.add(0, Dl(id, name, mimeGuess, total, 0, Dl.ACTIVE, System.currentTimeMillis())) }
+        val tick: (Long) -> Unit = { n -> update(ctx, id) { it.copy(received = n) } }
+        var savedUri: String? = null
         io.execute {
             val ok = runCatching {
                 body.use { input ->
@@ -129,16 +211,20 @@ object Downloads {
                         val resolver = ctx.contentResolver
                         val uri: Uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv)
                             ?: error("insert failed")
-                        resolver.openOutputStream(uri)!!.use { copy(input, it, resume) }
+                        resolver.openOutputStream(uri)!!.use { copy(input, it, resume, tick) }
                         resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
+                        savedUri = uri.toString()
                     } else {
                         @Suppress("DEPRECATION")
                         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                         dir.mkdirs()
-                        File(dir, name).outputStream().use { copy(input, it, resume) }
+                        val f = File(dir, name)
+                        f.outputStream().use { copy(input, it, resume, tick) }
+                        savedUri = Uri.fromFile(f).toString()
                     }
                 }
             }.isSuccess
+            update(ctx, id) { it.copy(status = if (ok) Dl.DONE else Dl.FAILED, uri = savedUri, received = if (ok && it.total > 0) it.total else it.received) }
             toast(ctx, if (ok) "Saved $name to Downloads" else "Download failed")
         }
     }

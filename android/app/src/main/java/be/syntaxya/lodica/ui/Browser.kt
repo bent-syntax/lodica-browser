@@ -95,6 +95,7 @@ fun LodicaRoot() {
         Overlay(Ui.screen == Screen.Tabs) { TabSwitcher() }
         Overlay(Ui.screen == Screen.Settings || Ui.screen == Screen.History || Ui.screen == Screen.Passwords || Ui.screen == Screen.Inbox) { SettingsScreen() }
         Overlay(Ui.screen == Screen.History) { HistoryScreen() }
+    Overlay(Ui.screen == Screen.Downloads) { DownloadsScreen() }
         Overlay(Ui.screen == Screen.Passwords) { PasswordsScreen() }
         Overlay(Ui.screen == Screen.Inbox) { InboxScreen() }
         Overlay(Ui.screen == Screen.Chats) { ChatsScreen() }

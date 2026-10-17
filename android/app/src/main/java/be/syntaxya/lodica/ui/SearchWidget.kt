@@ -49,6 +49,7 @@ class SearchWidget : AppWidgetProvider() {
             return RemoteViews(ctx.packageName, R.layout.widget_search).apply {
                 setOnClickPendingIntent(R.id.widget_search, open)
                 setImageViewBitmap(R.id.widget_bg, bmp)
+                setImageViewBitmap(R.id.widget_logo, kiteBitmap(p))
                 setTextViewText(R.id.widget_text, Prefs.widgetText.ifBlank { "Search or type a URL" })
                 setTextColor(R.id.widget_text, p.muted.toInt())
             }

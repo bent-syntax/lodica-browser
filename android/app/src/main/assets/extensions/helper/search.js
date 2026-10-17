@@ -166,11 +166,12 @@ function setup() {
     if (dest) { location.href = dest; return; }
     // Read the chosen engine fresh: the initial state load may not have finished yet.
     const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
-    if (st) { hasApi = !!st.api; engine = st.engine || ""; }
+    let fb = "";
+    if (st) { hasApi = !!st.api; engine = st.engine || ""; fb = st.fallback || ""; }
     // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
     if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
-    // Without a relay there is no search API, so the question goes to DuckDuckGo instead.
-    if (hasApi === false) location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(v);
+    // Without a relay there is no search API, so the question goes to the fallback engine instead.
+    if (hasApi === false) location.href = (fb || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(v));
     else location.href = href({ q: v, c: cat });
   });
   for (const a of $("tabs").querySelectorAll("a")) {

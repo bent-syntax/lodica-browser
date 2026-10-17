@@ -16,6 +16,19 @@ import be.syntaxya.lodica.R
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.ui.theme.ThemeState
 
+/** The Lodica mark drawn in the theme's colours (the launcher icon cannot be recoloured at runtime, so widgets draw their own). */
+internal fun kiteBitmap(p: be.syntaxya.lodica.ui.theme.Palette): Bitmap {
+    val n = 128
+    val bmp = Bitmap.createBitmap(n, n, Bitmap.Config.ARGB_8888)
+    val c = Canvas(bmp)
+    val k = n / Mark.H * 0.92f
+    c.translate((n - Mark.W * k) / 2 - Mark.X * k, (n - Mark.H * k) / 2 - Mark.Y * k)
+    c.scale(k, k, 0f, 0f)
+    c.drawPath(androidx.core.graphics.PathParser.createPathFromPathData(Mark.BODY), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.text.toInt() })
+    c.drawPath(androidx.core.graphics.PathParser.createPathFromPathData(Mark.BAR), Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.accent.toInt() })
+    return bmp
+}
+
 private val SLOTS = intArrayOf(R.id.s0, R.id.s1, R.id.s2, R.id.s3)
 
 private fun background(rv: RemoteViews) {

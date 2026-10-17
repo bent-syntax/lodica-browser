@@ -98,7 +98,9 @@ object Notifier {
 
     /** Posts one notification for the messages in [room] that were not written by this device. */
     internal fun chatArrived(ctx: Context, room: String, all: List<JSONObject>) {
-        if (Room.listening) return
+        // The chat screen only counts as open while the app is on screen; a chat left open in the background still notifies.
+        val onScreen = androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+        if (Room.listening && onScreen) return
         // No own-name filter: the same name is often used on several devices, and messages sent from this
         // device are only posted while the chat screen is open, which already suppresses notifications.
         val msgs = all
