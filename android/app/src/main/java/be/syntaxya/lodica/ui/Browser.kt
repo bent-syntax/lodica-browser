@@ -310,6 +310,8 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
     AndroidView(
         factory = { ctx ->
             GeckoView(ctx).apply {
+                // A SurfaceView hands back blank frames to capturePixels (tab previews); a texture view is readable.
+                setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
             }

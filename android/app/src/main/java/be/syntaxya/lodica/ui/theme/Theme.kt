@@ -8,13 +8,17 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.core.view.WindowCompat
 import be.syntaxya.lodica.engine.CustomTheme
 import be.syntaxya.lodica.engine.Prefs
@@ -119,6 +123,8 @@ fun LodicaTheme(content: @Composable () -> Unit) {
     SideEffect { if (ThemeState.systemDark != sysDark) ThemeState.systemDark = sysDark }
     val p = ThemeState.palette
     val view = LocalView.current
+    val appCtx = LocalContext.current.applicationContext
+    LaunchedEffect(p.dark) { withContext(Dispatchers.IO) { runCatching { LauncherIcon.apply(appCtx, p.dark) } } }
     SideEffect {
         var c = view.context
         while (c is ContextWrapper && c !is Activity) c = c.baseContext
