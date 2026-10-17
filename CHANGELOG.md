@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.1 (versionCode 30)
+- Fix crash when opening settings (and anything that opens them, such as chat): the settings find index read the tab list before it was created.
+
 ## 1.7.0 (versionCode 29)
 - Settings: reorganised so identical settings sit in the same section on Android and desktop, plus a find box.
 - Redirect domain display now shows only the originating domain.

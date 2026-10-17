@@ -1069,6 +1069,9 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 }
 
 /** What the settings search looks through: a title, the tab it lives in and extra words people may type. */
+// Must be declared before SettingsIndex: the index reads it during file-level initialisation.
+private val SettingsTabs = listOf("General", "Appearance", "Tabs", "Privacy & blocking", "Controls", "Identity & server", "Updates & about")
+
 private val SettingsIndex = listOf(
     SettingsEntry("Search engine", 0, "default duckduckgo lodica fallback"),
     SettingsEntry("Suggest from history", 0, "address bar suggestions"),
@@ -1112,7 +1115,6 @@ private val SettingsIndex = listOf(
     SettingsEntry("Version and what's new", 6, "about updates patch notes"),
 )
 
-private val SettingsTabs = listOf("General", "Appearance", "Tabs", "Privacy & blocking", "Controls", "Identity & server", "Updates & about")
 
 @Composable
 private fun ThemePicker() {
