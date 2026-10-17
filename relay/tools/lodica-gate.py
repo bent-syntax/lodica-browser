@@ -6,15 +6,15 @@
   lodica-devices                  list approved devices (never prints tokens)
 
 Config (root only, outside any repo):
-  /etc/lodica-gate/dirs.conf     one gate directory per line (each gets a managed .htaccess block)
-  /etc/lodica-gate/devices.tsv   registry: code<TAB>label<TAB>token<TAB>date  (created by this tool, mode 600)
+  /opt/lodica-gate/etc/dirs.conf     one gate directory per line (each gets a managed .htaccess block)
+  /opt/lodica-gate/etc/devices.tsv   registry: code<TAB>label<TAB>token<TAB>date  (created by this tool, mode 600)
   /etc/lodica-relay/token        relay bearer token (read, never printed)
 Env: LODICA_GATE_RELAY (default https://127.0.0.1:44741), LODICA_GATE_PUSH (default syntaxya-push; "none" skips),
-     LODICA_GATE_ETC (default /etc/lodica-gate), LODICA_GATE_REPO (repo to sanity check before pushing).
+     LODICA_GATE_ETC (default /opt/lodica-gate/etc), LODICA_GATE_REPO (repo to sanity check before pushing).
 """
 import os, re, sys, ssl, json, subprocess, urllib.request, urllib.error, datetime
 
-ETC = os.environ.get('LODICA_GATE_ETC', '/etc/lodica-gate')
+ETC = os.environ.get('LODICA_GATE_ETC', '/opt/lodica-gate/etc')
 TOKEN_FILE = os.environ.get('LODICA_GATE_TOKEN_FILE', '/etc/lodica-relay/token')
 RELAY = os.environ.get('LODICA_GATE_RELAY', 'https://127.0.0.1:44741')
 PUSH = os.environ.get('LODICA_GATE_PUSH', 'syntaxya-push')
