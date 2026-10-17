@@ -2,7 +2,7 @@
 // Settings tabs: Appearance, Keybinds & controls, Identity & mail, plus the tab bar itself.
 
 const SET_TABS = [["general", "General"], ["appearance", "Appearance"], ["tabs", "Tabs"], ["privacy", "Privacy & blocking"],
-  ["keys", "Keybinds & controls"], ["identity", "Identity & mail"], ["about", "Updates & About"]];
+  ["keys", "Keybinds & controls"], ["identity", "Identity & server"], ["about", "Updates & About"]];
 // Section ids that other code passes to openSettings() -> the tab that holds them.
 const SET_SECTION_TAB = { search: "general", browsing: "general", vps: "general", data: "general", ai: "general", apps: "general", extensions: "general",
   appearance: "appearance", theme: "appearance", pctabs: "tabs", tabs: "tabs", privacy: "privacy", keys: "keys", keybinds: "keys",
@@ -15,15 +15,25 @@ function setTabBar() {
       act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } },
       ico(SET_ICONS[id] || "settings"), h("span", { text: label }))));
 }
+/** Settings search: every row of every tab whose text matches all typed words, grouped by tab. */
+function setFindBody(q) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean), out = [];
+  for (const [id, label] of SET_TABS) {
+    const hits = [].concat(...[setTabBody(id)].flat(Infinity)).filter((e) => e && e.classList && !e.classList.contains("set-sec") && !e.classList.contains("set-note")
+      && words.every((w) => (e.textContent + " " + label).toLowerCase().includes(w)));
+    if (hits.length) out.push(secHead(label, "find-" + id), ...hits);
+  }
+  return out.length ? out : [h("div", { class: "set-note", text: "No setting matches" })];
+}
 function setTabBody(tab) {
   switch (tab) {
-    case "appearance": return secAppearance();
+    case "appearance": return [secAppearance(), secDarkPages()];
     case "tabs": return [secPcTabs(), secTabs()];
-    case "privacy": return [secPrivacy(), secBlocking(), secSuggest()];
+    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSuggest()];
     case "keys": return secKeys();
-    case "identity": return secIdentity();
+    case "identity": return [secVps(), secIdentity()];
     case "about": return secAbout();
-    default: return [secSearch(), secBrowsing(), secDns(), secVps(), secData(), secAi(), secApps(), secExtensions()];
+    default: return [secSearch(), secBrowsing(), secDns(), secData(), secAi(), secApps(), secExtensions()];
   }
 }
 

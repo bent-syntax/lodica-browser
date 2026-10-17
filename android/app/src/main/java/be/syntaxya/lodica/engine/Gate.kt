@@ -40,4 +40,10 @@ object Gate {
             ?: return Result.failure(Exception("Bad server reply"))
         return Result.success(c)
     }
+
+    /** "pending", "approved" or "expired" for a pairing code, or null when the server can't be reached. */
+    fun status(code: String): String? {
+        val (c, text) = Relay.request("GET", "/enroll/" + android.net.Uri.encode(code))
+        return if (c == 200) runCatching { JSONObject(text).getString("state") }.getOrNull() else null
+    }
 }

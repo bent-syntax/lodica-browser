@@ -1,6 +1,6 @@
 "use strict";
 // Settings sheet: framework and sections 1-5 (Search, Browsing, VPS, Tabs on PC, Tabs).
-const SET = { tab: "general", keys: null, cap: null, capture: null, L: null, pcLink: null, pcRemote: null, pcSub: false, apps: null, meter: null, usage: null };
+const SET = { find: "", tab: "general", keys: null, cap: null, capture: null, L: null, pcLink: null, pcRemote: null, pcSub: false, apps: null, meter: null, usage: null };
 
 function openSettings(section) {
   if (SET.L) return SET.L;
@@ -9,7 +9,9 @@ function openSettings(section) {
     L.body = h("div", { class: "sp-body" });
     return h("div", { class: "spage" }, L.side,
       h("div", { class: "sp-main" },
-        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" }), ib("close", "Close settings", () => L.close())),
+        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" }),
+          h("input", { class: "sp-find", type: "search", placeholder: "Find a setting", value: SET.find || "",
+            on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } }), ib("close", "Close settings", () => L.close())),
         L.body));
   });
   if (section && SET_SECTION_TAB[section]) SET.tab = SET_SECTION_TAB[section];
@@ -23,8 +25,8 @@ function renderSettings() {
   const b = SET.L.body, top = b.scrollTop;
   clear(b); clear(SET.L.side);
   add(SET.L.side, [setTabBar()]);
-  $("#sp-title", SET.L.el).textContent = (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
-  const pane = h("div", { class: "set-pane" }, setTabBody(SET.tab));
+  $("#sp-title", SET.L.el).textContent = SET.find ? "Search results" : (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
+  const pane = h("div", { class: "set-pane" }, SET.find ? setFindBody(SET.find) : setTabBody(SET.tab));
   cardify(pane);
   add(b, [pane]);
   b.scrollTop = top;
@@ -70,14 +72,14 @@ function secSearch() {
 function secBrowsing() {
   const qs = (S.qualities || []).map((q) => ({ key: q, label: q + "p" }));
   return [secHead("Browsing"),
-    setToggle("darkPages", "Dark pages", "Darken light sites that have no dark mode of their own"),
-    setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"),
     setToggle("showRedirectOrigin", "Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site"),
     setToggle("desktopDefault", "Desktop sites", "Request desktop pages in new tabs"),
     setRow("Dummy mail hidden sites", (S.prefs.noDummy || []).length ? S.prefs.noDummy.join(", ") : "None. The button shows on sign-up pages",
       (S.prefs.noDummy || []).length ? "Clear" : null, (S.prefs.noDummy || []).length ? () => setPref("noDummy", []) : null),
     setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number)];
 }
+function secDarkPages() { return [setToggle("darkPages", "Dark pages", "Darken light sites that have no dark mode of their own")]; }
+function secHttps() { return [setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"), S.relayAvail ? setToggle("routeVps", "Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct") : null]; }
 // 3. VPS
 // Own domain redirects: a typed name (or *.name) opens another address.
 function secDns() {
@@ -99,6 +101,16 @@ async function enrollDevice() {
   if (!r || !r.ok) { toast({ text: (r && r.error) || "Couldn't enroll" }); return; }
   const mins = Math.max(1, Math.round((r.expires - Date.now()) / 60000));
   confirmDialog({ title: "Pairing code: " + r.code, message: "Single use, valid " + mins + " min. On your server run: sudo lodica-approve " + r.code, ok: "Done" });
+  // Poll until the server owner approves the code, then say so.
+  const until = r.expires;
+  const tick = async () => {
+    if (Date.now() > until) return;
+    const st = await inv("gate.status", r.code);
+    if (st === "approved") { toast({ text: "This device is enrolled. Gated sites will let it through." }); return; }
+    if (st === "expired") return;
+    setTimeout(tick, 3000);
+  };
+  setTimeout(tick, 3000);
 }
 function editGated() {
   textDialog({ title: "Gated hosts", message: "Comma separated, e.g. files.example.com. Subdomains match too.", ok: "Save", value: (S.prefs.gatedHosts || []).join(", ") }).then((v) => {
@@ -132,7 +144,6 @@ function secVps() {
   if (S.relayAvail) {
     const d = S.relay && S.relay.domain;
     out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
-      setToggle("routeVps", "Route through VPS", `Send browsing through tunnel.${d || "your-domain"}. Logins and payments stay direct`),
       setRow("Inbox", null, ico("chevron", "chev"), () => openInbox()),
       setRow("Enroll this device", "Let this device through your server's device gate", ico("chevron", "chev"), enrollDevice),
       setRow("Gated hosts", (S.prefs.gatedHosts || []).length ? S.prefs.gatedHosts.join(", ") : "None. Hosts listed here get this device's gate token",

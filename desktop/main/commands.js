@@ -351,6 +351,7 @@ function init(deps) {
   on("relay.info", () => relay.linked());
   on("gate.state", () => require("./gate").state());
   on("gate.enroll", () => require("./gate").enroll());
+  on("gate.status", (code) => require("./gate").status(code));
   on("gate.setHosts", list => { const g = require("./gate"); d.prefs.set("gatedHosts", [...new Set((Array.isArray(list) ? list : []).map(g.normalize).filter(Boolean))].slice(0, 50)); return g.state(); });
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("room.start", () => room.start());

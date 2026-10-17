@@ -12,6 +12,8 @@ const h = {
 };
 const server = http.createServer((req, res) => {
   const r = /^\/pending\/(.+)$/.exec(req.url);
+  const st = /^\/enroll\/(.+)$/.exec(req.url);
+  if (st) return enroll.status(req, res, '5.6.7.8', decodeURIComponent(st[1]), h);
   if (req.method === 'POST') return enroll.post(req, res, '1.2.3.4', h);
   enroll.take(req, res, '5.6.7.8', decodeURIComponent(r[1]), h);
 });
@@ -30,7 +32,9 @@ server.listen(0, '127.0.0.1', async () => {
     const r = await call(port, 'POST', '/enroll', { token, label: 'my phone<script>' });
     assert.strictEqual(r.status, 200);
     assert.match(r.json.code, /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
+    assert.strictEqual((await call(port, 'GET', '/enroll/' + r.json.code)).json.state, 'pending');
     const g = await call(port, 'GET', '/pending/' + r.json.code.toLowerCase());
+    assert.strictEqual((await call(port, 'GET', '/enroll/' + r.json.code)).json.state, 'approved');
     assert.strictEqual(g.status, 200); assert.strictEqual(g.json.token, token);
     assert.strictEqual(g.json.label, 'my phonescript');
     assert.strictEqual((await call(port, 'GET', '/pending/' + r.json.code)).status, 404, 'single use');

@@ -46,6 +46,14 @@ async function enroll() {
   } catch { return { ok: false, error: "Couldn't reach the server" }; }
 }
 
+/** 'pending' | 'approved' | 'expired' for a pairing code, or null when the server can't be reached. */
+async function status(code) {
+  try {
+    const [st, body] = await relay.request("GET", "/enroll/" + encodeURIComponent(String(code || "")), 15000);
+    return st === 200 ? JSON.parse(body).state : null;
+  } catch { return null; }
+}
+
 const state = () => ({ enrolled: !!load(), hosts: prefs.p.gatedHosts || [] });
 
-module.exports = { headerFor, enroll, state, normalize };
+module.exports = { headerFor, enroll, status, state, normalize };

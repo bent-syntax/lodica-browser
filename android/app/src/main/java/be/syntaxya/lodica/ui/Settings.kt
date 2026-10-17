@@ -137,16 +137,32 @@ fun SettingsScreen() {
     var pairing by remember { mutableStateOf(false) }
     var pairText by remember { mutableStateOf("") }
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var find by rememberSaveable { mutableStateOf("") }
     val scroll = rememberScrollState()
     LaunchedEffect(tab) { scroll.scrollTo(0) }
 
     Column(Modifier.fillMaxSize()) {
         TopBar("Settings") { Ui.screen = Screen.Browser }
+        FilterField(find, "Find a setting") { find = it }
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SettingsTabs.forEachIndexed { i, label -> Chip(label, tab == i) { tab = i } }
+        }
+        if (find.isNotBlank()) {
+            val words = find.trim().lowercase().split(" ").filter { it.isNotEmpty() }
+            val hits = SettingsIndex.filter { e -> words.all { w -> e.text.contains(w) } }
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
+                if (hits.isEmpty()) Text("No setting matches", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
+                hits.forEach { e ->
+                    Column(Modifier.fillMaxWidth().clickable { tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp)) {
+                        Text(e.title, color = Mist, fontSize = 15.sp)
+                        Text(SettingsTabs[e.tab], color = Muted, fontSize = 12.sp)
+                    }
+                }
+            }
+            return@Column
         }
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp)) {
             AnimatedContent(
@@ -168,6 +184,7 @@ fun SettingsScreen() {
 
                     Section("Browsing")
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
+            SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             AgentPicker()
             LanguagePicker()
             QualityPicker()
@@ -211,13 +228,6 @@ fun SettingsScreen() {
 
 
             if (Relay.available) {
-                SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
-                    Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
-                }
-                if (!Notifier.enabled(ctx)) LinkRow("Notifications are off: open system settings") {
-                    runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                } else LinkRow("Send a test notification") { Notifier.test(ctx) }
-                if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                 Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link
@@ -270,7 +280,6 @@ fun SettingsScreen() {
                 }
                 3 -> {
                     Section("Blocking")
-            SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
 
@@ -314,7 +323,7 @@ fun SettingsScreen() {
                     Section("Authenticator")
                     AuthenticatorSection()
 
-                    Section("Mail")
+                    Section("Server, chat & mail")
                     if (!Relay.available) {
                         Text(
                             "No server linked", color = Muted, fontSize = 13.sp,
@@ -322,6 +331,13 @@ fun SettingsScreen() {
                         )
                     } else {
                         LinkRow("Server chat") { Ui.screen = Screen.Room }
+                SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
+                    Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
+                }
+                if (!Notifier.enabled(ctx)) LinkRow("Notifications are off: open system settings") {
+                    runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                } else LinkRow("Send a test notification") { Notifier.test(ctx) }
+                if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                         LinkRow("Inbox") { Ui.screen = Screen.Inbox }
                         GateSection()
                         LinkRow("Disconnect server") { Relay.disconnect() }
@@ -1046,7 +1062,54 @@ private fun LoginCard(l: SavedLogin, modifier: Modifier, onDelete: () -> Unit) {
     }
 }
 
-private val SettingsTabs = listOf("General", "Appearance", "Tabs", "Privacy & blocking", "Controls", "Identity & mail", "Updates & about")
+private class SettingsEntry(val title: String, val tab: Int, keywords: String = "") {
+    val text = (title + " " + keywords + " " + SettingsTabs[tab]).lowercase()
+}
+
+/** What the settings search looks through: a title, the tab it lives in and extra words people may type. */
+private val SettingsIndex = listOf(
+    SettingsEntry("Search engine", 0, "default duckduckgo lodica fallback"),
+    SettingsEntry("Suggest from history", 0, "address bar suggestions"),
+    SettingsEntry("Clear suggestions", 0, "past searches"),
+    SettingsEntry("Desktop sites", 0, "request desktop"),
+    SettingsEntry("Show original domain after redirects", 0, "redirect origin address bar"),
+    SettingsEntry("User agent", 0, "browser identity"),
+    SettingsEntry("Language", 0, "accept language"),
+    SettingsEntry("Video quality", 0, "data saver"),
+    SettingsEntry("Data use", 0, "meter bandwidth"),
+    SettingsEntry("AI answers", 0, "ai generate always allow summary assistant"),
+    SettingsEntry("AI chats", 0, "history assistant"),
+    SettingsEntry("Web apps", 0, "install shortcut silent"),
+    SettingsEntry("Extensions", 0, "addons add-ons"),
+    SettingsEntry("Theme", 1, "colours dark light logo icon"),
+    SettingsEntry("Search widget", 1, "home screen"),
+    SettingsEntry("Dark pages", 1, "force dark websites"),
+    SettingsEntry("Start page background", 1, "wallpaper image"),
+    SettingsEntry("Auto-archive tabs", 2, "unused days"),
+    SettingsEntry("Tabs on PC", 2, "sync computer link"),
+    SettingsEntry("HTTPS-only", 3, "secure connections"),
+    SettingsEntry("Reject cookie banners", 3, "consent popups"),
+    SettingsEntry("Route through VPS", 3, "tunnel server proxy"),
+    SettingsEntry("Custom DNS", 3, "dns over https resolver"),
+    SettingsEntry("Import from Chrome", 3, "bookmarks passwords"),
+    SettingsEntry("History", 3, "visited pages"),
+    SettingsEntry("Clear history", 3, "delete"),
+    SettingsEntry("Reset site permissions", 3, "camera microphone location"),
+    SettingsEntry("Clear site data", 3, "cookies cache storage"),
+    SettingsEntry("Controls and gestures", 4, "toggles buttons swipe"),
+    SettingsEntry("Hidden email", 5, "alias sign-up dummy"),
+    SettingsEntry("Passwords", 5, "logins vault"),
+    SettingsEntry("Authenticator", 5, "totp 2fa codes google migration qr"),
+    SettingsEntry("Server chat", 5, "room messages"),
+    SettingsEntry("Instant chat messages", 5, "notifications live battery"),
+    SettingsEntry("Notifications", 5, "test permission alerts"),
+    SettingsEntry("Inbox", 5, "mail"),
+    SettingsEntry("Device gate", 5, "enroll approve code"),
+    SettingsEntry("Server setup", 5, "disconnect link"),
+    SettingsEntry("Version and what's new", 6, "about updates patch notes"),
+)
+
+private val SettingsTabs = listOf("General", "Appearance", "Tabs", "Privacy & blocking", "Controls", "Identity & server", "Updates & about")
 
 @Composable
 private fun ThemePicker() {

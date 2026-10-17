@@ -16,6 +16,7 @@ const FAIL_N = 10, FAIL_WINDOW = 10 * 60e3;
 const ENROLL_N = 10, ENROLL_WINDOW = 10 * 60e3;
 
 const pending = new Map(); // code -> { token, label, at }
+const approved = new Map(); // code -> time it was taken (so the device can show "enrolled")
 const fails = new Map();   // ip -> { start, n }
 const posts = new Map();   // ip -> { start, n }
 
@@ -28,6 +29,7 @@ function newCode() {
 
 function prune(now = Date.now()) {
   for (const [c, e] of pending) if (now - e.at > TTL) pending.delete(c);
+  for (const [c, t] of approved) if (now - t > TTL) approved.delete(c);
 }
 
 function hit(map, ip, max, window, now = Date.now()) {
@@ -69,10 +71,20 @@ function take(req, res, ip, code, h) {
     return h.sendText(req, res, 404, 'unknown or expired code');
   }
   pending.delete(key);
+  approved.set(key, now);
   h.sendJson(req, res, 200, { token: e.token, label: e.label, at: e.at });
 }
 
-/** Test hook. */
-function reset() { pending.clear(); fails.clear(); posts.clear(); }
+/** GET /enroll/<code>: { state: 'pending' | 'approved' | 'expired' }. Reveals nothing but the state of a code. */
+function status(req, res, ip, code, h) {
+  const now = Date.now();
+  prune(now);
+  const key = typeof code === 'string' ? code.toUpperCase() : '';
+  if (!CODE_RE.test(key)) return h.sendText(req, res, 400, 'bad code');
+  h.sendJson(req, res, 200, { state: pending.has(key) ? 'pending' : approved.has(key) ? 'approved' : 'expired' });
+}
 
-module.exports = { post, take, reset, TTL };
+/** Test hook. */
+function reset() { pending.clear(); approved.clear(); fails.clear(); posts.clear(); }
+
+module.exports = { post, take, status, reset, TTL };

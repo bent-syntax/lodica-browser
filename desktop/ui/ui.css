@@ -265,6 +265,7 @@ html.mock body{background:linear-gradient(135deg,#dbeafe,#fef3c7)}
 .sp-main{flex:1;min-width:0;display:flex;flex-direction:column}
 .sp-head{display:flex;align-items:center;gap:8px;padding:14px 20px 10px 32px;flex:none}
 .sp-head h2{flex:1;font-size:22px;font-weight:600}
+.sp-find{width:220px;padding:7px 12px;border-radius:999px;border:1px solid var(--line,#444);background:var(--surface,transparent);color:inherit;font:inherit;font-size:13px}
 .sp-body{flex:1;min-height:0;overflow:auto;padding:0 0 32px}
 .sp-body .set-pane{max-width:760px;padding:0 12px 0 20px}
 @media (max-width:700px){.spage{flex-direction:column}.sp-side{width:auto;flex-direction:row;padding:8px;border-right:0;border-bottom:1px solid var(--high)}}

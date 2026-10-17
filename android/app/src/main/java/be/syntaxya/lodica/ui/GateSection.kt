@@ -15,6 +15,7 @@ import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Mist
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -29,8 +30,17 @@ fun GateSection() {
     LinkRow("Enroll this device") {
         scope.launch {
             val r = withContext(Dispatchers.IO) { Gate.enroll() }
-            r.onSuccess { title = "Pairing code: $it"; msg = "On the server run:\nsudo lodica-approve $it\n\nThe code works once and expires in 10 minutes." }
-                .onFailure { title = "Enroll failed"; msg = it.message ?: "Unknown error" }
+            r.onSuccess { code ->
+                title = "Pairing code: $code"; msg = "On the server run:\nsudo lodica-approve $code\n\nThe code works once and expires in 10 minutes."
+                // Poll until the server owner approves the code, then confirm in the dialog.
+                val until = System.currentTimeMillis() + 10 * 60_000
+                while (System.currentTimeMillis() < until) {
+                    delay(3000)
+                    val st = withContext(Dispatchers.IO) { runCatching { Gate.status(code) }.getOrNull() }
+                    if (st == "approved") { title = "Device enrolled"; msg = "This device is enrolled. Gated sites will let it through."; break }
+                    if (st == "expired") break
+                }
+            }.onFailure { title = "Enroll failed"; msg = it.message ?: "Unknown error" }
         }
     }
     LinkRow("Gated hosts") { text = Prefs.gatedHosts; edit = true }

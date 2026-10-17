@@ -390,6 +390,11 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return enroll.post(req, res, clientIp(req), { sendJson, sendText, readBody });
   }
+  if ((r = /^\/enroll\/([^/]+)$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return enroll.status(req, res, clientIp(req), decodeURIComponent(r[1]).slice(0, 32), { sendJson, sendText, readBody });
+  }
   if ((r = /^\/pending\/([^/]+)$/.exec(p))) {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
