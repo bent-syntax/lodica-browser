@@ -274,6 +274,15 @@ function note(data) {
   else if (data.total && page === 1) n.append("About " + data.total.toLocaleString() + " results");
 }
 
+function askButton(data) {
+  const box = $("ai"), body = $("ai-body");
+  box.hidden = false;
+  body.className = "";
+  const b = el("button", { type: "button", class: "ai-gen" }, "Generate an AI answer");
+  b.onclick = () => ask(data);
+  body.replaceChildren(b);
+}
+
 function ask(data, cachedAnswer) {
   const box = $("ai"), body = $("ai-body");
   box.hidden = false;
@@ -348,7 +357,10 @@ async function run() {
   }
   if (!cached) cachePut({ data });
   // Private tabs never send the question to the AI.
-  if (state && state.ai && !cat && page === 1 && !priv) ask(data, cached && cached.ai);
+  if (state && state.ai && !cat && page === 1 && !priv) {
+    if (state.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
+    else askButton(data);
+  }
   note(data);
   if (cat === "images") renderImages(data); else renderWeb(data);
   renderPages(data);

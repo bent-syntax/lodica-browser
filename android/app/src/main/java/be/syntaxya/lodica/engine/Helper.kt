@@ -89,6 +89,7 @@ object Helper {
                 .put("legacy", Relay.legacyPorts)
                 .put("dns", JSONArray(Prefs.dnsPairs().map { JSONArray(it) }))
                 .put("ai", Ai.connected)
+                .put("aiAlways", Prefs.aiAlways)
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available && Relay.up) "" else Prefs.searchFallback.query)
                 .put("theme", themeJson())

@@ -113,3 +113,4 @@ body.home #fw { max-width: 640px; margin: 0 auto; }
 }
 @keyframes kite-in { from { opacity: 0; transform: translate(-14px, 16px) rotate(-12deg) scale(.7); } to { opacity: 1; transform: none; } }
 @keyframes brand-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ai-gen { background: var(--high); color: var(--amber); border: 0; border-radius: 10px; padding: 10px 16px; font: inherit; cursor: pointer; }

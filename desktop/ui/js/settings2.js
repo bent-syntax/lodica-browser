@@ -27,6 +27,7 @@ function secAi() {
     setRow("Setup steps", null, ico("open", "chev"), () => inv("openExternal", "https://docs.anthropic.com/en/docs/claude-code/setup")),
     setRow("API key", ai.hasKey ? "Saved" : "Not set", ico("key", "chev"), () => askAiKey())];
   if (!S.prefs.ai) return out;
+  out.push(setToggle("aiAlways", "Always generate AI answers", "Off: search shows a button and only asks Claude when you click it"));
   out.push(setRow("AI chat", "Chat with Claude, saved here and on your phone", ico("chevron", "chev"), () => openAiChat()));
   out.push(setRow("Memory", null, ico("chevron", "chev"), () => openAiMemory()));
   if (SET.usage == null) { SET.usage = false; inv("ai.usage").then((u) => { SET.usage = u || {}; refreshSettings(); }); }

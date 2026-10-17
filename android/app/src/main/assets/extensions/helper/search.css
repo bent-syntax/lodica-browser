@@ -105,3 +105,4 @@ body:not(.home) #top { display: none; }
 body:not(.home) #topbar, body:not(.home) #addsite, body:not(.home) #autorow { display: none; }
 #top a { position: relative; }
 #top a .rm { position: absolute; top: -4px; right: 6px; width: 20px; height: 20px; border-radius: 10px; background: var(--coral); color: #fff; font-size: 14px; line-height: 20px; text-align: center; }
+.ai-gen { background: var(--high); color: var(--amber); border: 0; border-radius: 10px; padding: 10px 16px; font: inherit; cursor: pointer; }

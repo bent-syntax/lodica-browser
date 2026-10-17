@@ -459,6 +459,7 @@ private fun AiSection() {
             dismissButton = { if (Ai.hasKey) TextButton(onClick = { Ai.setKey(""); keyDialog = false }) { Text("Remove", color = Coral) } else TextButton(onClick = { keyDialog = false }) { Text("Cancel", color = Muted) } },
         )
     }
+    SwitchRow("Always generate AI answers", "Off: search shows a button and only asks the AI when you tap it", Prefs.aiAlways) { Prefs.updateAiAlways(it) }
     SwitchRow("Ask AI via Termux", "No API key? Use your own Claude Code in Termux instead. Off by default, at your own risk", Ai.enabled) {
         Ai.updateEnabled(it)
     }

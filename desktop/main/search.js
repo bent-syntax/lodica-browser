@@ -28,7 +28,7 @@ function engineQuery() {
 
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
-  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);

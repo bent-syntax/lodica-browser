@@ -55,6 +55,7 @@ object Prefs {
     /** Hosts that get the device-gate header, comma or newline separated. Empty by default. */
     var gatedHosts by mutableStateOf(""); private set
     var showRedirectOrigin by mutableStateOf(false); private set
+    var aiAlways by mutableStateOf(false); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
@@ -120,6 +121,7 @@ object Prefs {
         dnsRules = sp.getString("dnsRules", "") ?: ""
         gatedHosts = sp.getString("gatedHosts", "") ?: ""
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
+        aiAlways = sp.getBoolean("aiAlways", false)
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
         dnsServer = sp.getString("dnsServer", "") ?: ""
@@ -205,6 +207,7 @@ object Prefs {
         appCtx?.let { refreshWidgets(it) }
     }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
+    fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateGatedHosts(v: String) { gatedHosts = Gate.hosts(v).joinToString("\n"); sp.edit().putString("gatedHosts", gatedHosts).apply(); Helper.push() }
     fun updateDnsRules(v: String) { dnsRules = v.trim(); sp.edit().putString("dnsRules", dnsRules).apply(); Helper.push() }
