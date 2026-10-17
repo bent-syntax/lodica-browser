@@ -13,14 +13,23 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** One message in the server's shared chat room. */
-data class RoomMsg(val id: Long, val name: String, val text: String, val at: Long, val room: String = "")
+data class RoomMsg(
+    val id: Long, val name: String, val text: String, val at: Long, val room: String = "",
+    val fileId: String? = null, val fileName: String = "", val fileSize: Long = 0, val fileType: String = "",
+)
 
 /**
  * Same-server chat: everyone linked to the same server shares one room, kept in the relay's memory
  * (last 200 messages, 24 h, not end-to-end encrypted). New messages arrive by long polling, so they
  * show up within a moment while the chat screen is open.
  */
+private fun RoomMsg.withFile(f: JSONObject?) =
+    if (f == null) this else copy(fileId = f.optString("id").takeIf { it.matches(Regex("[0-9a-f]{24}")) }, fileName = f.optString("name"), fileSize = f.optLong("size"), fileType = f.optString("type"))
+
 object Room {
+    const val MAX_FILE = 5 * 1024 * 1024
+    /** Upload progress 0-100 while a file is going out, else null. */
+    var uploading by mutableStateOf<Int?>(null); private set
     val messages = mutableStateListOf<RoomMsg>()
     var error by mutableStateOf<String?>(null); private set
     private var job: Job? = null
@@ -136,7 +145,7 @@ object Room {
                     val o = JSONObject(body)
                     val arr: JSONArray = o.optJSONArray("messages") ?: JSONArray()
                     val fresh = (0 until arr.length()).map { arr.getJSONObject(it) }
-                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room")) }
+                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room")).withFile(it.optJSONObject("file")) }
                         .distinctBy { it.id }
                     last = o.optLong("last", last)
                     main.post {
@@ -167,5 +176,47 @@ object Room {
             if (err == null) start()
             main.post { done(err) }
         }
+    }
+
+    /** Reads [uri] (at most 5 MB) and posts it to the current chat. [done] gets an error message or null. */
+    fun upload(ctx: Context, uri: android.net.Uri, name: String, done: (String?) -> Unit) {
+        val app = ctx.applicationContext
+        val from = name(app); val r = room
+        Relay.scope.launch {
+            val err = try {
+                val data = app.contentResolver.openInputStream(uri)?.use { it.readNBytes(MAX_FILE + 1) }
+                val fname = app.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { if (it.moveToFirst()) it.getString(0) else null } ?: "file"
+                when {
+                    data == null || data.isEmpty() -> "Can't read that file"
+                    data.size > MAX_FILE -> "File is larger than 5 MB"
+                    else -> {
+                        main.post { uploading = 0 }
+                        val q = "?name=" + java.net.URLEncoder.encode(fname, "UTF-8") + "&from=" + java.net.URLEncoder.encode(from, "UTF-8") +
+                            if (r.isEmpty()) "" else "&room=" + java.net.URLEncoder.encode(r, "UTF-8")
+                        val (code, _) = Relay.upload("/api/chat/file$q", data) { p -> main.post { uploading = p } }
+                        when (code) {
+                            200 -> null
+                            415 -> "This file type is not allowed"
+                            413 -> "File is larger than 5 MB"
+                            429 -> "Slow down a little"
+                            else -> "Server answered $code"
+                        }
+                    }
+                }
+            } catch (e: Exception) { "Can't reach the server" }
+            main.post { uploading = null; done(err) }
+            if (err == null) start()
+        }
+    }
+
+    /** Runs blocking [block] on the relay's background scope; Compose state may be written from there. */
+    fun scopeIo(block: () -> Unit) { Relay.scope.launch { runCatching(block) } }
+
+    /** Downloads an attachment's bytes (blocking; call off the main thread). Null on failure. */
+    fun fetchFile(id: String, download: Boolean): ByteArray? {
+        if (!id.matches(Regex("[0-9a-f]{24}"))) return null
+        val (code, bytes) = Relay.requestBytes("GET", "/api/chat/file/$id" + if (download) "?dl=1" else "", readTimeoutMs = 60_000)
+        return if (code == 200) bytes else null
     }
 }

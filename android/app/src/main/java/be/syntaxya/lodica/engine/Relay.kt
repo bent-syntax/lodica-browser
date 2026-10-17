@@ -251,6 +251,34 @@ object Relay {
         }
     }
 
+    /** Uploads [body] in chunks so [progress] (0-100) can follow it. Returns the status and response text. */
+    fun upload(path: String, body: ByteArray, progress: (Int) -> Unit): Pair<Int, String> {
+        val c = URL(API + path).openConnection() as HttpURLConnection
+        try {
+            c.requestMethod = "POST"
+            c.connectTimeout = 10_000
+            c.readTimeout = 60_000
+            c.useCaches = false
+            c.setRequestProperty("Authorization", "Bearer $token")
+            c.setRequestProperty("Content-Type", "application/octet-stream")
+            c.doOutput = true
+            c.setFixedLengthStreamingMode(body.size)
+            c.outputStream.use { o ->
+                var at = 0
+                while (at < body.size) {
+                    val n = minOf(32 * 1024, body.size - at)
+                    o.write(body, at, n); at += n
+                    progress(at * 100 / body.size)
+                }
+            }
+            val code = c.responseCode
+            val stream = if (code >= 400) c.errorStream else c.inputStream
+            return code to (stream?.use { it.readBytes() } ?: ByteArray(0)).toString(Charsets.UTF_8)
+        } finally {
+            c.disconnect()
+        }
+    }
+
     /** Blocking. Newest first. */
     fun fetch(alias: String? = null, since: Long? = null): List<Mail> {
         val q = buildList {

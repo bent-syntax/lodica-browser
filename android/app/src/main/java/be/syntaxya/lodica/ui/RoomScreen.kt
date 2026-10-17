@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.heightIn as heightInMax
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -67,6 +73,10 @@ fun RoomScreen() {
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
     )
+
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) { sendError = null; Room.upload(ctx, uri, name) { err -> if (err != null) sendError = err } }
+    }
 
     if (adding) NewChatDialog { adding = false }
     Column(Modifier.fillMaxSize().imePadding()) {
@@ -109,7 +119,10 @@ fun RoomScreen() {
         ) {
             items(msgs, key = { it.id }) { m -> Bubble(m, mine = m.name == name) }
         }
+        Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
+        sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 MB)", tint = Amber) }
             Column(Modifier.weight(1f)) {
                 OutlinedTextField(
                     name, { name = it.take(32); Room.setName(ctx, name) }, Modifier.fillMaxWidth(), singleLine = true,
@@ -195,11 +208,41 @@ private fun Bubble(m: RoomMsg, mine: Boolean) {
             Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
-            Text(m.text, color = Mist, fontSize = 14.sp)
+            if (m.fileId != null) FileBody(m) else Text(m.text, color = Mist, fontSize = 14.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
                 color = Muted, fontSize = 11.sp,
             )
         }
     }
+}
+
+/** An attachment: previewed only when it is a verified image, otherwise saved by the user. Never opened or run. */
+@Composable
+private fun FileBody(m: RoomMsg) {
+    val ctx = LocalContext.current
+    val id = m.fileId ?: return
+    var preview by remember(id) { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var status by remember(id) { mutableStateOf<String?>(null) }
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) Room.scopeIo {
+            val bytes = Room.fetchFile(id, true)
+            val ok = bytes != null && runCatching { ctx.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
+            status = if (ok) "Saved" else "Download failed"
+        }
+    }
+    val size = if (m.fileSize < 1024 * 1024) "${maxOf(1, m.fileSize / 1024)} KB" else "%.1f MB".format(m.fileSize / 1048576.0)
+    Text(m.fileName, color = Mist, fontSize = 14.sp)
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+        TextButton({ save.launch(m.fileName.ifBlank { "file" }) }) { Text("Save ($size)", color = Amber) }
+        if (m.fileType.startsWith("image/") && preview == null) TextButton({
+            Room.scopeIo {
+                val bytes = Room.fetchFile(id, false)
+                val bmp = bytes?.let { runCatching { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull() }
+                if (bmp != null) preview = bmp else status = "Preview unavailable"
+            }
+        }) { Text("Preview", color = Amber) }
+    }
+    preview?.let { Image(it.asImageBitmap(), m.fileName, Modifier.fillMaxWidth().heightInMax(max = 260.dp)) }
+    status?.let { Text(it, color = Muted, fontSize = 11.sp) }
 }
