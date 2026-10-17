@@ -43,6 +43,7 @@ import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HighQuality
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material.icons.rounded.InstallMobile
 import androidx.compose.material.icons.rounded.Inventory2
@@ -154,6 +155,7 @@ fun MenuSheet() {
                     if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", Icons.Rounded.AlternateEmail, "Hidden email", Amber) {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()
                     })
+                    add(MenuItem("chat", Icons.Rounded.Forum, "Server chat") { Ui.screen = Screen.Room })
                     add(MenuItem("inbox", Icons.Rounded.Inbox, "Inbox") { Ui.screen = Screen.Inbox })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy
