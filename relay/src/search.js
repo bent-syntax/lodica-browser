@@ -38,6 +38,18 @@ function imgUrl(u, w) {
 const clip = (s, n) => (typeof s === 'string' ? (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s) : '');
 function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } }
 
+// Queries that ask for something current: these get a recent-only pass and recent results first.
+const FRESH = /\b(latest|newest|news|today|tonight|yesterday|this (week|month|year)|current|currently|now|breaking|update[sd]?|release[sd]?|price|prices|score|scores|weather|forecast|results?|live|20\d\d)\b/i;
+const RANGES = new Set(['day', 'week', 'month', 'year']);
+const DAY = 864e5;
+
+/** Moves results published in the last 30 days ahead of the rest; each group keeps its order. */
+function freshFirst(list) {
+  const now = Date.now();
+  const recent = (x) => { const t = Date.parse(x.d || ''); return t > 0 && now - t < 30 * DAY; };
+  return [...list.filter(recent), ...list.filter((x) => !recent(x))];
+}
+
 /** Runs a search; returns the trimmed JSON object or throws (status 400/502). */
 async function search(url) {
   const q = (url.searchParams.get('q') || '').trim();
@@ -45,14 +57,25 @@ async function search(url) {
   const p = Math.min(10, Math.max(1, Number(url.searchParams.get('p')) || 1));
   const images = url.searchParams.get('c') === 'images';
   const lang = /^[a-z]{2}(-[A-Z]{2})?$/.test(url.searchParams.get('l') || '') ? url.searchParams.get('l') : 'all';
-  const su = new URL('/search', cfg.searxUrl);
-  su.search = new URLSearchParams({ q, format: 'json', pageno: String(p), categories: images ? 'images' : 'general', language: lang, safesearch: '0' }).toString();
+  const asked = url.searchParams.get('t') || '';
+  const intent = !images && FRESH.test(q);
+  let range = RANGES.has(asked) ? asked : intent ? 'month' : '';
+  const ask = async (tr) => {
+    const su = new URL('/search', cfg.searxUrl);
+    const a = { q, format: 'json', pageno: String(p), categories: images ? 'images' : intent && /\b(news|breaking|today|tonight|yesterday)\b/i.test(q) ? 'news' : 'general', language: lang, safesearch: '0' };
+    if (tr) a.time_range = tr;
+    su.search = new URLSearchParams(a).toString();
+    const r = await fetch(su, { signal: AbortSignal.timeout(cfg.searchTimeoutMs), headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' } });
+    if (!r.ok) throw new Error('searx ' + r.status);
+    return r.json();
+  };
   stats.searches++;
   let j;
   try {
-    const r = await fetch(su, { signal: AbortSignal.timeout(cfg.searchTimeoutMs), headers: { Accept: 'application/json' } });
-    if (!r.ok) throw new Error('searx ' + r.status);
-    j = await r.json();
+    j = await ask(range);
+    // Too few recent hits: widen to a year, then drop the filter, rather than return an empty page.
+    if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = range === 'month' ? 'year' : ''; j = await ask(range); }
+    if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = ''; j = await ask(''); }
   } catch (e) {
     stats.searchFail++;
     throw Object.assign(new Error('search failed'), { status: 502 });
@@ -72,6 +95,7 @@ async function search(url) {
     }
     if (results.length >= 40) break;
   }
+  if (intent || range) { const r = freshFirst(results); results.splice(0, results.length, ...r); }
   const out = { q, p, results };
   const ib = Array.isArray(j.infoboxes) && j.infoboxes[0];
   if (ib && !images) {

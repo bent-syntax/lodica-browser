@@ -27,7 +27,7 @@ const QUALITIES = [144, 240, 360, 480, 720, 1080, 1440, 2160];
 const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com"]);
 
 const DEFAULTS = {
-  search: "DUCKDUCKGO", darkPages: true, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
+  search: "", searchFallback: "DUCKDUCKGO", darkPages: true, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, ai: false, trusted: [], gatedHosts: [], showRedirectOrigin: false,
@@ -41,7 +41,9 @@ const p = Object.assign({}, DEFAULTS, store.load("prefs", {}));
 // "Dark pages" and "Force dark" were two switches for one thing; either one on keeps dark on.
 if (p.forceDark) p.darkPages = true;
 delete p.forceDark;
-if (!ENGINES[p.search]) p.search = "DUCKDUCKGO";
+// An empty engine means "not chosen yet": Lodica Search while a server is linked, DuckDuckGo otherwise.
+if (p.search && !ENGINES[p.search]) p.search = "";
+if (!ENGINES[p.searchFallback] || p.searchFallback === "LODICA") p.searchFallback = "DUCKDUCKGO";
 if (!AGENTS[p.userAgent]) p.userAgent = "DEFAULT";
 if (!LANGUAGES[p.language]) p.language = "EN";
 
@@ -115,8 +117,9 @@ function resolve(input, lodicaAvailable) {
   if (SCHEMES.some(s => t.toLowerCase().startsWith(s))) return t;
   const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || t.startsWith("localhost"));
   if (host) return withLanguage((t.startsWith("localhost") ? "http://" : "https://") + t);
-  let engine = ENGINES[p.search];
-  if (p.search === "LODICA" && !lodicaAvailable) engine = ENGINES.DUCKDUCKGO;
+  const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");
+  let engine = ENGINES[want];
+  if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback];
   return withLanguage(engine.query.replace("%s", encodeURIComponent(t)));
 }
 

@@ -66,7 +66,11 @@ function chips(items, cur, pick) {
 
 // 1. Search
 function secSearch() {
-  return [secHead("Search"), chips(optList(S.engines), S.prefs.search || "DUCKDUCKGO", (k) => setPref("search", k))];
+  const cur = S.prefs.search || (S.relayAvail ? "LODICA" : "DUCKDUCKGO");
+  const out = [secHead("Search"), chips(optList(S.engines), cur, (k) => setPref("search", k))];
+  if (S.relayAvail) out.push(setRow("Fallback search engine", "Used when Lodica Search is chosen but the server cannot be reached"),
+    chips(optList(S.engines).filter((o) => o.key !== "LODICA"), S.prefs.searchFallback || "DUCKDUCKGO", (k) => setPref("searchFallback", k)));
+  return out;
 }
 // 2. Browsing
 function secBrowsing() {

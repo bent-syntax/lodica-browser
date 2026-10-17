@@ -41,7 +41,11 @@ data class CustomTheme(val bg: String, val text: String, val accent: String, val
 object Prefs {
     private lateinit var sp: SharedPreferences
 
-    var search by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
+    private var searchChosen by mutableStateOf<SearchEngine?>(null)
+    /** Chosen engine; until the user picks one, Lodica Search while a server is linked, DuckDuckGo otherwise. */
+    val search: SearchEngine get() = searchChosen ?: if (Relay.available) SearchEngine.LODICA else SearchEngine.DUCKDUCKGO
+    /** Used when Lodica Search is the engine but the server cannot be reached. */
+    var searchFallback by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
     var darkPages by mutableStateOf(true); private set
     var httpsOnly by mutableStateOf(true); private set
     var dummyLogin by mutableStateOf(true); private set
@@ -107,7 +111,8 @@ object Prefs {
         if (::sp.isInitialized) return
         sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         appCtx = ctx.applicationContext
-        search = runCatching { SearchEngine.valueOf(sp.getString("search", "")!!) }.getOrDefault(SearchEngine.DUCKDUCKGO)
+        searchChosen = runCatching { SearchEngine.valueOf(sp.getString("search", "")!!) }.getOrNull()
+        searchFallback = runCatching { SearchEngine.valueOf(sp.getString("searchFallback", "")!!) }.getOrNull()?.takeIf { it != SearchEngine.LODICA } ?: SearchEngine.DUCKDUCKGO
         darkPages = sp.getBoolean("darkPages", true)
         httpsOnly = sp.getBoolean("httpsOnly", true)
         dummyLogin = sp.getBoolean("dummyLogin", true)
@@ -185,7 +190,8 @@ object Prefs {
     }
     fun updateGestureBarHide(v: Boolean) { gestureBarHide = v; sp.edit().putBoolean("gestureBarHide", v).apply() }
 
-    fun updateSearch(v: SearchEngine) { search = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
+    fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply() }
+    fun updateSearch(v: SearchEngine) { searchChosen = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
     fun updateDarkPages(v: Boolean) { darkPages = v; sp.edit().putBoolean("darkPages", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateHttpsOnly(v: Boolean) { httpsOnly = v; sp.edit().putBoolean("httpsOnly", v).apply(); Engine.applyPrefs() }
     /** User shortcuts as (url, name) pairs. */
@@ -354,8 +360,8 @@ object Prefs {
         val base = Helper.searchBase
         if (search == SearchEngine.LODICA && base != null && Relay.available && Relay.up)
             return base + "search.html?q=" + android.net.Uri.encode(t)
-        // Linked server offline: fall back to Google. No server at all keeps the DuckDuckGo default.
-        val engine = if (search != SearchEngine.LODICA) search else if (Relay.available) SearchEngine.GOOGLE else SearchEngine.DUCKDUCKGO
+        // Lodica Search is chosen but the server is down or missing: use the fallback engine.
+        val engine = if (search != SearchEngine.LODICA) search else searchFallback
         return withLanguage(engine.query.format(android.net.Uri.encode(t)))
     }
 

@@ -175,7 +175,12 @@ fun SettingsScreen() {
                 0 -> {
             if (!Relay.available) LinkRow("Set up your server (hidden email, tab sharing, Lodica Search)") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             Section("Search")
-            EnginePicker()
+            EnginePicker("Search engine", Prefs.search, SearchEngine.entries) {
+                Prefs.updateSearch(it)
+                // Lodica Search needs a server: walk the user through linking one.
+                if (it == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
+            }
+            if (Relay.available) EnginePicker("Fallback search engine", Prefs.searchFallback, SearchEngine.entries.filter { it != SearchEngine.LODICA }) { Prefs.updateSearchFallback(it) }
             SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
             LinkRow("Clear suggestions", Coral) {
                 confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
@@ -663,7 +668,7 @@ internal fun Section(title: String) {
 }
 
 @Composable
-private fun EnginePicker() {
+private fun EnginePicker(title: String, current: SearchEngine, options: List<SearchEngine>, onPick: (SearchEngine) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
@@ -672,18 +677,14 @@ private fun EnginePicker() {
         ) {
             RowTile(Icons.Rounded.Search)
             Spacer(Modifier.width(14.dp))
-            Text("Search engine", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text(Prefs.search.label, color = Muted, fontSize = 14.sp)
+            Text(title, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            Text(current.label, color = Muted, fontSize = 14.sp)
         }
         DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            SearchEngine.entries.forEach { e ->
+            options.forEach { e ->
                 DropdownMenuItem(
-                    text = { Text(e.label, color = if (e == Prefs.search) Amber else Mist) },
-                    onClick = {
-                        Prefs.updateSearch(e); open = false
-                        // Lodica Search needs a server: walk the user through linking one.
-                        if (e == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
-                    },
+                    text = { Text(e.label, color = if (e == current) Amber else Mist) },
+                    onClick = { onPick(e); open = false },
                 )
             }
         }
@@ -1071,6 +1072,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Search engine", 0, "default duckduckgo lodica fallback"),
     SettingsEntry("Suggest from history", 0, "address bar suggestions"),
     SettingsEntry("Clear suggestions", 0, "past searches"),
+    SettingsEntry("Fallback search engine", 0, "lodica search server unavailable"),
     SettingsEntry("Desktop sites", 0, "request desktop"),
     SettingsEntry("Show original domain after redirects", 0, "redirect origin address bar"),
     SettingsEntry("User agent", 0, "browser identity"),

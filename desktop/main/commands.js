@@ -95,7 +95,7 @@ function toggleDesktop() {
 }
 
 async function engineSuggest(text) {
-  const eng = d.prefs.ENGINES[d.prefs.p.search];
+  const eng = d.prefs.ENGINES[d.prefs.p.search || "DUCKDUCKGO"];
   if (!eng?.suggest || cur()?.private || text.length < 2) return [];
   try {
     const r = await net.fetch(eng.suggest.replace("%s", encodeURIComponent(text)), { signal: AbortSignal.timeout(1500) });

@@ -19,9 +19,16 @@ function init(deps) {
   });
 }
 
+/** Query URL of the engine the start page should use; empty means Lodica Search itself. */
+function engineQuery() {
+  const want = prefs.p.search || (relay.available ? "LODICA" : "DUCKDUCKGO");
+  if (want !== "LODICA") return prefs.ENGINES[want].query;
+  return relay.available ? "" : prefs.ENGINES[prefs.p.searchFallback].query;
+}
+
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
-  if (msg.type === "state") return { api: relay.available, engine: prefs.p.search === "LODICA" || !prefs.ENGINES[prefs.p.search] ? "" : prefs.ENGINES[prefs.p.search].query, base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);
