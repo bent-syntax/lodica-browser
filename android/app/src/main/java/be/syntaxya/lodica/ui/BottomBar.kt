@@ -117,7 +117,7 @@ fun BottomBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit, modifier
     }
     Column(
         modifier.fillMaxWidth()
-            .graphicsLayer { translationY = Ui.barOffset }
+            .graphicsLayer { translationY = if (mode == BarMode.Main) Ui.barOffset else 0f }
             .onSizeChanged { Ui.barHeight = it.height.toFloat() }
             .background(GraphiteRaised)
     ) {
@@ -132,8 +132,9 @@ fun BottomBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit, modifier
                     if (tab?.locked == true) return@MainBar
                     val url = tab?.url?.takeIf { it != TabManager.HOME }?.let { Prefs.searchQuery(it) ?: it }.orEmpty()
                     onQuery(TextFieldValue(url, TextRange(0, url.length)))
-                    Ui.showBar()
+                    // Editing first: scroll events from the keyboard resize must not slide the bar while it is pinned.
                     Ui.editing = true
+                    Ui.showBar()
                 }
                 BarMode.Edit -> EditBar(query, onQuery)
                 BarMode.Find -> FindBar()

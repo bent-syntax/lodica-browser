@@ -148,6 +148,8 @@ private fun BrowserScreen() {
         }
     }
     LaunchedEffect(tab) { Ui.showBar() }
+    // Selecting or copying the address must never move the bar: pin it while editing or finding.
+    LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.showBar() }
 
     Box(
         Modifier.fillMaxSize()
