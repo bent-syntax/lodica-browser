@@ -56,6 +56,7 @@ function get(req, res, url, h) {
   const after = afterRaw !== null && /^\d+$/.test(afterRaw) ? Number(afterRaw) : null;
   const wait = Math.min(WAIT_MAX, Math.max(0, Number(q.get('wait')) || 0));
   const room = cleanRoom(q.get('room'));
+  if (!room && q.get('room')) return h.sendText(req, res, 400, 'bad room');
   // First call (no cursor): the recent history so a new client has context.
   if (after === null) {
     return h.sendJson(req, res, 200, { messages: since(-1, room).slice(-50), last: seq });
@@ -93,7 +94,10 @@ async function post(req, res, ip, h) {
   const text = typeof b?.text === 'string' ? b.text.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, TEXT_MAX) : '';
   const name = clean(b?.name, NAME_MAX) || 'Anonymous';
   if (!text) return h.sendText(req, res, 400, 'empty message');
-  const msg = { id: ++seq, name, text, at: Date.now(), room: cleanRoom(b?.room) };
+  // A room that is named but invalid must fail loudly: falling back to the main room would leak a private message.
+  const room = cleanRoom(b?.room);
+  if (!room && typeof b?.room === 'string' && b.room !== '') return h.sendText(req, res, 400, 'bad room');
+  const msg = { id: ++seq, name, text, at: Date.now(), room };
   touch(name);
   log.push(msg);
   prune();

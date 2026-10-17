@@ -46,12 +46,14 @@ object Room {
     /** Room id of the private chat between this device's name and [peer]. */
     fun dm(ctx: Context, peer: String): String {
         val a = clean(name(ctx)); val b = clean(peer)
-        return "dm:" + listOf(a, b).sortedBy { it.lowercase() }.joinToString("|")
+        return "dm:" + listOf(a, b).sortedWith(compareBy<String>({ it.lowercase() }, { it })).joinToString("|")
     }
 
     fun group(name: String) = "grp:" + name.replace(Regex("[^\\w .-]"), "").trim().take(32)
 
-    private fun clean(n: String) = n.replace(Regex("[\\s|]"), "_").take(32)
+    private fun clean(n: String) = n.replace(CLEAN, "_").take(32).ifEmpty { "_" }
+    // Must match desktop room.js and the relay's room pattern.
+    private val CLEAN = Regex("[\\s|\\p{Cntrl}\\u00a0\\u2000-\\u200f\\u2028\\u2029\\ufeff]")
 
     /** Human label for a room id, as seen from this device. */
     fun label(ctx: Context, r: String): String = when {
@@ -160,7 +162,7 @@ object Room {
             val err = try {
                 val b = JSONObject().put("name", name).put("text", text).put("room", room).toString().toByteArray()
                 val (code, _) = Relay.request("POST", "/api/chat", b, "application/json")
-                if (code == 200) null else if (code == 429) "Slow down a little" else "Server answered $code"
+                if (code == 200) null else if (code == 429) "Slow down a little" else if (code == 400) "Message not sent: this chat name is not valid" else "Server answered $code"
             } catch (e: Exception) { "Can't reach the server" }
             if (err == null) start()
             main.post { done(err) }

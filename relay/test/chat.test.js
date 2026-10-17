@@ -44,7 +44,11 @@ server.listen(0, '127.0.0.1', async () => {
     assert.strictEqual(dm.room, 'dm:Ann|Bob');
     assert.ok((await call(port, 'GET', '/api/chat')).json.messages.every((x) => x.room === ''));
     assert.strictEqual((await call(port, 'GET', '/api/chat?room=dm:Ann%7CBob')).json.messages.length, 1);
-    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'x', room: 'bogus' })).json.room, '');
+    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'x', room: 'bogus' })).status, 400);
+    // An invalid private room never lands in, or reads from, the shared room.
+    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'leak', room: 'dm:Ann|Bo b' })).status, 400);
+    assert.strictEqual((await call(port, 'GET', '/api/chat?room=dm:Ann')).status, 400);
+    assert.ok((await call(port, 'GET', '/api/chat')).json.messages.every((x) => x.text !== 'leak'));
     // Users list: posters and `name` pings show up.
     await call(port, 'GET', '/api/chat/users?name=Cy');
     const names = (await call(port, 'GET', '/api/chat/users')).json.users.map((u) => u.name);

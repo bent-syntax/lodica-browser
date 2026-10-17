@@ -7,7 +7,8 @@ const events = new EventEmitter();
 const state = { messages: [], error: null, name: store.load("roomName", "") || "Me", room: "", chats: store.load("roomChats", []) || [] };
 let running = false, last = -1, gen = 0;
 
-const clean = n => String(n || "").replace(/[\s|]/g, "_").slice(0, 32);
+// Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
+const clean = n => String(n || "").replace(/[\s|\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u2028\u2029\ufeff]/g, "_").slice(0, 32) || "_";
 const roomQ = r => (r ? "&room=" + encodeURIComponent(r) : "");
 
 function changed() { events.emit("change"); }
@@ -50,7 +51,7 @@ function setName(v) {
 }
 
 /** Room id of the private chat between this device's name and [peer]. */
-function dm(peer) { return "dm:" + [clean(state.name), clean(peer)].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1).join("|"); }
+function dm(peer) { return "dm:" + [clean(state.name), clean(peer)].sort((a, b) => { const x = a.toLowerCase(), y = b.toLowerCase(); return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0; }).join("|"); }
 function group(name) { return "grp:" + String(name || "").replace(/[^\w .-]/g, "").trim().slice(0, 32); }
 function label(r) {
   if (!r) return "Everyone";
@@ -106,7 +107,7 @@ async function send(text) {
   try {
     const [status] = await relay.request("POST", "/api/chat", 15000, { name: state.name, text: String(text || ""), room: state.room });
     if (status === 200) { if (running) { /* the poll delivers it */ } return null; }
-    return status === 429 ? "Slow down a little" : "Server answered " + status;
+    return status === 429 ? "Slow down a little" : status === 400 ? "Message not sent: this chat name is not valid" : "Server answered " + status;
   } catch { return "Can't reach the server"; }
 }
 
