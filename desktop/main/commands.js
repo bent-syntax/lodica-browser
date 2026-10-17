@@ -341,6 +341,9 @@ function init(deps) {
   on("relay.link", async (domain, token) => { const r = await relay.link(str(domain), str(token)); if (r.ok) require("./net").applyProxy(); return r; });
   on("relay.unlink", () => { const r = relay.unlink(); require("./net").applyProxy(); return r; });
   on("relay.info", () => relay.linked());
+  on("gate.state", () => require("./gate").state());
+  on("gate.enroll", () => require("./gate").enroll());
+  on("gate.setHosts", list => { const g = require("./gate"); d.prefs.set("gatedHosts", [...new Set((Array.isArray(list) ? list : []).map(g.normalize).filter(Boolean))].slice(0, 50)); return g.state(); });
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("room.start", () => room.start());
   on("room.stop", () => { room.stop(); return true; });

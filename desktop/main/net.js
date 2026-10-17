@@ -88,6 +88,8 @@ function onBeforeSendHeaders(details, cb) {
   const tab = tabOf(details);
   const ua = prefs.agentFor(tab, details.resourceType === "mainFrame" || !tab ? hostOf(details.url) : tab.host);
   h["User-Agent"] = ua;
+  const gate = require("./gate").headerFor(hostOf(details.url));
+  if (gate) h["X-Lodica-Gate"] = gate;
   const hints = prefs.clientHints(ua);
   for (const k of Object.keys(h)) if (k.toLowerCase().startsWith("sec-ch-ua")) delete h[k];
   if (hints) for (const k of ["sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"]) h[k] = hints[k];
