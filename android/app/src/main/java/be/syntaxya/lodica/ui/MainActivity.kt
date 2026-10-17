@@ -65,7 +65,7 @@ class MainActivity : HostActivity() {
             }
         })
 
-        setContent { LodicaTheme { if (Relay.setupDone) LodicaRoot() else SetupScreen() } }
+        setContent { LodicaTheme { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */

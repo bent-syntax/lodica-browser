@@ -105,3 +105,11 @@ html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -
 
 body.home header { background: transparent; }
 body.home #fw { max-width: 640px; margin: 0 auto; }
+
+/* Short intro: the kite drifts in and the name fades up. Skipped for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  body.home .brand svg { animation: kite-in .6s cubic-bezier(.2,.8,.2,1) both; transform-origin: 60% 70%; }
+  body.home .brand span { animation: brand-in .5s .15s ease-out both; }
+}
+@keyframes kite-in { from { opacity: 0; transform: translate(-14px, 16px) rotate(-12deg) scale(.7); } to { opacity: 1; transform: none; } }
+@keyframes brand-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
