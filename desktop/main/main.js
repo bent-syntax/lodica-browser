@@ -87,6 +87,13 @@ function serveLodica(req) {
 
 // Bundled pdf.js viewer. Remote and local PDFs go through /f?u=<url> so the viewer reads them same-origin.
 function servePdf(req, u) {
+  if (u.pathname === "/docx") {
+    const target = u.searchParams.get("u") || "";
+    if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
+    return require("./docx").toPdf(target)
+      .then(pdf => new Response(pdf, { headers: { "Content-Type": "application/pdf" } }))
+      .catch(e => new Response("Could not open this document: " + e.message, { status: 500 }));
+  }
   if (u.pathname === "/f") {
     const target = u.searchParams.get("u") || "";
     if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
@@ -135,7 +142,7 @@ function handleArgs(argv) {
     else if (a.startsWith("--app=")) { openApp(a.slice(6)); opened = true; }
     else if (a.startsWith("--sheet=")) { if (openSheet(a.slice(8))) opened = true; }
     else if (/^https?:\/\//i.test(a)) { M.tabs.create({ url: a }); opened = true; }
-    else if (/\.pdf$/i.test(a) && fs.existsSync(a)) { M.tabs.create({ url: pathToFileURL(path.resolve(a)).toString() }); opened = true; }
+    else if (/\.(pdf|docx|svg)$/i.test(a) && fs.existsSync(a)) { M.tabs.create({ url: pathToFileURL(path.resolve(a)).toString() }); opened = true; }
     else if (/\.html?$/i.test(a) && fs.existsSync(a)) { M.tabs.create({ url: pathToFileURL(path.resolve(a)).toString() }); opened = true; }
   }
   return opened;

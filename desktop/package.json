@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
-    "@ghostery/adblocker-electron": "2.18.2"
+    "@ghostery/adblocker-electron": "2.18.2",
+    "mammoth": "1.13.0"
   },
   "devDependencies": {
     "electron": "44.6.0",
@@ -75,6 +76,21 @@
           "html"
         ],
         "name": "HTML document",
+        "role": "Viewer"
+      },
+      {
+        "ext": "pdf",
+        "name": "PDF document",
+        "role": "Viewer"
+      },
+      {
+        "ext": "docx",
+        "name": "Word document",
+        "role": "Viewer"
+      },
+      {
+        "ext": "svg",
+        "name": "SVG image",
         "role": "Viewer"
       }
     ],

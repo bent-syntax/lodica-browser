@@ -98,12 +98,12 @@ function createView(t) {
   } else wc.loadURL(pdfViewerUrl(t.url) || t.url).catch(() => {});
 }
 
-// Main-frame links to a .pdf open in the bundled viewer instead of Chromium's.
+// Main-frame links to a .pdf open in the bundled viewer instead of Chromium's. A .docx is converted to a PDF first.
 function pdfViewerUrl(url) {
   let u;
   try { u = new URL(url); } catch { return null; }
-  if (!/^(https?|file):$/.test(u.protocol) || !/\.pdf$/i.test(u.pathname)) return null;
-  const file = "lodica://pdf/f?u=" + encodeURIComponent(url);
+  if (!/^(https?|file):$/.test(u.protocol) || !/\.(pdf|docx)$/i.test(u.pathname)) return null;
+  const file = (/\.docx$/i.test(u.pathname) ? "lodica://pdf/docx?u=" : "lodica://pdf/f?u=") + encodeURIComponent(url);
   return "lodica://pdf/web/viewer.html?file=" + encodeURIComponent(file);
 }
 
