@@ -4,6 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import be.syntaxya.lodica.engine.QrImage
 import be.syntaxya.lodica.engine.Totp
 import be.syntaxya.lodica.engine.TotpEntry
 import be.syntaxya.lodica.engine.TotpMigration
@@ -103,6 +106,14 @@ fun AuthenticatorSection() {
         val found = remember(link) { TotpMigration.parse(link) }
         LaunchedEffect(found) { picked = found?.map { it.id }?.toSet().orEmpty() }
         val close = { importing = false; Ui.pendingMigration = null }
+        var noQr by remember { mutableStateOf(false) }
+        val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri != null) {
+                val text = QrImage.decode(ctx, uri)
+                noQr = text == null
+                if (text != null) link = text
+            }
+        }
         AlertDialog(
             onDismissRequest = close,
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
@@ -122,7 +133,9 @@ fun AuthenticatorSection() {
                                 focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
                             ),
                         )
-                        if (link.isNotBlank()) Text("No codes found in that link.", fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+                        TextButton(onClick = { pickImage.launch("image/*") }) { Text("Pick a screenshot of the QR code", color = Amber) }
+                        if (noQr) Text("No QR code found in that image.", fontSize = 12.sp)
+                        else if (link.isNotBlank()) Text("No codes found in that link.", fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
                     } else {
                         found.forEach { e ->
                             Row(
