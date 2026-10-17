@@ -49,6 +49,31 @@ async function request(method, url, timeout = 15000, json) {
   } finally { clearTimeout(t); }
 }
 
+/** Raw upload or download against the relay. [onProgress] gets the fraction of the body sent. Resolves to [status, Buffer]. */
+async function requestRaw(method, url, timeout = 60000, body, onProgress) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const headers = { Authorization: "Bearer " + TOKEN };
+    let payload;
+    if (body) {
+      headers["Content-Type"] = "application/octet-stream";
+      headers["Content-Length"] = String(body.length);
+      let sent = 0;
+      payload = new ReadableStream({
+        pull(c) {
+          if (sent >= body.length) return c.close();
+          const end = Math.min(body.length, sent + 64 * 1024);
+          c.enqueue(body.subarray(sent, end)); sent = end;
+          if (onProgress) onProgress(sent / body.length);
+        },
+      });
+    }
+    const r = await fetch(API + url, { method, headers, body: payload, duplex: payload ? "half" : undefined, signal: ctl.signal });
+    return [r.status, Buffer.from(await r.arrayBuffer())];
+  } finally { clearTimeout(t); }
+}
+
 async function fetchMail(alias, since) {
   const q = new URLSearchParams();
   if (alias) q.set("alias", alias);
@@ -297,7 +322,7 @@ function unlink() {
 module.exports = {
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
-  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, fetchMail, refresh, deleteMail,
+  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, fetchMail, refresh, deleteMail,
   forget, siteOf, newAlias, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };

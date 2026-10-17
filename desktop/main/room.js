@@ -111,6 +111,45 @@ async function send(text) {
   } catch { return "Can't reach the server"; }
 }
 
+const MAX_FILE = 5 * 1024 * 1024;
+const safeName = n => require("path").basename(String(n || "file")).replace(/[\u0000-\u001f\u007f-\u009f"*:<>?|\\/]/g, "_").replace(/^\.+/, "") || "file";
+
+/** Uploads a file from disk into the current chat. Resolves to an error string or null. */
+async function upload(filePath) {
+  const fs = require("fs");
+  let buf;
+  try {
+    const st = fs.statSync(filePath);
+    if (!st.isFile()) return "Not a file";
+    if (st.size > MAX_FILE) return "File is larger than 5 MB";
+    if (!st.size) return "File is empty";
+    buf = fs.readFileSync(filePath);
+  } catch { return "Can't read that file"; }
+  const name = safeName(filePath);
+  state.upload = { name, pct: 0 };
+  changed();
+  try {
+    const q = "?name=" + encodeURIComponent(name) + "&from=" + encodeURIComponent(state.name) + roomQ(state.room);
+    const [status, body] = await relay.requestRaw("POST", "/api/chat/file" + q, 120000, buf, f => { state.upload = { name, pct: Math.round(f * 100) }; changed(); });
+    if (status === 200) return null;
+    return status === 415 ? "This file type is not allowed" : status === 413 ? "File is larger than 5 MB" : status === 429 ? "Slow down a little" : status === 400 ? "Not sent: " + body.toString().slice(0, 60) : "Server answered " + status;
+  } catch { return "Can't reach the server"; }
+  finally { state.upload = null; changed(); }
+}
+
+/** Fetches an attachment. Images (verified by the relay) come back as a data URL for the preview; [save] writes the file to a path. */
+async function fetchFile(id, savePath) {
+  if (!/^[0-9a-f]{24}$/.test(String(id))) return null;
+  try {
+    const [status, buf] = await relay.requestRaw("GET", "/api/chat/file/" + id + (savePath ? "?dl=1" : ""), 60000);
+    if (status !== 200) return null;
+    if (savePath) { require("fs").writeFileSync(savePath, buf, { mode: 0o600 }); return true; }
+    const m = state.messages.find(x => x.file && x.file.id === id);
+    const type = m && m.file.type;
+    return /^image\/(png|jpeg|gif|webp)$/.test(type || "") ? "data:" + type + ";base64," + buf.toString("base64") : null;
+  } catch { return null; }
+}
+
 // Background check for the notifier: new messages from others in any room, while the chat is closed.
 let bgLast = -1;
 async function peek() {
@@ -134,4 +173,4 @@ async function peek() {
   return out;
 }
 
-module.exports = { state, events, start, stop, send, setName, select, addChat, removeChat, dm, group, label, discover, users, peek };
+module.exports = { state, events, start, stop, send, upload, fetchFile, safeName, setName, select, addChat, removeChat, dm, group, label, discover, users, peek };

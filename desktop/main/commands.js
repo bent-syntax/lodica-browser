@@ -348,6 +348,19 @@ function init(deps) {
   on("room.name", name => room.setName(str(name)));
   on("room.select", r => room.select(str(r)));
   on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
+  on("room.upload", async () => {
+    const { dialog } = require("electron");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Send a file to this chat (max 5 MB)", properties: ["openFile"] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    return room.upload(r.filePaths[0]);
+  });
+  on("room.preview", id => room.fetchFile(str(id)));
+  on("room.save", async (id, name) => {
+    const { dialog } = require("electron");
+    const r = await dialog.showSaveDialog(d.win(), { title: "Save attachment", defaultPath: room.safeName(str(name)) });
+    if (r.canceled || !r.filePath) return null;
+    return (await room.fetchFile(str(id), r.filePath)) ? true : false;
+  });
   on("room.remove", r => room.removeChat(str(r)));
   on("room.discover", () => room.discover());
   on("room.users", () => room.users());

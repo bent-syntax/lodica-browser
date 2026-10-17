@@ -18,15 +18,38 @@ function openRoom() {
       if (err) { L.ta.value = v; toast(err); }
     };
     L.ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+    L.prog = h("div", { class: "empty", style: "padding:0 12px;display:none" });
+    const attach = async () => {
+      const err = await inv("room.upload");
+      if (err) toast(err);
+    };
     return h("div", { class: "spage" },
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
-        L.tabs, L.note, L.thread,
-        h("div", { class: "ai-in" }, L.name, L.ta, ib("up", "Send", send))));
+        L.tabs, L.note, L.thread, L.prog,
+        h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 MB)", attach), ib("up", "Send", send))));
   });
   inv("room.discover").then((s) => { if (s) { ROOM.state = s; roomRender(); } });
   inv("room.start").then((s) => { if (s) ROOM.state = s; ROOM.L && (ROOM.L.name.value = ROOM.state.name || ""); roomRender(); });
   return ROOM.L;
+}
+
+// An attachment: never opened or run, only previewed (verified images) or saved by the user.
+function roomFile(f) {
+  const kb = f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + " KB" : (f.size / 1048576).toFixed(1) + " MB";
+  const box = h("div", { style: "display:flex;flex-direction:column;gap:4px" });
+  const save = h("button", { class: "btn", text: "Save " + f.name + " (" + kb + ")" });
+  save.addEventListener("click", () => inv("room.save", f.id, f.name).then((ok) => { if (ok) toast("Saved"); else if (ok === false) toast("Download failed"); }));
+  box.append(save);
+  if (/^image\//.test(f.type)) {
+    const view = h("button", { class: "btn", text: "Preview" });
+    view.addEventListener("click", () => inv("room.preview", f.id).then((u) => {
+      if (!u) return toast("Preview unavailable");
+      view.replaceWith(h("img", { src: u, alt: f.name, style: "max-width:100%;max-height:260px;border-radius:8px" }));
+    }));
+    box.append(view);
+  }
+  return box;
 }
 
 function roomLabel(r) {
@@ -80,12 +103,15 @@ function roomRender() {
   add.addEventListener("click", roomNew);
   L.tabs.append(add);
   L.note.textContent = ROOM.state.error || (ROOM.state.room ? "Anyone who knows this chat name can read it. Messages are not end-to-end encrypted and are kept 24 hours." : null) || "Everyone linked to this server is in this room. Messages are not end-to-end encrypted and are kept 24 hours.";
+  const up = ROOM.state.upload;
+  L.prog.style.display = up ? "" : "none";
+  L.prog.textContent = up ? "Uploading " + up.name + " " + up.pct + "%" : "";
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name;
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
-      mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.text));
+      mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : m.text));
   }
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;
 }
