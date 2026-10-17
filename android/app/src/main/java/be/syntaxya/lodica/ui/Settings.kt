@@ -84,6 +84,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.StorageController
+import be.syntaxya.lodica.engine.ChatService
 import be.syntaxya.lodica.engine.ChromeImport
 import be.syntaxya.lodica.engine.Chats
 import be.syntaxya.lodica.engine.Engine
@@ -209,6 +210,10 @@ fun SettingsScreen() {
 
 
             if (Relay.available) {
+                SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
+                    Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
+                }
+                if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                 Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link

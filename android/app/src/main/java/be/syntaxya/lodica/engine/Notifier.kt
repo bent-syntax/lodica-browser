@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit
 object Notifier {
     private const val UPDATES = "updates"
     private const val CHAT = "chat"
+    private const val CHAT_CH = "chat-high"
     private const val WORK = "lodica-notify"
     const val ACTION_OPEN = "be.syntaxya.lodica.OPEN_FROM_NOTIFICATION"
     const val EXTRA_TARGET = "target"
@@ -43,15 +44,15 @@ object Notifier {
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("notifier", Context.MODE_PRIVATE)
 
-    private fun post(ctx: Context, channel: String, channelName: String, tag: String, id: Int, title: String, text: String) {
+    private fun post(ctx: Context, channel: String, channelName: String, tag: String, id: Int, title: String, text: String, high: Boolean = false) {
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return
         if (Build.VERSION.SDK_INT >= 26) {
             ctx.getSystemService(NotificationManager::class.java)
-                .createNotificationChannel(NotificationChannel(channel, channelName, NotificationManager.IMPORTANCE_DEFAULT))
+                .createNotificationChannel(NotificationChannel(channel, channelName, if (high) NotificationManager.IMPORTANCE_HIGH else NotificationManager.IMPORTANCE_DEFAULT))
         }
         val open = Intent(ctx, MainActivity::class.java).setAction(ACTION_OPEN)
-            .putExtra(EXTRA_TARGET, channel)
+            .putExtra(EXTRA_TARGET, if (channel == CHAT_CH) CHAT else channel)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val pi = PendingIntent.getActivity(ctx, id, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         nm.notify(
@@ -64,6 +65,7 @@ object Notifier {
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setContentIntent(pi)
                 .setAutoCancel(true)
+                .apply { if (high) priority = NotificationCompat.PRIORITY_HIGH }
                 .build(),
         )
     }
@@ -89,10 +91,22 @@ object Notifier {
         post(ctx, UPDATES, "App updates", "update", 1, "Lodica $v is available", "Open Settings to download the new version.")
     }
 
+    /** Posts one notification for the messages in [room] that were not written by this device. */
+    internal fun chatArrived(ctx: Context, room: String, all: List<JSONObject>) {
+        if (Room.listening) return
+        val me = Room.name(ctx)
+        val msgs = all.filter { it.optString("name") != me }
+        if (msgs.isEmpty()) return
+        val text = msgs.takeLast(5).joinToString("\n") { it.optString("name") + ": " + it.optString("text") }
+        val where = if (room.isEmpty()) "server chat" else Room.label(ctx, room)
+        val title = if (msgs.size == 1) "New message in $where" else "${msgs.size} new messages in $where"
+        post(ctx, CHAT_CH, "Chat messages", "chat", 2 + (listOf("") + Room.savedChats(ctx)).indexOf(room).coerceAtLeast(0), title, text, high = true)
+    }
+
     private suspend fun checkChat(ctx: Context) {
+        if (ChatService.running) return
         val p = prefs(ctx)
         val last = p.getLong("chatLast", -1L)
-        val me = Room.name(ctx)
         var newLast = last
         // The id counter is shared by all rooms, so one cursor serves the shared room and every private chat or group.
         for ((n, r) in (listOf("") + Room.savedChats(ctx)).withIndex()) {
@@ -101,14 +115,9 @@ object Notifier {
             if (code != 200) continue
             val o = JSONObject(body)
             newLast = maxOf(newLast, o.optLong("last", last))
-            if (last < 0 || Room.listening) continue
+            if (last < 0) continue
             val arr = o.optJSONArray("messages")
-            val msgs = (0 until (arr?.length() ?: 0)).map { arr!!.getJSONObject(it) }.filter { it.optString("name") != me }
-            if (msgs.isEmpty()) continue
-            val text = msgs.takeLast(5).joinToString("\n") { it.optString("name") + ": " + it.optString("text") }
-            val where = if (r.isEmpty()) "server chat" else Room.label(ctx, r)
-            val title = if (msgs.size == 1) "New message in $where" else "${msgs.size} new messages in $where"
-            post(ctx, CHAT, "Chat messages", "chat", 2 + n, title, text)
+            chatArrived(ctx, r, (0 until (arr?.length() ?: 0)).map { arr!!.getJSONObject(it) })
         }
         if (newLast != last) p.edit().putLong("chatLast", newLast).apply()
     }

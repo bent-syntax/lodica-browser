@@ -45,6 +45,7 @@ object Prefs {
     var darkPages by mutableStateOf(true); private set
     var httpsOnly by mutableStateOf(true); private set
     var dummyLogin by mutableStateOf(true); private set
+    var liveChat by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
@@ -107,6 +108,7 @@ object Prefs {
         darkPages = sp.getBoolean("darkPages", true)
         httpsOnly = sp.getBoolean("httpsOnly", true)
         dummyLogin = sp.getBoolean("dummyLogin", true)
+        liveChat = sp.getBoolean("liveChat", true)
         dnsRules = sp.getString("dnsRules", "") ?: ""
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
@@ -253,6 +255,7 @@ object Prefs {
             }
         }
     }
+    fun updateLiveChat(v: Boolean) { liveChat = v; sp.edit().putBoolean("liveChat", v).apply() }
     fun updateDummyLogin(v: Boolean) { dummyLogin = v; sp.edit().putBoolean("dummyLogin", v).apply() }
     fun updateAutoArchiveDays(v: Int) { autoArchiveDays = v; sp.edit().putInt("autoArchiveDays", v).apply() }
     fun updateDesktopDefault(v: Boolean) { desktopDefault = v; sp.edit().putBoolean("desktopDefault", v).apply() }
