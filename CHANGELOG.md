@@ -2,7 +2,7 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
-## 1.7.0 (versionCode 28)
+## 1.6.5 (versionCode 28)
 - Device gate: the relay can require a per-device token (`X-Lodica-Gate` header, no cookie) for gated hosts. Enroll in the app, then approve the shown code on the server with `sudo lodica-approve <code>`. The relay token is shared, so the pairing code (8 characters, valid 10 minutes, single use) is the real secret.
 - Server chat: direct messages no longer leak into other chats, file upload, instant notifications (optional foreground service).
 - Redirect domain display (Settings, off by default): shows the originating domain with a marker for the real host; lock and security stay on the real site.
