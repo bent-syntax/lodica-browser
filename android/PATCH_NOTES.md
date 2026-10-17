@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.6.4
+- Server chat: "+" shows a list of available users to pick for a private chat (devices that used chat or opened it recently). Needs the relay redeployed.
+- Notifications on mobile now ask for permission at first start (without it chat and update notifications never showed). Chat notifications check about every 15 minutes.
+- DNS rules also work natively when the helper extension fails to redirect.
+- Menu: only your pinned quick settings show. "More" shows everything; tap or long-press an item to pin or unpin it.
+
 ## 1.6.3
 - Fix the chat crash on Android 16 (message time was formatted with a null context while drawing).
 

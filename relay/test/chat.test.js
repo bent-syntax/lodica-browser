@@ -13,6 +13,7 @@ const h = {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (req.method === 'POST') return chat.post(req, res, '1.2.3.4', h);
+  if (url.pathname === '/api/chat/users') return chat.users(req, res, url, h);
   chat.get(req, res, url, h);
 });
 
@@ -44,6 +45,10 @@ server.listen(0, '127.0.0.1', async () => {
     assert.ok((await call(port, 'GET', '/api/chat')).json.messages.every((x) => x.room === ''));
     assert.strictEqual((await call(port, 'GET', '/api/chat?room=dm:Ann%7CBob')).json.messages.length, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Ann', text: 'x', room: 'bogus' })).json.room, '');
+    // Users list: posters and `name` pings show up.
+    await call(port, 'GET', '/api/chat/users?name=Cy');
+    const names = (await call(port, 'GET', '/api/chat/users')).json.users.map((u) => u.name);
+    assert.ok(names.includes('Ann') && names.includes('Cy'));
     // Rate limit: more than 20 posts in the window are refused.
     let limited = 0;
     for (let i = 0; i < 25; i++) if ((await call(port, 'POST', '/api/chat', { text: 'x' })).status === 429) limited++;

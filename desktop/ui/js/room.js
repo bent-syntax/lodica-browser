@@ -48,7 +48,21 @@ function roomNew() {
   };
   target.addEventListener("keydown", (e) => { if (e.key === "Enter") open(); if (e.key === "Escape") done(); });
   const go = h("button", { class: "btn primary", text: "Open" }); go.addEventListener("click", open);
-  L.form = h("div", { style: "display:flex;gap:6px;padding:0 12px 6px" }, kind, target, go);
+  const pick = h("div", { style: "display:flex;gap:6px;flex-wrap:wrap" });
+  const showPick = () => { pick.style.display = kind.value === "dm" && pick.childNodes.length ? "flex" : "none"; };
+  kind.addEventListener("change", showPick);
+  inv("room.users").then((list) => {
+    for (const n of list || []) {
+      const b = h("button", { class: "btn", text: n, title: "Chat with " + n });
+      b.addEventListener("click", () => { target.value = n; open(); });
+      pick.append(b);
+    }
+    showPick();
+  });
+  showPick();
+  L.form = h("div", { style: "padding:0 12px 6px;display:flex;flex-direction:column;gap:6px" },
+    h("div", { style: "color:var(--muted);font-size:12px", text: "Pick a user, or type a device or group name." }), pick,
+    h("div", { style: "display:flex;gap:6px" }, kind, target, go));
   L.tabs.after(L.form);
   target.focus();
 }

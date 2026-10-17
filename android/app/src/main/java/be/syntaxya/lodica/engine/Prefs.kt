@@ -62,6 +62,8 @@ object Prefs {
     /** Sites where the "use dummy mail" chip is hidden. */
     /** The user-made theme, or null until one is saved. Used when [theme] is "custom". */
     var customTheme by mutableStateOf<CustomTheme?>(null); private set
+    /** Menu items pinned to the quick menu (keys from MenuSheet). */
+    var menuPins by mutableStateOf(setOf("new", "private", "find", "desktop", "downloads", "history", "settings")); private set
     var noDummy by mutableStateOf<Set<String>>(emptySet()); private set
     /** Home-screen search widget: hint text and corner shape ("pill", "rounded", "square"). */
     var widgetText by mutableStateOf(""); private set
@@ -117,6 +119,7 @@ object Prefs {
         customTheme = sp.getString("customTheme", null)?.split(',')?.takeIf { it.size == 5 && CustomTheme.valid(it[0], it[1], it[2], it[3]) }
             ?.let { CustomTheme(it[0], it[1], it[2], it[3], it[4].toLongOrNull() ?: 0L) }
         noDummy = sp.getStringSet("noDummy", emptySet())!!.toSet()
+        sp.getStringSet("menuPins", null)?.let { menuPins = it.toSet() }
         widgetText = sp.getString("widgetText", "") ?: ""
         widgetShape = sp.getString("widgetShape", "pill") ?: "pill"
         // The old "Force dark" switch is merged into "Dark pages".
@@ -211,6 +214,33 @@ object Prefs {
         a = a.substringAfter("://").substringBefore('/').trimEnd('.')
         if (a.isEmpty()) null else listOf(a, b)
     }
+    /**
+     * Applies the user's own names to a typed URL right here, so a redirect works even before the helper
+     * extension has its config. A bare IP target gets http, a host target keeps the URL's scheme, a full URL is used as is.
+     */
+    fun applyOwnDns(url: String): String {
+        if (dnsRules.isBlank()) return url
+        return runCatching {
+            val u = java.net.URI(url)
+            val h = u.host?.lowercase() ?: return url
+            val t = dnsPairs().firstOrNull { (n, _) ->
+                val x = n.lowercase()
+                when {
+                    x.startsWith("*.") -> h.endsWith(x.substring(1))
+                    x.startsWith(".") -> h.endsWith(x) || h == x.substring(1)
+                    else -> h == x
+                }
+            }?.get(1) ?: return url
+            val rest = (u.rawPath ?: "") + (u.rawQuery?.let { "?$it" } ?: "") + (u.rawFragment?.let { "#$it" } ?: "")
+            if (Regex("^https?://", RegexOption.IGNORE_CASE).containsMatchIn(t)) {
+                if (rest.isEmpty() || rest == "/") t else java.net.URI(t).resolve(rest).toString()
+            } else {
+                val bare = Regex("^[\\d.]+(:\\d+)?$").matches(t) || t.startsWith("[")
+                (if (bare) "http" else u.scheme) + "://" + t + rest
+            }
+        }.getOrDefault(url)
+    }
+
     /** True when the typed host matches one of the user's own names, so it loads instead of being searched. */
     fun isCustomHost(host: String): Boolean {
         val h = host.lowercase()
@@ -228,6 +258,10 @@ object Prefs {
     fun updateDesktopDefault(v: Boolean) { desktopDefault = v; sp.edit().putBoolean("desktopDefault", v).apply() }
     fun updateRouteVps(v: Boolean) { routeVps = v; sp.edit().putBoolean("routeVps", v).apply(); Helper.push() }
     fun updateCookieReject(v: Boolean) { cookieReject = v; sp.edit().putBoolean("cookieReject", v).apply(); Helper.push() }
+    fun togglePin(key: String) {
+        menuPins = if (key in menuPins) menuPins - key else menuPins + key
+        sp.edit().putStringSet("menuPins", menuPins).apply()
+    }
     fun toggleNoDummy(host: String) {
         val h = Relay.baseDomain(host)
         if (h.isBlank()) return
@@ -302,11 +336,11 @@ object Prefs {
         val t = input.trim()
         if (t.isEmpty()) return "about:blank"
         val schemes = listOf("http://", "https://", "about:", "file://", "data:", "view-source:", "moz-extension://", "resource://")
-        if (schemes.any { t.startsWith(it, ignoreCase = true) }) return t
+        if (schemes.any { t.startsWith(it, ignoreCase = true) }) return applyOwnDns(t)
         val looksLikeHost = !t.contains(' ') &&
             (Regex("^[\\w-]+(\\.[\\w-]+)+(:\\d+)?(/.*)?$").matches(t) || t.startsWith("localhost") ||
                 isCustomHost(t.substringBefore('/').substringBefore(':')))
-        if (looksLikeHost) return withLanguage("https://$t")
+        if (looksLikeHost) return withLanguage(applyOwnDns("https://$t"))
         val base = Helper.searchBase
         if (search == SearchEngine.LODICA && base != null && Relay.available && Relay.up)
             return base + "search.html?q=" + android.net.Uri.encode(t)

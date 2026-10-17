@@ -31,7 +31,7 @@ const DEFAULTS = {
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, ai: false, trusted: [],
-  siteOverrides: {}, quickSites: [], customTheme: null, autoTop: true, bgHistory: [], noDummy: [],
+  siteOverrides: {}, quickSites: [], dnsRules: [], menuPins: null, customTheme: null, autoTop: true, bgHistory: [], noDummy: [],
   theme: "system", vertTabs: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,
   bg: { type: "none", value: "", dim: 0, blur: 0 }, keybinds: {}, mouse: { middle: "closeTab", back: "back", forward: "forward" },
 };

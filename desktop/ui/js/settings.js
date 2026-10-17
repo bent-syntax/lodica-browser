@@ -78,6 +78,20 @@ function secBrowsing() {
     setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number)];
 }
 // 3. VPS
+// Own domain redirects: a typed name (or *.name) opens another address.
+function secDns() {
+  const rules = Array.isArray(S.prefs.dnsRules) ? S.prefs.dnsRules : [];
+  const save = (r) => { S.prefs.dnsRules = r; inv("prefs.set", "dnsRules", r); };
+  const out = [secHead("Domain redirects"),
+    h("div", { class: "set-note", text: "Send a name to another address, e.g. nas.home to 192.168.1.20:8080. *.example.com matches subdomains. Pages on that name load from the target." })];
+  rules.forEach((r, i) => {
+    const f = h("input", { type: "text", value: r.from || "", placeholder: "from", on: { change: (e) => { rules[i] = { ...rules[i], from: e.target.value.trim() }; save(rules); } } });
+    const t = h("input", { type: "text", value: r.to || "", placeholder: "to", on: { change: (e) => { rules[i] = { ...rules[i], to: e.target.value.trim() }; save(rules); } } });
+    out.push(setRow(null, null, h("span", { class: "dns-row" }, f, t, h("button", { class: "ib", title: "Remove", act: () => { save(rules.filter((_, j) => j !== i)); refreshSettings(); } }, ico("close")))));
+  });
+  out.push(setRow("Add redirect", null, ico("add"), () => { save(rules.concat({ from: "", to: "" })); refreshSettings(); }));
+  return out;
+}
 function secVps() {
   const link = () => {
     SET.vpsMsg = "";

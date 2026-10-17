@@ -5,10 +5,31 @@ function openMenu() {
   const t = S.tab, home = !!t.home, q = t.quality || S.prefs.quality || 720;
   return sheet({ key: "menu", cls: "menu" }, (b, L) => {
     const go = (fn) => () => { L.close(); fn(); };
-    const cell = (icon, label, fn, cls, dis) => {
-      const c = h("button", { class: "mcell" + (cls ? " " + cls : ""), title: label, act: go(fn) }, ico(icon), h("span", { text: label }));
-      if (dis) c.disabled = true;
-      return c;
+    const DEF_PINS = ["add", "private", "find", "download", "history", "settings"];
+    let pins = Array.isArray(S.prefs.menuPins) ? S.prefs.menuPins.slice() : DEF_PINS.slice();
+    let more = false;
+    const grid = h("div", { class: "mgrid" });
+    const cell = (icon, label, fn, cls, dis) => ({ key: icon, icon, label, fn, cls, dis });
+    const togglePin = (k) => {
+      pins = pins.includes(k) ? pins.filter((x) => x !== k) : pins.concat(k);
+      S.prefs.menuPins = pins; inv("prefs.set", "menuPins", pins); render();
+    };
+    let all = [];
+    const mk = (c) => {
+      const on = pins.includes(c.key);
+      const e = h("button", { class: "mcell" + (c.cls ? " " + c.cls : "") + (more && on ? " pinned" : ""),
+        title: more ? (on ? "Unpin " : "Pin ") + c.label : c.label,
+        act: more ? () => togglePin(c.key) : go(c.fn) },
+        ico(c.icon), h("span", { text: c.label }));
+      if (c.dis && !more) e.disabled = true;
+      e.oncontextmenu = (ev) => { ev.preventDefault(); togglePin(c.key); };
+      return e;
+    };
+    const render = () => {
+      grid.replaceChildren();
+      for (const c of all) if (more || pins.includes(c.key)) grid.append(mk(c));
+      grid.append(h("button", { class: "mcell", act: () => { more = !more; render(); } },
+        ico(more ? "close" : "apps"), h("span", { text: more ? "Done" : "More" })));
     };
     const top = h("div", { class: "mtop" },
       ib("back", "Back", go(() => inv("back")), t.canBack ? "" : "dis"),
@@ -43,7 +64,9 @@ function openMenu() {
       cell("speed", sp !== 1 ? "Speed " + sp + "x" : "Video speed", () => openVideoSpeed(), sp !== 1 ? "amber" : "", home),
       cell("hd", "Quality " + q + "p", () => openVideoQuality(), "", home),
       cell("undo", "Closed tabs", () => openClosed()));
-    add(b, [top, h("div", { class: "divider" }), h("div", { class: "mgrid" }, cells)]);
+    all = cells;
+    render();
+    add(b, [top, h("div", { class: "divider" }), grid]);
   });
 }
 

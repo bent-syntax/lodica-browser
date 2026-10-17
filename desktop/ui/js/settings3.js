@@ -23,7 +23,7 @@ function setTabBody(tab) {
     case "keys": return secKeys();
     case "identity": return secIdentity();
     case "about": return secAbout();
-    default: return [secSearch(), secBrowsing(), secVps(), secData(), secAi(), secApps(), secExtensions()];
+    default: return [secSearch(), secBrowsing(), secDns(), secVps(), secData(), secAi(), secApps(), secExtensions()];
   }
 }
 

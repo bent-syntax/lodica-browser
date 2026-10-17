@@ -9,7 +9,7 @@ A privacy-focused browser for Android (GeckoView) and desktop (Electron), with v
 | `android/` | Android app (Kotlin, Jetpack Compose, GeckoView). Package id `be.syntaxya.lodica`. |
 | `desktop/` | Desktop app (Electron). |
 
-Both apps share one version number (currently 1.6.3).
+Both apps share one version number (currently 1.6.4).
 
 ## Highlights
 

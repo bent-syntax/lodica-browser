@@ -21,11 +21,37 @@ let blocker = null, deps = null, sessions = [];
 const hostOf = u => { try { return new URL(u).hostname; } catch { return ""; } };
 const isLocal = h => !h || h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || IP.test(h) || !h.includes(".");
 
+// Own domain redirects: [{from, to}], same matching as the Android app.
+function ownDns(url) {
+  const rules = prefs.p.dnsRules;
+  if (!Array.isArray(rules) || !rules.length) return null;
+  try {
+    const u = new URL(url), h = u.hostname.toLowerCase();
+    const r = rules.find(r => {
+      const x = String(r && r.from || "").trim().toLowerCase();
+      if (!x) return false;
+      if (x.startsWith("*.")) return h.endsWith(x.slice(1));
+      if (x.startsWith(".")) return h.endsWith(x) || h === x.slice(1);
+      return h === x;
+    });
+    const t = r && String(r.to || "").trim();
+    if (!t) return null;
+    const rest = u.pathname + u.search + u.hash;
+    if (/^https?:\/\//i.test(t)) return rest === "/" ? t : new URL(rest, t).toString();
+    const bare = /^[\d.]+(:\d+)?$/.test(t) || t.startsWith("[");
+    return (bare ? "http:" : u.protocol) + "//" + t + rest;
+  } catch { return null; }
+}
+
 function tabOf(details) { try { return deps.tabs.byContents(details.webContents); } catch { return null; } }
 
 function onBeforeRequest(details, cb) {
   const tab = tabOf(details);
   const host = hostOf(details.url);
+  if (details.resourceType === "mainFrame" && /^https?:/.test(details.url)) {
+    const to = ownDns(details.url);
+    if (to && to !== details.url) return cb({ redirectURL: to });
+  }
   if (details.resourceType === "mainFrame" && prefs.p.httpsOnly && details.url.startsWith("http://") && !isLocal(host)) {
     return cb({ redirectURL: "https://" + details.url.slice(7) });
   }

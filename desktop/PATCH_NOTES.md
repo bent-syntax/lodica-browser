@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.6.4
+- Server chat: "+" shows a list of available users to pick for a private chat. Needs the relay redeployed.
+- Chat notifications check every minute, update notifications every 30 minutes.
+- New Settings, Domain redirects: send a name (or *.name) to another address.
+- Menu: only pinned quick settings show. "More" shows everything; click or right-click an item to pin or unpin it.
+
 ## 1.6.3
 - Version bump to match Android 1.6.3 (no desktop changes).
 

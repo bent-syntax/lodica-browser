@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
@@ -60,7 +61,7 @@ fun RoomScreen() {
     val state = rememberLazyListState()
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { Room.loadChats(ctx); Room.discover(ctx); Room.start(); onDispose { Room.stop() } }
+    DisposableEffect(Unit) { Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -152,13 +153,24 @@ private fun NewChatDialog(onDone: () -> Unit) {
                     TextButton({ isGroup = false }) { Text("Private", color = if (!isGroup) Amber else Muted) }
                     TextButton({ isGroup = true }) { Text("Group", color = if (isGroup) Amber else Muted) }
                 }
+                if (!isGroup && Room.users.isNotEmpty()) {
+                    Text("Available users", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                    LazyColumn(Modifier.heightIn(max = 180.dp)) {
+                        items(Room.users.toList(), key = { it }) { u ->
+                            Text(
+                                u, color = if (u == target) Amber else Mist, fontSize = 15.sp,
+                                modifier = Modifier.fillMaxWidth().clickable { target = u }.padding(vertical = 10.dp),
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     target, { target = it.take(32) }, singleLine = true, colors = fieldColors,
                     label = { Text(if (isGroup) "Group name" else "Device name", color = Muted) },
                 )
                 Text(
                     if (isGroup) "Others join by adding a group with the same name."
-                    else "Use the name that device shows under \"Your name\".",
+                    else "Pick a user above, or type the name that device shows under \"Your name\".",
                     color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp),
                 )
             }

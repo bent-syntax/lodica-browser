@@ -31,10 +31,11 @@ const pendingArgs = [];
 
 /** Desktop notifications: a new browser version, and new chat messages while the chat is closed. */
 function startNotifier(m) {
-  let seenVersion = "";
+  let seenVersion = "", lastCheck = 0;
   const tick = async () => {
     if (!Notification.isSupported() || !m.relay.available) return;
-    try {
+    if (Date.now() - lastCheck > 30 * 60 * 1000) try {
+      lastCheck = Date.now();
       const st = await m.updater.check();
       if (st.state === "available" && st.version !== seenVersion) {
         seenVersion = st.version;
@@ -55,7 +56,7 @@ function startNotifier(m) {
     } catch {}
   };
   setTimeout(tick, 15000);
-  setInterval(tick, 5 * 60 * 1000);
+  setInterval(tick, 60 * 1000);
 }
 
 function serveLodica(req) {

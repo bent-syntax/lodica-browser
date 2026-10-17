@@ -80,6 +80,25 @@ object Room {
     }
 
     /** Adds private chats others have started with this device's name. */
+    /** Device names seen on this server (including this one), newest first. Filled by [loadUsers]. */
+    val users = mutableStateListOf<String>()
+
+    /** Registers this device by name and fetches the list of names to pick a private chat from. */
+    fun loadUsers(ctx: Context) {
+        if (!Relay.available) return
+        Relay.scope.launch {
+            runCatching {
+                val me = name(ctx)
+                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8"))
+                if (code != 200) return@runCatching
+                val arr = JSONObject(body).optJSONArray("users") ?: return@runCatching
+                val names = (0 until arr.length()).map { arr.getJSONObject(it).optString("name") }
+                    .filter { it.isNotBlank() && clean(it) != clean(me) }
+                main.post { users.clear(); users.addAll(names) }
+            }
+        }
+    }
+
     fun discover(ctx: Context) {
         if (!Relay.available) return
         Relay.scope.launch {

@@ -350,6 +350,7 @@ function init(deps) {
   on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
   on("room.remove", r => room.removeChat(str(r)));
   on("room.discover", () => room.discover());
+  on("room.users", () => room.users());
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 

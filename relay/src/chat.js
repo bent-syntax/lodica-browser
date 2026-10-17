@@ -3,6 +3,7 @@
 // Messages live in memory only (last 200, 24 h) and are delivered in real time by long polling:
 //   GET  /api/chat?after=<id>&wait=<seconds>&room=<room>  -> { messages: [{id,name,text,at,room}], last }
 //   POST /api/chat  { name, text, room }                  -> the stored message
+//   GET  /api/chat/users?name=<me>                        -> {users: [{name, at}]}; a name given counts as presence
 //   GET  /api/chat/rooms                                  -> [{room, at, count}] for the non-default rooms
 // A room is just a label: "" is the shared server room, "dm:<a>|<b>" a private chat between two device
 // names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
@@ -20,6 +21,13 @@ let seq = 0;
 const log = [];
 const waiters = new Set();
 const rate = new Map();
+const seen = new Map(); // device name -> last time it was seen in chat
+const SEEN_TTL = 7 * 24 * 3600e3;
+
+function touch(name) {
+  seen.set(name, Date.now());
+  if (seen.size > 500) { const old = [...seen].sort((a, b) => a[1] - b[1])[0]; seen.delete(old[0]); }
+}
 
 function prune(now = Date.now()) {
   while (log.length && (log.length > MAX_LOG || now - log[0].at > TTL)) log.shift();
@@ -86,6 +94,7 @@ async function post(req, res, ip, h) {
   const name = clean(b?.name, NAME_MAX) || 'Anonymous';
   if (!text) return h.sendText(req, res, 400, 'empty message');
   const msg = { id: ++seq, name, text, at: Date.now(), room: cleanRoom(b?.room) };
+  touch(name);
   log.push(msg);
   prune();
   wake();
@@ -105,7 +114,17 @@ function rooms(req, res, h) {
   h.sendJson(req, res, 200, { rooms: [...by.values()] });
 }
 
-/** Test hook. */
-function reset() { seq = 0; log.length = 0; rate.clear(); for (const w of [...waiters]) w.done([]); }
+/** GET /api/chat/users: device names seen in chat during the last week. A `name` query counts as presence. */
+function users(req, res, url, h) {
+  const me = (url.searchParams.get('name') || '').replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX);
+  if (me) touch(me);
+  const now = Date.now();
+  for (const [n, at] of seen) if (now - at > SEEN_TTL) seen.delete(n);
+  const list = [...seen].map(([name, at]) => ({ name, at })).sort((a, b) => b.at - a.at);
+  h.sendJson(req, res, 200, { users: list });
+}
 
-module.exports = { get, post, rooms, reset };
+/** Test hook. */
+function reset() { seq = 0; log.length = 0; rate.clear(); seen.clear(); for (const w of [...waiters]) w.done([]); }
+
+module.exports = { get, post, rooms, users, reset };

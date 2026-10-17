@@ -37,6 +37,17 @@ abstract class HostActivity : FragmentActivity(), PromptHost {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Prompts.host = this
+        askNotificationsOnce()
+    }
+
+    /** Android 13+ shows no notification (chat, updates, reminders) until this is granted. Asked once. */
+    private fun askNotificationsOnce() {
+        if (android.os.Build.VERSION.SDK_INT < 33) return
+        val p = getSharedPreferences("notifier", MODE_PRIVATE)
+        if (p.getBoolean("asked", false)) return
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return
+        p.edit().putBoolean("asked", true).apply()
+        requestAndroid(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)) {}
     }
 
     override fun onResume() {

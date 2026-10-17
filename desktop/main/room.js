@@ -91,6 +91,16 @@ async function discover() {
   return state;
 }
 
+/** Device names seen on the server, without this device. Also registers this device as present. */
+async function users() {
+  try {
+    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name), 15000);
+    if (status !== 200) return [];
+    const me = clean(state.name);
+    return (JSON.parse(body).users || []).map(u => u.name).filter(n => n && clean(n) !== me);
+  } catch { return []; }
+}
+
 /** Posts a message; resolves to an error string or null. */
 async function send(text) {
   try {
@@ -106,6 +116,8 @@ async function peek() {
   if (!relay.available || running) return [];
   const out = [];
   let newLast = bgLast;
+  await users(); // presence, so others can pick this device
+  await discover(); // private chats others started with this name
   for (const r of ["", ...state.chats]) {
     try {
       const [status, body] = await relay.request("GET", `/api/chat?after=${Math.max(bgLast, 0)}${roomQ(r)}`, 15000);
@@ -121,4 +133,4 @@ async function peek() {
   return out;
 }
 
-module.exports = { state, events, start, stop, send, setName, select, addChat, removeChat, dm, group, label, discover, peek };
+module.exports = { state, events, start, stop, send, setName, select, addChat, removeChat, dm, group, label, discover, users, peek };

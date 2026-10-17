@@ -10,6 +10,9 @@ import android.os.PersistableBundle
 import android.widget.Toast
 import be.syntaxya.lodica.engine.WebApps
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +61,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -123,96 +130,106 @@ fun MenuSheet() {
             HorizontalDivider(Modifier.padding(vertical = 8.dp), color = GraphiteHigh)
 
             val items = buildList {
-                add(MenuItem(Icons.Rounded.Add, "New tab") {
+                add(MenuItem("new", Icons.Rounded.Add, "New tab") {
                     TabManager.open(TabManager.HOME); Ui.screen = Screen.Browser
                 })
-                add(MenuItem(Icons.Rounded.VisibilityOff, "Private tab", Coral) {
+                add(MenuItem("private", Icons.Rounded.VisibilityOff, "Private tab", Coral) {
                     TabManager.open(TabManager.HOME, private = true); Ui.screen = Screen.Browser
                 })
-                add(MenuItem(Icons.Rounded.Search, "Find in page") { Ui.finding = true })
-                add(MenuItem(Icons.Rounded.DesktopWindows, if (tab?.desktop == true) "Mobile site" else "Desktop site",
+                add(MenuItem("find", Icons.Rounded.Search, "Find in page") { Ui.finding = true })
+                add(MenuItem("desktop", Icons.Rounded.DesktopWindows, if (tab?.desktop == true) "Mobile site" else "Desktop site",
                     if (tab?.desktop == true) Amber else Mist) {
                     tab?.let { TabManager.setDesktop(it, !it.desktop) }
                 })
-                add(MenuItem(Icons.Rounded.Download, "Downloads") {
+                add(MenuItem("downloads", Icons.Rounded.Download, "Downloads") {
                     runCatching {
                         ctx.startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     }
                 })
-                add(MenuItem(Icons.Rounded.History, "History") { Ui.screen = Screen.History })
-                add(MenuItem(Icons.Rounded.AutoAwesome, "AI chats") { Ui.screen = Screen.Chats })
-                add(MenuItem(Icons.Rounded.Key, "Passwords") { Ui.screen = Screen.Passwords })
-                add(MenuItem(Icons.Rounded.Settings, "Settings") { Ui.screen = Screen.Settings })
+                add(MenuItem("history", Icons.Rounded.History, "History") { Ui.screen = Screen.History })
+                add(MenuItem("aichats", Icons.Rounded.AutoAwesome, "AI chats") { Ui.screen = Screen.Chats })
+                add(MenuItem("passwords", Icons.Rounded.Key, "Passwords") { Ui.screen = Screen.Passwords })
+                add(MenuItem("settings", Icons.Rounded.Settings, "Settings") { Ui.screen = Screen.Settings })
                 if (Relay.available) {
-                    if (tab != null && tab.url != TabManager.HOME) add(MenuItem(Icons.Rounded.AlternateEmail, "Hidden email", Amber) {
+                    if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", Icons.Rounded.AlternateEmail, "Hidden email", Amber) {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()
                     })
-                    add(MenuItem(Icons.Rounded.Inbox, "Inbox") { Ui.screen = Screen.Inbox })
+                    add(MenuItem("inbox", Icons.Rounded.Inbox, "Inbox") { Ui.screen = Screen.Inbox })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy
-                        add(MenuItem(Icons.Rounded.AlternateEmail, if (off) "Dummy mail off" else "Dummy mail on", if (off) Amber else Mist) {
+                        add(MenuItem("dummy", Icons.Rounded.AlternateEmail, if (off) "Dummy mail off" else "Dummy mail on", if (off) Amber else Mist) {
                             Prefs.toggleNoDummy(tab.host)
                         })
                     }
                 }
                 if (tab != null && tab.url != TabManager.HOME) {
-                    add(MenuItem(Icons.AutoMirrored.Rounded.Article, "Reader") {
+                    add(MenuItem("reader", Icons.AutoMirrored.Rounded.Article, "Reader") {
                         if (!Helper.reader(tab)) Toast.makeText(ctx, "Page not ready", Toast.LENGTH_SHORT).show()
                     })
                     val lite = tab.host in Prefs.lite
-                    add(MenuItem(Icons.Rounded.DataSaverOn, if (lite) "Full site" else "Lite mode", if (lite) Amber else Mist) {
+                    add(MenuItem("lite", Icons.Rounded.DataSaverOn, if (lite) "Full site" else "Lite mode", if (lite) Amber else Mist) {
                         Prefs.toggleLite(tab.host); tab.session?.reload()
                     })
-                    add(MenuItem(Icons.Rounded.Alarm, "Remind me") { Ui.picker = Picker.Remind })
+                    add(MenuItem("remind", Icons.Rounded.Alarm, "Remind me") { Ui.picker = Picker.Remind })
                     val compat = Prefs.isCompat(tab.host)
-                    add(MenuItem(Icons.Rounded.Build, if (compat) "Compat on" else "Compat mode", if (compat) Amber else Mist) {
+                    add(MenuItem("compat", Icons.Rounded.Build, if (compat) "Compat on" else "Compat mode", if (compat) Amber else Mist) {
                         TabManager.setCompat(tab, !compat)
                     })
-                    if (!tab.private) add(MenuItem(Icons.Rounded.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
+                    if (!tab.private) add(MenuItem("install", Icons.Rounded.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
                 }
-                add(MenuItem(Icons.Rounded.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
+                add(MenuItem("speed", Icons.Rounded.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
                     if (Prefs.speed != 1f) Amber else Mist) { Ui.picker = Picker.Speed })
                 if (tab != null) {
                     val q = Prefs.qualityFor(tab.host)
-                    add(MenuItem(Icons.Rounded.HighQuality, "Quality ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
+                    add(MenuItem("quality", Icons.Rounded.HighQuality, "Quality ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
                         Ui.picker = Picker.Quality
                     })
                 }
                 if (TabManager.recentlyClosed().isNotEmpty()) {
-                    add(MenuItem(Icons.Rounded.RestoreFromTrash, "Closed tabs") { Ui.picker = Picker.Closed })
+                    add(MenuItem("closed", Icons.Rounded.RestoreFromTrash, "Closed tabs") { Ui.picker = Picker.Closed })
                 }
                 if (tab != null && !tab.private && tab.url != TabManager.HOME) {
-                    add(MenuItem(Icons.Rounded.Inventory2, "Archive tab") { TabManager.archive(tab) })
+                    add(MenuItem("archive", Icons.Rounded.Inventory2, "Archive tab") { TabManager.archive(tab) })
                 }
             }
-            items.chunked(4).forEach { row ->
+            var all by remember { mutableStateOf(false) }
+            val shown = if (all) items else items.filter { it.key in Prefs.menuPins }
+            val cells = shown + MenuItem("more", if (all) Icons.Rounded.ExpandLess else Icons.Rounded.MoreHoriz, if (all) "Fewer" else "More") { all = !all }
+            cells.chunked(4).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
                     row.forEach { m ->
-                        MenuCell(m, Modifier.weight(1f)) { m.action(); close() }
+                        val pin = if (all && m.key != "more") m.key in Prefs.menuPins else false
+                        MenuCell(m, Modifier.weight(1f), pin,
+                            onLong = if (all && m.key != "more") ({ Prefs.togglePin(m.key) }) else null,
+                        ) { if (m.key == "more") m.action() else { m.action(); close() } }
                     }
                     repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
+            if (all) Text("Long-press an item to pin it to the quick menu.", color = Muted, fontSize = 11.sp,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         }
     }
 }
 
 private class MenuItem(
+    val key: String,
     val icon: ImageVector,
     val label: String,
     val tint: androidx.compose.ui.graphics.Color = Mist,
     val action: () -> Unit,
 )
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun MenuCell(m: MenuItem, modifier: Modifier, onClick: () -> Unit) {
+private fun MenuCell(m: MenuItem, modifier: Modifier, pinned: Boolean = false, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 12.dp),
+        modifier.clip(RoundedCornerShape(14.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(m.icon, null, tint = m.tint, modifier = Modifier.size(24.dp))
         Spacer(Modifier.height(6.dp))
-        Text(m.label, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(if (pinned) "\u2605 " + m.label else m.label, color = if (pinned) Amber else Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
