@@ -14,6 +14,10 @@ const PDF_DIR = path.join(ROOT, "pdf");
 const ICON = path.join(ROOT, "build", "icon.png");
 const PRIVATE = "lodica-private";
 
+// Windows groups taskbar/notifications by this id; it matches the installer's appId so the Start-menu shortcut and toasts say "Lodica".
+app.setName("Lodica");
+if (process.platform === "win32") app.setAppUserModelId("be.syntaxya.lodica");
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
   process.exit(0);
