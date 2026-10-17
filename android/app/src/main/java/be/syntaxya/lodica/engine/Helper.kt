@@ -92,6 +92,7 @@ object Helper {
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search == SearchEngine.LODICA) "" else Prefs.search.query)
                 .put("theme", themeJson())
+                .put("gate", Gate.config())
         )
     }
 

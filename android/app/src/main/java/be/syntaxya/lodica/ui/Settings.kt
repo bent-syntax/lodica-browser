@@ -318,6 +318,7 @@ fun SettingsScreen() {
                     } else {
                         LinkRow("Server chat") { Ui.screen = Screen.Room }
                         LinkRow("Inbox") { Ui.screen = Screen.Inbox }
+                        GateSection()
                         LinkRow("Disconnect server") { Relay.disconnect() }
                     }
                     LinkRow("Run server setup") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
