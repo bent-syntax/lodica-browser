@@ -42,6 +42,11 @@ object Notifier {
             .enqueueUniquePeriodicWork(WORK, ExistingPeriodicWorkPolicy.KEEP, req)
     }
 
+    fun enabled(ctx: Context) = NotificationManagerCompat.from(ctx).areNotificationsEnabled()
+
+    /** Posts a sample chat notification so the user can see whether notifications reach them. */
+    fun test(ctx: Context) = post(ctx, CHAT_CH, "Chat messages", "test", 90, "Lodica test notification", "If you can read this, chat notifications work.", high = true)
+
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("notifier", Context.MODE_PRIVATE)
 
     private fun post(ctx: Context, channel: String, channelName: String, tag: String, id: Int, title: String, text: String, high: Boolean = false) {
@@ -94,8 +99,9 @@ object Notifier {
     /** Posts one notification for the messages in [room] that were not written by this device. */
     internal fun chatArrived(ctx: Context, room: String, all: List<JSONObject>) {
         if (Room.listening) return
-        val me = Room.name(ctx)
-        val msgs = all.filter { it.optString("name") != me }
+        // Only hide own messages when the user chose a name; the default "Me" is shared by every device.
+        val me = Room.name(ctx).takeIf { Room.hasName(ctx) }
+        val msgs = all.filter { me == null || it.optString("name") != me }
         if (msgs.isEmpty()) return
         val text = msgs.takeLast(5).joinToString("\n") { it.optString("name") + ": " + it.optString("text") }
         val where = if (room.isEmpty()) "server chat" else Room.label(ctx, room)

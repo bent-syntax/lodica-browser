@@ -221,10 +221,6 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                 color = if (home || locked) Muted else Mist,
                 fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
-            if (!home && !locked && Prefs.showRedirectOrigin && tab!!.origin.isNotEmpty()) {
-                Spacer(Modifier.width(6.dp))
-                Text("\u21AA " + tab.host, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
             val routed = !home && !locked && Relay.routed(tab!!.url)
             if (tab?.private == true || routed) Spacer(Modifier.weight(1f))
             if (routed) {

@@ -33,7 +33,6 @@ function mainBar() {
     lead,
     t.private ? h("span", { class: "tag", text: "Private" }) : null,
     h("span", { class: "txt" + (txt ? "" : " muted"), text: txt || placeholder() }),
-    t.origin ? h("span", { class: "tag", title: "Redirected to " + t.host, text: "\u21AA " + t.host }) : null,
     t.routed ? h("button", { class: "ib amber", title: "Routed through VPS", act: () => toast("Routed through VPS") }, ico("vpn")) : null);
   const tc = h("span", { class: "tc" + (t.private ? " priv" : ""), text: cap(S.tabs.count || 0, ":D") });
   return [shield, pill,

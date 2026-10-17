@@ -128,6 +128,9 @@ object Room {
     fun name(ctx: Context): String =
         ctx.getSharedPreferences("room", Context.MODE_PRIVATE).getString("name", null)?.takeIf { it.isNotBlank() } ?: "Me"
 
+    fun hasName(ctx: Context): Boolean =
+        ctx.getSharedPreferences("room", Context.MODE_PRIVATE).getString("name", null)?.isNotBlank() == true
+
     fun setName(ctx: Context, v: String) {
         ctx.getSharedPreferences("room", Context.MODE_PRIVATE).edit().putString("name", v.trim().take(32)).apply()
     }

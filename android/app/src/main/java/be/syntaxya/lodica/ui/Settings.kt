@@ -84,6 +84,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.StorageController
+import be.syntaxya.lodica.engine.Notifier
 import be.syntaxya.lodica.engine.ChatService
 import be.syntaxya.lodica.engine.ChromeImport
 import be.syntaxya.lodica.engine.Chats
@@ -213,6 +214,9 @@ fun SettingsScreen() {
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
                 }
+                if (!Notifier.enabled(ctx)) LinkRow("Notifications are off: open system settings") {
+                    runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                } else LinkRow("Send a test notification") { Notifier.test(ctx) }
                 if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                 Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
@@ -266,7 +270,7 @@ fun SettingsScreen() {
                 }
                 3 -> {
                     Section("Blocking")
-            SwitchRow("Show original domain after redirects", "Address bar shows where you came from, with the real host beside it. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
+            SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
 

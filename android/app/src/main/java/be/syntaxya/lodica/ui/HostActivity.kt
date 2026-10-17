@@ -53,6 +53,7 @@ abstract class HostActivity : FragmentActivity(), PromptHost {
     override fun onResume() {
         super.onResume()
         Prompts.host = this
+        be.syntaxya.lodica.engine.ChatService.start(this)
     }
 
     override fun onDestroy() {
