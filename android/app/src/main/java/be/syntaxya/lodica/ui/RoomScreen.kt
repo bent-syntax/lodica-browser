@@ -185,7 +185,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
             Text(m.text, color = Mist, fontSize = 14.sp)
             Text(
-                android.text.format.DateUtils.formatDateTime(null, m.at, android.text.format.DateUtils.FORMAT_SHOW_TIME),
+                java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
                 color = Muted, fontSize = 11.sp,
             )
         }

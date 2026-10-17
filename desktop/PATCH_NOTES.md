@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.6.3
+- Version bump to match Android 1.6.3 (no desktop changes).
+
 ## 1.6.2
 - The search box on the home screen uses the search engine chosen in Settings.
 - Desktop notifications for a new browser version and for new messages while the chat is closed (checked every 5 minutes).
