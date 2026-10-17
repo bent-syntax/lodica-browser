@@ -88,7 +88,10 @@ class ChatService : Service() {
                 if (code != 200) throw java.io.IOException("status $code")
                 val o = JSONObject(body)
                 val first = last < 0
-                last = maxOf(last, o.optLong("last", last))
+                val srv = o.optLong("last", last)
+                // The relay keeps ids in memory: after a restart they start again from 0, so a cursor ahead of the server is stale.
+                if (srv < last) { last = srv; sp.edit().putLong("chatLast", srv).apply(); continue }
+                last = srv
                 if (sp.getLong("chatLast", -1L) < last) sp.edit().putLong("chatLast", last).apply()
                 if (first) continue
                 val arr = o.optJSONArray("messages") ?: continue

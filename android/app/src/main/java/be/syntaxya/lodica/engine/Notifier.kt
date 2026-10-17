@@ -122,7 +122,10 @@ object Notifier {
             val (code, body) = Relay.request("GET", "/api/chat?after=${maxOf(last, 0)}$rq")
             if (code != 200) continue
             val o = JSONObject(body)
-            newLast = maxOf(newLast, o.optLong("last", last))
+            val srv = o.optLong("last", last)
+            // Ids restart from 0 when the relay restarts, so a cursor ahead of the server is stale: resync without notifying.
+            if (srv < last) { newLast = srv; continue }
+            newLast = maxOf(newLast, srv)
             if (last < 0) continue
             val arr = o.optJSONArray("messages")
             chatArrived(ctx, r, (0 until (arr?.length() ?: 0)).map { arr!!.getJSONObject(it) })
