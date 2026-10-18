@@ -17,7 +17,7 @@ function init(deps) {
   const { app } = require("electron");
   const relay = require("./relay");
   env = {
-    api: relay.API, token: relay.token, available: relay.available, version: app.getVersion(),
+    api: relay.API, token: relay.token, available: relay.available, version: require("../package.json").lodicaVersion || app.getVersion(),
     platform: process.platform === "win32" ? "win" : process.platform === "linux" ? "linux" : "",
     dir: () => app.getPath("downloads"),
   };

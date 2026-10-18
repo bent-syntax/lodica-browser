@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.8.0.1
+- Authenticator codes now fill in by themselves on the site they belong to. The first time a site asks for a code you choose which account to use; it is remembered. "Don't ask here" turns it off for that site. Change the site under Settings, Authenticator, globe button.
+
 ## 1.8.0
 - Settings redesigned: sidebar with find (press "/"), 13 pages grouped Browsing, Look & tabs, Privacy & security, Data & controls, Account, About.
 

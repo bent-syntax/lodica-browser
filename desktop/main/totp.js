@@ -92,10 +92,14 @@ function addImage(file) {
 
 function list() {
   const now = Date.now();
-  return all().map(a => ({ id: a.id, label: a.label, code: code(a, now), digits: a.digits, period: a.period, left: a.period - Math.floor(now / 1000) % a.period }));
+  return all().map(a => ({ id: a.id, label: a.label, code: code(a, now), digits: a.digits, period: a.period, left: a.period - Math.floor(now / 1000) % a.period, host: a.host || "" }));
 }
 function remove(id) { const l = all(), i = l.findIndex(x => x.id === id); if (i < 0) return false; l.splice(i, 1); return persist(); }
 function rename(id, label) { const a = all().find(x => x.id === id); if (!a || !label) return false; a.label = String(label).slice(0, 80); return persist(); }
+const base = h => require("./relay").baseDomain(String(h || "").toLowerCase().replace(/^www\./, ""));
+/** The account tied to a site, or null. */
+function forHost(host) { const b = base(host); return b ? all().find(a => a.host && base(a.host) === b) || null : null; }
+function setHost(id, host) { const a = all().find(x => x.id === id); if (!a) return false; a.host = String(host || "").trim().toLowerCase().replace(/^www\./, "").slice(0, 120); return persist(); }
 function copy(id) { const a = all().find(x => x.id === id); return a ? code(a) : null; }
 
-module.exports = { list, add, addImage, remove, rename, copy, code, fromText };
+module.exports = { forHost, setHost, list, add, addImage, remove, rename, copy, code, fromText };

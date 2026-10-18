@@ -174,7 +174,7 @@ function initPayload() {
     prefs: d.prefs.p, engines: d.prefs.ENGINES, agents: d.prefs.AGENTS, languages: d.prefs.LANGUAGES,
     qualities: d.prefs.QUALITIES, tab: d.tabs.info(t),
     tabs: { count: o.filter(x => !x.private).length, privateCount: o.filter(x => x.private).length },
-    version: app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
+    version: require("../package.json").lodicaVersion || app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
     relay: { available: !!d.relay.available, domain: d.relay.DOMAIN }, ai: d.ai.status(),
     locked: d.tabs.isLocked() && o.some(x => x.private), pinSet: d.vault.pinSet(),
   };
@@ -426,6 +426,7 @@ function init(deps) {
   });
   on("auth.remove", id => (authOk() ? require("./totp").remove(str(id)) : false));
   on("auth.rename", (id, label) => (authOk() ? require("./totp").rename(str(id), str(label)) : false));
+  on("auth.setHost", (id, host) => (authOk() ? require("./totp").setHost(str(id), str(host)) : false));
   on("auth.copy", id => {
     const c = authOk() ? require("./totp").copy(str(id)) : null;
     if (c) clipboard.writeText(c);

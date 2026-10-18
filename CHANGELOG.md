@@ -4,7 +4,8 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
 ## 1.8.0.1 (versionCode 40)
 
-- Lodica Search now uses the app theme from the first paint (colours are remembered between visits), including result text and links. This is the 1.8.0 Android build with this fix; desktop is unchanged.
+- Lodica Search now uses the app theme from the first paint (colours are remembered between visits), including result text and links. This is the 1.8.0 Android build with this fix.
+- Desktop: authenticator codes fill in automatically on the site they are tied to, asking once which account to use. The desktop build also ships as a Flatpak.
 
 ## 1.8.0 (versionCode 39)
 - Android: Lodica Search uses the new logo and follows the app theme. Helper extension version 1.8.

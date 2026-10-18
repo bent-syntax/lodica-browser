@@ -149,6 +149,26 @@ function forgetTab(tab) {
   for (const [a, t] of owners) if (t === tab) owners.delete(a);
 }
 
+let totpAsking = false;
+/** A verification-code field got focus: fill the authenticator code saved for this site, or ask which account to use. */
+async function totpFill(tab, host) {
+  const totp = require("./totp"), { ui, vault } = deps;
+  if (tab.private || (vault.pinSet() && !vault.state().unlocked)) return;
+  const send2 = a => { const v = totp.copy(a.id); if (v) for (const f of live(tab)) send(f, { type: "code", value: v }); };
+  const hit = totp.forHost(host);
+  if (hit) return send2(hit);
+  const b = Relay.baseDomain(host);
+  if (!b || prefs.p.totpSkip.includes(b) || totpAsking) return;
+  const list = totp.list();
+  if (!list.length) return;
+  totpAsking = true;
+  try {
+    const pick = await ui.prompt({ kind: "select", title: "Authenticator code for " + b, message: "Pick the account to fill here. It is used automatically on this site from now on.", options: list.map(a => ({ label: a.label, value: a.id })), cancel: "Don't ask here" });
+    if (pick == null) { prefs.set("totpSkip", prefs.p.totpSkip.concat(b)); return; }
+    if (totp.setHost(String(pick), b)) send2(totp.forHost(b));
+  } finally { totpAsking = false; }
+}
+
 const sameFrame = (a, b) => a === b || (a.processId === b.processId && a.routingId === b.routingId);
 function entryOf(tab, frame) { return live(tab).find(f => sameFrame(f.frame, frame)); }
 
@@ -177,6 +197,7 @@ async function onMessage(tab, frame, m) {
       break;
     }
     case "filled": { const e = entryOf(tab, frame); if (e) filled(tab, e, !!m.ok); break; }
+    case "codefield": totpFill(tab, host); break;
     case "coded": ui.toast("Code filled in"); break;
     case "challenge":
       if (m.host && !prefs.isCompat(m.host)) {

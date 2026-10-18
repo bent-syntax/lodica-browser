@@ -2,6 +2,7 @@
   "name": "lodica-desktop",
   "productName": "Lodica",
   "version": "1.8.0",
+  "lodicaVersion": "1.8.0.1",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
@@ -12,7 +13,8 @@
     "icon": "node scripts/gen-icon.js",
     "start": "npm run config && electron .",
     "dist": "npm run config && npm run icon && electron-builder --win nsis portable --x64",
-    "dist:linux": "npm run config && npm run icon && electron-builder --linux AppImage deb --x64"
+    "dist:linux": "npm run config && npm run icon && electron-builder --linux AppImage deb --x64",
+    "dist:flatpak": "npm run config && npm run icon && electron-builder --linux flatpak --x64"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
@@ -96,6 +98,14 @@
         "role": "Viewer"
       }
     ],
+    "flatpak": {
+      "runtime": "org.freedesktop.Platform",
+      "runtimeVersion": "24.08",
+      "sdk": "org.freedesktop.Sdk",
+      "base": "org.electronjs.Electron2.BaseApp",
+      "baseVersion": "24.08",
+      "finishArgs": ["--share=ipc", "--socket=x11", "--socket=wayland", "--socket=pulseaudio", "--share=network", "--device=dri", "--filesystem=xdg-download", "--talk-name=org.freedesktop.Notifications"]
+    },
     "linux": {
       "icon": "build/icon.png",
       "category": "Network",

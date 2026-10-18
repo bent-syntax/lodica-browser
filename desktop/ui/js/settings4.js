@@ -55,7 +55,11 @@ async function openAuthenticator() {
         b.append(h("div", { class: "row" }, ico("key"),
           h("button", { class: "main click", act: async () => { await inv("auth.copy", r.id); toast("Code copied"); } },
             h("div", { class: "t1", text: r.label }),
-            h("div", { class: "t2", text: shown + " · " + r.left + "s" })),
+            h("div", { class: "t2", text: shown + " · " + r.left + "s · " + (r.host ? "auto-fills on " + r.host : "copy only") })),
+          ib("globe", "Auto-fill site", async () => {
+            const site = await textDialog({ title: "Auto-fill site", message: "Site, e.g. github.com. Leave empty for copy only.", value: r.host, ok: "Save" });
+            if (site != null) { await inv("auth.setHost", r.id, String(site).trim()); load(); }
+          }),
           ib("edit", "Rename", async () => {
             const name = await textDialog({ title: "Rename", value: r.label, ok: "Save" });
             if (name != null && String(name).trim()) { await inv("auth.rename", r.id, String(name).trim()); load(); }

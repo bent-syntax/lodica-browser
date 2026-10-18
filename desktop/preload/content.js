@@ -39,6 +39,7 @@ const lodicaMain = () => {
   let lastText = null; // last focused text input, used when nothing matches
   let seen = false;    // this frame has reported a field
   let login = false;   // this frame has reported a sign-in page
+  let codeAsked = false;
   let code = null;     // { value, until }: a code that arrived before its field showed up
   let user = "";       // last username typed or filled in this frame
   let sent = "";       // last login reported, so one submit isn't offered twice
@@ -239,6 +240,7 @@ const lodicaMain = () => {
     const el = target(e);
     if (isText(el)) lastText = el;
     if (isLogin(el)) reportLogin();
+    if (isCodeField(el) && !codeAsked) { codeAsked = true; connect(); if (port) port.postMessage({ type: "codefield", host: location.hostname }); }
     if (!isEmailField(el)) return;
     last = el;
     found();
