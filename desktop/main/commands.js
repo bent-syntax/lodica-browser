@@ -95,7 +95,9 @@ function toggleDesktop() {
 }
 
 async function engineSuggest(text) {
-  const eng = d.prefs.ENGINES[d.prefs.p.search || "DUCKDUCKGO"];
+  // Lodica Search has no suggestions of its own: use the fallback engine chosen in Settings.
+  const key = d.prefs.p.search;
+  const eng = d.prefs.ENGINES[!key || key === "LODICA" ? d.prefs.p.searchFallback : key] || d.prefs.ENGINES.DUCKDUCKGO;
   if (!eng?.suggest || cur()?.private || text.length < 2) return [];
   try {
     const r = await net.fetch(eng.suggest.replace("%s", encodeURIComponent(text)), { signal: AbortSignal.timeout(1500) });

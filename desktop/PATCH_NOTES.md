@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.8.0.2
+- Search suggestions and the no-server search now use the engine chosen in Settings (or the fallback engine) instead of always DuckDuckGo.
+- Two-finger swipe left/right goes back/forward.
+- Themed Lodica Search and start page.
+
 ## 1.8.0.1
 - Authenticator codes now fill in by themselves on the site they belong to. The first time a site asks for a code you choose which account to use; it is remembered. "Don't ask here" turns it off for that site. Change the site under Settings, Authenticator, globe button.
 

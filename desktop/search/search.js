@@ -81,8 +81,7 @@ function setup() {
     // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
     if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
     // No server connected: skip Lodica Search and use a plain web search so the browser works on its own.
-    if (noServer) location.href = "https://duckduckgo.com/?q=" + encodeURIComponent(v);
-    else location.href = href({ q: v, c: cat });
+    if (!noServer) location.href = href({ q: v, c: cat });
   });
   for (const a of $("tabs").querySelectorAll("a")) {
     const c = a.dataset.c;
