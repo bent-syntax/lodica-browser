@@ -99,29 +99,6 @@ function secDns() {
   out.push(setRow("Add redirect", null, ico("add"), () => { save(rules.concat({ from: "", to: "" })); refreshSettings(); }));
   return out;
 }
-// Device gate: pairing code for the server owner, and the hosts that receive the gate header.
-async function enrollDevice() {
-  const r = await inv("gate.enroll");
-  if (!r || !r.ok) { toast({ text: (r && r.error) || "Couldn't enroll" }); return; }
-  const mins = Math.max(1, Math.round((r.expires - Date.now()) / 60000));
-  confirmDialog({ title: "Pairing code: " + r.code, message: "Single use, valid " + mins + " min. On your server run: sudo lodica-approve " + r.code, ok: "Done" });
-  // Poll until the server owner approves the code, then say so.
-  const until = r.expires;
-  const tick = async () => {
-    if (Date.now() > until) return;
-    const st = await inv("gate.status", r.code);
-    if (st === "approved") { toast({ text: "This device is enrolled. Gated sites will let it through." }); return; }
-    if (st === "expired") return;
-    setTimeout(tick, 3000);
-  };
-  setTimeout(tick, 3000);
-}
-function editGated() {
-  textDialog({ title: "Gated hosts", message: "Comma separated, e.g. files.example.com. Subdomains match too.", ok: "Save", value: (S.prefs.gatedHosts || []).join(", ") }).then((v) => {
-    if (v == null) return;
-    inv("gate.setHosts", v.split(/[\s,]+/).filter(Boolean)).then((st) => { S.prefs.gatedHosts = st.hosts; refreshSettings(); });
-  });
-}
 function secVps() {
   const link = () => {
     SET.vpsMsg = "";
@@ -149,9 +126,7 @@ function secVps() {
     const d = S.relay && S.relay.domain;
     out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
       setRow("Inbox", null, ico("chevron", "chev"), () => openInbox()),
-      setRow("Enroll this device", "Let this device through your server's device gate", ico("chevron", "chev"), enrollDevice),
-      setRow("Gated hosts", (S.prefs.gatedHosts || []).length ? S.prefs.gatedHosts.join(", ") : "None. Hosts listed here get this device's gate token",
-        "Edit", editGated));
+      setRow("Authenticate this browser", "Open your server's gate page and approve the code on the server", ico("chevron", "chev"), () => inv("gate.open")));
   } else {
     out.push(setRow("Link your server", "Enter the domain and token from the Lodica relay installer", ico("chevron", "chev"), link));
   }

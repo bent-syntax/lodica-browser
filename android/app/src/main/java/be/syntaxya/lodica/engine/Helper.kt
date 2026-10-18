@@ -94,7 +94,6 @@ object Helper {
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
                 .put("fallback", Prefs.searchFallback.query)
                 .put("theme", themeJson())
-                .put("gate", Gate.config())
         )
     }
 

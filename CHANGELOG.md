@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.6 (versionCode 35)
+- Gate rebuilt: no in-browser enroll. Open `https://lodica.<domain>/gate`, get a code, run `sudo lodica-approve <CODE>` on the server. The relay sets a `lodica_gate` cookie on the parent domain; approval writes it into the `.htaccess` of warre/bent/admin/support. Only approved browsers pass. Needs the relay updated (new `gate-page.html`) and `lodica-approve` reinstalled.
+- Removed the gate header extension code and the "gated hosts" setting on Android and desktop; Settings now has "Authenticate this browser".
+- Android: search page no longer auto-navigates to the fallback engine; it shows an error with a link instead. Helper extension version 1.4. Root cause of the DuckDuckGo flip is not confirmed on a device.
+- Desktop: home page uses the new logo mark as the "L" of "Lodica".
+- Not device-tested; Flatpak not built.
+
 ## 1.7.5 (versionCode 34)
 - Android: search no longer flips to DuckDuckGo after showing results; gate token is sent on the first requests after start; gated hosts normalised.
 - Android: helper extension version bumped (1.3) so existing installs actually load the fixed search and gate scripts; before this, phones kept the old extension.

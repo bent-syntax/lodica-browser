@@ -14,6 +14,7 @@ const updates = require('./updates');
 const chat = require('./chat');
 const chatfile = require('./chatfile');
 const enroll = require('./enroll');
+const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
 
 // Exim delivers every recipient to one maildir (tainted local parts cannot name
 // directories); the alias comes from the Envelope-to header Exim adds per delivery.
@@ -44,7 +45,7 @@ function send(req, res, status, body, headers = {}) {
   res.end(req.method === 'HEAD' || status === 204 ? undefined : buf);
 }
 const sendText = (req, res, status, text, extra) => send(req, res, status, text + '\n', { 'Content-Type': 'text/plain; charset=utf-8', ...extra });
-const sendJson = (req, res, status, obj) => send(req, res, status, JSON.stringify(obj), { 'Content-Type': 'application/json; charset=utf-8' });
+const sendJson = (req, res, status, obj, extra) => send(req, res, status, JSON.stringify(obj), { 'Content-Type': 'application/json; charset=utf-8', ...extra });
 
 function authed(req, res) {
   const ip = clientIp(req);
@@ -385,14 +386,20 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return chat.users(req, res, url, { sendJson, sendText, readBody });
   }
-  if (p === '/enroll') {
-    if (m !== 'POST') return not('POST');
-    if (!authed(req, res)) return;
-    return enroll.post(req, res, clientIp(req), { sendJson, sendText, readBody });
-  }
-  if ((r = /^\/enroll\/([^/]+)$/.exec(p))) {
+  if (p === '/gate') {
     if (m !== 'GET') return not('GET, HEAD');
-    if (!authed(req, res)) return;
+    return send(req, res, 200, gatePage, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'",
+      'X-Frame-Options': 'DENY', 'Referrer-Policy': 'no-referrer',
+    });
+  }
+  if (p === '/gate/start') {
+    if (m !== 'POST') return not('POST');
+    return enroll.start(req, res, clientIp(req), { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/gate\/state\/([^/]+)$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
     return enroll.status(req, res, clientIp(req), decodeURIComponent(r[1]).slice(0, 32), { sendJson, sendText, readBody });
   }
   if ((r = /^\/pending\/([^/]+)$/.exec(p))) {

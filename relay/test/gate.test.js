@@ -13,13 +13,13 @@ fs.writeFileSync(path.join(tmp, 'token'), 'relay-token\n');
 fs.writeFileSync(path.join(dirA, '.htaccess'), '<FilesMatch "^x$">\nRequire all denied\n</FilesMatch>\n');
 
 const h = {
-  sendJson: (q, s, st, o) => { s.writeHead(st, { 'content-type': 'application/json' }); s.end(JSON.stringify(o)); },
+  sendJson: (q, s, st, o, x) => { s.writeHead(st, { 'content-type': 'application/json', ...x }); s.end(JSON.stringify(o)); },
   sendText: (q, s, st, t) => { s.writeHead(st); s.end(t); },
   readBody: (q) => new Promise((ok) => { const c = []; q.on('data', (d) => c.push(d)); q.on('end', () => ok(Buffer.concat(c))); }),
 };
 const server = http.createServer((req, res) => {
+  if (req.method === 'POST') return enroll.start(req, res, '1.1.1.1', h);
   if (req.headers.authorization !== 'Bearer relay-token') return h.sendText(req, res, 401, 'no');
-  if (req.method === 'POST') return enroll.post(req, res, '1.1.1.1', h);
   enroll.take(req, res, '2.2.2.2', decodeURIComponent(req.url.split('/')[2]), h);
 });
 
@@ -49,12 +49,12 @@ const py = (cmd, ...args) => new Promise((ok) => {
   c.stdout.on('data', (d) => (stdout += d)); c.stderr.on('data', (d) => (stderr += d));
   c.on('close', (status) => ok({ status, stdout, stderr }));
 });
-const post = (body) => new Promise((ok) => { const r = http.request({ port: server.address().port, method: 'POST', path: '/enroll', headers: { authorization: 'Bearer relay-token' } }, (s) => { let d = ''; s.on('data', (c) => (d += c)); s.on('end', () => ok(JSON.parse(d))); }); r.end(JSON.stringify(body)); });
+const post = () => new Promise((ok) => { const r = http.request({ port: server.address().port, method: 'POST', path: '/gate/start', headers: { host: 'lodica.example.org' } }, (x) => { let d = ''; x.on('data', (c) => (d += c)); x.on('end', () => ok({ ...JSON.parse(d), token: /lodica_gate=([0-9a-f]{64})/.exec(x.headers['set-cookie'][0])[1] })); }); r.end(); });
 
 server.listen(0, '127.0.0.1', async () => {
   try {
-    const t1 = 'a1'.repeat(32), t2 = 'b2'.repeat(32);
-    const c1 = (await post({ token: t1, label: 'bent desktop' })).code, c2 = (await post({ token: t2 })).code;
+    const a1 = await post(), a2 = await post();
+    const t1 = a1.token, t2 = a2.token, c1 = a1.code, c2 = a2.code;
     let r = await py('approve', c1, 'bent-desktop'); assert.strictEqual(r.status, 0, r.stderr);
     assert.ok(!r.stdout.includes(t1), 'token never printed');
     r = await py('approve', c2, 'warre-phone'); assert.strictEqual(r.status, 0, r.stderr);

@@ -43,7 +43,7 @@ const DIRECT_HOSTS = [
 ];
 const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i;
 
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", gate: { token: "", hosts: [] } };
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "" };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -108,20 +108,6 @@ function liteSite(details) {
   if (!doc) return "";
   return cfg.lite.some((d) => doc === d || doc.endsWith("." + d)) ? doc : "";
 }
-
-// Device gate: the per-device token goes only to the hosts the user listed.
-browser.webRequest.onBeforeSendHeaders.addListener(async (details) => {
-  // The app's config can arrive after the first requests of a cold start; wait for it so they carry the token.
-  await configured;
-  const g = cfg.gate;
-  if (!g.token || !g.hosts.length) return {};
-  let host;
-  try { host = new URL(details.url).hostname.toLowerCase(); } catch { return {}; }
-  if (!g.hosts.some((d) => host === d || host.endsWith("." + d))) return {};
-  const headers = details.requestHeaders.filter((x) => x.name.toLowerCase() !== "x-lodica-gate");
-  headers.push({ name: "X-Lodica-Gate", value: g.token });
-  return { requestHeaders: headers };
-}, { urls: ["<all_urls>"] }, ["blocking", "requestHeaders"]);
 
 browser.webRequest.onBeforeRequest.addListener((details) => {
   if (!cfg.lite.length || !HEAVY.has(details.type)) return {};
@@ -252,10 +238,6 @@ function connect() {
         engine: /^https:\/\/[^\s]*%s/.test(String(msg.engine || "")) ? String(msg.engine) : "",
         fallback: /^https:\/\/[^\s]*%s/.test(String(msg.fallback || "")) ? String(msg.fallback) : "",
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
-        gate: {
-          token: msg.gate && /^[0-9a-f]{64}$/.test(String(msg.gate.token || "")) ? String(msg.gate.token) : "",
-          hosts: msg.gate && Array.isArray(msg.gate.hosts) ? msg.gate.hosts.map((h) => String(h).toLowerCase()) : [],
-        },
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
       browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain, legacy });

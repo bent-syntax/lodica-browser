@@ -2,7 +2,8 @@
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Roboto", sans-serif; -webkit-text-size-adjust: 100%; }
 a { color: inherit; text-decoration: none; }
 header { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 12px 14px 0; border-bottom: 1px solid var(--raised); }
-.brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 18px; margin-bottom: 10px; }
+.brand .mark { width: 22px; height: 28px; }
+.brand { display: flex; align-items: center; gap: 2px; font-weight: 600; font-size: 18px; margin-bottom: 10px; }
 #f { display: flex; align-items: center; background: var(--raised); border-radius: 24px; padding: 0 6px 0 16px; border: 1px solid transparent; }
 #f:focus-within { border-color: var(--amber); }
 #q { flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 16px; }
@@ -16,7 +17,7 @@ header { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 1
 main { padding: 8px 14px 40px; max-width: 720px; margin: 0 auto; }
 body.home header { border-bottom: 0; padding-top: 22vh; }
 body.home .brand { justify-content: center; font-size: 28px; margin-bottom: 18px; }
-body.home .brand svg { width: 44px; height: 48px; }
+body.home .brand svg { width: 31px; height: 40px; }
 body.home #tabs { display: none; }
 #note { color: var(--muted); font-size: 13px; margin: 6px 0; }
 #note a { color: var(--link); }

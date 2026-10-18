@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.7.6
+- Authenticate this browser: Settings opens your server's gate page; approve the code on the server with `lodica-approve`. Replaces gated hosts and enroll.
+- Search: never jumps to another engine by itself; shows an error with a link instead.
+
 ## 1.7.5
 - Search: results no longer flip to DuckDuckGo a moment after they appear.
 - Device gate: the first requests after the app starts now wait for the config, so they carry the gate token. Gated hosts are normalised (scheme, path, port and wildcard stripped).

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lodica: authenticate this browser</title>
+<style>
+:root{color-scheme:dark light;--bg:#14110f;--fg:#f3ece4;--mut:#a39a90;--amb:#f0a830;--card:#211c18}
+@media(prefers-color-scheme:light){:root{--bg:#faf6f0;--fg:#241d17;--mut:#6f655b;--card:#fff}}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+main{max-width:34rem;padding:1.5rem}h1{font-size:1.4rem;margin:0 0 .5rem}p{color:var(--mut)}
+code,.cmd{font-family:ui-monospace,monospace}.cmd{display:block;background:var(--card);padding:.9rem 1rem;border-radius:.6rem;color:var(--fg);word-break:break-all;user-select:all;border:1px solid #8884}
+.code{font:700 2rem ui-monospace,monospace;letter-spacing:.1em;color:var(--amb)}
+button{background:var(--amb);color:#201808;border:0;border-radius:.6rem;padding:.7rem 1.1rem;font:inherit;font-weight:600;cursor:pointer}
+.ok{color:#5dc27a;font-weight:600}.bad{color:#e5674f}
+</style></head><body><main>
+<h1>Authenticate this browser</h1>
+<p>Warre, Bent, Admin and Support only open for browsers the server owner has approved. This page proves it is really you.</p>
+<div id="s"><button id="go">Start</button></div>
+<script>
+const s=document.getElementById('s');
+function put(h){s.innerHTML=h}
+function esc(t){return String(t).replace(/[^A-Z0-9-]/g,'')}
+async function start(){
+  put('<p>Requesting a code…</p>');
+  let r;try{r=await fetch('/gate/start',{method:'POST',credentials:'include'})}catch(e){return put('<p class="bad">Cannot reach the server.</p><button id="go">Retry</button>')}
+  if(!r.ok){return put('<p class="bad">'+(r.status==429?'Too many requests, wait a minute.':'Request failed ('+r.status+').')+'</p><button id="go">Retry</button>')}
+  const d=await r.json(),c=esc(d.code);
+  put('<p>Your code</p><div class="code">'+c+'</div><p>On the server, run this command as the owner:</p><code class="cmd">sudo lodica-approve '+c+'</code><p id="st">Waiting for approval… (code valid 10 minutes)</p>');
+  const t=setInterval(async()=>{
+    try{const x=await (await fetch('/gate/state/'+c)).json();
+      if(x.state==='approved'){clearInterval(t);put('<p class="ok">Approved. This browser can now open the gated sites.</p>')}
+      else if(x.state==='expired'){clearInterval(t);put('<p class="bad">Code expired.</p><button id="go">New code</button>')}
+    }catch(e){}
+  },2500);
+}
+s.addEventListener('click',e=>{if(e.target.id==='go')start()});
+</script></main></body></html>

@@ -340,8 +340,12 @@ async function run() {
     .catch(() => ({ error: "Search unavailable" }));
   if (!data || data.error) {
     const st = await statePromise;
-    if (st && st.api === false) { location.replace((st.engine || st.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
-    $("results").replaceChildren(el("div", { class: "ans" }, (data && data.error) || "Search unavailable"));
+    const msg = el("div", { class: "ans" }, (data && data.error) || "Search unavailable");
+    if (st && st.api === false) {
+      const fb = (st.engine || st.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q));
+      msg.append(" ", el("a", { href: fb }, "Search with the fallback engine"));
+    }
+    $("results").replaceChildren(msg);
     return;
   }
   if (!cached) cachePut({ data });

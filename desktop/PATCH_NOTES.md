@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.7.6
+- Authenticate this browser: opens your server's gate page; approve the code on the server with `lodica-approve`. Replaces gated hosts and enroll.
+- Home page: the new logo mark is now the "L" of "Lodica".
+
 ## 1.7.5
 - The window and taskbar icon now follow the theme, including when the system light/dark theme changes, and apply to every open window.
 - Chat: the cursor resyncs when the relay restarts and message ids reset (1.7.4).

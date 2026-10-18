@@ -1,15 +1,15 @@
 'use strict';
-// Device enrollment. A client posts its device-gate token and gets a short single-use pairing code back:
-//   POST /enroll          { token: <64 hex>, label?: <text> } -> { code, expires }
-//   GET  /pending/<code>  -> { token, label, at }  (the pending entry is consumed: single use)
-// Both routes need the relay bearer token. Entries live in memory for 10 minutes. The relay token is shared
-// by every install, so the pairing code is the real secret: it is random, short-lived, single use, and wrong
-// guesses are rate limited per address.
+// Device enrollment through a website. No app feature: any browser opens https://lodica.<domain>/gate,
+//   POST /gate/start         (public) -> { code, expires }, and a Set-Cookie lodica_gate=<token> on the parent domain
+//   GET  /gate/state/<code>  (public) -> { state: pending | approved | expired }
+//   GET  /pending/<code>     (relay bearer) -> { token, label, at }  consumed; used by `lodica-approve` on the server
+// The cookie is useless until the server owner runs `sudo lodica-approve <code>`, which adds its token to the
+// allow list of the gated hosts. Entries live in memory for 10 minutes. The code is random, short-lived and
+// single use; wrong guesses and new requests are rate limited per address.
 const crypto = require('crypto');
 
 const TTL = 10 * 60e3;
 const MAX_PENDING = 50;
-const TOKEN_RE = /^[0-9a-f]{64}$/;
 const CODE_RE = /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/;
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 symbols, no I/O/0/1
 const FAIL_N = 10, FAIL_WINDOW = 10 * 60e3;
@@ -42,20 +42,25 @@ function cleanLabel(v) {
   return typeof v === 'string' ? v.replace(/[^\w .-]/g, '').trim().slice(0, 32) : '';
 }
 
-/** POST /enroll */
-async function post(req, res, ip, h) {
+function parentDomain(host) {
+  const m = /^lodica\.([a-z0-9-]+(?:\.[a-z0-9-]+)+)(?::\d+)?$/i.exec(typeof host === 'string' ? host : '');
+  return m ? m[1].toLowerCase() : '';
+}
+
+/** POST /gate/start: makes a device token, remembers it under a pairing code, hands the token to the browser as a cookie. */
+function start(req, res, ip, h) {
   if (!hit(posts, ip, ENROLL_N, ENROLL_WINDOW)) return h.sendText(req, res, 429, 'slow down', { 'Retry-After': '60' });
-  let b;
-  try { b = JSON.parse((await h.readBody(req, 1024)).toString('utf8')); }
-  catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
-  if (typeof b?.token !== 'string' || !TOKEN_RE.test(b.token)) return h.sendText(req, res, 400, 'bad token');
+  const domain = parentDomain(req.headers.host);
+  if (!domain) return h.sendText(req, res, 400, 'open this page on lodica.<your domain>');
   prune();
   if (pending.size >= MAX_PENDING) return h.sendText(req, res, 429, 'too many pending requests', { 'Retry-After': '60' });
   let code;
   do { code = newCode(); } while (pending.has(code));
+  const token = crypto.randomBytes(32).toString('hex');
   const at = Date.now();
-  pending.set(code, { token: b.token, label: cleanLabel(b.label), at });
-  h.sendJson(req, res, 200, { code, expires: at + TTL });
+  pending.set(code, { token, label: cleanLabel(req.headers['x-lodica-label']), at });
+  const cookie = `lodica_gate=${token}; Domain=${domain}; Path=/; Max-Age=31536000; Secure; HttpOnly; SameSite=Lax`;
+  h.sendJson(req, res, 200, { code, expires: at + TTL }, { 'Set-Cookie': cookie });
 }
 
 /** GET /pending/<code>: consumes the entry. */
@@ -75,7 +80,7 @@ function take(req, res, ip, code, h) {
   h.sendJson(req, res, 200, { token: e.token, label: e.label, at: e.at });
 }
 
-/** GET /enroll/<code>: { state: 'pending' | 'approved' | 'expired' }. Reveals nothing but the state of a code. */
+/** GET /gate/state/<code>: { state: 'pending' | 'approved' | 'expired' }. Reveals nothing but the state of a code. */
 function status(req, res, ip, code, h) {
   const now = Date.now();
   prune(now);
@@ -87,4 +92,4 @@ function status(req, res, ip, code, h) {
 /** Test hook. */
 function reset() { pending.clear(); approved.clear(); fails.clear(); posts.clear(); }
 
-module.exports = { post, take, status, reset, TTL };
+module.exports = { start, take, status, reset, parentDomain, TTL };
