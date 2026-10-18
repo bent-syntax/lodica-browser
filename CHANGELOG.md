@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.9 (versionCode 38)
+- Android: the 1.7.8 APK was built from a stale cache and still reported 1.7.7 (versionCode 36), so updating looked like it did nothing. 1.7.9 is built with the correct version. Please install 1.7.9 and skip 1.7.8.
+- Android: Lodica Search rebuilt. The app now fetches results itself with its own relay token and passes them to the search page, instead of the page needing a token pushed to it. Helper extension version 1.7. Not tested on a phone.
+
 ## 1.7.8 (versionCode 37)
 - Desktop: chat notifications now use the relay long-poll, one per room, so a new message notifies within about a second instead of up to a minute. Not tested against a live relay.
 - Android: Settings shows "Linked to lodica.<domain>" with a reachable state. Search now asks the app for the current config when the helper has no token, before showing "needs a linked server". The root cause of that error after linking is not confirmed on a device. Helper extension version 1.6.

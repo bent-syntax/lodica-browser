@@ -281,6 +281,24 @@ object Helper {
                                 port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items))
                             }.start()
                         }
+                        // Lodica Search results: fetched by the app itself with its own token, so the page never needs the relay credentials.
+                        "search" -> {
+                            val id = m.optInt("id"); val qs = m.optString("qs")
+                            Thread {
+                                val out = JSONObject().put("type", "found").put("id", id)
+                                try {
+                                    if (!Relay.available) out.put("error", "Lodica Search needs a linked server. Link one in Settings, or pick another search engine.")
+                                    else {
+                                        val (code, body) = Relay.request("GET", "/api/search?$qs", readTimeoutMs = 20_000)
+                                        if (code == 200) out.put("data", JSONObject(body)) else out.put("error", "Search failed ($code)")
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "search failed", e)
+                                    out.put("error", "Search server unreachable")
+                                }
+                                port.postMessage(out)
+                            }.start()
+                        }
                         // The search page's AI box: answered on the phone, never through the VPS.
                         "ask" -> {
                             val id = m.optInt("id")

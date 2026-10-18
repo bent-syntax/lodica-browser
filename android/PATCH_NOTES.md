@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.7.9
+- Fixes the update loop: the 1.7.8 APK still reported 1.7.7. Install 1.7.9.
+- Lodica Search rebuilt: the app fetches results itself.
+
 ## 1.7.8
 - Settings shows whether the phone is linked to your server.
 - Search re-checks the link before saying a server is needed.

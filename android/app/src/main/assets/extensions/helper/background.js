@@ -45,7 +45,6 @@ const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z]
 
 let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "" };
 let ready;
-let askConfig = null;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
 
@@ -162,23 +161,21 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: !!cfg.api, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback };
+    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback };
   }
   if (msg.type === "search") {
-    await configured;
-    // The app may have been linked after the last push: ask it for the current config before giving up.
-    if (!cfg.api && native) await new Promise((res) => { askConfig = res; native.postMessage({ type: "config?" }); setTimeout(res, 1500); });
-    if (!cfg.api) return { error: "Lodica Search needs a linked server. Link one in Settings, or pick another search engine." };
+    // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
+    for (let k = 0; !native && k < 20; k++) await new Promise((r) => setTimeout(r, 250));
+    if (!native) return { error: "Search unavailable: the app is not connected" };
     const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
     if (msg.c) qs.set("c", String(msg.c));
     if (msg.l) qs.set("l", String(msg.l));
-    try {
-      const r = await fetch("https://lodica." + domain + (legacy ? ":44741" : "") + "/api/search?" + qs, { headers: { Authorization: "Bearer " + cfg.api }, credentials: "omit" });
-      if (!r.ok) return { error: "Search failed (" + r.status + ")" };
-      return await r.json();
-    } catch (e) {
-      return { error: "Search server unreachable" };
-    }
+    const id = ++askId;
+    return new Promise((resolve) => {
+      asks.set(id, resolve);
+      setTimeout(() => { if (asks.delete(id)) resolve({ error: "Search took too long" }); }, 25000);
+      native.postMessage({ type: "search", id, qs: qs.toString() });
+    });
   }
   if (msg.type === "ask") {
     if (!native || !cfg.ai) return { error: "AI is not connected" };
@@ -245,7 +242,9 @@ function connect() {
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
       browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain, legacy });
       ready();
-      if (askConfig) { askConfig(); askConfig = null; }
+    } else if (msg && msg.type === "found") {
+      const done = asks.get(msg.id);
+      if (done) { asks.delete(msg.id); done(msg.error ? { error: msg.error } : msg.data); }
     } else if (msg && msg.type === "answer") {
       const done = asks.get(msg.id);
       if (done) { asks.delete(msg.id); done(msg); }
