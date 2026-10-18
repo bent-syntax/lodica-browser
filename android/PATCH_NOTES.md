@@ -1,12 +1,14 @@
 # Patch notes
 
+## 1.7.7
+- Removed device-gate enrollment; use the website enrollment page instead.
+- Search error now tells you to link a server in Settings.
+
 ## 1.7.6
-- Authenticate this browser: Settings opens your server's gate page; approve the code on the server with `lodica-approve`. Replaces gated hosts and enroll.
 - Search: never jumps to another engine by itself; shows an error with a link instead.
 
 ## 1.7.5
 - Search: results no longer flip to DuckDuckGo a moment after they appear.
-- Device gate: the first requests after the app starts now wait for the config, so they carry the gate token. Gated hosts are normalised (scheme, path, port and wildcard stripped).
 - Chat: the cursor resyncs when the relay restarts and message ids reset (1.7.4).
 
 ## 1.7.3
@@ -32,7 +34,6 @@
 ## 1.7.0
 - Settings: reorganised so identical settings sit in the same section on Android and desktop, plus a find box.
 - Redirect domain display now shows only the originating domain.
-- Device enrollment shows a confirmation in the browser once the device is approved.
 - AI answers: a "Generate an AI answer" button appears where the answer would be, unless "Always generate AI answers" is on (off by default).
 - Lodica Search is used by default when a server is linked; new fallback search engine setting for when it is unavailable. The relay favours recent results.
 - Authenticator (Android): import a Google Authenticator export from a screenshot of its QR code.
@@ -41,7 +42,6 @@
 - Launcher icon follows the light and dark theme.
 
 ## 1.6.5
-- Device gate: the relay can require a per-device token (`X-Lodica-Gate` header, no cookie) for gated hosts. Enroll in the app, then approve the shown code on the server with `sudo lodica-approve <code>`. The relay token is shared, so the pairing code (8 characters, valid 10 minutes, single use) is the real secret.
 - Server chat: direct messages no longer leak into other chats, file upload, instant notifications (optional foreground service).
 - Redirect domain display (Settings, off by default): shows the originating domain with a marker for the real host; lock and security stay on the real site.
 - Authenticator: import a Google Authenticator export (`otpauth-migration://` link, pasted or opened from a camera app), preview and confirm.

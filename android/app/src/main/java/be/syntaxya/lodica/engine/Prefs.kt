@@ -52,7 +52,6 @@ object Prefs {
     var liveChat by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
-    /** Hosts that get the device-gate header, comma or newline separated. Empty by default. */
     var showRedirectOrigin by mutableStateOf(false); private set
     var aiAlways by mutableStateOf(false); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
@@ -110,6 +109,8 @@ object Prefs {
     fun init(ctx: Context) {
         if (::sp.isInitialized) return
         sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
+        // Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
+        Secret.init(ctx); Secret.put("deviceGate", null); sp.edit().remove("gatedHosts").apply()
         appCtx = ctx.applicationContext
         searchChosen = runCatching { SearchEngine.valueOf(sp.getString("search", "")!!) }.getOrNull()
         searchFallback = runCatching { SearchEngine.valueOf(sp.getString("searchFallback", "")!!) }.getOrNull()?.takeIf { it != SearchEngine.LODICA } ?: SearchEngine.DUCKDUCKGO

@@ -198,9 +198,12 @@ function init(deps) {
         if (img.isEmpty()) return;
         global.__lodicaIcon = img;
         const { BaseWindow } = require("electron");
-        for (const w of BaseWindow.getAllWindows()) { try { if (!w.isDestroyed()) w.setIcon(img); } catch {} }
+        for (const w of BaseWindow.getAllWindows()) {
+          try { if (!w.isDestroyed()) w.setIcon(img); } catch (e) { console.error("setIcon failed:", e && e.message); }
+        }
+        if (process.platform === "darwin" && app.dock) { try { app.dock.setIcon(img); } catch {} }
       })
-      .catch(() => {});
+      .catch(e => console.error("theme icon failed:", e && e.message));
   });
   on("go", text => tabs.go(text));
   on("back", () => tabs.back());
@@ -356,7 +359,6 @@ function init(deps) {
   on("relay.link", async (domain, token) => { const r = await relay.link(str(domain), str(token)); if (r.ok) require("./net").applyProxy(); return r; });
   on("relay.unlink", () => { const r = relay.unlink(); require("./net").applyProxy(); return r; });
   on("relay.info", () => relay.linked());
-  on("gate.open", () => { const r = require("./relay"); if (r.available) tabs.create({ url: r.API + "/gate" }); });
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("room.start", () => room.start());
   on("room.stop", () => { room.stop(); return true; });

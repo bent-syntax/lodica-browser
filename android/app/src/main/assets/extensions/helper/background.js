@@ -165,7 +165,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
   if (msg.type === "search") {
     await configured;
-    if (!cfg.api) return { error: "Lodica Search is not available in this build." };
+    if (!cfg.api) return { error: "Lodica Search needs a linked server. Link one in Settings, or pick another search engine." };
     const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
     if (msg.c) qs.set("c", String(msg.c));
     if (msg.l) qs.set("l", String(msg.l));

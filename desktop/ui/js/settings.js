@@ -125,8 +125,7 @@ function secVps() {
   if (S.relayAvail) {
     const d = S.relay && S.relay.domain;
     out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
-      setRow("Inbox", null, ico("chevron", "chev"), () => openInbox()),
-      setRow("Authenticate this browser", "Open your server's gate page and approve the code on the server", ico("chevron", "chev"), () => inv("gate.open")));
+      setRow("Inbox", null, ico("chevron", "chev"), () => openInbox()));
   } else {
     out.push(setRow("Link your server", "Enter the domain and token from the Lodica relay installer", ico("chevron", "chev"), link));
   }

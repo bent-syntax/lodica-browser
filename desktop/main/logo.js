@@ -93,10 +93,7 @@ function renderAsync(size, c) {
   if (!cache.has(key)) {
     const p = new Promise((resolve) => {
       const inline = () => setImmediate(() => { try { resolve(render(size, c, 2)); } catch { resolve(null); } });
-      let w;
-      try { w = new Worker(__filename, { workerData: { size, c } }); } catch { return inline(); }
-      w.once("message", m => resolve(Buffer.from(m)));
-      w.once("error", inline);
+      inline();
     }).then(png => { if (!png) { cache.delete(key); throw new Error("icon render failed"); } return png; });
     cache.set(key, p);
     if (cache.size > 12) cache.delete(cache.keys().next().value);

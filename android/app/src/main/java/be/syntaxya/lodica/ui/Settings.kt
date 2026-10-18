@@ -363,7 +363,6 @@ fun SettingsScreen() {
                 } else LinkRow("Send a test notification") { Notifier.test(ctx) }
                 if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                         LinkRow("Inbox") { Ui.screen = Screen.Inbox }
-                        GateSection()
                         LinkRow("Disconnect server") { Relay.disconnect() }
                     }
                     LinkRow("Run server setup") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
@@ -1143,7 +1142,6 @@ private val SettingsIndex = listOf(
     SettingsEntry("Instant chat messages", 11, "notifications live battery"),
     SettingsEntry("Notifications", 11, "test permission alerts"),
     SettingsEntry("Inbox", 11, "mail"),
-    SettingsEntry("Device gate", 11, "authenticate browser code"),
     SettingsEntry("Server setup", 11, "disconnect link"),
     SettingsEntry("Version and what's new", 12, "about updates patch notes"),
 )

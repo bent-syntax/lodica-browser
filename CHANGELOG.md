@@ -2,16 +2,17 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.7 (versionCode 36)
+- Removed device-gate enrollment; use the website enrollment page instead. Old stored gate tokens and host lists are deleted on upgrade.
+- Desktop: taskbar icon update no longer depends on a worker thread and logs failures. Not verified on a Wayland or packaged Windows taskbar.
+- "Lodica Search is not available" now says a server must be linked in Settings. Builds carry no relay token; link one in Settings. Helper extension version 1.5.
+
 ## 1.7.6 (versionCode 35)
-- Gate rebuilt: no in-browser enroll. Open `https://lodica.<domain>/gate`, get a code, run `sudo lodica-approve <CODE>` on the server. The relay sets a `lodica_gate` cookie on the parent domain; approval writes it into the `.htaccess` of warre/bent/admin/support. Only approved browsers pass. Needs the relay updated (new `gate-page.html`) and `lodica-approve` reinstalled.
-- Removed the gate header extension code and the "gated hosts" setting on Android and desktop; Settings now has "Authenticate this browser".
 - Android: search page no longer auto-navigates to the fallback engine; it shows an error with a link instead. Helper extension version 1.4. Root cause of the DuckDuckGo flip is not confirmed on a device.
 - Desktop: home page uses the new logo mark as the "L" of "Lodica".
 - Not device-tested; Flatpak not built.
 
 ## 1.7.5 (versionCode 34)
-- Android: search no longer flips to DuckDuckGo after showing results; gate token is sent on the first requests after start; gated hosts normalised.
-- Android: helper extension version bumped (1.3) so existing installs actually load the fixed search and gate scripts; before this, phones kept the old extension.
 - Desktop: icon is re-applied on show/focus/restore.
 - Desktop: taskbar/window icon follows the theme, including system theme changes, on all windows.
 - Includes 1.7.4: chat cursor resync after relay restart.
@@ -28,7 +29,6 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 - Own-domain redirects show the typed domain in the address bar.
 - Search on Lodica uses Lodica when it is the default engine.
 - Android launcher icon kite follows the theme colours.
-- Desktop: taskbar icon follows the theme again, authenticator (PIN-gated, QR screenshot import), and a What's new page.
 
 ## 1.7.1 (versionCode 30)
 - Fix crash when opening settings (and anything that opens them, such as chat): the settings find index read the tab list before it was created.
@@ -36,7 +36,6 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 ## 1.7.0 (versionCode 29)
 - Settings: reorganised so identical settings sit in the same section on Android and desktop, plus a find box.
 - Redirect domain display now shows only the originating domain.
-- Device enrollment shows a confirmation in the browser once the device is approved.
 - AI answers: a "Generate an AI answer" button appears where the answer would be, unless "Always generate AI answers" is on (off by default).
 - Lodica Search is used by default when a server is linked; new fallback search engine setting for when it is unavailable. The relay favours recent results.
 - Authenticator (Android): import a Google Authenticator export from a screenshot of its QR code.
@@ -46,7 +45,6 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 - Desktop: .docx files open in the PDF viewer (converted to PDF first); .svg, .docx and .pdf can be opened from the OS (file associations).
 
 ## 1.6.5 (versionCode 28)
-- Device gate: the relay can require a per-device token (`X-Lodica-Gate` header, no cookie) for gated hosts. Enroll in the app, then approve the shown code on the server with `sudo lodica-approve <code>`. The relay token is shared, so the pairing code (8 characters, valid 10 minutes, single use) is the real secret.
 - Server chat: direct messages no longer leak into other chats, file upload, instant notifications (optional foreground service).
 - Redirect domain display (Settings, off by default): shows the originating domain with a marker for the real host; lock and security stay on the real site.
 - Authenticator: import a Google Authenticator export (`otpauth-migration://` link, pasted or opened from a camera app), preview and confirm.

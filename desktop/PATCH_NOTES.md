@@ -1,7 +1,10 @@
 # Patch notes
 
+## 1.7.7
+- Removed device-gate enrollment; use the website enrollment page instead.
+- Search error now tells you to link a server in Settings.
+
 ## 1.7.6
-- Authenticate this browser: opens your server's gate page; approve the code on the server with `lodica-approve`. Replaces gated hosts and enroll.
 - Home page: the new logo mark is now the "L" of "Lodica".
 
 ## 1.7.5
@@ -33,14 +36,12 @@
 ## 1.7.0
 - Settings: reorganised so identical settings sit in the same section on Android and desktop, plus a find box.
 - Redirect domain display now shows only the originating domain.
-- Device enrollment shows a confirmation in the browser once the device is approved.
 - AI answers: a "Generate an AI answer" button appears where the answer would be, unless "Always generate AI answers" is on (off by default).
 - Lodica Search is used by default when a server is linked; new fallback search engine setting for when it is unavailable. The relay favours recent results.
 - Authenticator (Android): import a Google Authenticator export from a screenshot of its QR code.
 - Desktop: .docx files open in the PDF viewer (converted to PDF first); .svg, .docx and .pdf can be opened from the OS (file associations).
 
 ## 1.6.5
-- Device gate: the relay can require a per-device token (`X-Lodica-Gate` header, no cookie) for gated hosts. Enroll in the app, then approve the shown code on the server with `sudo lodica-approve <code>`. The relay token is shared, so the pairing code (8 characters, valid 10 minutes, single use) is the real secret.
 - Server chat: direct messages no longer leak into other chats, file upload, instant notifications (optional foreground service).
 - Redirect domain display (Settings, off by default): shows the originating domain with a marker for the real host; lock and security stay on the real site.
 - Authenticator: import a Google Authenticator export (`otpauth-migration://` link, pasted or opened from a camera app), preview and confirm.

@@ -38,6 +38,9 @@ const DEFAULTS = {
 
 const events = new EventEmitter();
 const p = Object.assign({}, DEFAULTS, store.load("prefs", {}));
+// Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
+delete p.gatedHosts;
+try { require("fs").rmSync(require("path").join(require("electron").app.getPath("userData"), "deviceGate.bin"), { force: true }); } catch {}
 // "Dark pages" and "Force dark" were two switches for one thing; either one on keeps dark on.
 if (p.forceDark) p.darkPages = true;
 delete p.forceDark;
