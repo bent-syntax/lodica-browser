@@ -39,7 +39,6 @@ const lodicaMain = () => {
   let lastText = null; // last focused text input, used when nothing matches
   let seen = false;    // this frame has reported a field
   let login = false;   // this frame has reported a sign-in page
-  let codeAsked = false;
   let code = null;     // { value, until }: a code that arrived before its field showed up
   let user = "";       // last username typed or filled in this frame
   let sent = "";       // last login reported, so one submit isn't offered twice
@@ -240,7 +239,8 @@ const lodicaMain = () => {
     const el = target(e);
     if (isText(el)) lastText = el;
     if (isLogin(el)) reportLogin();
-    if (isCodeField(el) && !codeAsked) { codeAsked = true; connect(); if (port) port.postMessage({ type: "codefield", host: location.hostname }); }
+    // A verification-code box: ask the app for a saved authenticator code for this site.
+    if (el && el.tagName === "INPUT" && isCodeField(el)) { connect(); if (port) port.postMessage({ type: "codefield", host: location.hostname }); }
     if (!isEmailField(el)) return;
     last = el;
     found();
@@ -259,6 +259,21 @@ const lodicaMain = () => {
     user = v;
     connect();
     if (port) port.postMessage({ type: "user", host: location.hostname, value: v });
+  }
+
+  // A login field the user emptied by hand stays empty: Gecko's saved-login fill (untrusted input
+  // events) must not refill it. Typing in it again lifts the lock.
+  const cleared = new WeakSet();
+  function credField(el) {
+    return el instanceof HTMLInputElement && (isPassword(el) || isEmailField(el) || /username|current-password/i.test(attr(el, "autocomplete")));
+  }
+  for (const type of ["input", "change"]) {
+    document.addEventListener(type, (e) => {
+      const el = e.target;
+      if (!credField(el)) return;
+      if (e.isTrusted) { if (el.value) cleared.delete(el); else cleared.add(el); }
+      else if (cleared.has(el) && el.value) el.value = "";
+    }, true);
   }
 
   // Gecko only offers to save on a classic form submit; script logins, alias fills and two-step

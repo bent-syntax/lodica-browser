@@ -41,8 +41,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/bent-syntax/lodica-browser.git
-        commit: c164bf9336ad054196eda96a6a6fc259a3ea2f49
-        tag: v1.8.0.2
+        commit: fcf04e799423af82278fac4e8aedd94ebffcfbf7
       - generated-sources.json
       - type: file
         url: https://github.com/electron/electron/releases/download/v44.6.0/electron-v44.6.0-linux-x64.zip
