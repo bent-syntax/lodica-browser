@@ -4,6 +4,8 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
 ## 1.7.5 (versionCode 34)
 - Android: search no longer flips to DuckDuckGo after showing results; gate token is sent on the first requests after start; gated hosts normalised.
+- Android: helper extension version bumped (1.3) so existing installs actually load the fixed search and gate scripts; before this, phones kept the old extension.
+- Desktop: icon is re-applied on show/focus/restore.
 - Desktop: taskbar/window icon follows the theme, including system theme changes, on all windows.
 - Includes 1.7.4: chat cursor resync after relay restart.
 

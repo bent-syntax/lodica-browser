@@ -221,6 +221,8 @@ function createWindow() {
     title: "Lodica", autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
   });
   win.setMenuBarVisibility?.(false);
+  const reIcon = () => { try { if (global.__lodicaIcon && !win.isDestroyed()) win.setIcon(global.__lodicaIcon); } catch {} };
+  win.on("show", reIcon); win.on("focus", reIcon); win.on("restore", reIcon);
   uiView = new WebContentsView({
     webPreferences: { preload: path.join(ROOT, "preload", "ui.js"), contextIsolation: true, sandbox: true },
   });

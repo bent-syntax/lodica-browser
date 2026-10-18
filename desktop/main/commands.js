@@ -193,7 +193,10 @@ function init(deps) {
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => {
+        if (!png) return;
         const img = nativeImage.createFromBuffer(png);
+        if (img.isEmpty()) return;
+        global.__lodicaIcon = img;
         const { BaseWindow } = require("electron");
         for (const w of BaseWindow.getAllWindows()) { try { if (!w.isDestroyed()) w.setIcon(img); } catch {} }
       })
