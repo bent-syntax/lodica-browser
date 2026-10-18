@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.8.0.1
+
+- Search page applies the app theme before first paint via theme.js and themeapply.js; helper extension version 1.8.1.
+
 ## 1.8.0
 - Settings redesigned: grouped home with find, a page per topic, slide-in pages, same page names and order as desktop.
 - Lodica Search uses the new logo and the app theme.

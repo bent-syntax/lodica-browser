@@ -16,11 +16,8 @@ const lang = (navigator.language || "").slice(0, 2).toLowerCase();
 // Colours come from the app theme through the helper; without them the stylesheet defaults apply.
 function applyTheme(t) {
   if (!t || typeof t !== "object") return;
-  const hex = /^#[0-9a-fA-F]{6}$/, r = document.documentElement.style;
-  const set = (name, v) => { if (hex.test(v)) r.setProperty(name, v); };
-  set("--bg", t.bg); set("--raised", t.raised); set("--high", t.high); set("--text", t.text); set("--muted", t.muted);
-  set("--amber", t.amber); set("--coral", t.coral); set("--link", t.amber);
-  r.setProperty("color-scheme", t.dark ? "dark" : "light");
+  window.lodicaApplyTheme(t);
+  try { localStorage.setItem("lodica.theme", JSON.stringify(t)); } catch (e) {}
 }
 
 function el(tag, attrs, ...kids) {

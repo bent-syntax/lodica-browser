@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.8.0.1 (versionCode 40)
+
+- Lodica Search now uses the app theme from the first paint (colours are remembered between visits), including result text and links. This is the 1.8.0 Android build with this fix; desktop is unchanged.
+
 ## 1.8.0 (versionCode 39)
 - Android: Lodica Search uses the new logo and follows the app theme. Helper extension version 1.8.
 - Android: the first time a site asks for an authenticator code, the app asks which code to use. It fills that code automatically on later visits. Choosing "Don't use" stops the prompt for that site, and you can still set a code for the site later in the Authenticator screen (tap the site line).
