@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.8.0
+- Settings redesigned: grouped home with find, a page per topic, slide-in pages, same page names and order as desktop.
+- Lodica Search uses the new logo and the app theme.
+- Authenticator: asks which code to use the first time a site needs one, then fills it automatically. "Don't use" can be undone per site in the Authenticator screen.
+
 ## 1.7.9
 - Fixes the update loop: the 1.7.8 APK still reported 1.7.7. Install 1.7.9.
 - Lodica Search rebuilt: the app fetches results itself.

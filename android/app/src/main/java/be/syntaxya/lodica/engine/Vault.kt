@@ -229,6 +229,10 @@ object Vault : Autocomplete.StorageDelegate {
 
     fun totpDelete(id: String): GeckoResult<Unit> = async(Unit) { d -> d.delete("totp", "id = ?", arrayOf(id)); Unit }
 
+    fun totpSetHost(id: String, host: String): GeckoResult<Unit> = async(Unit) { d ->
+        d.execSQL("UPDATE totp SET host = ? WHERE id = ?", arrayOf(host, id)); Unit
+    }
+
     /** Entries whose site matches [host] (same site or a subdomain either way), for autofilling a code field. */
     fun totpFor(host: String): GeckoResult<List<TotpEntry>> = async(emptyList()) { d ->
         val out = ArrayList<TotpEntry>()

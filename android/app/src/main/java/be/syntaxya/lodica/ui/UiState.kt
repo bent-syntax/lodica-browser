@@ -38,6 +38,10 @@ object Ui {
     /** Small choice dialog opened from the menu. */
     var picker by mutableStateOf<Picker?>(null)
 
+    /** First-time "which authenticator code for this site?" prompt. */
+    class TotpAsk(val host: String, val entries: List<be.syntaxya.lodica.engine.TotpEntry>, val onPick: (be.syntaxya.lodica.engine.TotpEntry?) -> Unit)
+    var totpAsk by mutableStateOf<TotpAsk?>(null)
+
     /** How far the bottom bar has slid out of view, in px (0 = fully shown). */
     var barOffset by mutableFloatStateOf(0f)
     var barHeight by mutableFloatStateOf(0f)
@@ -55,6 +59,7 @@ object Ui {
         reader = null
         answer = null
         picker = null
+        totpAsk = null
         preview = null
         editing = false
         showBar()
@@ -66,6 +71,7 @@ object Ui {
         reader != null -> { reader = null; true }
         answer != null -> { answer = null; true }
         picker != null -> { picker = null; true }
+        totpAsk != null -> { totpAsk?.onPick?.invoke(null); totpAsk = null; true }
         preview != null -> { preview = null; true }
         menuOpen -> { menuOpen = false; true }
         finding -> { stopFind(); true }

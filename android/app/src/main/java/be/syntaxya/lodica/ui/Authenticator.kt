@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.QrImage
+import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.engine.Totp
 import be.syntaxya.lodica.engine.TotpEntry
 import be.syntaxya.lodica.engine.TotpMigration
@@ -59,6 +60,7 @@ fun AuthenticatorSection() {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var adding by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<TotpEntry?>(null) }
 
     LaunchedEffect(rev) { Vault.totpAll().accept({ entries = it ?: emptyList() }, { }) }
     // Codes tick once a second, but only while this section is on screen.
@@ -85,7 +87,10 @@ fun AuthenticatorSection() {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(e.label, color = Mist, fontSize = 15.sp, maxLines = 1)
-                Text(e.host.ifEmpty { "Not tied to a site: copy only" }, color = Muted, fontSize = 12.sp, maxLines = 1)
+                Text(
+                    (e.host.ifEmpty { "Not tied to a site: copy only" }) + "  ·  " + (if (e.host.isEmpty()) "tap to set site" else "tap to change"),
+                    color = Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.clickable { editing = e },
+                )
             }
             Text(
                 code?.let { it.take(it.length / 2) + " " + it.drop(it.length / 2) } ?: "Bad key",
@@ -165,6 +170,34 @@ fun AuthenticatorSection() {
         )
     }
 
+    editing?.let { e ->
+        var site by remember(e.id) { mutableStateOf(e.host) }
+        AlertDialog(
+            onDismissRequest = { editing = null },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Auto-fill site") },
+            text = {
+                OutlinedTextField(
+                    site, { site = it }, Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Site, e.g. github.com (empty = copy only)", color = Muted) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                        focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val h = site.trim().lowercase().removePrefix("www.")
+                    if (h.isNotEmpty()) Prefs.setTotpSkip(h, false)
+                    Vault.totpSetHost(e.id, h).accept({ rev++ }, { })
+                    editing = null
+                }) { Text("Save", color = Amber) }
+            },
+            dismissButton = { TextButton(onClick = { editing = null }) { Text("Cancel", color = Muted) } },
+        )
+    }
+
     if (adding) {
         var site by remember { mutableStateOf(TabManager.current?.host.orEmpty().removePrefix("www.")) }
         var secret by remember { mutableStateOf("") }
@@ -195,7 +228,7 @@ fun AuthenticatorSection() {
             confirmButton = {
                 TextButton(
                     enabled = parsed != null,
-                    onClick = { parsed?.let { Vault.totpAdd(it).accept({ rev++ }, { }) }; adding = false },
+                    onClick = { parsed?.let { Prefs.setTotpSkip(it.host, false); Vault.totpAdd(it).accept({ rev++ }, { }) }; adding = false },
                 ) { Text("Add", color = Amber) }
             },
             dismissButton = { TextButton(onClick = { adding = false }) { Text("Cancel", color = Muted) } },

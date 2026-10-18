@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.8.0 (versionCode 39)
+- Android: Lodica Search uses the new logo and follows the app theme. Helper extension version 1.8.
+- Android: the first time a site asks for an authenticator code, the app asks which code to use. It fills that code automatically on later visits. Choosing "Don't use" stops the prompt for that site, and you can still set a code for the site later in the Authenticator screen (tap the site line).
+- Settings redesigned on desktop and Android: the same 13 pages in the same order (Search, Sites & domains, AI answers, Theme, Start page, Tabs, Privacy & history, Security & blocking, Data/apps/extensions, Keybinds & controls, Server & mail, Identity & passwords, Updates & About). Desktop has a sidebar with find and a "/" shortcut; Android has a grouped home with find and a slide into each page. Site language, User agent, Passwords, Dark pages and Tab layout moved to the pages that fit them. No settings were added or renamed.
+
 ## 1.7.9 (versionCode 38)
 - Android: the 1.7.8 APK was built from a stale cache and still reported 1.7.7 (versionCode 36), so updating looked like it did nothing. 1.7.9 is built with the correct version. Please install 1.7.9 and skip 1.7.8.
 - Android: Lodica Search rebuilt. The app now fetches results itself with its own relay token and passes them to the search page, instead of the page needing a token pushed to it. Helper extension version 1.7. Not tested on a phone.

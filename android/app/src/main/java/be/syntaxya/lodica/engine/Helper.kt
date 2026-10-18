@@ -13,6 +13,7 @@ import org.mozilla.geckoview.WebExtension
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.Prompts
+import be.syntaxya.lodica.ui.Ui
 import java.lang.ref.WeakReference
 import java.security.SecureRandom
 import java.util.WeakHashMap
@@ -179,9 +180,21 @@ object Helper {
     /** A verification-code field got focus on [host]: answer with the current authenticator code saved for that site. */
     private fun totpFill(host: String, port: WebExtension.Port) {
         if (host.isEmpty()) return
-        Vault.totpFor(host).accept({ list ->
-            val code = list?.firstNotNullOfOrNull { Totp.code(it) } ?: return@accept
+        fun send(e: TotpEntry) {
+            val code = Totp.code(e) ?: return
             port.postMessage(JSONObject().put("type", "code").put("value", code))
+        }
+        Vault.totpFor(host).accept({ list ->
+            val hit = list?.firstOrNull { Totp.code(it) != null }
+            if (hit != null) { send(hit); return@accept }
+            if (Prefs.totpSkipped(host) || Ui.totpAsk != null) return@accept
+            Vault.totpAll().accept({ all ->
+                if (all.isNullOrEmpty()) return@accept
+                Ui.totpAsk = Ui.TotpAsk(host, all) { pick ->
+                    if (pick == null) Prefs.setTotpSkip(host, true)
+                    else Vault.totpSetHost(pick.id, Relay.baseDomain(host)).accept({ send(pick.copy(host = host)) }, { })
+                }
+            }, { })
         }, { })
     }
 

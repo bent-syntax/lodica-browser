@@ -13,6 +13,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
@@ -114,6 +115,7 @@ import be.syntaxya.lodica.engine.Ai
 import be.syntaxya.lodica.engine.Memory
 import be.syntaxya.lodica.engine.SilentInstall
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.border
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -143,15 +145,11 @@ fun SettingsScreen() {
 
     Column(Modifier.fillMaxSize()) {
         androidx.activity.compose.BackHandler(enabled = tab >= 0 || find.isNotBlank()) { if (find.isNotBlank()) find = "" else tab = -1 }
-        TopBar(if (tab >= 0) SettingsTabs[tab] else "Settings") { if (tab >= 0) tab = -1 else Ui.screen = Screen.Browser }
-        FilterField(find, "Find a setting") { find = it }
-        if (tab >= 0 && find.isBlank()) {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SettingsGroups.first { g -> tab in g.second }.second.forEach { i -> Chip(SettingsTabs[i], tab == i) { tab = i } }
-            }
+        if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
+        else {
+            TopBar(if (find.isBlank()) "" else "Find") { if (find.isNotBlank()) find = "" else Ui.screen = Screen.Browser }
+            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            FilterField(find, "Find a setting") { find = it }
         }
         if (find.isNotBlank()) {
             val words = find.trim().lowercase().split(" ").filter { it.isNotEmpty() }
@@ -159,9 +157,9 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
                 if (hits.isEmpty()) Text("No setting matches", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
                 hits.forEach { e ->
-                    Column(Modifier.fillMaxWidth().clickable { tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                        Text(e.title, color = Mist, fontSize = 15.sp)
-                        Text(SettingsTabs[e.tab], color = Muted, fontSize = 12.sp)
+                    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
+                        Text(e.title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                        Text(SettingsTabs[e.tab], color = Muted, fontSize = 13.sp)
                     }
                 }
             }
@@ -171,7 +169,15 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
                 SettingsGroups.forEach { (group, pages) ->
                     Section(group)
-                    pages.forEach { i -> LinkRow(SettingsTabs[i]) { tab = i } }
+                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(10.dp))) {
+                        pages.forEachIndexed { n, i ->
+                            if (n > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
+                            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = i }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(SettingsTabs[i], color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Muted)
+                            }
+                        }
+                    }
                 }
             }
             return@Column
@@ -179,7 +185,7 @@ fun SettingsScreen() {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp)) {
             AnimatedContent(
                 tab,
-                transitionSpec = { fadeIn(tween(200, delayMillis = 60)) togetherWith fadeOut(tween(120)) },
+                transitionSpec = { (slideInHorizontally(tween(260)) { it / 6 } + fadeIn(tween(260))) togetherWith fadeOut(tween(120)) },
                 contentAlignment = Alignment.TopStart, label = "settingsTab",
             ) { page ->
             Column(Modifier.fillMaxWidth()) {
@@ -204,7 +210,6 @@ fun SettingsScreen() {
                     Section("Browsing")
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
-            AgentPicker()
             LanguagePicker()
             QualityPicker()
                     Section("Custom DNS")
@@ -215,7 +220,7 @@ fun SettingsScreen() {
             AiSection()
             LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
                 }
-                3 -> {
+                8 -> {
             Section("Data use")
             DataMeter()
 
@@ -228,14 +233,15 @@ fun SettingsScreen() {
                     Section("Import from Chrome")
             ChromeImportSection()
                 }
-                4 -> {
+                3 -> {
                     Section("Theme")
                     ThemePicker()
-                    Section("Search widget")
-                    WidgetEditor()
                     Section("Page colours")
             SwitchRow("Dark pages", "Darken sites that have no dark mode", Prefs.darkPages) { Prefs.updateDarkPages(it) }
-
+                    Section("Search widget")
+                    WidgetEditor()
+                }
+                4 -> {
                     Section("Start page background")
                     StartBackgroundSettings()
                 }
@@ -250,8 +256,7 @@ fun SettingsScreen() {
                     Chip(label, Prefs.autoArchiveDays == d) { Prefs.updateAutoArchiveDays(d) }
                 }
             }
-                }
-                6 -> {
+            Spacer(Modifier.height(8.dp))
             if (!Relay.available) LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             if (Relay.available) {
                 Section("Sync")
@@ -302,7 +307,6 @@ fun SettingsScreen() {
                     }
                 }
             }
-
                 }
                 7 -> {
                     Section("Blocking")
@@ -318,7 +322,7 @@ fun SettingsScreen() {
                 }
                     }
                 }
-                8 -> {
+                6 -> {
                     Section("History & site data")
             LinkRow("History") { Ui.screen = Screen.History }
             LinkRow("Clear history", Coral) {
@@ -337,16 +341,17 @@ fun SettingsScreen() {
 
                 }
                 9 -> ControlsSection()
-                10 -> {
-                    Section("Identity")
-            SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
+                11 -> {
+                    Section("Browser identity")
+            AgentPicker()
+                    Section("Passwords")
             LinkRow("Passwords") { Ui.screen = Screen.Passwords }
 
                     Section("Authenticator")
                     AuthenticatorSection()
 
                 }
-                11 -> {
+                10 -> {
                     Section("Server, chat & mail")
                     if (!Relay.available) {
                         Text(
@@ -367,12 +372,15 @@ fun SettingsScreen() {
                 } else LinkRow("Send a test notification") { Notifier.test(ctx) }
                 if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
                         LinkRow("Inbox") { Ui.screen = Screen.Inbox }
+                        Section("Hidden email")
+                        SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
+                        Section("Server")
                         LinkRow("Disconnect server") { Relay.disconnect() }
                     }
                     LinkRow("Run server setup") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
                 }
                 else -> {
-            Section("About")
+            Section("Version")
             val version = remember {
                 runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
             }
@@ -678,14 +686,14 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
 internal fun TopBar(title: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = Mist) }
-        Text(title, color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = Mist, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 internal fun Section(title: String) {
     Text(
-        title, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+        title, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 4.dp),
     )
 }
@@ -844,13 +852,14 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg by animateColorAsState(if (selected) Amber else GraphiteRaised, tween(180), label = "chipBg")
-    val fg by animateColorAsState(if (selected) Graphite else Mist, tween(180), label = "chipFg")
+    val shape = RoundedCornerShape(8.dp)
     Text(
-        label, color = fg, fontSize = 13.sp,
+        label, color = Mist, fontSize = 13.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-        modifier = Modifier.clip(RoundedCornerShape(50)).background(bg)
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp),
+        modifier = Modifier.heightIn(min = 44.dp).wrapContentHeight(Alignment.CenterVertically).clip(shape)
+            .background(if (selected) GraphiteHigh else GraphiteRaised)
+            .border(1.dp, if (selected) Amber else GraphiteHigh, shape)
+            .clickable(onClick = onClick).padding(horizontal = 14.dp),
     )
 }
 
@@ -1090,21 +1099,21 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
     val text = (title + " " + keywords + " " + SettingsTabs[tab]).lowercase()
 }
 
-/** What the settings search looks through: a title, the tab it lives in and extra words people may type. */
+/** What the settings search looks through: a title, the page it lives on and extra words people may type. */
 // Must be declared before SettingsIndex: the index reads it during file-level initialisation.
+// Same 13 pages, same order and same groups as the desktop settings.
 private val SettingsTabs = listOf(
-    "Search", "Sites, language & DNS", "AI answers", "Data, apps & extensions", "Look & theme", "Tab behaviour", "Tabs on PC",
-    "Blocking & VPS", "History & site data", "Controls & gestures", "Identity & passwords", "Server, chat & mail", "Updates & about",
+    "Search", "Sites & domains", "AI answers", "Theme", "Start page", "Tabs", "Privacy & history",
+    "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & passwords", "Updates & About",
 )
 
 /** Landing list: group title to the pages inside it. */
 private val SettingsGroups = listOf(
     "Browsing" to listOf(0, 1, 2),
-    "Look & tabs" to listOf(4, 5, 6),
-    "Privacy & security" to listOf(7, 8, 10),
-    "Data & add-ons" to listOf(3),
-    "Controls" to listOf(9),
-    "Server" to listOf(11),
+    "Look & tabs" to listOf(3, 4, 5),
+    "Privacy & security" to listOf(6, 7),
+    "Data & controls" to listOf(8, 9),
+    "Account" to listOf(10, 11),
     "About" to listOf(12),
 )
 
@@ -1115,38 +1124,38 @@ private val SettingsIndex = listOf(
     SettingsEntry("Fallback search engine", 0, "lodica search server unavailable"),
     SettingsEntry("Desktop sites", 1, "request desktop"),
     SettingsEntry("Show original domain after redirects", 1, "redirect origin address bar"),
-    SettingsEntry("User agent", 1, "browser identity"),
+    SettingsEntry("User agent", 11, "browser identity"),
     SettingsEntry("Language", 1, "accept language"),
     SettingsEntry("Video quality", 1, "data saver"),
-    SettingsEntry("Data use", 3, "meter bandwidth"),
+    SettingsEntry("Data use", 8, "meter bandwidth"),
     SettingsEntry("AI answers", 2, "ai generate always allow summary assistant"),
     SettingsEntry("AI chats", 2, "history assistant"),
-    SettingsEntry("Web apps", 3, "install shortcut silent"),
-    SettingsEntry("Extensions", 3, "addons add-ons"),
-    SettingsEntry("Theme", 4, "colours dark light logo icon"),
-    SettingsEntry("Search widget", 4, "home screen"),
-    SettingsEntry("Dark pages", 4, "force dark websites"),
+    SettingsEntry("Web apps", 8, "install shortcut silent"),
+    SettingsEntry("Extensions", 8, "addons add-ons"),
+    SettingsEntry("Theme", 3, "colours dark light logo icon"),
+    SettingsEntry("Search widget", 3, "home screen"),
+    SettingsEntry("Dark pages", 3, "force dark websites"),
     SettingsEntry("Start page background", 4, "wallpaper image"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
-    SettingsEntry("Tabs on PC", 6, "sync computer link"),
+    SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
     SettingsEntry("Reject cookie banners", 7, "consent popups"),
     SettingsEntry("Route through VPS", 7, "tunnel server proxy"),
     SettingsEntry("Custom DNS", 1, "dns over https resolver"),
-    SettingsEntry("Import from Chrome", 3, "bookmarks passwords"),
-    SettingsEntry("History", 8, "visited pages"),
-    SettingsEntry("Clear history", 8, "delete"),
-    SettingsEntry("Reset site permissions", 8, "camera microphone location"),
-    SettingsEntry("Clear site data", 8, "cookies cache storage"),
+    SettingsEntry("Import from Chrome", 8, "bookmarks passwords"),
+    SettingsEntry("History", 6, "visited pages"),
+    SettingsEntry("Clear history", 6, "delete"),
+    SettingsEntry("Reset site permissions", 6, "camera microphone location"),
+    SettingsEntry("Clear site data", 6, "cookies cache storage"),
     SettingsEntry("Controls and gestures", 9, "toggles buttons swipe"),
     SettingsEntry("Hidden email", 10, "alias sign-up dummy"),
-    SettingsEntry("Passwords", 10, "logins vault"),
-    SettingsEntry("Authenticator", 10, "totp 2fa codes google migration qr"),
-    SettingsEntry("Server chat", 11, "room messages"),
-    SettingsEntry("Instant chat messages", 11, "notifications live battery"),
-    SettingsEntry("Notifications", 11, "test permission alerts"),
-    SettingsEntry("Inbox", 11, "mail"),
-    SettingsEntry("Server setup", 11, "disconnect link"),
+    SettingsEntry("Passwords", 11, "logins vault"),
+    SettingsEntry("Authenticator", 11, "totp 2fa codes google migration qr"),
+    SettingsEntry("Server chat", 10, "room messages"),
+    SettingsEntry("Instant chat messages", 10, "notifications live battery"),
+    SettingsEntry("Notifications", 10, "test permission alerts"),
+    SettingsEntry("Inbox", 10, "mail"),
+    SettingsEntry("Server setup", 10, "disconnect link"),
     SettingsEntry("Version and what's new", 12, "about updates patch notes"),
 )
 

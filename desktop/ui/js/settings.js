@@ -4,29 +4,40 @@ const SET = { find: "", tab: "search", keys: null, cap: null, capture: null, L: 
 
 function openSettings(section) {
   if (SET.L) return SET.L;
-  SET.L = openLayer({ key: "settings", cls: "spage-layer", dim: false, onClose: () => { SET.L = null; } }, (L) => {
-    L.side = h("nav", { class: "sp-side", role: "tablist" });
+  SET.L = openLayer({ key: "settings", cls: "spage-layer", dim: false, onClose: () => { SET.L = null; document.removeEventListener("keydown", setSlash, true); } }, (L) => {
+    L.nav = h("div", { class: "sp-nav" });
+    const find = h("input", { class: "sp-find", type: "search", placeholder: "Find a setting", "aria-label": "Find a setting", value: SET.find || "",
+      on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } });
+    L.findEl = find;
+    L.side = h("nav", { class: "sp-side" }, h("div", { class: "sp-title", text: "Settings" }),
+      h("div", { class: "sp-findbox" }, ico("search"), find, h("kbd", { text: "/" })), L.nav);
     L.body = h("div", { class: "sp-body" });
     return h("div", { class: "spage" }, L.side,
       h("div", { class: "sp-main" },
-        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" }),
-          h("input", { class: "sp-find", type: "search", placeholder: "Find a setting", value: SET.find || "",
-            on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } }), ib("close", "Close settings", () => L.close())),
+        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" }), ib("close", "Close settings", () => L.close())),
         L.body));
   });
+  document.addEventListener("keydown", setSlash, true);
   if (section && SET_SECTION_TAB[section]) SET.tab = SET_SECTION_TAB[section];
   renderSettings();
   if (section) setTimeout(() => { const el = SET.L && SET.L.body.querySelector('[data-sec="' + section + '"]'); if (el) el.scrollIntoView(); }, 50);
   return SET.L;
 }
+/** "/" focuses the find box unless typing in a field. */
+function setSlash(e) {
+  if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || !SET.L) return;
+  const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  e.preventDefault(); SET.L.findEl.focus();
+}
 const refreshSettings = debounce(() => { if (SET.L) renderSettings(); }, 50);
 
 function renderSettings() {
   const b = SET.L.body, top = b.scrollTop;
-  clear(b); clear(SET.L.side);
-  add(SET.L.side, [setTabBar()]);
+  clear(b); clear(SET.L.nav);
   $("#sp-title", SET.L.el).textContent = SET.find ? "Search results" : (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
-  const pane = h("div", { class: "set-pane" }, SET.find ? setFindBody(SET.find) : setTabBody(SET.tab));
+  if (SET.find) { add(SET.L.nav, [setFindList(SET.find)]); add(b, [h("div", { class: "set-pane" }, h("div", { class: "set-note", text: "Pick a result on the left." }))]); b.scrollTop = 0; return; }
+  add(SET.L.nav, [setTabBar()]);
+  const pane = h("div", { class: "set-pane" }, setTabBody(SET.tab));
   cardify(pane);
   add(b, [pane]);
   b.scrollTop = top;
@@ -78,9 +89,8 @@ function secBrowsing() {
   return [secHead("Browsing"),
     setToggle("showRedirectOrigin", "Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site"),
     setToggle("desktopDefault", "Desktop sites", "Request desktop pages in new tabs"),
-    setRow("Dummy mail hidden sites", (S.prefs.noDummy || []).length ? S.prefs.noDummy.join(", ") : "None. The button shows on sign-up pages",
-      (S.prefs.noDummy || []).length ? "Clear" : null, (S.prefs.noDummy || []).length ? () => setPref("noDummy", []) : null),
-    setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number)];
+    setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number),
+    setSelect("Site language", null, S.languages, "language")];
 }
 function secDarkPages() { return [setToggle("darkPages", "Dark pages", "Darken light sites that have no dark mode of their own")]; }
 function secHttps() { return [setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"), S.relayAvail ? setToggle("routeVps", "Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct") : null]; }

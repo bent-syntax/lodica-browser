@@ -58,7 +58,7 @@ function ib(icon, title, act, cls) {
   return h("button", { class: "ib" + (cls ? " " + cls : ""), title, "aria-label": title, act }, ico(icon));
 }
 function btn(text, act, cls) { return h("button", { class: "btn" + (cls ? " " + cls : ""), act }, text); }
-function toggleEl(on) { return h("span", { class: "sw-t" + (on ? " on" : "") }); }
+function toggleEl(on) { return h("span", { class: "sw-t" + (on ? " on" : ""), role: "switch", "aria-checked": on ? "true" : "false" }); }
 
 // engines/agents/languages may arrive as {KEY:{label}|"label"} or [{key|id|value, label|name}] or [label].
 function optList(src) {

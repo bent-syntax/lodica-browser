@@ -272,3 +272,29 @@ fun AnswerSheet(a: Answer) {
         }
     }
 }
+
+@Composable
+fun TotpAskDialog(a: Ui.TotpAsk) {
+    var answered = false
+    fun done(e: be.syntaxya.lodica.engine.TotpEntry?) { if (answered) return; answered = true; Ui.totpAsk = null; a.onPick(e) }
+    Dialog(onDismissRequest = { done(null) }) {
+        Column(Modifier.width(300.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
+            Text(
+                "Which authenticator code for ${a.host.removePrefix("www.")}? It fills automatically next time.",
+                color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+            )
+            Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState())) {
+                a.entries.forEach { e ->
+                    Text(
+                        e.label.ifBlank { e.host }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().clickable { done(e) }.padding(horizontal = 18.dp, vertical = 12.dp),
+                    )
+                }
+                Text(
+                    "Don't use", color = Muted, fontSize = 15.sp,
+                    modifier = Modifier.fillMaxWidth().clickable { done(null) }.padding(horizontal = 18.dp, vertical = 12.dp),
+                )
+            }
+        }
+    }
+}

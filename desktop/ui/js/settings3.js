@@ -1,62 +1,71 @@
 "use strict";
 // Settings tabs: Appearance, Keybinds & controls, Identity & mail, plus the tab bar itself.
 
-// [id, label, group]: the sidebar shows one heading per group, then its small tabs.
+// [id, label, group]: the sidebar shows one heading per group, then its pages. Same pages and order as Android.
 const SET_TABS = [
   ["search", "Search", "Browsing"], ["sites", "Sites & domains", "Browsing"], ["ai", "AI answers", "Browsing"],
-  ["appearance", "Theme & start page", "Look & tabs"], ["pages", "Page colours", "Look & tabs"], ["tabs", "Tab behaviour", "Look & tabs"], ["pctabs", "Tabs on phone", "Look & tabs"],
-  ["privacy", "Privacy & history", "Privacy & security"], ["https", "HTTPS & upgrades", "Privacy & security"], ["blocking", "Blocking", "Privacy & security"],
-  ["data", "Data use", "Data & add-ons"], ["apps", "Web apps", "Data & add-ons"], ["extensions", "Extensions", "Data & add-ons"],
-  ["keys", "Keybinds & controls", "Controls"],
-  ["vps", "Server & VPS", "Account"], ["identity", "Identity & mail", "Account"], ["auth", "Authenticator", "Account"],
+  ["theme", "Theme", "Look & tabs"], ["start", "Start page", "Look & tabs"], ["tabs", "Tabs", "Look & tabs"],
+  ["privacy", "Privacy & history", "Privacy & security"], ["security", "Security & blocking", "Privacy & security"],
+  ["data", "Data, apps & extensions", "Data & controls"], ["keys", "Keybinds & controls", "Data & controls"],
+  ["server", "Server & mail", "Account"], ["identity", "Identity & passwords", "Account"],
   ["about", "Updates & About", "About"]];
-// Section ids that other code passes to openSettings() -> the tab that holds them.
-const SET_SECTION_TAB = { search: "search", browsing: "sites", dns: "sites", vps: "vps", data: "data", ai: "ai", apps: "apps", extensions: "extensions",
-  appearance: "appearance", theme: "appearance", pctabs: "pctabs", tabs: "tabs", privacy: "privacy", keys: "keys", keybinds: "keys",
-  identity: "identity", mail: "identity", auth: "auth", authenticator: "auth", about: "about", updates: "about" };
+// Section ids that other code passes to openSettings() -> the page that holds them.
+const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", ai: "ai", theme: "theme", appearance: "theme", pages: "theme",
+  background: "start", shortcuts: "start", start: "start", tabs: "tabs", pctabs: "tabs", layout: "tabs", privacy: "privacy", https: "security", blocking: "security",
+  security: "security", vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", keys: "keys", keybinds: "keys",
+  identity: "identity", auth: "identity", authenticator: "identity", about: "about", updates: "about" };
 
-const SET_ICONS = { search: "search", sites: "globe", ai: "settings", appearance: "palette", pages: "palette", tabs: "tabs", pctabs: "tabs", privacy: "shield", https: "shield",
-  blocking: "shield", data: "settings", apps: "settings", extensions: "settings", keys: "key", vps: "settings", identity: "email", auth: "key", about: "reader" };
+const SET_ICONS = { search: "search", sites: "globe", ai: "settings", theme: "palette", start: "home", tabs: "tabs", privacy: "shield", security: "shield",
+  data: "settings", keys: "key", server: "settings", identity: "key", about: "reader" };
 function setTabBar() {
   const out = []; let last = "";
   for (const [id, label, group] of SET_TABS) {
     if (group !== last) { out.push(h("div", { class: "sp-group", text: group })); last = group; }
-    out.push(h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab",
+    out.push(h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab", "aria-selected": SET.tab === id ? "true" : "false",
       act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } },
       ico(SET_ICONS[id] || "settings"), h("span", { text: label })));
   }
   return h("div", { class: "sp-tabs", role: "tablist" }, out);
 }
-/** Settings search: every row of every tab whose text matches all typed words, grouped by tab. */
-function setFindBody(q) {
+/** Settings find: results replace the nav. Each hit names its page; clicking opens the page, scrolls to the row and flashes it. */
+function setFindHits(q) {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean), out = [];
   for (const [id, label] of SET_TABS) {
-    const hits = [].concat(...[setTabBody(id)].flat(Infinity)).filter((e) => e && e.classList && !e.classList.contains("set-sec") && !e.classList.contains("set-note")
-      && words.every((w) => (e.textContent + " " + label).toLowerCase().includes(w)));
-    if (hits.length) out.push(secHead(label, "find-" + id), ...hits);
+    [setTabBody(id)].flat(Infinity).forEach((e) => {
+      if (!e || !e.classList || e.classList.contains("set-sec") || e.classList.contains("set-note")) return;
+      const t = e.querySelector && e.querySelector(".t1");
+      if (!t || !t.textContent) return;
+      if (words.every((w) => (e.textContent + " " + label).toLowerCase().includes(w))) out.push({ id, label, title: t.textContent, sub: (e.querySelector(".t2") || {}).textContent || "" });
+    });
   }
-  return out.length ? out : [h("div", { class: "set-note", text: "No setting matches" })];
+  return out;
+}
+function setFindList(q) {
+  const hits = setFindHits(q);
+  if (!hits.length) return h("div", { class: "sp-none", text: "No setting matches" });
+  return h("div", { class: "sp-hits" }, hits.map((x) => h("button", { class: "sp-hit", act: () => {
+    SET.find = ""; SET.tab = x.id; renderSettings();
+    setTimeout(() => {
+      const row = Array.from(SET.L.body.querySelectorAll(".set-row")).find((r) => { const t = r.querySelector(".t1"); return t && t.textContent === x.title; });
+      if (row) { row.scrollIntoView({ block: "center" }); row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 1500); }
+    }, 30);
+  } }, h("span", { class: "hit-t", text: x.title }), h("span", { class: "hit-p", text: x.label }), x.sub ? h("span", { class: "hit-s", text: x.sub }) : null)));
 }
 function setTabBody(tab) {
   switch (tab) {
     case "sites": return [secBrowsing(), secDns()];
     case "ai": return secAi();
-    case "appearance": return secAppearance();
-    case "pages": return secDarkPages();
-    case "tabs": return secTabs();
-    case "pctabs": return secPcTabs();
-    case "privacy": return [secPrivacy(), secSuggest()];
-    case "https": return secHttps();
-    case "blocking": return secBlocking();
-    case "data": return secData();
-    case "apps": return secApps();
-    case "extensions": return secExtensions();
+    case "theme": return [secTheme(), secDarkPages()];
+    case "start": return secStart();
+    case "tabs": return [secLayout(), secTabs(), secPcTabs()];
+    case "privacy": return secPrivacy();
+    case "security": return [secHttps(), secBlocking()];
+    case "data": return [secData(), secApps(), secExtensions()];
     case "keys": return secKeys();
-    case "vps": return secVps();
-    case "identity": return secIdentity();
-    case "auth": return typeof secAuth === "function" ? secAuth() : [];
+    case "server": return secServer();
+    case "identity": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
     case "about": return secAbout();
-    default: return secSearch();
+    default: return [secSearch(), secSuggest()];
   }
 }
 
@@ -106,9 +115,8 @@ function themeEditor() {
       S.prefs.customTheme ? h("button", { class: "ct-btn", text: "Remove", act: () => { inv("theme.custom", null); if (on) setPref("theme", "system"); } }) : null),
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }
-function secAppearance() {
-  const bg = Object.assign({ type: "none", value: "", dim: 0, blur: 0 }, S.prefs.bg);
-  const out = [secHead("Theme", "theme"),
+function secTheme() {
+  return [secHead("Theme", "theme"),
     h("div", { class: "swatches" }, THEMES.map(([id, label, back, raised, accent]) =>
       h("button", { class: "theme-sw" + ((S.prefs.theme || "system") === id ? " sel" : ""), title: label, act: () => setPref("theme", id),
         on: { pointerenter: () => paintPreview(presetColours(id)), pointerleave: () => paintPreview(currentColours()) } },
@@ -116,8 +124,11 @@ function secAppearance() {
           h("i", { style: "background:" + raised }), h("i", { style: "background:" + accent })),
         h("span", { class: "theme-name", text: label })))),
     h("div", { class: "set-note", text: "Themes colour the browser, start page and settings. Websites keep their own colours." }),
-    secHead("Preview", "preview"), themePreviewBox(), themeEditor(),
-    secHead("Start page background", "background"),
+    secHead("Preview", "preview"), themePreviewBox(), secHead("Custom theme", "custom"), themeEditor()];
+}
+function secStart() {
+  const bg = Object.assign({ type: "none", value: "", dim: 0, blur: 0 }, S.prefs.bg);
+  const out = [secHead("Background", "background"),
     chips([{ key: "none", label: "None" }, { key: "gradient", label: "Gradient" }, { key: "image", label: "Image" },
       { key: "custom", label: "Custom" }, { key: "color", label: "Colour" }], bg.type, (k) => setBg({ type: k, value: k === bg.type ? bg.value : "" }))];
   if (bg.type === "gradient") {
@@ -149,11 +160,13 @@ function secAppearance() {
     out.push(bgPreview(bg));
     out.push(setSlider("Dim", bg.dim, 0, 100, (v) => setBg({ dim: v })), setSlider("Blur", bg.blur, 0, 40, (v) => setBg({ blur: v })));
   }
-  out.push(secHead("Start page shortcuts", "shortcuts"),
-    setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
-    secHead("Tab layout", "layout"),
-    setToggle("vertTabs", "Vertical tabs", "Move the tab strip to a side panel. Shortcut: " + (comboLabel("toggleVertical") || "none")));
+  out.push(secHead("Shortcuts", "shortcuts"),
+    setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."));
   return out;
+}
+function secLayout() {
+  return [secHead("Layout", "layout"),
+    setToggle("vertTabs", "Vertical tabs", "Move the tab strip to a side panel. Shortcut: " + (comboLabel("toggleVertical") || "none"))];
 }
 function bgPreview(bg) {
   const v = String(bg.value || "");
@@ -189,13 +202,19 @@ function secSuggest() {
     })];
 }
 
-// Identity & mail
+// Server & mail: hidden email. Identity & passwords: browser identity.
+function secServer() {
+  const noDummy = S.prefs.noDummy || [];
+  const out = [].concat(secVps());
+  if (S.relayAvail) out.push(secHead("Hidden email", "mail"),
+    setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms"),
+    setRow("Sites without the hidden-email button", noDummy.length ? noDummy.join(", ") : "None. The button shows on sign-up pages",
+      noDummy.length ? "Clear" : null, noDummy.length ? () => setPref("noDummy", []) : null),
+    h("div", { class: "set-note", text: "On a sign-up form, right-click a field and choose Use hidden email. One use fills name, address, phone, birth date, username and email with one consistent identity." }));
+  return out;
+}
 function secIdentity() {
-  return [secHead("Identity & mail", "identity"),
-    S.relayAvail ? setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms") : setRow("Hidden email", "Not configured in this build", null),
-    h("div", { class: "set-note", text: "On a sign-up form, right-click a field and choose Use hidden email. One use fills name, address, phone, birth date, username and email with one consistent identity." }),
-    setSelect("Identify as", null, S.agents, "userAgent"),
-    setSelect("Site language", null, S.languages, "language")];
+  return [secHead("Browser identity", "identity"), setSelect("Identify as", null, S.agents, "userAgent")];
 }
 
 // Keybinds & controls

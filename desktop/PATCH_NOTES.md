@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.8.0
+- Settings redesigned: sidebar with find (press "/"), 13 pages grouped Browsing, Look & tabs, Privacy & security, Data & controls, Account, About.
+
 ## 1.7.8
 - Chat notifications arrive within about a second instead of up to a minute.
 

@@ -72,6 +72,8 @@ object Prefs {
     /** Menu items pinned to the quick menu (keys from MenuSheet). */
     var menuPins by mutableStateOf(setOf("new", "private", "find", "desktop", "downloads", "history", "settings")); private set
     var noDummy by mutableStateOf<Set<String>>(emptySet()); private set
+    /** Sites where the user chose not to auto-fill an authenticator code. */
+    var totpSkip by mutableStateOf<Set<String>>(emptySet()); private set
     /** Home-screen search widget: hint text and corner shape ("pill", "rounded", "square"). */
     var widgetText by mutableStateOf(""); private set
     var widgetShape by mutableStateOf("pill"); private set
@@ -132,6 +134,7 @@ object Prefs {
         customTheme = sp.getString("customTheme", null)?.split(',')?.takeIf { it.size == 5 && CustomTheme.valid(it[0], it[1], it[2], it[3]) }
             ?.let { CustomTheme(it[0], it[1], it[2], it[3], it[4].toLongOrNull() ?: 0L) }
         noDummy = sp.getStringSet("noDummy", emptySet())!!.toSet()
+        totpSkip = sp.getStringSet("totpSkip", emptySet())!!.toSet()
         sp.getStringSet("menuPins", null)?.let { menuPins = it.toSet() }
         widgetText = sp.getString("widgetText", "") ?: ""
         widgetShape = sp.getString("widgetShape", "pill") ?: "pill"
@@ -301,6 +304,13 @@ object Prefs {
         noDummy = if (h in noDummy) noDummy - h else noDummy + h
         sp.edit().putStringSet("noDummy", noDummy).apply()
     }
+    fun setTotpSkip(host: String, skip: Boolean) {
+        val h = Relay.baseDomain(host)
+        if (h.isBlank()) return
+        totpSkip = if (skip) totpSkip + h else totpSkip - h
+        sp.edit().putStringSet("totpSkip", totpSkip).apply()
+    }
+    fun totpSkipped(host: String) = Relay.baseDomain(host) in totpSkip
     fun updateSpeed(v: Float) { speed = v; sp.edit().putFloat("speed", v).apply(); Helper.push() }
     fun updateQuality(v: Int) { quality = v; sp.edit().putInt("quality", v).apply(); Helper.push() }
     /** The quality set for [host] or a parent domain, or null when it follows the default. */
