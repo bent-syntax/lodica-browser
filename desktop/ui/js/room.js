@@ -9,7 +9,7 @@ function openRoom() {
     L.note = h("div", { class: "empty", style: "padding:6px 12px" });
     L.thread = h("div", { class: "chat-thread" });
     L.name = h("input", { class: "field", maxlength: "32", placeholder: "Your name" });
-    L.name.addEventListener("change", () => inv("room.name", L.name.value).then((n) => { ROOM.state.name = n; roomRender(); }));
+    L.name.addEventListener("change", () => inv("room.name", L.name.value).then((r) => { ROOM.state.name = r.name; L.name.value = r.name; if (r.taken) toast("That name is already used by another device"); roomRender(); }));
     L.ta = h("textarea", { class: "field", rows: "1", placeholder: "Message" });
     const send = async () => {
       const v = L.ta.value.trim(); if (!v) return;
@@ -92,6 +92,7 @@ function roomNew() {
 
 function roomRender() {
   const L = ROOM.L; if (!L) return;
+  if (document.activeElement !== L.name && L.name.value !== (ROOM.state.name || "")) L.name.value = ROOM.state.name || "";
   clear(L.tabs);
   for (const r of ["", ...(ROOM.state.chats || [])]) {
     const b = h("button", { class: "btn" + (r === ROOM.state.room ? " primary" : ""), text: roomLabel(r) });

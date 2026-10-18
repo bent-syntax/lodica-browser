@@ -386,7 +386,7 @@ object Prefs {
         if (looksLikeHost) return withLanguage(applyOwnDns("https://$t"))
         val base = Helper.searchBase
         if (search == SearchEngine.LODICA && base != null && Relay.available)
-            return base + "search.html?q=" + android.net.Uri.encode(t)
+            return base + "search.html?q=" + android.net.Uri.encode(t) + "&th=" + Helper.themeParam()
         // Lodica Search is chosen but no server is linked or the helper has not loaded: use the fallback engine.
         // (A server that is merely unreachable is handled by the search page itself, which falls back.)
         val engine = if (search != SearchEngine.LODICA) search else searchFallback

@@ -35,6 +35,8 @@ import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material.icons.rounded.MarkEmailUnread
 import androidx.compose.material.icons.rounded.SentimentDissatisfied
 import androidx.compose.material3.Button
@@ -165,7 +167,7 @@ private fun BrowserScreen() {
 
         val home = tab != null && tab.url == TabManager.HOME && !locked
         AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
-            StartPage(Modifier.fillMaxSize().padding(bottom = 72.dp))
+            StartPage(Modifier.fillMaxSize())
         }
         if (tab?.crashed == true && !locked) CrashedView(tab)
         if (locked) LockedView()
@@ -323,8 +325,12 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
             if (v.session !== session) {
                 if (v.session != null) v.releaseSession()
                 if (session != null) {
-                    v.coverUntilFirstPaint(bg)
+                    // No cover here: a session that already painted never fires "first paint" again,
+                    // so the cover would stay on screen as a black view.
                     v.setSession(session)
+                    // select() activates the session before the view is attached; repeat it so the
+                    // compositor resumes on the new surface.
+                    if (TabManager.current?.locked != true) { session.setActive(true); session.setFocused(true) }
                     v.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt())
                 }
             }
@@ -345,6 +351,8 @@ fun go(input: String) {
     TabManager.load(text)
 }
 
+private val FavCache = HashMap<String, androidx.compose.ui.graphics.ImageBitmap>()
+
 private class Shortcut(val url: String, val title: String, val mine: Boolean)
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -359,33 +367,49 @@ private fun StartPage(modifier: Modifier) {
     val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, it.title, false) }
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<Shortcut?>(null) }
-    Box(modifier) {
+    Box(modifier.background(Graphite)) {
     StartBackdrop(Modifier.fillMaxSize())
+    var q by remember { mutableStateOf("") }
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 28.dp),
+        Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 72.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Kite(92.dp)
-        Spacer(Modifier.height(10.dp))
-        Text(
-            "Lodica",
-            style = MaterialTheme.typography.headlineMedium,
-            color = Mist,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp,
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Kite(52.dp)
+            Spacer(Modifier.width(10.dp))
+            Text(
+                "Lodica",
+                style = MaterialTheme.typography.headlineMedium,
+                color = Mist,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+            )
+        }
+        Spacer(Modifier.height(28.dp))
+        OutlinedTextField(
+            q, { q = it },
+            Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(28.dp),
+            placeholder = { Text("Search or enter address", color = Muted) },
+            trailingIcon = { Icon(Icons.Rounded.Search, null, tint = Amber, modifier = Modifier.clickable { go(q); q = "" }) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go(q); q = "" }),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                focusedBorderColor = Amber, unfocusedBorderColor = Amber.copy(alpha = 0.6f),
+                focusedContainerColor = GraphiteRaised, unfocusedContainerColor = GraphiteRaised,
+            ),
         )
-        Spacer(Modifier.height(36.dp))
-        val cells: List<Shortcut?> = if (mine.size < 24) tiles + listOf(null) else tiles
-        cells.chunked(4).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                row.forEach { s ->
-                    if (s == null) SiteTile("+", "Add", { adding = true }, null)
-                    else SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null)
-                }
+        Spacer(Modifier.height(28.dp))
+        tiles.chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                row.forEach { s -> SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null) }
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
         }
+        if (mine.size < 24) TextButton(onClick = { adding = true }) { Text("Edit shortcuts", color = Muted, fontSize = 13.sp) }
     }
     }
     if (adding) {
@@ -434,8 +458,19 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
         Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = onLong).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val icon by produceState<androidx.compose.ui.graphics.ImageBitmap?>(FavCache[host], host) {
+            if (value == null && host.isNotEmpty()) value = withContext(Dispatchers.IO) {
+                runCatching {
+                    val c = java.net.URL("https://$host/favicon.ico").openConnection() as java.net.HttpURLConnection
+                    c.connectTimeout = 4000; c.readTimeout = 4000
+                    c.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap()
+                }.getOrNull()
+            }?.also { FavCache[host] = it }
+        }
         Box(Modifier.size(44.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
-            Text(if (url == "+") "+" else host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+            val ic = icon
+            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(26.dp))
+            else Text(host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
         }
         Spacer(Modifier.height(6.dp))
         Text(

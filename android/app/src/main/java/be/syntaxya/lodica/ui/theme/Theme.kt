@@ -6,6 +6,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,17 +67,33 @@ fun customPalette(c: CustomTheme): Palette {
 }
 
 /** Picker entries: "system" first, then every palette. */
-val ThemeChoices: List<Pair<String, String>> = listOf("system" to "System") + Palettes.map { it.key to it.label }
+val ThemeChoices: List<Pair<String, String>> =
+    listOf("system" to "System") +
+        (if (android.os.Build.VERSION.SDK_INT >= 31) listOf("dynamic" to "System colours") else emptyList()) +
+        Palettes.map { it.key to it.label }
+
+/** Palette from the wallpaper-derived Material You scheme. */
+@androidx.annotation.RequiresApi(31)
+private fun dynamicPalette(ctx: android.content.Context, dark: Boolean): Palette {
+    val s = if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
+    fun c(x: Color) = x.toArgb().toLong() and 0xFFFFFFFFL
+    return Palette("dynamic", "System colours", dark, c(s.surface), c(s.surfaceContainer), c(s.surfaceContainerHighest),
+        c(s.primary), c(s.tertiary), c(s.onSurface), c(s.onSurfaceVariant))
+}
 
 object ThemeState {
     /** Mirrors the system night mode; written by LodicaTheme. Starts dark, the app's historical look. */
     var systemDark by mutableStateOf(true)
 
+    /** Wallpaper colours (Android 12+), written by LodicaTheme. Null where the OS has none. */
+    var dynamic by mutableStateOf<Palette?>(null)
+
     val palette: Palette
         get() {
+            if (Prefs.theme == "dynamic") dynamic?.let { return it }
             if (Prefs.theme == "custom") Prefs.customTheme?.let { return customPalette(it) }
             val key = when (val k = Prefs.theme) {
-                "system" -> if (systemDark) "dark" else "light"
+                "system", "dynamic" -> if (systemDark) "dark" else "light"
                 else -> k
             }
             return Palettes.firstOrNull { it.key == key } ?: Palettes[0]
@@ -121,9 +140,13 @@ private fun scheme(p: Palette) = if (p.dark) {
 fun LodicaTheme(content: @Composable () -> Unit) {
     val sysDark = isSystemInDarkTheme()
     SideEffect { if (ThemeState.systemDark != sysDark) ThemeState.systemDark = sysDark }
-    val p = ThemeState.palette
     val view = LocalView.current
     val appCtx = LocalContext.current.applicationContext
+    if (android.os.Build.VERSION.SDK_INT >= 31) {
+        val dyn = dynamicPalette(appCtx, sysDark)
+        SideEffect { ThemeState.dynamic = dyn }
+    }
+    val p = ThemeState.palette
     LaunchedEffect(p.key, p.bg, p.accent) { withContext(Dispatchers.IO) { runCatching { LauncherIcon.apply(appCtx, p) } } }
     SideEffect {
         var c = view.context

@@ -100,6 +100,13 @@ object Helper {
     }
 
     /** Palette colours for the start page, so it matches the app theme. */
+    /** Colours as one URL parameter (bg,raised,high,text,muted,accent,accent2 without #, then d or l), read by theme.js before first paint. */
+    fun themeParam(): String {
+        val p = be.syntaxya.lodica.ui.theme.ThemeState.palette
+        fun h(c: Long) = String.format("%06X", c and 0xFFFFFF)
+        return listOf(p.bg, p.raised, p.high, p.text, p.muted, p.accent, p.accent2).joinToString(",") { h(it) } + "," + (if (p.dark) "d" else "l")
+    }
+
     private fun themeJson(): JSONObject {
         val p = be.syntaxya.lodica.ui.theme.ThemeState.palette
         fun hex(c: Long) = String.format("#%06X", c and 0xFFFFFF)

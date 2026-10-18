@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.8.0.2 (versionCode 41)
+
+- Android: Lodica Search results and its home page now take the app theme (the colours are passed in the address, so they apply even on the first load).
+- Android: the new tab page matches the desktop start page: horizontal logo, search box, site icons and an Edit shortcuts link. The black strip at the bottom is gone.
+- Android: every Settings page has an icon, and a red Danger zone at the bottom holds Clear history, Clear suggestions and Clear site data.
+- Android: fixed the screen sometimes going black when opening a site after leaving one.
+- Desktop: a two-finger swipe left or right on the touchpad goes back or forward, like the Back and Forward buttons.
+- New "System colours" theme: Android uses the wallpaper colours (Android 12+), desktop uses the OS light/dark setting and accent colour.
+- Chat name defaults to the device name. Names are unique per device: a name already used by another device is refused (needs the relay update to enforce).
+
 ## 1.8.0.1 (versionCode 40)
 
 - Lodica Search now uses the app theme from the first paint (colours are remembered between visits), including result text and links. This is the 1.8.0 Android build with this fix.

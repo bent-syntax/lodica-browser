@@ -4,7 +4,9 @@ const relay = require("./relay");
 const store = require("./store");
 
 const events = new EventEmitter();
-const state = { messages: [], error: null, name: store.load("roomName", "") || "Me", room: "", chats: store.load("roomChats", []) || [] };
+const os = require("os");
+// New installs start with the computer's name; a stored name always wins.
+const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", room: "", chats: store.load("roomChats", []) || [] };
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
@@ -38,16 +40,47 @@ async function loop(my) {
 function start() {
   if (running || !relay.available) return state;
   running = true;
+  settleName();
   loop(++gen);
   return state;
 }
 
 function stop() { running = false; gen++; }
 
-function setName(v) {
-  state.name = String(v || "").trim().slice(0, 32) || "Me";
+function deviceId() {
+  let id = store.load("roomDeviceId", "");
+  if (!/^[\w-]{8,64}$/.test(id)) { id = require("crypto").randomBytes(16).toString("hex"); store.save("roomDeviceId", () => id); }
+  return id;
+}
+
+/** Asks the relay to reserve [name] for this device. Resolves true when free or the relay can't say (offline, older relay). */
+async function claim(name) {
+  try {
+    const [status] = await relay.request("GET", "/api/chat/claim?name=" + encodeURIComponent(name) + "&id=" + deviceId(), 15000);
+    return status !== 409;
+  } catch { return true; }
+}
+
+/** Reserves the current name at startup. When another device holds it (two computers with the same host name), appends -2, -3, ... */
+async function settleName() {
+  const base = state.name;
+  for (let i = 1; i <= 20; i++) {
+    const n = i === 1 ? base : base.slice(0, 32 - String(i).length - 1) + "-" + i;
+    if (await claim(n)) {
+      if (n !== state.name) { state.name = n; store.save("roomName", () => state.name); changed(); }
+      return;
+    }
+  }
+}
+
+/** Sets the chat name. Resolves { name, taken }: when another device holds the name the old one is kept. */
+async function setName(v) {
+  const want = String(v || "").trim().slice(0, 32) || "Me";
+  if (want === state.name) { await claim(want); return { name: state.name, taken: false }; }
+  if (!(await claim(want))) return { name: state.name, taken: true };
+  state.name = want;
   store.save("roomName", () => state.name);
-  return state.name;
+  return { name: state.name, taken: false };
 }
 
 /** Room id of the private chat between this device's name and [peer]. */

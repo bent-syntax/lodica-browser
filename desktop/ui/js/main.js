@@ -117,7 +117,8 @@ const applyTheme = () => {
 let lastColors = "";
 const reportColors = () => requestAnimationFrame(() => {
   const cs = getComputedStyle(document.documentElement);
-  const hex = v => { const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v.trim()); if (!m) return ""; const x = m[1]; return "#" + (x.length === 3 ? [...x].map(c => c + c).join("") : x); };
+  const probe = document.createElement("i");
+  const hex = v => { v = v.trim(); if (v && !v.startsWith("#")) { probe.style.color = v; document.body.append(probe); const r = /(\d+)[, ]+(\d+)[, ]+(\d+)/.exec(getComputedStyle(probe).color); probe.remove(); if (r) v = "#" + [r[1], r[2], r[3]].map(n => (+n).toString(16).padStart(2, "0")).join(""); } const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v.trim()); if (!m) return ""; const x = m[1]; return "#" + (x.length === 3 ? [...x].map(c => c + c).join("") : x); };
   const c = { bg: hex(cs.getPropertyValue("--bg")), amber: hex(cs.getPropertyValue("--amber")), text: hex(cs.getPropertyValue("--text")) };
   const k = JSON.stringify(c);
   if (!c.bg || !c.amber || !c.text || k === lastColors) return;

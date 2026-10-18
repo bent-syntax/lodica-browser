@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.8.0.2
+
+- Search theme passed in the URL (th parameter); new tab page redesigned; Settings page icons and Danger zone.
+
 ## 1.8.0.1
 
 - Search page applies the app theme before first paint via theme.js and themeapply.js; helper extension version 1.8.1.

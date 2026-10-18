@@ -189,8 +189,28 @@ function shortcut(e, input) {
   M.commands.runKey(id);
 }
 
+// Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
+function swipeNav(wc) {
+  let sum = 0, last = 0, locked = 0;
+  wc.on("input-event", (_e, ev) => {
+    if (ev.type !== "mouseWheel") return;
+    const now = Date.now();
+    if (now < locked) return;
+    if (now - last > 150) sum = 0;
+    last = now;
+    const dx = ev.deltaX || 0, dy = ev.deltaY || 0;
+    if (Math.abs(dx) <= Math.abs(dy) * 2) { sum = 0; return; }
+    sum += dx;
+    if (Math.abs(sum) < 150) return;
+    M.commands.mouse(sum < 0 ? "back" : "forward");
+    sum = 0;
+    locked = now + 700;
+  });
+}
+
 function onView(t, wc) {
   wc.on("before-input-event", shortcut);
+  swipeNav(wc);
   M.commands.applyAgent(t, wc);
   // Sites flagged desktopInput need the desktop UA from the first request, even in a mobile-site tab.
   wc.on("did-start-navigation", (e) => {
@@ -340,6 +360,7 @@ app.whenReady().then(() => {
     if (cmd === "browser-backward") m.commands.mouse("back");
     else if (cmd === "browser-forward") m.commands.mouse("forward");
   });
+  win.on("swipe", (_e, dir) => { if (dir === "left") m.commands.mouse("back"); else if (dir === "right") m.commands.mouse("forward"); });
   win.on("focus", checkClipboard);
   win.on("minimize", () => m.tabs.setLocked(true));
   win.on("closed", () => { win = null; app.quit(); });

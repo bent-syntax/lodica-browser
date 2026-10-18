@@ -173,9 +173,27 @@ fun SettingsScreen() {
                         pages.forEachIndexed { n, i ->
                             if (n > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
                             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = i }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                RowTile(SettingsIcons[i])
+                                Spacer(Modifier.width(14.dp))
                                 Text(SettingsTabs[i], color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
                                 Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Muted)
                             }
+                        }
+                    }
+                }
+                Section("Danger zone")
+                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(10.dp))) {
+                    LinkRow("Clear history", Coral) {
+                        confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
+                    }
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
+                    LinkRow("Clear suggestions", Coral) {
+                        confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
+                    }
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
+                    LinkRow("Clear site data", Coral) {
+                        confirm = Confirm("Clear site data?", "Cookies, cache and storage for all sites. You will be logged out everywhere.") {
+                            Engine.runtime(ctx).storageController.clearData(StorageController.ClearFlags.ALL)
                         }
                     }
                 }
@@ -1105,6 +1123,11 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 private val SettingsTabs = listOf(
     "Search", "Sites & domains", "AI answers", "Theme", "Start page", "Tabs", "Privacy & history",
     "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & passwords", "Updates & About",
+)
+
+private val SettingsIcons = listOf(
+    Icons.Rounded.Search, Icons.Rounded.Language, Icons.Rounded.AutoAwesome, Icons.Rounded.Palette, Icons.Rounded.Home, Icons.Rounded.Tab, Icons.Rounded.History,
+    Icons.Rounded.Shield, Icons.Rounded.Extension, Icons.Rounded.Gesture, Icons.Rounded.Email, Icons.Rounded.Key, Icons.Rounded.Update,
 )
 
 /** Landing list: group title to the pages inside it. */

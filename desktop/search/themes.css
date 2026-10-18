@@ -18,3 +18,4 @@
 :root[data-theme=dracula]{--bg:#282A36;--raised:#343746;--high:#44475A;--mist:#F8F8F2;--text:#F8F8F2;--muted:#9AA0BD;--amber:#BD93F9;--coral:#FF5555;--link:#F1FA8C;--url:#50FA7B;--sub:#F8F8F2;color-scheme:dark}
 :root[data-theme=one-dark]{--bg:#282C34;--raised:#2F343E;--high:#3E4451;--mist:#ABB2BF;--text:#ABB2BF;--muted:#7F8795;--amber:#61AFEF;--coral:#E06C75;--link:#E5C07B;--url:#98C379;--sub:#ABB2BF;color-scheme:dark}
 :root[data-theme=kanagawa]{--bg:#1F1F28;--raised:#2A2A37;--high:#363646;--mist:#DCD7BA;--text:#DCD7BA;--muted:#8A8980;--amber:#E6C384;--coral:#E46876;--link:#7E9CD8;--url:#98BB6C;--sub:#DCD7BA;color-scheme:dark}
+:root[data-theme=os]{color-scheme:light dark;--bg:Canvas;--raised:color-mix(in srgb,CanvasText 6%,Canvas);--high:color-mix(in srgb,CanvasText 14%,Canvas);--mist:CanvasText;--text:CanvasText;--muted:color-mix(in srgb,CanvasText 60%,Canvas);--amber:AccentColor;--coral:AccentColor;--link:AccentColor;--url:AccentColor;--sub:CanvasText}

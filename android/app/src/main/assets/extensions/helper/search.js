@@ -20,6 +20,8 @@ function applyTheme(t) {
   try { localStorage.setItem("lodica.theme", JSON.stringify(t)); } catch (e) {}
 }
 
+document.querySelector(".brand").href = "search.html" + (params.get("th") ? "?th=" + encodeURIComponent(params.get("th")) : "");
+
 function el(tag, attrs, ...kids) {
   const e = document.createElement(tag);
   for (const k in attrs || {}) {
@@ -34,6 +36,7 @@ function href(opts) {
   const s = new URLSearchParams({ q: opts.q != null ? opts.q : q });
   if (opts.c) s.set("c", opts.c);
   if (opts.p > 1) s.set("p", String(opts.p));
+  if (params.get("th")) s.set("th", params.get("th"));
   return "search.html?" + s;
 }
 

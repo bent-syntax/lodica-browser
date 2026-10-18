@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -125,7 +126,14 @@ fun RoomScreen() {
             IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 MB)", tint = Amber) }
             Column(Modifier.weight(1f)) {
                 OutlinedTextField(
-                    name, { name = it.take(32); Room.setName(ctx, name) }, Modifier.fillMaxWidth(), singleLine = true,
+                    name, { name = it.take(32) },
+                    Modifier.fillMaxWidth().onFocusChanged { f ->
+                        if (!f.isFocused && name != Room.name(ctx)) Room.changeName(ctx, name) { now, refused ->
+                            name = now
+                            if (refused) sendError = "That name is already used by another device"
+                        }
+                    },
+                    singleLine = true,
                     label = { Text("Your name", color = Muted) }, colors = fieldColors,
                 )
                 OutlinedTextField(
@@ -140,7 +148,7 @@ fun RoomScreen() {
                     val t = text
                     text = ""
                     sendError = null
-                    Room.send(name, t) { err -> if (err != null) { sendError = err; text = t } }
+                    Room.send(Room.name(ctx), t) { err -> if (err != null) { sendError = err; text = t } }
                 },
             ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (text.isNotBlank()) Amber else Muted) }
         }

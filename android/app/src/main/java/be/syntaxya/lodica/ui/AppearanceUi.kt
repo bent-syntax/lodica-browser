@@ -94,7 +94,7 @@ internal fun ThemeSwatches() {
     ) {
         be.syntaxya.lodica.ui.theme.ThemeChoices.forEach { (key, label) ->
             RoundChoice(label.substringBefore(' '), Prefs.theme == key, onClick = { Prefs.updateTheme(key) }) {
-                ThemeDot(Palettes.firstOrNull { it.key == key })
+                ThemeDot(if (key == "dynamic") be.syntaxya.lodica.ui.theme.ThemeState.dynamic else Palettes.firstOrNull { it.key == key })
             }
         }
     }

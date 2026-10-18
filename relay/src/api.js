@@ -386,6 +386,11 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return chat.users(req, res, url, { sendJson, sendText, readBody });
   }
+  if (p === '/api/chat/claim') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return chat.claim(req, res, url, { sendJson, sendText, readBody });
+  }
   if (p === '/gate') {
     if (m !== 'GET') return not('GET, HEAD');
     return send(req, res, 200, gatePage, {

@@ -129,8 +129,28 @@ function users(req, res, url, h) {
   h.sendJson(req, res, 200, { users: list });
 }
 
+const claims = new Map(); // lowercase name -> { id, at }: which device owns a chat name
+
+/** GET /api/chat/claim?name=&id=: reserves a chat name for one device id. 409 when another device holds it. */
+function claim(req, res, url, h) {
+  const name = (url.searchParams.get('name') || '').replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX);
+  const id = (url.searchParams.get('id') || '').slice(0, 64);
+  if (!name || !/^[\w-]{8,64}$/.test(id)) return h.sendText(req, res, 400, 'bad name or id');
+  const now = Date.now();
+  for (const [k, c] of claims) if (now - c.at > SEEN_TTL) claims.delete(k);
+  const key = name.replace(/\s+/g, '_').toLowerCase();
+  const held = claims.get(key);
+  if (held && held.id !== id) return h.sendJson(req, res, 409, { ok: false, error: 'name taken' });
+  for (const [k, c] of claims) if (c.id === id && k !== key) claims.delete(k); // one name per device
+  claims.set(key, { id, at: now });
+  if (claims.size > 2000) claims.delete(claims.keys().next().value);
+  touch(name);
+  h.sendJson(req, res, 200, { ok: true, name });
+}
+
 /** Test hook. */
 function reset() {
+  claims.clear();
   chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); for (const w of [...waiters]) w.done([]); }
 
 /** POST /api/chat/file: an attachment, announced to the room as a normal message that carries `file`. */
@@ -154,4 +174,4 @@ async function postFile(req, res, ip, url, h) {
   h.sendJson(req, res, 200, msg);
 }
 
-module.exports = { get, post, postFile, rooms, users, reset };
+module.exports = { get, post, postFile, rooms, users, claim, reset };

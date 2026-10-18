@@ -99,6 +99,7 @@ object Room {
         if (!Relay.available) return
         Relay.scope.launch {
             runCatching {
+                settleName(ctx)
                 val me = name(ctx)
                 val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8"))
                 if (code != 200) return@runCatching
@@ -125,14 +126,56 @@ object Room {
         }
     }
 
-    fun name(ctx: Context): String =
-        ctx.getSharedPreferences("room", Context.MODE_PRIVATE).getString("name", null)?.takeIf { it.isNotBlank() } ?: "Me"
+    private fun prefs(ctx: Context) = ctx.getSharedPreferences("room", Context.MODE_PRIVATE)
 
-    fun hasName(ctx: Context): Boolean =
-        ctx.getSharedPreferences("room", Context.MODE_PRIVATE).getString("name", null)?.isNotBlank() == true
+    /** The device's own name (Settings > About phone), used until the user picks a chat name. */
+    fun deviceName(ctx: Context): String {
+        val g = runCatching { android.provider.Settings.Global.getString(ctx.contentResolver, "device_name") }.getOrNull()
+        return (g?.takeIf { it.isNotBlank() } ?: android.os.Build.MODEL ?: "Me").replace("|", " ").trim().take(32).ifBlank { "Me" }
+    }
+
+    fun name(ctx: Context): String = prefs(ctx).getString("name", null)?.takeIf { it.isNotBlank() } ?: deviceName(ctx)
+
+    fun hasName(ctx: Context): Boolean = prefs(ctx).getString("name", null)?.isNotBlank() == true
 
     fun setName(ctx: Context, v: String) {
-        ctx.getSharedPreferences("room", Context.MODE_PRIVATE).edit().putString("name", v.trim().take(32)).apply()
+        prefs(ctx).edit().putString("name", v.trim().take(32)).apply()
+    }
+
+    private fun deviceId(ctx: Context): String {
+        val sp = prefs(ctx)
+        return sp.getString("deviceId", null) ?: java.util.UUID.randomUUID().toString().replace("-", "")
+            .also { sp.edit().putString("deviceId", it).apply() }
+    }
+
+    /** Asks the server to reserve [n] for this device. False only when another device holds it; old servers and errors count as free. */
+    private fun claim(ctx: Context, n: String): Boolean = runCatching {
+        val q = "name=" + java.net.URLEncoder.encode(n, "UTF-8") + "&id=" + deviceId(ctx)
+        Relay.request("GET", "/api/chat/claim?$q").first != 409
+    }.getOrDefault(true)
+
+    /** Saves [v] as the chat name if no other device uses it. Calls [done] on the main thread with the name now in effect and whether [v] was refused. */
+    fun changeName(ctx: Context, v: String, done: (String, Boolean) -> Unit) {
+        val want = v.trim().take(32)
+        if (want.isBlank() || !Relay.available) { if (want.isNotBlank()) setName(ctx, want); main.post { done(name(ctx), false) }; return }
+        Relay.scope.launch {
+            val ok = claim(ctx, want)
+            if (ok) setName(ctx, want)
+            main.post { done(name(ctx), !ok) }
+        }
+    }
+
+    private var settled = false
+
+    /** Once per launch: if another device already has this name, add -2, -3 ... so names stay unique. */
+    private fun settleName(ctx: Context) {
+        if (settled) return
+        val base = name(ctx)
+        var n = base
+        var i = 2
+        while (!claim(ctx, n) && i <= 20) { n = "${base.take(28)}-$i"; i++ }
+        settled = true
+        if (n != base) setName(ctx, n)
     }
 
     /** Start listening. Safe to call again while already running. */
