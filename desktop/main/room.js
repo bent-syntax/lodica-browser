@@ -151,26 +151,39 @@ async function fetchFile(id, savePath) {
 }
 
 // Background check for the notifier: new messages from others in any room, while the chat is closed.
-let bgLast = -1;
-async function peek() {
-  if (!relay.available || running) return [];
-  const out = [];
-  let newLast = bgLast;
-  await users(); // presence, so others can pick this device
-  await discover(); // private chats others started with this name
-  for (const r of ["", ...state.chats]) {
-    try {
-      const [status, body] = await relay.request("GET", `/api/chat?after=${Math.max(bgLast, 0)}${roomQ(r)}`, 15000);
-      if (status !== 200) continue;
-      const o = JSON.parse(body);
-      newLast = Math.max(newLast, o.last || 0);
-      if (bgLast < 0) continue;
-      const mine = (o.messages || []).filter(m => m.name !== state.name);
-      if (mine.length) out.push({ room: r, where: r ? label(r) : "server chat", messages: mine });
-    } catch {}
+const bgCur = new Map(); // room -> last chat id seen by the background watcher, -1 until the first answer
+const watching = new Set();
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Background watcher for desktop notifications. One long poll per room, so a new message reaches
+ * onGroup within a second or so instead of waiting for the next timer tick.
+ */
+function watch(onGroup) {
+  async function loop(r) {
+    watching.add(r);
+    while (r === "" || state.chats.includes(r)) {
+      if (!relay.available || running) { await sleep(5000); continue; }
+      try {
+        const cur = bgCur.has(r) ? bgCur.get(r) : -1;
+        const [status, body] = await relay.request("GET", `/api/chat?after=${Math.max(cur, 0)}&wait=25${roomQ(r)}`, 40000);
+        if (status !== 200) { await sleep(5000); continue; }
+        const o = JSON.parse(body);
+        bgCur.set(r, Math.max(cur, o.last || 0));
+        if (cur < 0) continue;
+        const mine = (o.messages || []).filter(m => m.name !== state.name);
+        if (mine.length && !running) onGroup({ room: r, where: r ? label(r) : "server chat", messages: mine });
+        if (!(o.messages || []).length) await sleep(200);
+      } catch { await sleep(5000); }
+    }
+    watching.delete(r);
   }
-  bgLast = newLast;
-  return out;
+  const tick = async () => {
+    if (relay.available && !running) { await users().catch(() => {}); await discover().catch(() => {}); }
+    for (const r of ["", ...state.chats]) if (!watching.has(r)) loop(r);
+  };
+  tick();
+  setInterval(tick, 60 * 1000);
 }
 
-module.exports = { state, events, start, stop, send, upload, fetchFile, safeName, setName, select, addChat, removeChat, dm, group, label, discover, users, peek };
+module.exports = { state, events, start, stop, send, upload, fetchFile, safeName, setName, select, addChat, removeChat, dm, group, label, discover, users, watch };

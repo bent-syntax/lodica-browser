@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.7.8
+- Settings shows whether the phone is linked to your server.
+- Search re-checks the link before saying a server is needed.
+
 ## 1.7.7
 - Removed device-gate enrollment; use the website enrollment page instead.
 - Search error now tells you to link a server in Settings.

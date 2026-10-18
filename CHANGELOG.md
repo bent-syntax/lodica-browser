@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.8 (versionCode 37)
+- Desktop: chat notifications now use the relay long-poll, one per room, so a new message notifies within about a second instead of up to a minute. Not tested against a live relay.
+- Android: Settings shows "Linked to lodica.<domain>" with a reachable state. Search now asks the app for the current config when the helper has no token, before showing "needs a linked server". The root cause of that error after linking is not confirmed on a device. Helper extension version 1.6.
+
 ## 1.7.7 (versionCode 36)
 - Removed device-gate enrollment; use the website enrollment page instead. Old stored gate tokens and host lists are deleted on upgrade.
 - Desktop: taskbar icon update no longer depends on a worker thread and logs failures. Not verified on a Wayland or packaged Windows taskbar.

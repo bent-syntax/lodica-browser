@@ -45,6 +45,7 @@ const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z]
 
 let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "" };
 let ready;
+let askConfig = null;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
 
@@ -165,6 +166,8 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
   if (msg.type === "search") {
     await configured;
+    // The app may have been linked after the last push: ask it for the current config before giving up.
+    if (!cfg.api && native) await new Promise((res) => { askConfig = res; native.postMessage({ type: "config?" }); setTimeout(res, 1500); });
     if (!cfg.api) return { error: "Lodica Search needs a linked server. Link one in Settings, or pick another search engine." };
     const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
     if (msg.c) qs.set("c", String(msg.c));
@@ -242,6 +245,7 @@ function connect() {
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
       browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain, legacy });
       ready();
+      if (askConfig) { askConfig(); askConfig = null; }
     } else if (msg && msg.type === "answer") {
       const done = asks.get(msg.id);
       if (done) { asks.delete(msg.id); done(msg); }

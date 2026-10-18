@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.7.8
+- Chat notifications arrive within about a second instead of up to a minute.
+
 ## 1.7.7
 - Removed device-gate enrollment; use the website enrollment page instead.
 - Search error now tells you to link a server in Settings.

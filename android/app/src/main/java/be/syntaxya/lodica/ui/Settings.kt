@@ -354,6 +354,10 @@ fun SettingsScreen() {
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                         )
                     } else {
+                        Text(
+                            "Linked to lodica.${Relay.DOMAIN} (${if (Relay.up) "reachable" else "not reachable right now"})", color = Muted, fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                        )
                         LinkRow("Server chat") { Ui.screen = Screen.Room }
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)

@@ -48,19 +48,18 @@ function startNotifier(m) {
         n.show();
       }
     } catch {}
-    try {
-      for (const g of await m.room.peek()) {
-        const n = new Notification({
-          title: g.messages.length === 1 ? `New message in ${g.where}` : `${g.messages.length} new messages in ${g.where}`,
-          body: g.messages.slice(-3).map(x => `${x.name}: ${x.text}`).join("\n"),
-        });
-        n.on("click", () => { m.ui.push("openRoom", g.room); win.show(); });
-        n.show();
-      }
-    } catch {}
   };
   setTimeout(tick, 15000);
   setInterval(tick, 60 * 1000);
+  m.room.watch((g) => {
+    if (!Notification.isSupported()) return;
+    const n = new Notification({
+      title: g.messages.length === 1 ? `New message in ${g.where}` : `${g.messages.length} new messages in ${g.where}`,
+      body: g.messages.slice(-3).map(x => `${x.name}: ${x.text}`).join("\n"),
+    });
+    n.on("click", () => { m.ui.push("openRoom", g.room); win.show(); });
+    n.show();
+  });
 }
 
 function serveLodica(req) {
