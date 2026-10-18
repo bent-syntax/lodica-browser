@@ -110,7 +110,9 @@ function liteSite(details) {
 }
 
 // Device gate: the per-device token goes only to the hosts the user listed.
-browser.webRequest.onBeforeSendHeaders.addListener((details) => {
+browser.webRequest.onBeforeSendHeaders.addListener(async (details) => {
+  // The app's config can arrive after the first requests of a cold start; wait for it so they carry the token.
+  await configured;
   const g = cfg.gate;
   if (!g.token || !g.hosts.length) return {};
   let host;

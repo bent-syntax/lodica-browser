@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.7.5 (versionCode 34)
+- Android: search no longer flips to DuckDuckGo after showing results; gate token is sent on the first requests after start; gated hosts normalised.
+- Desktop: taskbar/window icon follows the theme, including system theme changes, on all windows.
+- Includes 1.7.4: chat cursor resync after relay restart.
+
 ## 1.7.3 (versionCode 32)
 - New logo in the launcher icon, in-app, widget and desktop icons; it follows the theme colours.
 - Search fallback no longer lands on DuckDuckGo; chat notifications fixed on Android.

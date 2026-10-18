@@ -17,7 +17,7 @@ object Gate {
 
     /** Hosts to send the token to, normalised. */
     fun hosts(raw: String): List<String> =
-        raw.split(Regex("[,\\s]+")).map { it.trim().lowercase().removePrefix("*.").trimStart('.') }
+        raw.split(Regex("[,\\s]+")).map { it.trim().lowercase().replace(Regex("^[a-z][a-z0-9+.-]*://"), "").substringBefore('/').substringBefore('?').substringBefore('#').substringBefore(':').removePrefix("*.").trimStart('.').trimEnd('.') }
             .filter { it.matches(Regex("^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$")) }.distinct().take(50)
 
     /** Pushed to the background script. The token is only included when hosts are set. */

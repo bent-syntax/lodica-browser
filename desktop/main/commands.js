@@ -192,7 +192,11 @@ function init(deps) {
     if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
-      .then(png => { const w = d.win(); if (w && !w.isDestroyed()) w.setIcon(nativeImage.createFromBuffer(png)); })
+      .then(png => {
+        const img = nativeImage.createFromBuffer(png);
+        const { BaseWindow } = require("electron");
+        for (const w of BaseWindow.getAllWindows()) { try { if (!w.isDestroyed()) w.setIcon(img); } catch {} }
+      })
       .catch(() => {});
   });
   on("go", text => tabs.go(text));

@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.7.5
+- Search: results no longer flip to DuckDuckGo a moment after they appear.
+- Device gate: the first requests after the app starts now wait for the config, so they carry the gate token. Gated hosts are normalised (scheme, path, port and wildcard stripped).
+- Chat: the cursor resyncs when the relay restarts and message ids reset (1.7.4).
+
 ## 1.7.3
 - New logo everywhere: launcher icon, in-app logo, start page, widget and the desktop window and taskbar icon. The logo follows your theme: the body takes the theme's text colour and the middle bar takes the accent colour, and it updates when you change theme.
 - Search: the start page and address bar no longer fall back to DuckDuckGo when Lodica Search is your engine and Google is the fallback.

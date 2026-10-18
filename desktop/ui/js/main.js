@@ -125,6 +125,8 @@ const reportColors = () => requestAnimationFrame(() => {
   inv("theme.colors", c);
 });
 
+try { matchMedia("(prefers-color-scheme:light)").addEventListener("change", () => reportColors()); } catch {}
+
 async function start() {
   const r = await inv("init");
   if (r) {

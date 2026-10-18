@@ -351,7 +351,8 @@ async function run() {
   if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
   if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
   const state = await statePromise;
-  if (state && state.api === false) { location.replace((state.engine || state.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q))); return; }
+  // Results are already on screen, so never bounce to another engine here: api can read false only because
+  // the app's config had not arrived yet.
   // Private tabs never send the question to the AI.
   applyTheme(state && state.theme);
   if (state && state.ai && !cat && page === 1 && !priv) {
