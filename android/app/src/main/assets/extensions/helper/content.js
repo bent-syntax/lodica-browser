@@ -84,6 +84,7 @@
     const proto = el instanceof HTMLSelectElement ? HTMLSelectElement.prototype
       : el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     const setter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+    if (v) { cleared.delete(el); clearedList.delete(el); } // an explicit fill from the app lifts the lock
     if (setter) setter.call(el, v); else el.value = v;
     el.dispatchEvent(el instanceof HTMLSelectElement
       ? new Event("input", { bubbles: true, composed: true })
@@ -243,6 +244,14 @@
   // A login field the user emptied by hand stays empty: Gecko's saved-login fill (untrusted input
   // events) must not refill it. Typing in it again lifts the lock.
   const cleared = new WeakSet();
+  // Gecko's fill may set .value without any event, so emptied fields are also re-checked on a timer.
+  const clearedList = new Set();
+  setInterval(() => {
+    for (const el of clearedList) {
+      if (!el.isConnected) clearedList.delete(el);
+      else if (el.value && cleared.has(el) && document.activeElement !== el) el.value = "";
+    }
+  }, 300);
   function credField(el) {
     return el instanceof HTMLInputElement && (isPassword(el) || isEmailField(el) || /username|current-password/i.test(attr(el, "autocomplete")));
   }
@@ -250,7 +259,7 @@
     document.addEventListener(type, (e) => {
       const el = e.target;
       if (!credField(el)) return;
-      if (e.isTrusted) { if (el.value) cleared.delete(el); else cleared.add(el); }
+      if (e.isTrusted) { if (el.value) { cleared.delete(el); clearedList.delete(el); } else { cleared.add(el); clearedList.add(el); } }
       else if (cleared.has(el) && el.value) el.value = "";
     }, true);
   }

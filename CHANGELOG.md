@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.8.1 (versionCode 42)
+
+- Desktop: data and settings stay put across updates (fixed user data folder, backup copy of every store restored if one is damaged). Android already keeps data on update.
+- Both: a removed autofilled password no longer comes back.
+- Desktop: authenticator codes autofill on their own. A PIN prompt shows on the page when the vault is locked.
+- Extensions: popups and action screens now open. Desktop: extension buttons in the main menu. Android: Open row under Settings > Extensions.
+- Desktop: the taskbar and window icon follow the theme colour (Linux desktops that read the icon from the .desktop file may still show the installed icon).
+
 ## 1.8.0.2 (versionCode 41)
 
 - Android: Lodica Search results and its home page now take the app theme (the colours are passed in the address, so they apply even on the first load).

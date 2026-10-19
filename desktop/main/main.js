@@ -16,6 +16,8 @@ const PRIVATE = "lodica-private";
 
 // Windows groups taskbar/notifications by this id; it matches the installer's appId so the Start-menu shortcut and toasts say "Lodica".
 app.setName("Lodica");
+// Pin the data folder so updates and repackaging (installer, AppImage, Flatpak) always find the same passwords and settings.
+app.setPath("userData", path.join(app.getPath("appData"), "Lodica"));
 if (process.platform === "win32") app.setAppUserModelId("be.syntaxya.lodica");
 
 if (!app.requestSingleInstanceLock()) {
@@ -240,6 +242,13 @@ function createWindow() {
     title: "Lodica", autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
   });
   win.setMenuBarVisibility?.(false);
+  // Last theme icon from the previous run, so the taskbar is right before the UI reports colors.
+  if (!global.__lodicaIcon) {
+    try {
+      const img = require("electron").nativeImage.createFromPath(path.join(app.getPath("userData"), "theme-icon.png"));
+      if (!img.isEmpty()) { global.__lodicaIcon = img; win.setIcon(img); }
+    } catch {}
+  }
   const reIcon = () => { try { if (global.__lodicaIcon && !win.isDestroyed()) win.setIcon(global.__lodicaIcon); } catch {} };
   win.on("show", reIcon); win.on("focus", reIcon); win.on("restore", reIcon);
   uiView = new WebContentsView({

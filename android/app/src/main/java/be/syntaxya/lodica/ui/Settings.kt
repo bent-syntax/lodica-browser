@@ -48,6 +48,8 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.viewinterop.AndroidView
+import org.mozilla.geckoview.GeckoView
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -599,6 +601,15 @@ private fun ExtensionsSection() {
             dismissButton = { TextButton({ ex.answer(false) }) { Text("Cancel", color = Muted) } },
         )
     }
+    ex.popup?.let { s ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = { ex.closePopup() }) {
+            Column(Modifier.fillMaxWidth().height(480.dp).background(GraphiteRaised)) {
+                Text(ex.popupName, color = Mist, fontSize = 15.sp, modifier = Modifier.padding(12.dp))
+                AndroidView(factory = { c -> GeckoView(c).apply { setSession(s) } }, modifier = Modifier.fillMaxWidth().weight(1f))
+                TextButton({ ex.closePopup() }, Modifier.align(Alignment.End)) { Text("Close", color = Amber) }
+            }
+        }
+    }
     OutlinedTextField(
         q, { q = it }, singleLine = true,
         placeholder = { Text("Search Firefox add-ons", color = Muted) },
@@ -611,6 +622,7 @@ private fun ExtensionsSection() {
     ex.hits.forEach { h -> LinkRow("Install ${h.name}", Amber) { ex.install(ctx, h) } }
     ex.installed.forEach { i ->
         SwitchRow(i.name, "v${i.version}", i.enabled) { ex.toggle(ctx, i) }
+        if (i.enabled && ex.hasAction(i)) LinkRow("Open ${i.name}", Amber) { ex.openAction(i) }
         LinkRow("Remove ${i.name}", Muted) { ex.remove(ctx, i) }
     }
 }

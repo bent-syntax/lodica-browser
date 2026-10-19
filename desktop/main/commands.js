@@ -199,6 +199,7 @@ function init(deps) {
         const img = nativeImage.createFromBuffer(png);
         if (img.isEmpty()) return;
         global.__lodicaIcon = img;
+        try { require("fs").writeFileSync(require("path").join(app.getPath("userData"), "theme-icon.png"), png); } catch {}
         const { BaseWindow } = require("electron");
         for (const w of BaseWindow.getAllWindows()) {
           try { if (!w.isDestroyed()) w.setIcon(img); } catch (e) { console.error("setIcon failed:", e && e.message); }
@@ -470,6 +471,7 @@ function init(deps) {
   on("ext.list", () => extensions.list());
   on("ext.install", s => extensions.install(str(s)));
   on("ext.remove", id => extensions.remove(str(id)));
+  on("ext.open", (id, anchor) => extensions.open(str(id), anchor));
   on("ext.toggle", id => extensions.toggle(str(id)));
   on("webapps.install", () => webapps.install());
   on("webapps.list", () => webapps.list());

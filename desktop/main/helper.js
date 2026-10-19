@@ -153,7 +153,19 @@ let totpAsking = false;
 /** A verification-code field got focus: fill the authenticator code saved for this site, or ask which account to use. */
 async function totpFill(tab, host) {
   const totp = require("./totp"), { ui, vault } = deps;
-  if (tab.private || (vault.pinSet() && !vault.state().unlocked)) return;
+  if (tab.private || totpAsking || !totp.list().length) return;
+  if (vault.pinSet() && !vault.state().unlocked) {
+    // Ask for the PIN right here instead of sending the user to Settings.
+    totpAsking = true;
+    try {
+      for (let i = 0; i < 3 && !vault.state().unlocked; i++) {
+        const pin = await ui.prompt({ kind: "pin", title: "Unlock authenticator", message: i ? "Wrong PIN, try again" : "Enter your PIN to fill the code for " + host, ok: "Unlock" });
+        if (pin == null) return;
+        vault.unlock(String(pin));
+      }
+    } finally { totpAsking = false; }
+    if (!vault.state().unlocked) return;
+  }
   const send2 = a => { const v = totp.copy(a.id); if (v) for (const f of live(tab)) send(f, { type: "code", value: v }); };
   const hit = totp.forHost(host);
   if (hit) return send2(hit);

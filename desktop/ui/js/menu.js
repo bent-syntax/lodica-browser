@@ -27,7 +27,7 @@ function openMenu() {
     };
     const render = () => {
       grid.replaceChildren();
-      for (const c of all) if (more || pins.includes(c.key)) grid.append(mk(c));
+      for (const c of all) if (more || pins.includes(c.key) || c.key.startsWith("ext:")) grid.append(mk(c));
       grid.append(h("button", { class: "mcell", act: () => { more = !more; render(); } },
         ico(more ? "close" : "apps"), h("span", { text: more ? "Done" : "More" })));
     };
@@ -66,6 +66,16 @@ function openMenu() {
       cell("undo", "Closed tabs", () => openClosed()));
     all = cells;
     render();
+    // One cell per enabled extension: opens its popup screen.
+    inv("ext.list").then((xs) => {
+      const on = (xs || []).filter((x) => x.on);
+      if (!on.length || all !== cells) return;
+      for (const x of on) cells.push(Object.assign(cell("apps", x.name.slice(0, 18), async () => {
+        const r = await inv("ext.open", x.id, { x: window.screenX + window.innerWidth - 400, y: window.screenY + 60 });
+        if (r && !r.ok) toast(r.error);
+      }), { key: "ext:" + x.id }));
+      render();
+    });
     add(b, [top, h("div", { class: "divider" }), grid]);
   });
 }

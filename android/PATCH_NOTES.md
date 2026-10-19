@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.8.1
+
+- Removed autofilled password stays removed.
+- Extension popups open (Settings > Extensions > Open).
+
 ## 1.8.0.2
 
 - Search theme passed in the URL (th parameter); new tab page redesigned; Settings page icons and Danger zone.

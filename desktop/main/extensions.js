@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
-const { app, net, session } = require("electron");
+const { app, net, session, BrowserWindow, shell } = require("electron");
 const store = require("./store");
 
 let list = store.load("extensions", []).filter(x => x && /^[a-p]{32}$/.test(x.id));
@@ -127,6 +127,49 @@ async function toggle(id) {
 
 const view = () => list.map(({ id, name, version, on }) => ({ id, name, version, on }));
 
+/** Popup page of an extension: action/browser_action popup, else its options page. */
+function popupPage(id) {
+  let m;
+  try { m = JSON.parse(fs.readFileSync(path.join(dir(), id, "manifest.json"), "utf8")); } catch { return null; }
+  const pick = (m.action && m.action.default_popup) || (m.browser_action && m.browser_action.default_popup) ||
+    (m.options_ui && m.options_ui.page) || m.options_page;
+  return pick ? String(pick).replace(/^\/+/, "") : null;
+}
+
+const popups = new Map();
+/** Open the extension's popup (or options page) in a small window, like Chrome's toolbar button. */
+function open(id, anchor) {
+  const x = list.find(e => e.id === id);
+  if (!x || !x.on) return { ok: false, error: "Extension is off" };
+  const page = popupPage(id);
+  if (!page) return { ok: false, error: "This extension has no screen to open" };
+  const old = popups.get(id);
+  if (old && !old.isDestroyed()) { old.focus(); return { ok: true }; }
+  const rid = x.runtimeId || id;
+  const w = new BrowserWindow({
+    width: 380, height: 560, minWidth: 200, minHeight: 100, show: false, autoHideMenuBar: true,
+    title: x.name, useContentSize: true, skipTaskbar: true,
+    x: anchor && Number.isFinite(anchor.x) ? Math.round(anchor.x) : undefined,
+    y: anchor && Number.isFinite(anchor.y) ? Math.round(anchor.y) : undefined,
+    webPreferences: { session: session.defaultSession, sandbox: true, contextIsolation: true, nodeIntegration: false },
+  });
+  w.removeMenu();
+  popups.set(id, w);
+  w.on("closed", () => popups.delete(id));
+  w.webContents.setWindowOpenHandler(({ url }) => { if (/^https?:/i.test(url)) shell.openExternal(url); return { action: "deny" }; });
+  w.once("ready-to-show", () => w.show());
+  // Grow or shrink to the page, like a toolbar popup.
+  w.webContents.on("did-finish-load", async () => {
+    try {
+      const [cw, ch] = await w.webContents.executeJavaScript("[document.documentElement.scrollWidth, document.documentElement.scrollHeight]");
+      w.setContentSize(Math.min(800, Math.max(200, cw)), Math.min(600, Math.max(100, ch)));
+    } catch { /* keep default size */ }
+  });
+  w.on("blur", () => { setTimeout(() => { if (!w.isDestroyed() && !w.isFocused() && !w.webContents.isDevToolsOpened()) w.close(); }, 150); });
+  w.loadURL("chrome-extension://" + rid + "/" + page).catch(() => { if (!w.isDestroyed()) w.close(); });
+  return { ok: true };
+}
+
 /** Load every enabled extension. Call once after the app is ready. */
 async function init() {
   for (const x of list) {
@@ -135,4 +178,4 @@ async function init() {
   }
 }
 
-module.exports = { install, remove, toggle, list: view, init, parseId, _unzip: unzip, _crxToZip: crxToZip };
+module.exports = { open, install, remove, toggle, list: view, init, parseId, _unzip: unzip, _crxToZip: crxToZip };

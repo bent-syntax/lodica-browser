@@ -9,7 +9,10 @@ const timers = new Map();
 function file(name) { return path.join(dir(), name + ".json"); }
 
 function load(name, fallback) {
-  try { return JSON.parse(fs.readFileSync(file(name), "utf8")); } catch { return fallback; }
+  for (const f of [file(name), file(name) + ".bak"]) {
+    try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch {}
+  }
+  return fallback;
 }
 
 function writeNow(name, value) {
@@ -17,6 +20,7 @@ function writeNow(name, value) {
   try {
     fs.mkdirSync(dir(), { recursive: true });
     fs.writeFileSync(f + ".tmp", JSON.stringify(value));
+    try { fs.copyFileSync(f, f + ".bak"); } catch {}
     fs.renameSync(f + ".tmp", f);
   } catch (e) { console.error("store", name, e.message); }
 }
@@ -35,18 +39,24 @@ function flush() {
 }
 
 function loadSecret(name, fallback) {
-  try {
-    const buf = fs.readFileSync(path.join(dir(), name + ".bin"));
-    if (!safeStorage.isEncryptionAvailable()) return fallback;
-    return JSON.parse(safeStorage.decryptString(buf));
-  } catch { return fallback; }
+  const f = path.join(dir(), name + ".bin");
+  for (const p of [f, f + ".bak"]) {
+    try {
+      const buf = fs.readFileSync(p);
+      if (!safeStorage.isEncryptionAvailable()) return fallback;
+      return JSON.parse(safeStorage.decryptString(buf));
+    } catch {}
+  }
+  return fallback;
 }
 
 function saveSecret(name, value) {
   try {
     if (!safeStorage.isEncryptionAvailable()) return false;
     fs.mkdirSync(dir(), { recursive: true });
-    fs.writeFileSync(path.join(dir(), name + ".bin"), safeStorage.encryptString(JSON.stringify(value)));
+    const f = path.join(dir(), name + ".bin");
+    try { fs.copyFileSync(f, f + ".bak"); } catch {}
+    fs.writeFileSync(f, safeStorage.encryptString(JSON.stringify(value)));
     return true;
   } catch (e) { console.error("secret", name, e.message); return false; }
 }

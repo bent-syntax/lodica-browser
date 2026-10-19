@@ -1,8 +1,8 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.8.0",
-  "lodicaVersion": "1.8.0.2",
+  "version": "1.8.1",
+  "lodicaVersion": "1.8.1",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",

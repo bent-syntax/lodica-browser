@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.json.JSONObject
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.WebExtension
 import org.mozilla.geckoview.WebExtensionController
 import java.net.HttpURLConnection
@@ -35,6 +36,39 @@ object Extensions {
     var busy by mutableStateOf(false); private set
     var status by mutableStateOf<String?>(null); private set
     var prompt by mutableStateOf<Prompt?>(null); private set
+    /** Popup session of the extension action the user opened. Shown in a dialog by the settings screen. */
+    var popup by mutableStateOf<GeckoSession?>(null); private set
+    var popupName by mutableStateOf(""); private set
+    private val actions = HashMap<String, WebExtension.Action>()
+
+    fun hasAction(item: Item) = actions.containsKey(item.id)
+
+    fun openAction(item: Item) { actions[item.id]?.click() }
+
+    fun closePopup() {
+        popup?.close()
+        popup = null
+    }
+
+    private fun hook(ctx: Context, ext: WebExtension) {
+        ext.setActionDelegate(object : WebExtension.ActionDelegate {
+            override fun onBrowserAction(extension: WebExtension, session: GeckoSession?, action: WebExtension.Action) {
+                main.post { actions[extension.id] = action }
+            }
+            override fun onPageAction(extension: WebExtension, session: GeckoSession?, action: WebExtension.Action) {
+                main.post { if (!actions.containsKey(extension.id)) actions[extension.id] = action }
+            }
+            override fun onOpenPopup(extension: WebExtension, action: WebExtension.Action): GeckoResult<GeckoSession>? = show(ctx, extension)
+            override fun onTogglePopup(extension: WebExtension, action: WebExtension.Action): GeckoResult<GeckoSession>? = show(ctx, extension)
+        })
+    }
+
+    private fun show(ctx: Context, ext: WebExtension): GeckoResult<GeckoSession> {
+        val s = GeckoSession()
+        s.open(Engine.runtime(ctx))
+        main.post { popup?.close(); popup = s; popupName = ext.metaData.name ?: ext.id }
+        return GeckoResult.fromValue(s)
+    }
 
     private fun ctl(ctx: Context) = Engine.runtime(ctx).webExtensionController
 
@@ -61,6 +95,7 @@ object Extensions {
     fun refresh(ctx: Context) {
         ctl(ctx).list().accept({ all ->
             val items = (all ?: emptyList()).filter { it.id !in builtIn }
+                .onEach { hook(ctx, it) }
                 .map { Item(it, it.metaData.name ?: it.id, it.metaData.version ?: "", it.metaData.enabled) }
             main.post { installed.clear(); installed.addAll(items) }
         }, { e -> Log.w(TAG, "list failed", e) })

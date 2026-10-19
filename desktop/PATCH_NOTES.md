@@ -1,5 +1,12 @@
 # Patch notes
 
+## 1.8.1
+- Data and settings kept across updates (fixed user data folder, .bak backups).
+- Removed autofilled password stays removed.
+- Authenticator codes autofill without opening Settings; PIN asked on the page.
+- Extension popups and action screens open from the main menu.
+- Taskbar/window icon follows the theme.
+
 ## 1.8.0.2
 - Search suggestions and the no-server search now use the engine chosen in Settings (or the fallback engine) instead of always DuckDuckGo.
 - Two-finger swipe left/right goes back/forward.
