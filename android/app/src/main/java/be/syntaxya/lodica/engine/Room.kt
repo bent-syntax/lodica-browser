@@ -211,16 +211,79 @@ object Room {
 
     fun stop() { job?.cancel(); job = null }
 
-    /** Posts [text]; [done] gets an error message, or null on success. */
-    fun send(name: String, text: String, done: (String?) -> Unit) {
+    /** Messages the server could not take yet (down or unreachable). Saved to disk, sent in order once it answers. */
+    val pending = mutableStateListOf<RoomMsg>()
+    private var outboxLoaded = false
+    private var seq = 0L
+    private var flushJob: Job? = null
+    private const val MAX_OUTBOX = 200
+
+    private fun loadOutbox(ctx: Context) {
+        if (outboxLoaded) return
+        outboxLoaded = true
+        runCatching {
+            val a = JSONArray(rp(ctx).getString("outbox", "[]"))
+            for (i in 0 until a.length()) { val o = a.getJSONObject(i); pending.add(RoomMsg(-(++seq), o.getString("name"), o.getString("text"), o.optLong("at"), o.optString("room"))) }
+        }
+    }
+
+    private fun saveOutbox(ctx: Context) {
+        val a = JSONArray()
+        for (m in pending) a.put(JSONObject().put("name", m.name).put("text", m.text).put("at", m.at).put("room", m.room))
+        rp(ctx).edit().putString("outbox", a.toString()).apply()
+    }
+
+    /** Sends any messages left from earlier; call when the app or the chat service starts. */
+    fun resumeOutbox(ctx: Context) {
+        val app = ctx.applicationContext
+        main.post { loadOutbox(app); flush(app) }
+    }
+
+    /** 0 = sent, 1 = retry later, 2 = refused for good. */
+    private fun post(m: RoomMsg): Pair<Int, String?> = try {
+        val b = JSONObject().put("name", m.name).put("text", m.text).put("room", m.room).toString().toByteArray()
+        val (code, _) = Relay.request("POST", "/api/chat", b, "application/json")
+        when {
+            code == 200 -> 0 to null
+            code == 429 -> 1 to "Slow down a little"
+            code >= 500 || code == 408 -> 1 to "Server answered $code"
+            code == 400 -> 2 to "Message not sent: this chat name is not valid"
+            else -> 2 to "Server answered $code"
+        }
+    } catch (e: Exception) { 1 to "Can't reach the server" }
+
+    private fun flush(ctx: Context) {
+        if (flushJob?.isActive == true || pending.isEmpty()) return
+        flushJob = Relay.scope.launch {
+            while (pending.isNotEmpty()) {
+                val m = pending.firstOrNull() ?: break
+                val (res, _) = post(m)
+                if (res == 1) { delay(5_000); continue }
+                main.post { pending.remove(m); saveOutbox(ctx) }
+                delay(50)
+            }
+            main.post { start() }
+        }
+    }
+
+    /** Posts [text]; [done] gets an error message, or null on success or when it was queued for later. */
+    fun send(ctx: Context, name: String, text: String, done: (String?) -> Unit) {
+        val app = ctx.applicationContext
+        val m = RoomMsg(-(++seq), name, text, System.currentTimeMillis(), room)
+        loadOutbox(app)
+        if (pending.isNotEmpty()) {
+            if (pending.size >= MAX_OUTBOX) { done("Too many unsent messages"); return }
+            pending.add(m); saveOutbox(app); flush(app); done(null); return
+        }
         Relay.scope.launch {
-            val err = try {
-                val b = JSONObject().put("name", name).put("text", text).put("room", room).toString().toByteArray()
-                val (code, _) = Relay.request("POST", "/api/chat", b, "application/json")
-                if (code == 200) null else if (code == 429) "Slow down a little" else if (code == 400) "Message not sent: this chat name is not valid" else "Server answered $code"
-            } catch (e: Exception) { "Can't reach the server" }
-            if (err == null) start()
-            main.post { done(err) }
+            val (res, err) = post(m)
+            main.post {
+                when (res) {
+                    0 -> { start(); done(null) }
+                    1 -> { pending.add(m); saveOutbox(app); flush(app); done(null) }
+                    else -> done(err)
+                }
+            }
         }
     }
 

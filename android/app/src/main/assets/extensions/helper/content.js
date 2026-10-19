@@ -246,12 +246,17 @@
   const cleared = new WeakSet();
   // Gecko's fill may set .value without any event, so emptied fields are also re-checked on a timer.
   const clearedList = new Set();
-  setInterval(() => {
-    for (const el of clearedList) {
-      if (!el.isConnected) clearedList.delete(el);
-      else if (el.value && cleared.has(el) && document.activeElement !== el) el.value = "";
-    }
-  }, 300);
+  let clearTick = 0;
+  function watchCleared() {
+    if (clearTick) return;
+    clearTick = setInterval(() => {
+      for (const el of clearedList) {
+        if (!el.isConnected) clearedList.delete(el);
+        else if (el.value && cleared.has(el) && document.activeElement !== el) el.value = "";
+      }
+      if (!clearedList.size) { clearInterval(clearTick); clearTick = 0; }
+    }, 300);
+  }
   function credField(el) {
     return el instanceof HTMLInputElement && (isPassword(el) || isEmailField(el) || /username|current-password/i.test(attr(el, "autocomplete")));
   }
@@ -259,7 +264,7 @@
     document.addEventListener(type, (e) => {
       const el = e.target;
       if (!credField(el)) return;
-      if (e.isTrusted) { if (el.value) { cleared.delete(el); clearedList.delete(el); } else { cleared.add(el); clearedList.add(el); } }
+      if (e.isTrusted) { if (el.value) { cleared.delete(el); clearedList.delete(el); } else { cleared.add(el); clearedList.add(el); watchCleared(); } }
       else if (cleared.has(el) && el.value) el.value = "";
     }, true);
   }
@@ -949,9 +954,323 @@
     document.addEventListener("yt-navigate-finish", () => applyQuality(), true);
   }
 
+  // --- Math answer: select an equation and the result shows above it ---
+
+  // lodica:math:start
+  function calc(src) {
+    let s = String(src).trim().replace(/\s*=\s*\??\s*$/, "");
+    if (!s || s.length > 200 || !/\d/.test(s)) return null;
+    s = s.replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/[−–—]/g, "-").replace(/ /g, " ");
+    s = s.replace(/(?<=[\d)])\s*x\s*(?=[\d(])/gi, "*").replace(/\*\*/g, "^");
+    if (!/^[\d\s.,+\-*/^%()a-z]+$/i.test(s)) return null;
+    if (/^\d{1,4}[-/.]\d{1,2}[-/.]\d{1,4}$/.test(s) || /^\+?[\d\s()-]{7,}$/.test(s) && !/[+*/^%]/.test(s)) return null;
+    if (!/[+\-*/^%]|sqrt|pi/i.test(s)) return null;
+    if (/^-?[\d.,]+(?:\s*-\s*[\d.,]+)$/.test(s) && !/\s/.test(s)) return null;
+    // 1,234.5 and 1.234,5 both read as one number; a lone comma is a decimal comma
+    s = s.replace(/\d[\d.,]*/g, (n) => {
+      const c = n.lastIndexOf(","), d = n.lastIndexOf(".");
+      if (c < 0) return n;
+      if (d >= 0) return c > d ? n.replace(/\./g, "").replace(",", ".") : n.replace(/,/g, "");
+      return /^\d{1,3}(,\d{3})+$/.test(n) ? n.replace(/,/g, "") : n.replace(",", ".");
+    });
+    const t = s.match(/\d+\.?\d*|\.\d+|sqrt|pi|[+\-*/^%()]|\s+/gi);
+    if (!t || t.join("") !== s) return null;
+    const tk = t.filter((x) => !/^\s+$/.test(x));
+    let i = 0, ops = 0;
+    const peek = () => tk[i];
+    function expr() {
+      let v = term();
+      while (peek() === "+" || peek() === "-") { const o = tk[i++]; const r = term(); v = o === "+" ? v + r : v - r; ops++; }
+      return v;
+    }
+    function term() {
+      let v = unary();
+      while (peek() === "*" || peek() === "/") { const o = tk[i++]; const r = unary(); v = o === "*" ? v * r : v / r; ops++; }
+      return v;
+    }
+    function unary() {
+      if (peek() === "-") { i++; return -unary(); }
+      if (peek() === "+") { i++; return unary(); }
+      return power();
+    }
+    function power() {
+      const b = post();
+      if (peek() === "^") { i++; const e = unary(); ops++; return Math.pow(b, e); }
+      return b;
+    }
+    function post() {
+      let v = atom();
+      while (peek() === "%") { i++; v = v / 100; ops++; }
+      return v;
+    }
+    function atom() {
+      const x = tk[i++];
+      if (x === undefined) throw 0;
+      if (x === "(") { const v = expr(); if (tk[i++] !== ")") throw 0; return v; }
+      if (/^sqrt$/i.test(x)) { ops++; const v = atom(); return Math.sqrt(v); }
+      if (/^pi$/i.test(x)) return Math.PI;
+      if (/^[\d.]/.test(x)) return parseFloat(x);
+      throw 0;
+    }
+    let v;
+    try { v = expr(); if (i !== tk.length) return null; } catch (e) { return null; }
+    if (!ops || typeof v !== "number" || !isFinite(v)) return null;
+    if (Math.abs(v) >= 1e15 || (v !== 0 && Math.abs(v) < 1e-9)) return v.toExponential(6).replace(/\.?0+e/, "e");
+    return String(Number(v.toPrecision(12)));
+  }
+  // lodica:math:end
+
+  // lodica:spell:start
+  const SPELL_LANGS = ["da", "de", "en", "es", "fr", "it", "nl", "pl", "pt", "sv"];
+  const dicts = new Map(); // lang -> Map(word -> frequency rank)
+  let letters = "";
+  let spell = { on: false, auto: false, langs: [] };
+  const ignored = new Set();
+
+  async function loadDictText(l) { return (await fetch(browser.runtime.getURL("dict/" + l + ".txt"))).text(); }
+
+  function loadDict(l) {
+    let p = dicts.get(l);
+    if (!p) {
+      p = loadDictText(l).then((t) => {
+        const m = new Map();
+        let n = 0;
+        for (const w of t.split("\n")) if (w) m.set(w, n++);
+        return m;
+      }).catch(() => new Map());
+      dicts.set(l, p);
+    }
+    return p;
+  }
+
+  let ready = [];
+  async function ensureDicts() {
+    const want = (spell.langs || []).filter((l) => SPELL_LANGS.includes(l));
+    const got = await Promise.all(want.map(loadDict));
+    ready = got;
+    const set = new Set();
+    for (const m of got) for (const w of m.keys()) for (const ch of w) set.add(ch);
+    letters = [...set].join("");
+  }
+
+  function known(w) {
+    const k = w.toLowerCase().replace(/’/g, "'");
+    if (k.length < 2 || ignored.has(k)) return true;
+    for (const m of ready) if (m.has(k)) return true;
+    // possessives and clitics: "dog's" is fine when "dog" is
+    const q = k.indexOf("'");
+    if (q > 0) { const b = k.slice(0, q); for (const m of ready) if (m.has(b)) return true; }
+    return false;
+  }
+
+  function suggest(word, max) {
+    const k = word.toLowerCase().replace(/’/g, "'");
+    const seen = new Set();
+    const out = [];
+    const add = (c) => {
+      if (seen.has(c)) return;
+      seen.add(c);
+      let r = Infinity;
+      for (const m of ready) { const x = m.get(c); if (x !== undefined && x < r) r = x; }
+      if (r !== Infinity) out.push([c, r + (c[0] === k[0] ? 0 : 20000)]);
+    };
+    for (let i = 0; i <= k.length; i++) {
+      const a = k.slice(0, i), b = k.slice(i);
+      if (b) add(a + b.slice(1));
+      if (b.length > 1) add(a + b[1] + b[0] + b.slice(2));
+      for (const ch of letters) {
+        if (b) add(a + ch + b.slice(1));
+        add(a + ch + b);
+      }
+    }
+    out.sort((x, y) => x[1] - y[1]);
+    return out.slice(0, max || 5).map((x) => matchCase(word, x[0]));
+  }
+
+  function matchCase(orig, w) {
+    if (orig.length > 1 && orig === orig.toUpperCase()) return w.toUpperCase();
+    return orig[0] !== orig[0].toLowerCase() ? w[0].toUpperCase() + w.slice(1) : w;
+  }
+  // lodica:spell:end
+
+  const TEXTY = new Set(["text", "search", ""]);
+  function editable(el) {
+    if (!el || el.nodeType !== 1) return null;
+    if (el.tagName === "TEXTAREA") return el;
+    if (el.tagName === "INPUT") return TEXTY.has((el.getAttribute("type") || "").toLowerCase()) ? el : null;
+    return el.isContentEditable ? el : null;
+  }
+
+  // Word under or before offset c in a string; null when it is not worth checking
+  function wordAt(text, c, strict) {
+    let a = c, b = c;
+    const L = /[\p{L}'’]/u;
+    while (a > 0 && L.test(text[a - 1])) a--;
+    while (b < text.length && L.test(text[b])) b++;
+    while (a < b && /['’]/.test(text[a])) a++;
+    while (b > a && /['’]/.test(text[b - 1])) b--;
+    const w = text.slice(a, b);
+    if (w.length < (strict ? 3 : 2)) return null;
+    const tok = (text.slice(0, b).match(/\S*$/) || [""])[0] + (text.slice(b).match(/^\S*/) || [""])[0];
+    if (/[@\/\\_\d#]|\.\w|:\/\//.test(tok)) return null;
+    if (strict && (w[0] !== w[0].toLowerCase() || w !== w.toLowerCase())) return null;
+    if (w.length > 1 && w === w.toUpperCase() && w !== w.toLowerCase()) return null;
+    return { w, a, b };
+  }
+
+  let bubble = null;
+  function hideBubble() { if (bubble) { bubble.remove(); bubble = null; } }
+  function showBubble(x, y, build, sticky) {
+    hideBubble();
+    const d = document.createElement("div");
+    d.setAttribute("data-lodica", "bubble");
+    d.style.cssText = "all:initial;position:fixed;z-index:2147483647;font:14px/1.3 system-ui,sans-serif;color:#fff;background:#222;" +
+      "border-radius:8px;padding:6px 10px;box-shadow:0 2px 10px rgba(0,0,0,.4);max-width:80vw;left:0;top:0;visibility:hidden;" + (sticky ? "" : "pointer-events:none;");
+    build(d);
+    (document.documentElement || document.body).appendChild(d);
+    const r = d.getBoundingClientRect();
+    d.style.left = Math.max(4, Math.min(x - r.width / 2, innerWidth - r.width - 4)) + "px";
+    d.style.top = Math.max(4, Math.min(y - r.height - 8, innerHeight - r.height - 4)) + "px";
+    d.style.visibility = "visible";
+    bubble = d;
+  }
+
+  // Selected text and where it sits, for plain pages and for text fields
+  function selected() {
+    const el = document.activeElement;
+    if (el && (el.tagName === "TEXTAREA" || el.tagName === "INPUT")) {
+      try {
+        const s = el.selectionStart, e = el.selectionEnd;
+        if (s != null && s !== e) {
+          const r = el.getBoundingClientRect();
+          return { text: el.value.slice(s, e), x: r.left + r.width / 2, y: r.top };
+        }
+      } catch (e) { return null; }
+    }
+    const sel = getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    const t = sel.toString();
+    if (t.length > 200) return null;
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    if (!r.width && !r.height) return null;
+    return { text: t, x: r.left + r.width / 2, y: r.top };
+  }
+
+  let selTimer = 0;
+  document.addEventListener("selectionchange", () => {
+    clearTimeout(selTimer);
+    selTimer = setTimeout(() => {
+      const s = selected();
+      const ans = s && calc(s.text);
+      if (ans == null) { if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble(); return; }
+      showBubble(s.x, s.y, (d) => { d.textContent = "= " + ans; d.setAttribute("data-kind", "math"); });
+    }, 200);
+  });
+
+  // Replace [a, b) of the field with text, keeping undo and page listeners working
+  function replaceRange(el, a, b, text, node) {
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      el.focus();
+      el.setSelectionRange(a, b);
+      if (!document.execCommand("insertText", false, text)) {
+        el.setRangeText(text, a, b, "end");
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    } else {
+      const sel = getSelection();
+      const r = document.createRange();
+      r.setStart(node, a); r.setEnd(node, b);
+      sel.removeAllRanges(); sel.addRange(r);
+      document.execCommand("insertText", false, text);
+    }
+  }
+
+  function caretInfo(el) {
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      if (el.selectionStart !== el.selectionEnd) return null;
+      return { text: el.value, c: el.selectionStart, node: null };
+    }
+    const sel = getSelection();
+    if (!sel || !sel.isCollapsed || !sel.anchorNode || sel.anchorNode.nodeType !== 3) return null;
+    return { text: sel.anchorNode.data, c: sel.anchorOffset, node: sel.anchorNode };
+  }
+
+  let lastFix = null; // the latest automatic correction, so Backspace can take it back
+  document.addEventListener("input", (e) => {
+    if (!spell.on || !spell.auto || !ready.length || e.isComposing || e.inputType !== "insertText" || !e.data || e.data.length !== 1) return;
+    if (!/[\s.,;:!?)\]]/.test(e.data)) return;
+    const el = editable(e.target);
+    if (!el) return;
+    const ci = caretInfo(el);
+    if (!ci || ci.c < 2) return;
+    const hit = wordAt(ci.text, ci.c - 1, true);
+    if (!hit || hit.b !== ci.c - 1 || known(hit.w)) return;
+    const sg = suggest(hit.w, 1);
+    if (!sg.length) return;
+    replaceRange(el, hit.a, ci.c, sg[0] + e.data, ci.node);
+    lastFix = { el, from: hit.w, to: sg[0], at: hit.a + sg[0].length + 1, t: Date.now() };
+  }, true);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Backspace" || !lastFix || lastFix.el !== e.target || Date.now() - lastFix.t > 8000) { if (e.key.length === 1) lastFix = null; return; }
+    const ci = caretInfo(lastFix.el);
+    if (!ci || ci.c !== lastFix.at) { lastFix = null; return; }
+    e.preventDefault();
+    ignored.add(lastFix.from.toLowerCase());
+    replaceRange(lastFix.el, lastFix.at - lastFix.to.length - 1, lastFix.at, lastFix.from + ci.text[lastFix.at - 1], ci.node);
+    lastFix = null;
+  }, true);
+
+  document.addEventListener("focusin", (e) => {
+    if (spell.on && editable(e.target)) ensureDicts().catch(() => {});
+  }, true);
+
+  document.addEventListener("contextmenu", (e) => {
+    hideBubble();
+    if (!spell.on || spell.auto) return;
+    const el = editable(e.target);
+    if (!el) return;
+    const x = e.clientX, y = e.clientY;
+    ensureDicts().then(() => setTimeout(() => {
+      const ci = caretInfo(el);
+      if (!ci) return;
+      const hit = wordAt(ci.text, ci.c, false);
+      if (!hit || known(hit.w)) return;
+      const sg = suggest(hit.w, 5);
+      showBubble(x, y, (d) => {
+        d.style.pointerEvents = "auto";
+        d.setAttribute("data-kind", "spell");
+        if (!sg.length) { d.textContent = "No suggestions for “" + hit.w + "”"; return; }
+        for (const s of sg) {
+          const b = document.createElement("button");
+          b.textContent = s;
+          b.style.cssText = "all:initial;cursor:pointer;color:#fff;font:inherit;padding:4px 8px;margin:0 2px;border-radius:6px;background:#3a6df0;display:inline-block";
+          b.addEventListener("mousedown", (ev) => ev.preventDefault());
+          b.addEventListener("click", (ev) => {
+            ev.preventDefault();
+            const cur = caretInfo(el);
+            if (cur) replaceRange(el, hit.a, hit.b, s, cur.node);
+            hideBubble();
+          });
+          d.appendChild(b);
+        }
+      }, true);
+    }, 30)).catch(() => {});
+  }, true);
+  addEventListener("scroll", hideBubble, { passive: true, capture: true });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hideBubble(); }, true);
+  document.addEventListener("mousedown", (e) => { if (bubble && !bubble.contains(e.target)) hideBubble(); }, true);
+
+  function spellUse(s) {
+    spell = Object.assign({ on: false, auto: false, langs: [] }, s || {});
+    if (spell.on && editable(document.activeElement)) ensureDicts().catch(() => {});
+    if (!spell.on) hideBubble();
+  }
+
   function usePage(p) {
     const prev = page;
     page = p || {};
+    spellUse(page.spell);
     applyDark();
     if ((+prev.speed || 1) !== (+page.speed || 1)) applySpeed();
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
@@ -1006,7 +1325,7 @@
   }
   if (TOP) {
     setTimeout(reportData, 5000);
-    setInterval(reportData, 30000);
+    setInterval(() => { if (!document.hidden) reportData(); }, 30000);
     addEventListener("pagehide", reportData);
   }
 

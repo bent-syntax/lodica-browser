@@ -333,6 +333,28 @@ fun SettingsScreen() {
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
 
+                    Section("Spelling")
+            SwitchRow("Spell check", "Right-click a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }
+            if (Prefs.spell) {
+                SwitchRow("Auto-correct", "Fix words as you type. Backspace undoes a fix", Prefs.spellAuto) { Prefs.updateSpellAuto(it) }
+                val langs = listOf("en" to "English", "nl" to "Nederlands", "de" to "Deutsch", "fr" to "Français", "es" to "Español", "it" to "Italiano", "pt" to "Português", "sv" to "Svenska", "da" to "Dansk", "pl" to "Polski")
+                for (row in langs.chunked(3)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for ((code, name) in row) {
+                            val on = code in Prefs.spellLangs
+                            Text(
+                                name,
+                                color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.onPrimary else androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .background(if (on) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                                    .clickable { Prefs.toggleSpellLang(code) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
                     Section("VPS")
                     if (!Relay.available) {
                         LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
@@ -1175,6 +1197,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
     SettingsEntry("Reject cookie banners", 7, "consent popups"),
+    SettingsEntry("Spell check", 7, "autocorrect languages dictionary"),
     SettingsEntry("Route through VPS", 7, "tunnel server proxy"),
     SettingsEntry("Custom DNS", 1, "dns over https resolver"),
     SettingsEntry("Import from Chrome", 8, "bookmarks passwords"),

@@ -59,7 +59,7 @@ function setTabBody(tab) {
     case "start": return secStart();
     case "tabs": return [secLayout(), secTabs(), secPcTabs()];
     case "privacy": return secPrivacy();
-    case "security": return [secHttps(), secBlocking()];
+    case "security": return [secHttps(), secBlocking(), secSpell()];
     case "data": return [secData(), secApps(), secExtensions()];
     case "keys": return secKeys();
     case "server": return secServer();
@@ -191,6 +191,19 @@ function setSlider(title, val, min, max, set) {
 }
 
 // Privacy & blocking extras
+const SPELL_LANGS = [["en", "English"], ["nl", "Nederlands"], ["de", "Deutsch"], ["fr", "Français"], ["es", "Español"], ["it", "Italiano"],
+  ["pt", "Português"], ["sv", "Svenska"], ["da", "Dansk"], ["pl", "Polski"]];
+function secSpell() {
+  const langs = S.prefs.spellLangs || ["en"];
+  const pick = (k) => {
+    const next = langs.includes(k) ? langs.filter((x) => x !== k) : langs.concat(k);
+    setPref("spellLangs", next.length ? next : [k]);
+  };
+  return [secHead("Spelling", "spelling"),
+    setToggle("spell", "Check spelling", "Words are checked against every language you pick below. A word that is right in any one of them is left alone"),
+    setToggle("spellAuto", "Correct automatically", "Off: right-click a misspelled word to see the suggestions. On: fix it when you type a space or punctuation, Backspace undoes it"),
+    h("div", { class: "chips" }, SPELL_LANGS.map(([k, n]) => h("button", { class: "chip" + (langs.includes(k) ? " sel" : ""), act: () => pick(k), text: n })))];
+}
 function secBlocking() {
   return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups")];
 }

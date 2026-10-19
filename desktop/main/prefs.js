@@ -28,7 +28,7 @@ const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "m
 
 const DEFAULTS = {
   search: "", searchFallback: "DUCKDUCKGO", darkPages: true, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
-  desktopDefault: true, routeVps: false, direct: [], cookieReject: true, speed: 1,
+  desktopDefault: true, routeVps: false, direct: [], cookieReject: true, spell: true, spellAuto: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, ai: false, aiAlways: false, trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], dnsRules: [], menuPins: null, customTheme: null, autoTop: true, bgHistory: [], noDummy: [], totpSkip: [],

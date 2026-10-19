@@ -68,7 +68,7 @@ fun RoomScreen() {
     val state = rememberLazyListState()
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
+    DisposableEffect(Unit) { Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -119,6 +119,7 @@ fun RoomScreen() {
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(msgs, key = { it.id }) { m -> Bubble(m, mine = m.name == name) }
+            items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
@@ -148,7 +149,7 @@ fun RoomScreen() {
                     val t = text
                     text = ""
                     sendError = null
-                    Room.send(Room.name(ctx), t) { err -> if (err != null) { sendError = err; text = t } }
+                    Room.send(ctx, Room.name(ctx), t) { err -> if (err != null) { sendError = err; text = t } }
                 },
             ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (text.isNotBlank()) Amber else Muted) }
         }
@@ -210,13 +211,14 @@ private fun NewChatDialog(onDone: () -> Unit) {
 }
 
 @Composable
-private fun Bubble(m: RoomMsg, mine: Boolean) {
+private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
         Column(
             Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
             if (m.fileId != null) FileBody(m) else Text(m.text, color = Mist, fontSize = 14.sp)
+            if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 11.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
                 color = Muted, fontSize = 11.sp,

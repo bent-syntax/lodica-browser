@@ -67,6 +67,7 @@ class ChatService : Service() {
     /** Keeps one loop per room (the shared room plus saved chats) and re-reads the room list every minute. */
     private suspend fun supervise() {
         Relay.init(applicationContext)
+        Room.resumeOutbox(applicationContext)
         while (scope.isActive) {
             if (!Relay.available || !Prefs.liveChat) { stopSelf(); return }
             val want = listOf("") + Room.savedChats(applicationContext)

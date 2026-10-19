@@ -119,6 +119,21 @@ function reader(tab) {
   });
 }
 
+const DICT_LANGS = ["da", "de", "en", "es", "fr", "it", "nl", "pl", "pt", "sv"];
+const dictCache = new Map();
+/** Word list for a spell-check language. Packaged builds ship the files in resources/dict. */
+function dictText(lang) {
+  if (!DICT_LANGS.includes(lang)) return "";
+  if (!dictCache.has(lang)) {
+    const fs = require("fs"), path = require("path");
+    const dirs = [path.join(process.resourcesPath || "", "dict"), path.join(__dirname, "..", "..", "android", "app", "src", "main", "assets", "extensions", "helper", "dict")];
+    let t = "";
+    for (const d of dirs) { try { t = fs.readFileSync(path.join(d, lang + ".txt"), "utf8"); break; } catch { /* try the next place */ } }
+    dictCache.set(lang, t);
+  }
+  return dictCache.get(lang);
+}
+
 function pageState(tab) {
   const host = tab?.host || "";
   const p = prefs.p;
@@ -126,6 +141,7 @@ function pageState(tab) {
     cookies: p.cookieReject && !prefs.isTrusted(host),
     ads: !prefs.isTrusted(host) && !prefs.isCompat(host),
     dark: p.darkPages,
+    spell: { on: !!p.spell, auto: !!p.spellAuto, langs: p.spellLangs },
     speed: p.speed,
     quality: prefs.qualityFor(host) ?? p.quality,
     qualities: p.qualities,
@@ -275,6 +291,7 @@ function init(d) {
   });
   ipcMain.on("siteOverride", (e, host) => { e.returnValue = overrideFor(host); });
   ipcMain.handle("page", e => pageState(deps.tabs.byContents(e.sender)));
+  ipcMain.handle("dict", (e, lang) => dictText(lang));
   prefs.events.on("change", pushPage);
 }
 

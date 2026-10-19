@@ -6,7 +6,7 @@ const store = require("./store");
 const events = new EventEmitter();
 const os = require("os");
 // New installs start with the computer's name; a stored name always wins.
-const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", room: "", chats: store.load("roomChats", []) || [] };
+const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", room: "", chats: store.load("roomChats", []) || [], pending: [] };
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
@@ -27,6 +27,7 @@ async function loop(my) {
       const fresh = (o.messages || []).filter(m => (m.room || "") === room && !state.messages.some(x => x.id === m.id));
       if (fresh.length) state.messages = state.messages.concat(fresh).slice(-200);
       last = typeof o.last === "number" ? o.last : last;
+      if (outbox.length) flush();
       if (fresh.length || state.error) { state.error = null; changed(); }
     } catch {
       if (!running || my !== gen) return;
@@ -106,7 +107,7 @@ function removeChat(r) {
 
 /** Switches conversation and restarts the long poll. */
 function select(r) {
-  state.room = String(r || ""); state.messages = []; state.error = null; last = -1;
+  state.room = String(r || ""); state.messages = []; state.error = null; last = -1; syncPending();
   const was = running;
   gen++;
   if (was) loop(gen);
@@ -135,14 +136,68 @@ async function users() {
   } catch { return []; }
 }
 
-/** Posts a message; resolves to an error string or null. */
-async function send(text) {
+// Messages that could not be delivered (server down or unreachable) wait here, saved to disk, and go out in order once the server answers.
+const outbox = (store.load("roomOutbox", []) || []).filter(m => m && typeof m.text === "string");
+let flushing = false, flushTimer = null;
+const MAX_OUTBOX = 200;
+
+function syncPending() { state.pending = outbox.filter(m => m.room === state.room).map(m => m.text); }
+syncPending();
+
+function saveOutbox() { store.save("roomOutbox", () => outbox); syncPending(); changed(); }
+
+/** POSTs one message. Resolves { ok } on success, { retry } for a down server, { error } for a refusal that retrying cannot fix. */
+async function post(m) {
   try {
-    const [status] = await relay.request("POST", "/api/chat", 15000, { name: state.name, text: String(text || ""), room: state.room });
-    if (status === 200) { if (running) { /* the poll delivers it */ } return null; }
-    return status === 429 ? "Slow down a little" : status === 400 ? "Message not sent: this chat name is not valid" : "Server answered " + status;
-  } catch { return "Can't reach the server"; }
+    const [status] = await relay.request("POST", "/api/chat", 15000, { name: m.name, text: m.text, room: m.room });
+    if (status === 200) return { ok: true };
+    if (status === 429) return { retry: true, error: "Slow down a little" };
+    if (status >= 500 || status === 408) return { retry: true, error: "Server answered " + status };
+    return { error: status === 400 ? "Message not sent: this chat name is not valid" : "Server answered " + status };
+  } catch { return { retry: true, error: "Can't reach the server" }; }
 }
+
+function schedule(ms) {
+  if (flushTimer || !outbox.length) return;
+  flushTimer = setTimeout(() => { flushTimer = null; flush(); }, ms);
+  flushTimer.unref?.();
+}
+
+/** Sends queued messages oldest first; stops at the first failure and tries again later. */
+async function flush() {
+  if (flushing || !outbox.length) return;
+  flushing = true;
+  let delay = 5000;
+  try {
+    while (outbox.length) {
+      const r = await post(outbox[0]);
+      if (r.retry) { if (r.error === "Slow down a little") delay = 15000; break; }
+      outbox.shift();
+      saveOutbox();
+    }
+  } finally { flushing = false; }
+  schedule(delay);
+}
+
+/** Posts a message; resolves to an error string or null. A message the server cannot take right now is queued and sent later. */
+async function send(text) {
+  const m = { name: state.name, text: String(text || ""), room: state.room, at: Date.now() };
+  if (!m.text.trim()) return null;
+  if (outbox.length) {
+    // Keep order: nothing jumps the queue.
+    if (outbox.length >= MAX_OUTBOX) return "Too many unsent messages";
+    outbox.push(m); saveOutbox(); flush();
+    return null;
+  }
+  const r = await post(m);
+  if (r.ok) return null;
+  if (!r.retry) return r.error;
+  outbox.push(m); saveOutbox(); schedule(5000);
+  return null;
+}
+
+// Messages left over from a previous run go out as soon as the app is up.
+setTimeout(flush, 3000).unref?.();
 
 const MAX_FILE = 5 * 1024 * 1024;
 const safeName = n => require("path").basename(String(n || "file")).replace(/[\u0000-\u001f\u007f-\u009f"*:<>?|\\/]/g, "_").replace(/^\.+/, "") || "file";

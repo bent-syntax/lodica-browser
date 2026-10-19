@@ -66,6 +66,9 @@ object Prefs {
     var direct by mutableStateOf<Set<String>>(emptySet()); private set
 
     var cookieReject by mutableStateOf(true); private set
+    var spell by mutableStateOf(true); private set
+    var spellAuto by mutableStateOf(false); private set
+    var spellLangs by mutableStateOf(setOf("en")); private set
     /** Sites where the "use dummy mail" chip is hidden. */
     /** The user-made theme, or null until one is saved. Used when [theme] is "custom". */
     var customTheme by mutableStateOf<CustomTheme?>(null); private set
@@ -131,6 +134,9 @@ object Prefs {
         routeVps = sp.getBoolean("routeVps", false)
         direct = sp.getStringSet("direct", emptySet())!!.toSet()
         cookieReject = sp.getBoolean("cookieReject", true)
+        spell = sp.getBoolean("spell", true)
+        spellAuto = sp.getBoolean("spellAuto", false)
+        spellLangs = sp.getStringSet("spellLangs", null) ?: setOf("en")
         customTheme = sp.getString("customTheme", null)?.split(',')?.takeIf { it.size == 5 && CustomTheme.valid(it[0], it[1], it[2], it[3]) }
             ?.let { CustomTheme(it[0], it[1], it[2], it[3], it[4].toLongOrNull() ?: 0L) }
         noDummy = sp.getStringSet("noDummy", emptySet())!!.toSet()
@@ -293,6 +299,13 @@ object Prefs {
     fun updateAutoArchiveDays(v: Int) { autoArchiveDays = v; sp.edit().putInt("autoArchiveDays", v).apply() }
     fun updateDesktopDefault(v: Boolean) { desktopDefault = v; sp.edit().putBoolean("desktopDefault", v).apply() }
     fun updateRouteVps(v: Boolean) { routeVps = v; sp.edit().putBoolean("routeVps", v).apply(); Helper.push() }
+    fun updateSpell(v: Boolean) { spell = v; sp.edit().putBoolean("spell", v).apply(); Helper.push() }
+    fun updateSpellAuto(v: Boolean) { spellAuto = v; sp.edit().putBoolean("spellAuto", v).apply(); Helper.push() }
+    fun toggleSpellLang(l: String) {
+        val n = if (l in spellLangs) spellLangs - l else spellLangs + l
+        spellLangs = if (n.isEmpty()) setOf(l) else n
+        sp.edit().putStringSet("spellLangs", spellLangs).apply(); Helper.push()
+    }
     fun updateCookieReject(v: Boolean) { cookieReject = v; sp.edit().putBoolean("cookieReject", v).apply(); Helper.push() }
     fun togglePin(key: String) {
         menuPins = if (key in menuPins) menuPins - key else menuPins + key

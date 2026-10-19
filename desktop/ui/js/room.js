@@ -114,5 +114,6 @@ function roomRender() {
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : m.text));
   }
+  for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:11px", text: "Waiting for the server…" })));
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;
 }

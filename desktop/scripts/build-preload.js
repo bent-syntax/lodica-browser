@@ -67,6 +67,9 @@ swap(`    try {
     webFrame.executeJavaScript('(()=>{const p=document.getElementById("movie_player");try{if(!p||p.getPlaybackQuality&&p.getPlaybackQuality()===' + q +
       ')return;if(p.setPlaybackQualityRange)p.setPlaybackQualityRange(' + q + ',' + q + ');if(p.setPlaybackQuality)p.setPlaybackQuality(' + q + ')}catch(e){}})()').catch(() => {});`);
 
+swap(`  async function loadDictText(l) { return (await fetch(browser.runtime.getURL("dict/" + l + ".txt"))).text(); }`,
+  `  function loadDictText(l) { return ipcRenderer.invoke("dict", l); }`);
+
 swap(`  try {
     browser.storage.local.get("page").then((r) => usePage(r.page), () => {});
     browser.storage.onChanged.addListener((ch) => { if (ch.page) usePage(ch.page.newValue); });

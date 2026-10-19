@@ -30,7 +30,14 @@ data class UpdateInfo(
     val size: Long = 0,
     val sha256: String? = null,
     val newer: Boolean = false,
+    val url: String = "",
 )
+
+@Serializable
+private data class GhAsset(val name: String = "", val size: Long = 0, val digest: String? = null, val browser_download_url: String = "")
+
+@Serializable
+private data class GhRelease(val tag_name: String = "", val name: String? = null, val body: String? = null, val assets: List<GhAsset> = emptyList())
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -43,9 +50,8 @@ sealed interface UpdateState {
 }
 
 /**
- * In-app updates. The app never talks to GitHub: the repository is private, so the relay holds the
- * read-only token and proxies the release. The APK is only handed to the installer after its
- * SHA-256 matches the checksum the relay reports.
+ * In-app updates from the public GitHub releases of bent-syntax/lodica-browser. The APK is only
+ * handed to the installer after its SHA-256 matches the digest GitHub reports for the asset.
  */
 object Updater {
     private const val TAG = "LodicaUpdater"
@@ -58,27 +64,58 @@ object Updater {
     private fun currentVersion(ctx: Context): String =
         runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "0"
 
+    private const val LATEST = "https://api.github.com/repos/bent-syntax/lodica-browser/releases/latest"
+
+    private fun cmp(a: String, b: String): Int {
+        val x = a.removePrefix("v").split('.', '-').map { it.toIntOrNull() ?: 0 }
+        val y = b.removePrefix("v").split('.', '-').map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(x.size, y.size)) {
+            val d = (x.getOrElse(i) { 0 }) - (y.getOrElse(i) { 0 })
+            if (d != 0) return d
+        }
+        return 0
+    }
+
+    private fun get(url: String, timeout: Int = 15_000): Pair<Int, String> {
+        val c = URL(url).openConnection() as HttpURLConnection
+        return try {
+            c.connectTimeout = timeout; c.readTimeout = timeout; c.useCaches = false
+            c.setRequestProperty("Accept", "application/vnd.github+json")
+            c.setRequestProperty("User-Agent", "Lodica-updater")
+            val code = c.responseCode
+            code to (if (code == 200) c.inputStream.bufferedReader().use { it.readText() } else "")
+        } finally { c.disconnect() }
+    }
+
     private fun dir(ctx: Context) = File(ctx.cacheDir, "updates").apply { mkdirs() }
 
     fun check(ctx: Context) {
         if (state is UpdateState.Checking || state is UpdateState.Downloading) return
-        if (!Relay.available) { state = UpdateState.Failed("Relay not configured"); return }
         state = UpdateState.Checking
         val cur = currentVersion(ctx)
-        job = Relay.scope.launch {
+        job = Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             state = runCatching {
-                val (code, body) = Relay.request("GET", "/api/update/check?app=android&version=" + Uri.encode(cur))
+                val (code, body) = get(LATEST)
                 when (code) {
                     200 -> {
-                        val i = json.decodeFromString<UpdateInfo>(body)
-                        if (i.newer) UpdateState.Available(i) else UpdateState.Latest(cur)
+                        val rel = json.decodeFromString<GhRelease>(body)
+                        val ver = rel.tag_name.removePrefix("v")
+                        val a = rel.assets.firstOrNull { it.name.endsWith(".apk") }
+                        if (ver.isEmpty() || cmp(ver, cur) <= 0) UpdateState.Latest(cur)
+                        else if (a == null) UpdateState.Failed("This release has no APK")
+                        else {
+                            var sha = a.digest?.removePrefix("sha256:")?.lowercase()
+                            if (sha.isNullOrEmpty()) {
+                                val s = rel.assets.firstOrNull { it.name == a.name + ".sha256" }
+                                if (s != null) sha = Regex("[0-9a-fA-F]{64}").find(get(s.browser_download_url).second)?.value?.lowercase()
+                            }
+                            UpdateState.Available(UpdateInfo(ver, rel.name ?: "v$ver", rel.body ?: "", a.name, a.size, sha, true, a.browser_download_url))
+                        }
                     }
-                    503 -> UpdateState.Failed("Updates are not set up on the server yet")
                     404 -> UpdateState.Failed("No release published yet")
-                    401 -> UpdateState.Failed("Relay refused this app")
                     else -> UpdateState.Failed("Update check failed ($code)")
                 }
-            }.getOrElse { Log.w(TAG, "check failed", it); UpdateState.Failed("Could not reach the update server") }
+            }.getOrElse { Log.w(TAG, "check failed", it); UpdateState.Failed("Could not reach GitHub") }
         }
     }
 
@@ -87,7 +124,7 @@ object Updater {
         state = UpdateState.Downloading(info, 0)
         val dest = File(dir(ctx), "lodica-update.apk")
         val part = File(dir(ctx), "lodica-update.apk.part")
-        job = Relay.scope.launch {
+        job = Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val result = runCatching { fetch(info, part, dest) }
             part.delete()
             state = result.fold(
@@ -102,14 +139,14 @@ object Updater {
     }
 
     private suspend fun fetch(info: UpdateInfo, part: File, dest: File) {
-        val c = URL(Relay.API + "/api/update/download?app=android").openConnection() as HttpURLConnection
+        val c = URL(info.url).openConnection() as HttpURLConnection
         try {
             c.connectTimeout = 10_000
             c.readTimeout = 30_000
             c.useCaches = false
-            c.setRequestProperty("Authorization", "Bearer ${Relay.apiToken}")
+            c.setRequestProperty("User-Agent", "Lodica-updater")
             if (c.responseCode != 200) throw IllegalStateException("Download failed (${c.responseCode})")
-            val expected = (c.getHeaderField("X-Sha256") ?: info.sha256)?.lowercase()
+            val expected = info.sha256?.lowercase()
             if (expected.isNullOrEmpty()) throw IllegalStateException("Update has no checksum; refusing to install")
             val md = MessageDigest.getInstance("SHA-256")
             var got = 0L

@@ -117,7 +117,7 @@ function openNotes() {
     }
   });
 }
-// Check for updates: relay checks the private repo, the app downloads and verifies the build.
+// Check for updates: the app reads the public GitHub release, downloads and verifies the build.
 function updateRow() {
   if (!SET.updSub) {
     SET.updSub = true;

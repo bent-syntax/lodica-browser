@@ -1,5 +1,4 @@
-// Update check for the private repositories. The relay holds the GitHub credential;
-// this module only talks to the relay with the existing bearer token.
+// Update check against the public GitHub releases of bent-syntax/lodica-browser.
 // Flow: check -> download (streamed, SHA-256 verified) -> install (Windows runs the
 // setup, Linux reveals the AppImage).
 const fs = require("fs");
@@ -8,16 +7,16 @@ const crypto = require("crypto");
 const { Readable } = require("stream");
 
 let ui = null;
-let env = null; // { api, token, version, platform, dir, available }
+let env = null; // { api, version, platform, dir }
+const REPO = "bent-syntax/lodica-browser";
 let state = { state: "idle" };
 let job = null;
 
 function init(deps) {
   ui = deps.ui;
   const { app } = require("electron");
-  const relay = require("./relay");
   env = {
-    api: relay.API, token: relay.token, available: relay.available, version: require("../package.json").lodicaVersion || app.getVersion(),
+    api: "https://api.github.com/repos/" + REPO, version: require("../package.json").lodicaVersion || app.getVersion(),
     platform: process.platform === "win32" ? "win" : process.platform === "linux" ? "linux" : "",
     dir: () => app.getPath("downloads"),
   };
@@ -29,26 +28,41 @@ function set(patch, replace) {
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const q = () => "?app=desktop&platform=" + env.platform;
-const auth = () => ({ Authorization: "Bearer " + env.token });
+const HDR = { Accept: "application/vnd.github+json", "User-Agent": "Lodica-updater" };
+
+function cmp(a, b) {
+  const x = String(a).replace(/^v/, "").split(/[.-]/).map(n => parseInt(n, 10) || 0);
+  const y = String(b).replace(/^v/, "").split(/[.-]/).map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; }
+  return 0;
+}
+
+function pick(assets) {
+  const re = env.platform === "win" ? /^Lodica-Setup-.*\.exe$/i : /\.AppImage$/i;
+  return assets.find(a => re.test(a.name));
+}
 
 async function check() {
   if (job) return state;
-  if (!env.available) { set({ state: "error", message: "Relay not configured" }, true); return state; }
   if (!env.platform) { set({ state: "error", message: "Updates are not available on this system" }, true); return state; }
   set({ state: "checking" }, true);
   try {
-    const r = await fetch(env.api + "/api/update/check" + q() + "&version=" + encodeURIComponent(env.version),
-      { headers: auth(), signal: AbortSignal.timeout(20000) });
-    const text = await r.text();
-    if (r.status === 503) throw new Error("Updates are not set up on the server yet");
+    const r = await fetch(env.api + "/releases/latest", { headers: HDR, signal: AbortSignal.timeout(20000) });
     if (r.status === 404) throw new Error("No release published yet");
-    if (r.status !== 200) throw new Error("Server answered " + r.status);
-    const i = JSON.parse(text);
-    if (!i.newer) set({ state: "latest", version: env.version }, true);
-    else set({ state: "available", version: i.version, name: i.name, notes: i.notes, size: i.size, file: i.file, sha256: i.sha256 }, true);
+    if (r.status !== 200) throw new Error("GitHub answered " + r.status);
+    const rel = await r.json();
+    const ver = String(rel.tag_name || "").replace(/^v/, "");
+    if (!ver || cmp(ver, env.version) <= 0) { set({ state: "latest", version: env.version }, true); return state; }
+    const a = pick(rel.assets || []);
+    if (!a) throw new Error("This release has no file for this system");
+    let sha = String(a.digest || "").replace(/^sha256:/, "").toLowerCase();
+    if (!sha) {
+      const s = (rel.assets || []).find(x => x.name === a.name + ".sha256");
+      if (s) { const t = await (await fetch(s.browser_download_url, { headers: HDR, signal: AbortSignal.timeout(20000) })).text(); sha = (t.match(/[0-9a-f]{64}/i) || [""])[0].toLowerCase(); }
+    }
+    set({ state: "available", version: ver, name: rel.name || "v" + ver, notes: rel.body || "", size: a.size, file: a.name, url: a.browser_download_url, sha256: sha }, true);
   } catch (e) {
-    set({ state: "error", message: e.name === "TimeoutError" ? "Server did not answer" : e.message || "Check failed" }, true);
+    set({ state: "error", message: e.name === "TimeoutError" ? "GitHub did not answer" : e.message || "Check failed" }, true);
   }
   return state;
 }
@@ -63,9 +77,9 @@ async function download() {
   const part = target + ".part";
   set({ state: "downloading", received: 0 });
   try {
-    const r = await fetch(env.api + "/api/update/download" + q(), { headers: auth(), signal: ctl.signal });
-    if (r.status !== 200 || !r.body) throw new Error("Server answered " + r.status);
-    const expect = (r.headers.get("x-sha256") || state.sha256 || "").toLowerCase();
+    const r = await fetch(state.url, { headers: HDR, signal: ctl.signal, redirect: "follow" });
+    if (r.status !== 200 || !r.body) throw new Error("GitHub answered " + r.status);
+    const expect = (state.sha256 || "").toLowerCase();
     const total = Number(r.headers.get("content-length")) || state.size || 0;
     const hash = crypto.createHash("sha256");
     const out = fs.createWriteStream(part);
@@ -80,7 +94,7 @@ async function download() {
       }
     } finally { await new Promise(res => out.end(res)); }
     const digest = hash.digest("hex");
-    if (!expect) throw new Error("Server sent no checksum; refusing to install");
+    if (!expect) throw new Error("Release has no checksum; refusing to install");
     if (digest !== expect) throw new Error("Checksum mismatch; file discarded");
     fs.renameSync(part, target);
     set({ state: "ready", path: target, received: got, size: total });

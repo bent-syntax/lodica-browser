@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.8.2 (versionCode 43)
+
+- Updates now come straight from the GitHub releases of bent-syntax/lodica-browser, checked against the SHA-256 of the file. No install without a checksum.
+- Spell check and auto-correct in ten languages (en, nl, de, fr, es, it, pt, sv, da, pl). Pick any mix: a word is fine if it is in any chosen dictionary. Auto-correct on: fixes as you type, Backspace undoes. Off: right-click a misspelled word for suggestions. Settings > Blocking/Spelling (Android) and Settings > Security (desktop).
+- Selecting a math expression (for example 12*(3+4)) shows the answer above it.
+- Server chat: messages sent while the server is down wait in an outbox and go out in order when it is back. Shown as pending in the chat.
+- Lighter: dictionaries load only when you focus a text field, idle timers only run when needed.
+
 ## 1.8.1 (versionCode 42)
 
 - Desktop: data and settings stay put across updates (fixed user data folder, backup copy of every store restored if one is damaged). Android already keeps data on update.

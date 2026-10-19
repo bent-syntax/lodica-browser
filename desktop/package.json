@@ -1,8 +1,8 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.8.1",
-  "lodicaVersion": "1.8.1",
+  "version": "1.8.2",
+  "lodicaVersion": "1.8.2",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
@@ -43,6 +43,9 @@
       "config.json",
       "PATCH_NOTES.md",
       "package.json"
+    ],
+    "extraResources": [
+      { "from": "../android/app/src/main/assets/extensions/helper/dict", "to": "dict" }
     ],
     "asar": true,
     "win": {

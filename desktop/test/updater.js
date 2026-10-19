@@ -12,19 +12,15 @@ const up = require("../main/updater");
 
 const body = crypto.randomBytes(300000);
 const sum = crypto.createHash("sha256").update(body).digest("hex");
-let newer = true, badSum = false, seenAuth = [];
+let tag = "v1.1.0", badSum = false, port = 0;
 const srv = http.createServer((req, res) => {
-  seenAuth.push(req.headers.authorization);
-  if (req.headers.authorization !== "Bearer tok") { res.writeHead(401); return res.end(); }
-  if (req.url.startsWith("/api/update/check")) {
-    assert(req.url.includes("app=desktop") && req.url.includes("platform=linux") && req.url.includes("version=1.0.0"));
+  if (req.url === "/releases/latest") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ version: "1.1.0", name: "v1.1.0", notes: "n", file: "Lodica-1.1.0.AppImage", size: body.length, sha256: sum, newer }));
+    return res.end(JSON.stringify({ tag_name: tag, name: "Lodica 1.1.0", body: "n", assets: [
+      { name: "Lodica-1.1.0.apk", size: 1, digest: "sha256:" + "1".repeat(64), browser_download_url: "http://127.0.0.1:" + port + "/x.apk" },
+      { name: "Lodica-1.1.0.AppImage", size: body.length, digest: "sha256:" + (badSum ? "0".repeat(64) : sum), browser_download_url: "http://127.0.0.1:" + port + "/dl" }] }));
   }
-  if (req.url.startsWith("/api/update/download")) {
-    res.writeHead(200, { "Content-Length": body.length, "X-Sha256": badSum ? "0".repeat(64) : sum });
-    return res.end(body);
-  }
+  if (req.url === "/dl") { res.writeHead(200, { "Content-Length": body.length }); return res.end(body); }
   res.writeHead(404); res.end();
 });
 
@@ -32,7 +28,8 @@ const srv = http.createServer((req, res) => {
   await new Promise(r => srv.listen(0, "127.0.0.1", r));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "upd-"));
   const pushes = [];
-  const env = { api: "http://127.0.0.1:" + srv.address().port, token: "tok", available: true, version: "1.0.0", platform: "linux", dir: () => dir };
+  port = srv.address().port;
+  const env = { api: "http://127.0.0.1:" + port, version: "1.0.0", platform: "linux", dir: () => dir };
   up._setEnv(env);
   let s = await up.check();
   assert.equal(s.state, "available"); assert.equal(s.version, "1.1.0");
@@ -45,13 +42,10 @@ const srv = http.createServer((req, res) => {
   assert.equal(s.state, "error"); assert(/Checksum/.test(s.message));
   assert(!fs.readdirSync(dir).some(f => f.endsWith(".part")));
   // up to date
-  up._reset(); newer = false; s = await up.check();
+  up._reset(); tag = "v1.0.0"; s = await up.check();
   assert.equal(s.state, "latest");
-  // wrong token -> error, not crash
-  up._setEnv({ ...env, token: "bad" }); up._reset(); s = await up.check();
-  assert.equal(s.state, "error");
-  // no relay configured
-  up._setEnv({ ...env, available: false }); up._reset(); s = await up.check();
+  // unreachable -> error, not crash
+  up._setEnv({ ...env, api: "http://127.0.0.1:1" }); up._reset(); s = await up.check();
   assert.equal(s.state, "error");
   fs.rmSync(dir, { recursive: true });
   srv.close();

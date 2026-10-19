@@ -1,5 +1,13 @@
 # Patch notes
 
+## 1.8.2
+
+- Updates from GitHub releases, checksum verified.
+- Spell check and auto-correct, ten languages, mix allowed.
+- Select a math expression to see its answer.
+- Server chat outbox: messages wait while the server is down and send when it is back.
+- Lighter background work.
+
 ## 1.8.1
 
 - Removed autofilled password stays removed.
