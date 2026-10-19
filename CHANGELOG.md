@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.9.1 (versionCode 45)
+
+- Desktop: fixed the app reporting version 1.8.2 and offering the update again after installing a newer one.
+
 ## 1.9.0 (versionCode 44)
 
 - Linux: connecting to the server no longer fails with "no system keyring available". Without a keyring the token is stored encrypted with a key file in the profile folder (permissions 0600).
