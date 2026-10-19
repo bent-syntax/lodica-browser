@@ -306,7 +306,7 @@ async function link(domain, token) {
     }
   }
   if (!api) return { ok: false, error: fail || "Can't reach the server" };
-  if (!store.saveSecret("relayLink", { domain, token, api })) return { ok: false, error: "Can't store the token: no system keyring available" };
+  if (!store.saveSecret("relayLink", { domain, token, api })) return { ok: false, error: "Can't store the token: disk write failed" };
   configure({ domain, token, api });
   changed(); refresh();
   return { ok: true, domain };

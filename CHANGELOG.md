@@ -2,6 +2,15 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.9.0 (versionCode 44)
+
+- Linux: connecting to the server no longer fails with "no system keyring available". Without a keyring the token is stored encrypted with a key file in the profile folder (permissions 0600).
+- Pop-up windows opened by a page (for example the Smartschool mail composer) now open as a real separate window, so the page that opened them no longer hangs waiting for it.
+- Chat: after you change your display name, your earlier messages still show as yours and keep the name they were sent under.
+- Start page shortcuts: a round + button replaces the text button, cleaner add and remove styling. Android Settings has a new switch, Auto shortcuts, to show only the shortcuts you add. Desktop already had it as Show most visited sites.
+- Android search widget opens a new tab on the last visited site.
+- Tests: `npm test` in desktop runs every test, and the release build refuses to publish unless they pass.
+
 ## 1.8.2 (versionCode 43)
 
 - Updates now come straight from the GitHub releases of bent-syntax/lodica-browser, checked against the SHA-256 of the file. No install without a checksum.

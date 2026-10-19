@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Link
@@ -409,7 +410,10 @@ private fun StartPage(modifier: Modifier) {
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
         }
-        if (mine.size < 24) TextButton(onClick = { adding = true }) { Text("Edit shortcuts", color = Muted, fontSize = 13.sp) }
+        if (mine.size < 24) Box(
+            Modifier.padding(top = 8.dp).size(36.dp).clip(CircleShape).background(GraphiteRaised).clickable { adding = true },
+            contentAlignment = Alignment.Center,
+        ) { Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(20.dp)) }
     }
     }
     if (adding) {
@@ -422,7 +426,7 @@ private fun StartPage(modifier: Modifier) {
         AlertDialog(
             onDismissRequest = { adding = false },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            title = { Text("Add quick site") },
+            title = { Text("Add shortcut") },
             text = {
                 Column {
                     OutlinedTextField(name, { name = it }, singleLine = true, label = { Text("Name", color = Muted) }, colors = colors)

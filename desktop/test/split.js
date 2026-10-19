@@ -6,7 +6,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ROOT = path.join(__dirname, "..");
 const data = fs.mkdtempSync(path.join(os.tmpdir(), "lodica-s-"));
 const PORT = 9337;
-const bin = path.join(ROOT, "node_modules", "electron", "dist", "electron");
+const bin = process.env.ELECTRON_BIN || path.join(ROOT, "node_modules", "electron", "dist", "electron");
 const app = spawn(bin, [ROOT, "--no-sandbox", "--remote-debugging-port=" + PORT, "--user-data-dir=" + data], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "" }, stdio: "ignore" });
 const targets = async () => (await (await fetch(`http://127.0.0.1:${PORT}/json`)).json());
 async function cdp(t, method, params = {}) {

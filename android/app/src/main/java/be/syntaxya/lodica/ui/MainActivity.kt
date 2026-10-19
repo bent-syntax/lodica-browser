@@ -25,6 +25,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import be.syntaxya.lodica.engine.History
 import be.syntaxya.lodica.engine.TotpMigration
 import be.syntaxya.lodica.engine.Engine
 import be.syntaxya.lodica.engine.PcTabs
@@ -125,10 +126,15 @@ class MainActivity : HostActivity() {
         }
         if (i.action == SearchWidget.ACTION_SEARCH) {
             Ui.closeAll()
-            // Always a fresh tab, never whatever was open last.
-            TabManager.open(TabManager.HOME)
-            // Focus the bar after the overlay is gone, so Settings cannot keep the keyboard.
-            window.decorView.post { Ui.editing = true }
+            // Always a fresh tab, pointing at the last page visited (the home page when there is none).
+            Thread {
+                val last = runCatching { History.recent(1).firstOrNull()?.url }.getOrNull()?.takeIf { it.startsWith("http") }
+                runOnUiThread {
+                    TabManager.open(last ?: TabManager.HOME)
+                    // Focus the bar after the overlay is gone, so Settings cannot keep the keyboard.
+                    window.decorView.post { Ui.editing = true }
+                }
+            }.start()
             return
         }
         if (i.action == Intent.ACTION_PROCESS_TEXT) {

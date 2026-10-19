@@ -118,7 +118,7 @@ fun RoomScreen() {
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(msgs, key = { it.id }) { m -> Bubble(m, mine = m.name == name) }
+            items(msgs, key = { it.id }) { m -> Bubble(m, mine = Room.isMine(ctx, m.name)) }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }

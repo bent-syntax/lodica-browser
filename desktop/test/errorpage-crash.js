@@ -6,7 +6,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const ROOT = path.join(__dirname, "..");
 const data = fs.mkdtempSync(path.join(os.tmpdir(), "lodica-t-"));
 const PORT = 9333;
-const bin = path.join(ROOT, "node_modules", "electron", "dist", "electron");
+const bin = process.env.ELECTRON_BIN || path.join(ROOT, "node_modules", "electron", "dist", "electron");
 const app = spawn(bin, [ROOT, "--no-sandbox", "--remote-debugging-port=" + PORT, "--user-data-dir=" + data], { env: { ...process.env, ELECTRON_RUN_AS_NODE: "" }, stdio: "ignore" });
 const targets = async () => (await (await fetch(`http://127.0.0.1:${PORT}/json`)).json());
 async function cdp(t, method, params = {}) {
@@ -47,7 +47,7 @@ const check = (n, ok, extra = "") => { console.log(ok ? "PASS" : "FAIL", n, extr
   const before = (await targets()).find(x => x.url.startsWith("lodica://error/"));
   if (before) await cdp(before, "Page.crash");
   await sleep(4000);
-  const log = fs.existsSync(path.join(data, "crash.log")) ? fs.readFileSync(path.join(data, "crash.log"), "utf8") : "";
+  const log = fs.existsSync(path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "Lodica", "crash.log")) ? fs.readFileSync(path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "Lodica", "crash.log"), "utf8") : "";
   check("crash.log load-failed", /load-failed/.test(log));
   check("crash.log render-process-gone", /render-process-gone/.test(log), log.split("\n").filter(l => /render-process-gone/.test(l))[0]);
   check("token not logged", !/token=abc/.test(log));

@@ -79,8 +79,10 @@ html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -
 #top a span.n { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 #top a { position: relative; }
-#top a .rm { display: none; cursor: pointer; position: absolute; top: -4px; right: 8px; width: 20px; height: 20px; border-radius: 10px; background: var(--coral); color: var(--bg); place-items: center; font-size: 13px; line-height: 1; }
-#top a.add .fav { background: none; border: 2px dashed var(--muted); color: var(--muted); font-size: 24px; }
+#top a .rm { display: none; cursor: pointer; position: absolute; top: -4px; right: 8px; width: 20px; height: 20px; border-radius: 10px; background: var(--raised); color: var(--sub); place-items: center; font-size: 13px; line-height: 1; box-shadow: 0 1px 4px #0006; }
+#top a .rm:hover { background: var(--coral); color: var(--bg); }
+#top a.add .fav { background: var(--raised); border: 0; color: var(--amber); font-size: 24px; transition: background .15s; }
+#top a.add:hover .fav { background: var(--amber); color: var(--bg); }
 #top a:hover .rm { display: grid; }
 .addf { width: 220px; display: flex; flex-direction: column; gap: 6px; }
 .addf input { height: 34px; border-radius: 10px; border: 1px solid var(--raised); background: var(--raised); color: var(--text); padding: 0 10px; font: inherit; font-size: 13px; outline: 0; }

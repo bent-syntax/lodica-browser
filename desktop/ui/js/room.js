@@ -110,7 +110,7 @@ function roomRender() {
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
   for (const m of ROOM.state.messages) {
-    const mine = m.name === ROOM.state.name;
+    const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : m.text));
   }

@@ -6,13 +6,21 @@ const store = require("./store");
 const events = new EventEmitter();
 const os = require("os");
 // New installs start with the computer's name; a stored name always wins.
-const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", room: "", chats: store.load("roomChats", []) || [], pending: [] };
+const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", names: store.load("roomNames", []) || [], room: "", chats: store.load("roomChats", []) || [], pending: [] };
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
 const clean = n => String(n || "").replace(/[\s|\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u2028\u2029\ufeff]/g, "_").slice(0, 32) || "_";
 const roomQ = r => (r ? "&room=" + encodeURIComponent(r) : "");
 
+/** Remembers every name this device has used, so older messages stay "mine" (under the name they were sent with) after a rename. */
+function rememberName(n) {
+  if (!n || state.names.includes(n)) return;
+  state.names.push(n); state.names = state.names.slice(-20);
+  store.save("roomNames", () => state.names);
+}
+const isMine = n => n === state.name || state.names.includes(n);
+rememberName(state.name);
 function changed() { events.emit("change"); }
 
 async function loop(my) {
@@ -68,7 +76,7 @@ async function settleName() {
   for (let i = 1; i <= 20; i++) {
     const n = i === 1 ? base : base.slice(0, 32 - String(i).length - 1) + "-" + i;
     if (await claim(n)) {
-      if (n !== state.name) { state.name = n; store.save("roomName", () => state.name); changed(); }
+      if (n !== state.name) { state.name = n; rememberName(n); store.save("roomName", () => state.name); changed(); }
       return;
     }
   }
@@ -79,7 +87,7 @@ async function setName(v) {
   const want = String(v || "").trim().slice(0, 32) || "Me";
   if (want === state.name) { await claim(want); return { name: state.name, taken: false }; }
   if (!(await claim(want))) return { name: state.name, taken: true };
-  state.name = want;
+  state.name = want; rememberName(want);
   store.save("roomName", () => state.name);
   return { name: state.name, taken: false };
 }
@@ -259,7 +267,7 @@ function watch(onGroup) {
         const o = JSON.parse(body);
         bgCur.set(r, Math.max(cur, o.last || 0));
         if (cur < 0) continue;
-        const mine = (o.messages || []).filter(m => m.name !== state.name);
+        const mine = (o.messages || []).filter(m => !isMine(m.name));
         if (mine.length && !running) onGroup({ room: r, where: r ? label(r) : "server chat", messages: mine });
         if (!(o.messages || []).length) await sleep(200);
       } catch { await sleep(5000); }

@@ -228,6 +228,7 @@ fun SettingsScreen() {
                 }
                 1 -> {
                     Section("Browsing")
+            SwitchRow("Auto shortcuts", "Fill the start page with your most visited sites. Turn off to show only shortcuts you add", Prefs.quickAuto) { Prefs.updateQuickAuto(it) }
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()

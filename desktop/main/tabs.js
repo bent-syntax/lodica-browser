@@ -119,10 +119,24 @@ function pdfViewerUrl(url) {
 }
 
 function wire(t, wc) {
-  wc.setWindowOpenHandler(({ url, disposition }) => {
+  // window.open with features (or a blank target, like mail composers) gets a real top-level window with a live
+  // opener, as in other browsers. Denying it returns null to the page, which hangs sites such as Smartschool.
+  const handleOpen = ({ url, disposition }) => {
+    if (disposition === "new-window" || !url || url === "about:blank") {
+      return { action: "allow", overrideBrowserWindowOptions: { autoHideMenuBar: true, backgroundColor: "#ffffff", width: 900, height: 700 } };
+    }
     if (/^(https?|lodica):/i.test(url)) create({ url, private: t.private, background: disposition === "background-tab" });
     return { action: "deny" };
-  });
+  };
+  const adopt = (src, owner) => {
+    src.setWindowOpenHandler(handleOpen);
+    src.on("did-create-window", win => {
+      win.setMenuBarVisibility(false);
+      adopt(win.webContents, owner);
+      owner.once("destroyed", () => { if (!win.isDestroyed()) win.close(); });
+    });
+  };
+  adopt(wc, wc);
   wc.on("focus", () => focusPane(t));
   wc.on("page-favicon-updated", (_, favicons) => { t.icons = Array.isArray(favicons) ? favicons.slice(0, 8) : []; });
   wc.on("page-title-updated", (_, title) => {

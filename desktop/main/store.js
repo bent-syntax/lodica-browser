@@ -38,12 +38,37 @@ function flush() {
   pending.clear();
 }
 
+// No system keyring (headless Linux): AES-256-GCM with a 0600 key file in userData, marked "LKF1".
+const MAGIC = Buffer.from("LKF1");
+let fileKey = null;
+function localKey() {
+  if (fileKey) return fileKey;
+  const f = path.join(dir(), ".lodica-key");
+  try { fileKey = fs.readFileSync(f); if (fileKey.length === 32) return fileKey; } catch {}
+  fs.mkdirSync(dir(), { recursive: true });
+  fileKey = require("crypto").randomBytes(32);
+  fs.writeFileSync(f, fileKey, { mode: 0o600 });
+  return fileKey;
+}
+function sealLocal(text) {
+  const c = require("crypto"), iv = c.randomBytes(12), k = c.createCipheriv("aes-256-gcm", localKey(), iv);
+  const ct = Buffer.concat([k.update(text, "utf8"), k.final()]);
+  return Buffer.concat([MAGIC, iv, k.getAuthTag(), ct]);
+}
+function openLocal(buf) {
+  const c = require("crypto"), d = c.createDecipheriv("aes-256-gcm", localKey(), buf.subarray(4, 16));
+  d.setAuthTag(buf.subarray(16, 32));
+  return Buffer.concat([d.update(buf.subarray(32)), d.final()]).toString("utf8");
+}
+const keyringOk = () => { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } };
+
 function loadSecret(name, fallback) {
   const f = path.join(dir(), name + ".bin");
   for (const p of [f, f + ".bak"]) {
     try {
       const buf = fs.readFileSync(p);
-      if (!safeStorage.isEncryptionAvailable()) return fallback;
+      if (buf.subarray(0, 4).equals(MAGIC)) return JSON.parse(openLocal(buf));
+      if (!keyringOk()) return fallback;
       return JSON.parse(safeStorage.decryptString(buf));
     } catch {}
   }
@@ -52,11 +77,11 @@ function loadSecret(name, fallback) {
 
 function saveSecret(name, value) {
   try {
-    if (!safeStorage.isEncryptionAvailable()) return false;
     fs.mkdirSync(dir(), { recursive: true });
     const f = path.join(dir(), name + ".bin");
     try { fs.copyFileSync(f, f + ".bak"); } catch {}
-    fs.writeFileSync(f, safeStorage.encryptString(JSON.stringify(value)));
+    const text = JSON.stringify(value);
+    fs.writeFileSync(f, keyringOk() ? safeStorage.encryptString(text) : sealLocal(text));
     return true;
   } catch (e) { console.error("secret", name, e.message); return false; }
 }

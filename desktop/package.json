@@ -1,13 +1,14 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "lodicaVersion": "1.8.2",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
   "main": "main/main.js",
   "scripts": {
+    "test": "node scripts/run-tests.js",
     "config": "node scripts/gen-config.js && node scripts/build-preload.js",
     "themes": "node scripts/build-themes.js",
     "icon": "node scripts/gen-icon.js",

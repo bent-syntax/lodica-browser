@@ -139,8 +139,14 @@ object Room {
     fun hasName(ctx: Context): Boolean = prefs(ctx).getString("name", null)?.isNotBlank() == true
 
     fun setName(ctx: Context, v: String) {
-        prefs(ctx).edit().putString("name", v.trim().take(32)).apply()
+        val old = name(ctx)
+        val sp = prefs(ctx)
+        val past = sp.getStringSet("pastNames", emptySet())!!.toMutableSet().apply { add(old) }
+        sp.edit().putString("name", v.trim().take(32)).putStringSet("pastNames", past.toList().takeLast(20).toSet()).apply()
     }
+
+    /** True for the current name and any earlier name of this device, so old bubbles stay on the own side. */
+    fun isMine(ctx: Context, n: String): Boolean = n == name(ctx) || n in prefs(ctx).getStringSet("pastNames", emptySet())!!
 
     private fun deviceId(ctx: Context): String {
         val sp = prefs(ctx)

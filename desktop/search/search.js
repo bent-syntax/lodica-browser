@@ -138,7 +138,7 @@ function drawTop(items) {
   $("top").replaceChildren(...tiles.filter(Boolean));
 }
 function addTile(items) {
-  const a = el("a", { class: "add", href: "#" }, el("span", { class: "fav" }, "+"), el("span", { class: "n" }, "Add shortcut"));
+  const a = el("a", { class: "add", href: "#" }, el("span", { class: "fav", title: "Add shortcut", "aria-label": "Add shortcut" }, "+"));
   a.addEventListener("click", (e) => { e.preventDefault(); adding = true; drawTop(items); $("nu").focus(); });
   return a;
 }
