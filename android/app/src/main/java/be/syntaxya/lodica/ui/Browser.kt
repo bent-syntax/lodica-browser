@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -62,7 +63,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -166,7 +166,7 @@ private fun BrowserScreen() {
             GeckoHost(tab?.session?.takeUnless { locked }, Modifier.fillMaxSize())
         }
 
-        val home = tab != null && tab.url == TabManager.HOME && !locked
+        val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
         AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
             StartPage(Modifier.fillMaxSize())
         }
@@ -178,9 +178,11 @@ private fun BrowserScreen() {
         }
 
         if (!full) {
-            val lift = with(LocalDensity.current) { (Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toDp() }
+            // Offset is read in the layout phase, so scrolling moves the chips without recomposing the screen.
             Column(
-                Modifier.align(Alignment.BottomCenter).padding(bottom = lift + 8.dp).padding(horizontal = 12.dp),
+                Modifier.align(Alignment.BottomCenter)
+                    .offset { androidx.compose.ui.unit.IntOffset(0, -(Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toInt()) }
+                    .padding(bottom = 8.dp).padding(horizontal = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
@@ -312,6 +314,12 @@ private fun MailBanner(m: Mail) {
 @Composable
 private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
     val bg = Graphite.toArgb()
+    // Under a full-screen overlay the page is invisible, so stop drawing it once the slide-in has finished.
+    var covered by remember { mutableStateOf(false) }
+    LaunchedEffect(Ui.screen) {
+        if (Ui.screen == Screen.Browser) covered = false
+        else { kotlinx.coroutines.delay(350); covered = true }
+    }
     AndroidView(
         factory = { ctx ->
             GeckoView(ctx).apply {
@@ -323,6 +331,7 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
         },
         update = { v ->
             Ui.gecko = v
+            v.visibility = if (covered) android.view.View.INVISIBLE else android.view.View.VISIBLE
             if (v.session !== session) {
                 if (v.session != null) v.releaseSession()
                 if (session != null) {
