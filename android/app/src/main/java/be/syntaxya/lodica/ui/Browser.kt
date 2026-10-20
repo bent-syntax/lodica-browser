@@ -174,7 +174,9 @@ private fun BrowserScreen() {
         if (locked) LockedView()
 
         AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
-            Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = 64.dp)) { go(it) }
+            // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
+            val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
+            Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }
         }
 
         if (!full) {
