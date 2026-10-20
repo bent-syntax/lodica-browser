@@ -65,9 +65,18 @@ function exitEdit() {
   const L = BAR.sugg; BAR.sugg = null; if (L) L.close();
   renderBar();
 }
+/** Start of the path (the "/" after the host, scheme ignored) in typed URL text, or -1. */
+function pathStart(t) {
+  const m = /^[a-z][a-z0-9+.-]*:\/\/[^/?#\s]+(?=[/?#])|^[^/?#\s:]+(?::\d+)?(?=[/?#])/i.exec(t);
+  return m && !/\s/.test(t) ? m[0].length : -1;
+}
 function editBar() {
   const input = h("input", { type: "text", spellcheck: "false", autocomplete: "off", placeholder: placeholder(), value: BAR.q,
     on: { input: () => { BAR.q = input.value; syncEditBtns(); suggestSoon(); },
+      dblclick: () => {
+        const v = input.value, ps = pathStart(v);
+        if (ps >= 0 && input.selectionStart >= ps && v.slice(ps) !== "/") input.setSelectionRange(ps, v.length);
+      },
       keydown: (e) => {
         if (e.key === "Enter") { e.preventDefault(); goText(input.value); }
         else if (e.key === "Escape") { e.preventDefault(); exitEdit(); }

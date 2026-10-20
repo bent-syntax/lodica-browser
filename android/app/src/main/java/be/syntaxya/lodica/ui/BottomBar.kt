@@ -290,6 +290,19 @@ private fun TabCount(tab: Tab?) {
     }
 }
 
+private val PATH_START = Regex("^(?:[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#\\s]+|[^/?#\\s:]+(?::\\d+)?)(?=[/?#])")
+
+/** Start of the path (the "/" after the host, scheme ignored) in typed URL text, or -1. */
+internal fun pathStart(t: String): Int = if (t.any { it.isWhitespace() }) -1 else PATH_START.find(t)?.value?.length ?: -1
+
+/** A double-tap that picks a word inside the path widens to the whole path and query, so Backspace leaves the bare domain. */
+internal fun selectPathOnWordPick(old: TextFieldValue, new: TextFieldValue): TextFieldValue {
+    if (new.text != old.text || !old.selection.collapsed || new.selection.collapsed) return new
+    val ps = pathStart(new.text)
+    if (ps < 0 || new.selection.min < ps || new.text.substring(ps) == "/") return new
+    return new.copy(selection = TextRange(ps, new.text.length))
+}
+
 @Composable
 private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     val focus = remember { FocusRequester() }
@@ -313,7 +326,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
         ) {
             BasicTextField(
                 value = query,
-                onValueChange = onQuery,
+                onValueChange = { onQuery(selectPathOnWordPick(query, it)) },
                 singleLine = true,
                 textStyle = TextStyle(color = Mist, fontSize = 15.sp),
                 cursorBrush = SolidColor(Amber),
