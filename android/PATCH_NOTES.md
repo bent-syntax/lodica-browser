@@ -1,5 +1,27 @@
 # Patch notes
 
+## 1.10.0
+- Beta tester mode: tap the logo in Settings > Updates 7 times to unlock a Beta tester switch that also offers pre-releases.
+- New tabs open as the rightmost tab. Drag a tab to move it. The order is saved.
+- Faster, fresher tab previews: a preview is captured when a page loads and when you leave a tab.
+- Smoother scrolling on Android: less work per frame, and nothing is drawn under Settings or the tab overview.
+
+## 1.9.2
+- Search, shortcut and sites widgets keep round corners at any size.
+- Chat text can be selected and copied.
+- Tab overview: new-tab tile at the end of the list, private tabs have their own style.
+- Start page + button reads "Add shortcut". The keyboard shows reliably in the address bar.
+
+## 1.9.1
+- Desktop: fixed the app reporting version 1.8.2 and offering the update again.
+
+## 1.9.0
+- Linux: no more "no system keyring available" error. The token is stored encrypted in the profile folder.
+- Pop-up windows from a page open as real windows.
+- Chat: earlier messages stay yours after you change your display name.
+- Start page: round + button, Auto shortcuts switch. Android search widget opens a new tab on the last visited site.
+- Tests run on every build and must pass before a release.
+
 ## 1.8.2
 
 - Updates from GitHub releases, checksum verified.
