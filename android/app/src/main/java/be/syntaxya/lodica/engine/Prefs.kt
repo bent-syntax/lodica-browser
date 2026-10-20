@@ -97,6 +97,7 @@ object Prefs {
     var theme by mutableStateOf("dark"); private set
     /** Suggest history pages and past searches in the address bar. Local only. */
     var historySuggest by mutableStateOf(true); private set
+    var autoCorrect by mutableStateOf(false); private set
     /** Start page background kind: "none", "gradient", "image" or "color". */
     var startBg by mutableStateOf("none"); private set
     /** Gradient key, or colour as #RRGGBB, depending on [startBg]. The image lives in the app files dir. */
@@ -162,6 +163,7 @@ object Prefs {
         language = runCatching { Language.valueOf(sp.getString("language", "")!!) }.getOrDefault(Language.EN)
         theme = sp.getString("theme", "dark")!!
         historySuggest = sp.getBoolean("historySuggest", true)
+        autoCorrect = sp.getBoolean("autoCorrect", false)
         startBg = sp.getString("startBg", "none")!!
         startBgValue = sp.getString("startBgValue", "")!!
         startDim = sp.getFloat("startDim", 0.3f)
@@ -189,6 +191,7 @@ object Prefs {
         sp.edit().apply { if (c == null) remove("customTheme") else putString("customTheme", "${c.bg},${c.text},${c.accent},${c.accent2},${c.at}") }.apply()
         Helper.push(); appCtx?.let { refreshWidgets(it) }
     }
+    fun updateAutoCorrect(v: Boolean) { autoCorrect = v; sp.edit().putBoolean("autoCorrect", v).apply() }
     fun updateHistorySuggest(v: Boolean) { historySuggest = v; sp.edit().putBoolean("historySuggest", v).apply() }
     fun updateStartBg(kind: String, value: String = "") {
         startBg = kind; startBgValue = value

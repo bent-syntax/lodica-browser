@@ -219,6 +219,7 @@ fun SettingsScreen() {
                 if (it == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             }
             if (Relay.available) EnginePicker("Fallback search engine", Prefs.searchFallback, SearchEngine.entries.filter { it != SearchEngine.LODICA }) { Prefs.updateSearchFallback(it) }
+            SwitchRow("Autocorrect in address bar", "Keyboard corrects and suggests words while you type a search. Off keeps URLs untouched", Prefs.autoCorrect) { Prefs.updateAutoCorrect(it) }
             SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
             LinkRow("Clear suggestions", Coral) {
                 confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }

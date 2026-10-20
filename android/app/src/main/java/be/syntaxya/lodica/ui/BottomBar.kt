@@ -318,9 +318,10 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 textStyle = TextStyle(color = Mist, fontSize = 15.sp),
                 cursorBrush = SolidColor(Amber),
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Uri,
+                    // Uri keyboards never autocorrect, so use the text keyboard when the user turns it on.
+                    keyboardType = if (Prefs.autoCorrect) KeyboardType.Text else KeyboardType.Uri,
                     imeAction = ImeAction.Go,
-                    autoCorrectEnabled = false,
+                    autoCorrectEnabled = Prefs.autoCorrect,
                 ),
                 keyboardActions = KeyboardActions(onGo = { go(query.text) }),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
