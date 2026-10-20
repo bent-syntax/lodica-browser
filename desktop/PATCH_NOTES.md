@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.4
+- No desktop changes (version bump for the Android release).
+
 ## 1.11.3
 - Chat files can be up to 5 GB (was 5 MB). Files are streamed, so large files no longer fill memory.
 

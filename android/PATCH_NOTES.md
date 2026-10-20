@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.4
+- "Smoother scrolling" is now on by default, to fix slow scrolling on weaker phones. Tab previews may turn blank; you can turn it off in settings (restart the browser to apply).
+
 ## 1.11.3
 - Chat files can be up to 5 GB (was 5 MB). Files are streamed, so large files no longer fill memory.
 - New setting "Smoother scrolling" (gesture settings) for slow phones. It draws pages directly on screen; tab previews may turn blank. Restart the browser to apply.

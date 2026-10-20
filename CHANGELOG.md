@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.4 (versionCode 52)
+- Android: "Smoother scrolling" (draw pages directly on screen) is now on by default to fix slow scrolling on weaker phones. Tab previews may turn blank; turn it off in settings and restart if you prefer previews.
+
 ## 1.11.3 (versionCode 51)
 - Android and desktop: chat files up to 5 GB, streamed to disk on the relay (20 GB total quota, Range support).
 - Android: "Smoother scrolling" setting for slow phones (surface view backend).
