@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.11.2
+- The private-tab start page shows the incognito mark.
+- The start page logo is the "l" of "Lodica".
+
 ## 1.11.1
 - Fixed: the tab strip on desktop showed no tabs even though they were listed in the tab menu.
 

@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.11.2
+- The start page logo is now the "l" of "Lodica".
+- The start page of a private tab shows the incognito mark.
+
 ## 1.11.1
 - No changes on Android in this release (desktop tab strip fix).
 

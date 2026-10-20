@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.2 (versionCode 50)
+- Android and desktop: private tabs show the incognito mark on the start page.
+- Android: the start page logo is the "l" of "Lodica".
+
 ## 1.11.1 (versionCode 49)
 - Desktop: fixed the tab strip showing no tabs while the tab menu listed them.
 
