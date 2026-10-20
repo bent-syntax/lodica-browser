@@ -279,6 +279,53 @@ object Relay {
         }
     }
 
+    /** Streams [size] bytes of [input] without holding them in memory. Returns the status and response text. */
+    fun uploadStream(path: String, input: java.io.InputStream, size: Long, progress: (Int) -> Unit): Pair<Int, String> {
+        val c = URL(API + path).openConnection() as HttpURLConnection
+        try {
+            c.requestMethod = "POST"
+            c.connectTimeout = 10_000
+            c.readTimeout = 120_000
+            c.useCaches = false
+            c.setRequestProperty("Authorization", "Bearer $token")
+            c.setRequestProperty("Content-Type", "application/octet-stream")
+            c.doOutput = true
+            c.setFixedLengthStreamingMode(size)
+            c.outputStream.use { o ->
+                val buf = ByteArray(64 * 1024)
+                var at = 0L; var last = -1
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    o.write(buf, 0, n); at += n
+                    val p = (at * 100 / size).toInt()
+                    if (p != last) { last = p; progress(p) }
+                }
+            }
+            val code = c.responseCode
+            val stream = if (code >= 400) c.errorStream else c.inputStream
+            return code to (stream?.use { it.readBytes() } ?: ByteArray(0)).toString(Charsets.UTF_8)
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    /** Streams a GET into [out]. Returns the status; nothing is written unless it is 200. */
+    fun downloadTo(path: String, out: java.io.OutputStream): Int {
+        val c = URL(API + path).openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 10_000
+            c.readTimeout = 60_000
+            c.useCaches = false
+            c.setRequestProperty("Authorization", "Bearer $token")
+            val code = c.responseCode
+            if (code == 200) c.inputStream.use { it.copyTo(out, 64 * 1024) } else c.errorStream?.close()
+            return code
+        } finally {
+            c.disconnect()
+        }
+    }
+
     /** Blocking. Newest first. */
     fun fetch(alias: String? = null, since: Long? = null): List<Mail> {
         val q = buildList {

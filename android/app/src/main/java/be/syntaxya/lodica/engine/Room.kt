@@ -27,7 +27,7 @@ private fun RoomMsg.withFile(f: JSONObject?) =
     if (f == null) this else copy(fileId = f.optString("id").takeIf { it.matches(Regex("[0-9a-f]{24}")) }, fileName = f.optString("name"), fileSize = f.optLong("size"), fileType = f.optString("type"))
 
 object Room {
-    const val MAX_FILE = 5 * 1024 * 1024
+    const val MAX_FILE = 5L * 1024 * 1024 * 1024
     /** Upload progress 0-100 while a file is going out, else null. */
     var uploading by mutableStateOf<Int?>(null); private set
     val messages = mutableStateListOf<RoomMsg>()
@@ -293,29 +293,40 @@ object Room {
         }
     }
 
-    /** Reads [uri] (at most 5 MB) and posts it to the current chat. [done] gets an error message or null. */
+    /** Streams [uri] (at most 5 GB) to the current chat. [done] gets an error message or null. */
     fun upload(ctx: Context, uri: android.net.Uri, name: String, done: (String?) -> Unit) {
         val app = ctx.applicationContext
         val from = name(app); val r = room
         Relay.scope.launch {
             val err = try {
-                val data = app.contentResolver.openInputStream(uri)?.use { it.readNBytes(MAX_FILE + 1) }
-                val fname = app.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-                    ?.use { if (it.moveToFirst()) it.getString(0) else null } ?: "file"
+                val cr = app.contentResolver
+                var fname = "file"; var size = -1L
+                cr.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME, android.provider.OpenableColumns.SIZE), null, null, null)?.use {
+                    if (it.moveToFirst()) {
+                        it.getString(0)?.let { n -> fname = n }
+                        if (!it.isNull(1)) size = it.getLong(1)
+                    }
+                }
+                if (size <= 0) size = cr.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
                 when {
-                    data == null || data.isEmpty() -> "Can't read that file"
-                    data.size > MAX_FILE -> "File is larger than 5 MB"
+                    size == 0L -> "Can't read that file"
+                    size < 0 -> "Can't read that file"
+                    size > MAX_FILE -> "File is larger than 5 GB"
                     else -> {
                         main.post { uploading = 0 }
                         val q = "?name=" + java.net.URLEncoder.encode(fname, "UTF-8") + "&from=" + java.net.URLEncoder.encode(from, "UTF-8") +
                             if (r.isEmpty()) "" else "&room=" + java.net.URLEncoder.encode(r, "UTF-8")
-                        val (code, _) = Relay.upload("/api/chat/file$q", data) { p -> main.post { uploading = p } }
-                        when (code) {
-                            200 -> null
-                            415 -> "This file type is not allowed"
-                            413 -> "File is larger than 5 MB"
-                            429 -> "Slow down a little"
-                            else -> "Server answered $code"
+                        val input = cr.openInputStream(uri)
+                        if (input == null) "Can't read that file" else {
+                            val (code, _) = input.use { Relay.uploadStream("/api/chat/file$q", it, size) { p -> main.post { uploading = p } } }
+                            when (code) {
+                                200 -> null
+                                415 -> "This file type is not allowed"
+                                413 -> "File is larger than 5 GB"
+                                507 -> "The chat file store is full, try later"
+                                429 -> "Slow down a little"
+                                else -> "Server answered $code"
+                            }
                         }
                     }
                 }
@@ -328,10 +339,16 @@ object Room {
     /** Runs blocking [block] on the relay's background scope; Compose state may be written from there. */
     fun scopeIo(block: () -> Unit) { Relay.scope.launch { runCatching(block) } }
 
-    /** Downloads an attachment's bytes (blocking; call off the main thread). Null on failure. */
-    fun fetchFile(id: String, download: Boolean): ByteArray? {
+    /** Streams an attachment into [out] (blocking; call off the main thread). True on success. */
+    fun saveFile(id: String, out: java.io.OutputStream): Boolean {
+        if (!id.matches(Regex("[0-9a-f]{24}"))) return false
+        return runCatching { Relay.downloadTo("/api/chat/file/$id?dl=1", out) == 200 }.getOrDefault(false)
+    }
+
+    /** Downloads an image attachment for the preview (blocking; call off the main thread). Null on failure. */
+    fun fetchFile(id: String): ByteArray? {
         if (!id.matches(Regex("[0-9a-f]{24}"))) return null
-        val (code, bytes) = Relay.requestBytes("GET", "/api/chat/file/$id" + if (download) "?dl=1" else "", readTimeoutMs = 60_000)
+        val (code, bytes) = Relay.requestBytes("GET", "/api/chat/file/$id", readTimeoutMs = 60_000)
         return if (code == 200) bytes else null
     }
 }

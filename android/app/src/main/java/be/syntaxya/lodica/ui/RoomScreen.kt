@@ -125,7 +125,7 @@ fun RoomScreen() {
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 MB)", tint = Amber) }
+            IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 GB)", tint = Amber) }
             Column(Modifier.weight(1f)) {
                 OutlinedTextField(
                     name, { name = it.take(32) },
@@ -237,18 +237,22 @@ private fun FileBody(m: RoomMsg) {
     var status by remember(id) { mutableStateOf<String?>(null) }
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         if (uri != null) Room.scopeIo {
-            val bytes = Room.fetchFile(id, true)
-            val ok = bytes != null && runCatching { ctx.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } }.isSuccess
+            val ok = runCatching { ctx.contentResolver.openOutputStream(uri)?.use { Room.saveFile(id, it) } == true }.getOrDefault(false)
+            if (!ok) runCatching { android.provider.DocumentsContract.deleteDocument(ctx.contentResolver, uri) }
             status = if (ok) "Saved" else "Download failed"
         }
     }
-    val size = if (m.fileSize < 1024 * 1024) "${maxOf(1, m.fileSize / 1024)} KB" else "%.1f MB".format(m.fileSize / 1048576.0)
+    val size = when {
+        m.fileSize < 1024 * 1024 -> "${maxOf(1, m.fileSize / 1024)} KB"
+        m.fileSize < 1024L * 1024 * 1024 -> "%.1f MB".format(m.fileSize / 1048576.0)
+        else -> "%.2f GB".format(m.fileSize / 1073741824.0)
+    }
     Text(m.fileName, color = Mist, fontSize = 14.sp)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         TextButton({ save.launch(m.fileName.ifBlank { "file" }) }) { Text("Save ($size)", color = Amber) }
-        if (m.fileType.startsWith("image/") && preview == null) TextButton({
+        if (m.fileType.startsWith("image/") && preview == null && m.fileSize <= 20L * 1024 * 1024) TextButton({
             Room.scopeIo {
-                val bytes = Room.fetchFile(id, false)
+                val bytes = Room.fetchFile(id)
                 val bmp = bytes?.let { runCatching { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull() }
                 if (bmp != null) preview = bmp else status = "Preview unavailable"
             }
