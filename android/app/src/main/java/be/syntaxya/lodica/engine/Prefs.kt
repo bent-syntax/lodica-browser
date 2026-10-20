@@ -46,17 +46,17 @@ object Prefs {
     val search: SearchEngine get() = searchChosen ?: if (Relay.available) SearchEngine.LODICA else SearchEngine.DUCKDUCKGO
     /** Used when Lodica Search is the engine but the server cannot be reached. */
     var searchFallback by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
-    var darkPages by mutableStateOf(false); private set
-    var httpsOnly by mutableStateOf(false); private set
-    var dummyLogin by mutableStateOf(false); private set
-    var liveChat by mutableStateOf(false); private set
+    var darkPages by mutableStateOf(true); private set
+    var httpsOnly by mutableStateOf(true); private set
+    var dummyLogin by mutableStateOf(true); private set
+    var liveChat by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
     var showRedirectOrigin by mutableStateOf(false); private set
     var aiAlways by mutableStateOf(false); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
-    var quickAuto by mutableStateOf(false); private set
+    var quickAuto by mutableStateOf(true); private set
     /** Own DNS-over-HTTPS server; blank keeps the built-in one. */
     var dnsServer by mutableStateOf(""); private set
     var autoArchiveDays by mutableStateOf(14); private set
@@ -67,8 +67,8 @@ object Prefs {
     /** Base domains the user signed in or up on. Always loaded direct, never through the VPS. */
     var direct by mutableStateOf<Set<String>>(emptySet()); private set
 
-    var cookieReject by mutableStateOf(false); private set
-    var spell by mutableStateOf(false); private set
+    var cookieReject by mutableStateOf(true); private set
+    var spell by mutableStateOf(true); private set
     var spellAuto by mutableStateOf(false); private set
     var spellLangs by mutableStateOf(setOf("en")); private set
     /** Sites where the "use dummy mail" chip is hidden. */
@@ -96,7 +96,7 @@ object Prefs {
     /** UI theme key: "system" or a palette key from ui.theme.Palettes. */
     var theme by mutableStateOf("dark"); private set
     /** Suggest history pages and past searches in the address bar. Local only. */
-    var historySuggest by mutableStateOf(false); private set
+    var historySuggest by mutableStateOf(true); private set
     var autoCorrect by mutableStateOf(false); private set
     /** Start page background kind: "none", "gradient", "image" or "color". */
     var startBg by mutableStateOf("none"); private set
@@ -107,8 +107,8 @@ object Prefs {
     /** Bumped when the custom start image file is replaced, so the start page reloads it. */
     var startImageRev by mutableStateOf(0); private set
     /** Gesture toggles for the Keybinds and controls section. */
-    var gestureSwipeTabs by mutableStateOf(false); private set
-    var gestureBarHide by mutableStateOf(false); private set
+    var gestureSwipeTabs by mutableStateOf(true); private set
+    var gestureBarHide by mutableStateOf(true); private set
     var fastRender by mutableStateOf(false); private set
     /** Chosen action per gesture slot (see GestureSlot); missing means the slot's default. */
     var gestureActions by mutableStateOf<Map<String, String>>(emptyMap()); private set
