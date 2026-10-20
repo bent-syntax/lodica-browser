@@ -14,6 +14,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -109,9 +112,6 @@ fun TabSwitcher() {
                     private = false
                     Ui.screen = Screen.Browser
                 }) { Text("Close all", color = Muted) }
-                IconButton(onClick = { TabManager.open(TabManager.HOME, private); Ui.screen = Screen.Browser }) {
-                    Icon(Icons.Rounded.Add, "New tab", tint = Amber)
-                }
             }
 
             LazyVerticalGrid(
@@ -133,6 +133,7 @@ fun TabSwitcher() {
                     val act = LocalContext.current as FragmentActivity
                     TabCard(
                         t, t === TabManager.current, Modifier.animateItem(),
+                        private,
                         onOpen = {
                             val go = { TabManager.select(t); Ui.screen = Screen.Browser }
                             when {
@@ -143,6 +144,21 @@ fun TabSwitcher() {
                         },
                         onClose = { closeTab(t) },
                     )
+                }
+                item(key = "new-tab") {
+                    val accent = if (private) Coral else Amber
+                    val shape = RoundedCornerShape(16.dp)
+                    Box(
+                        Modifier.animateItem().fillMaxWidth().aspectRatio(0.8f).clip(shape)
+                            .border(BorderStroke(1.5.dp, accent.copy(alpha = 0.5f)), shape)
+                            .clickable { TabManager.open(TabManager.HOME, private); Ui.screen = Screen.Browser },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Rounded.Add, "New tab", tint = accent, modifier = Modifier.size(32.dp))
+                            Text(if (private) "New private tab" else "New tab", color = accent, fontSize = 13.sp)
+                        }
+                    }
                 }
                 if (!private && TabManager.archived.isNotEmpty()) {
                     item(span = { GridItemSpan(2) }, key = "archive-head") {
@@ -206,11 +222,16 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, onOpen: () -> Unit, onClose: () -> Unit) {
+private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
+    val accent = if (incognito) Coral else Amber
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val grow by animateFloatAsState(if (entered) 1f else 0.82f, tween(260), label = "tab-in")
     Column(
-        modifier.clip(shape).background(GraphiteRaised)
-            .then(if (selected) Modifier.border(BorderStroke(2.dp, Amber), shape) else Modifier)
+        modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f }
+            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else GraphiteRaised)
+            .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else Modifier)
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {

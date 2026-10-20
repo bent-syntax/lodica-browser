@@ -161,7 +161,7 @@ private fun LoadLine(tab: Tab?) {
 private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val threshold = with(LocalDensity.current) { 72.dp.toPx() }
+    val threshold = with(LocalDensity.current) { 56.dp.toPx() }
     var drag by remember { mutableFloatStateOf(0f) }
 
     Row(
@@ -294,7 +294,12 @@ private fun TabCount(tab: Tab?) {
 private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(Unit) {
+        focus.requestFocus()
+        // Show the keyboard explicitly: the focus request alone can leave it hidden when the bar is opened from a widget or shortcut.
+        kotlinx.coroutines.delay(60)
+        keyboard?.show()
+    }
     DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
 
     Row(

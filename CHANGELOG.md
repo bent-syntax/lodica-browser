@@ -2,6 +2,15 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.9.2 (versionCode 46)
+
+- Search widget (and the shortcut and sites widgets): corners are now drawn at the widget's real size, so they stay round instead of stretched, and they redraw when you resize the widget.
+- Chat: message text can be selected and copied.
+- Tab overview: the new-tab button is now a tile at the end of the tab list, new tabs animate in, and private tabs have a distinct tinted style.
+- Start page: the round + button now reads "Add shortcut".
+- Address bar: the keyboard is shown reliably when it opens, and a tab swipe on the address bar needs a shorter drag.
+- Not included yet: WebNFC, Bluetooth key sign-in, readable hex display and the password-field backspace report. These need hardware or more details.
+
 ## 1.9.1 (versionCode 45)
 
 - Desktop: fixed the app reporting version 1.8.2 and offering the update again after installing a newer one.

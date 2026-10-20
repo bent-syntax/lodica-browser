@@ -31,24 +31,31 @@ internal fun kiteBitmap(p: be.syntaxya.lodica.ui.theme.Palette): Bitmap {
 
 private val SLOTS = intArrayOf(R.id.s0, R.id.s1, R.id.s2, R.id.s3)
 
-private fun background(rv: RemoteViews) {
-    val p = ThemeState.palette
-    val h = 120f
-    val radius = when (Prefs.widgetShape) { "square" -> 8f; "rounded" -> 28f; else -> h / 2 }
-    val bmp = Bitmap.createBitmap(720, h.toInt(), Bitmap.Config.ARGB_8888)
-    Canvas(bmp).drawRoundRect(RectF(0f, 0f, 720f, h), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.raised.toInt() })
-    rv.setImageViewBitmap(R.id.widget_bg, bmp)
+/** Draws the rounded backdrop at the widget's real pixel size so corners stay round at any size. */
+internal fun roundedBackground(ctx: Context, m: AppWidgetManager, id: Int): Bitmap {
+    val d = ctx.resources.displayMetrics.density
+    val o = m.getAppWidgetOptions(id)
+    val w = ((o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: 250) * d).toInt().coerceIn(64, 2048)
+    val h = ((o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT).takeIf { it > 0 } ?: 56) * d).toInt().coerceIn(32, 512)
+    val radius = when (Prefs.widgetShape) { "square" -> 8f * d; "rounded" -> 28f * d; else -> h / 2f }.coerceAtMost(h / 2f)
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    Canvas(bmp).drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ThemeState.palette.raised.toInt() })
+    return bmp
 }
 
-private fun refreshAll(ctx: Context, cls: Class<*>, build: (Context) -> RemoteViews) {
+private fun refreshAll(ctx: Context, cls: Class<*>, build: (Context, AppWidgetManager, Int) -> RemoteViews) {
     val m = AppWidgetManager.getInstance(ctx)
-    m.getAppWidgetIds(ComponentName(ctx, cls)).forEach { m.updateAppWidget(it, build(ctx)) }
+    m.getAppWidgetIds(ComponentName(ctx, cls)).forEach { m.updateAppWidget(it, build(ctx, m, it)) }
 }
 
 /** Four buttons: new tab, server chat, inbox, settings. */
 class ShortcutsWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
-        ids.forEach { manager.updateAppWidget(it, build(ctx)) }
+        ids.forEach { manager.updateAppWidget(it, build(ctx, manager, it)) }
+    }
+
+    override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
+        manager.updateAppWidget(id, build(ctx, manager, id))
     }
 
     companion object {
@@ -58,9 +65,9 @@ class ShortcutsWidget : AppWidgetProvider() {
 
         fun refresh(ctx: Context) = refreshAll(ctx, ShortcutsWidget::class.java, ::build)
 
-        private fun build(ctx: Context): RemoteViews {
+        private fun build(ctx: Context, m: AppWidgetManager, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_shortcuts)
-            background(rv)
+            rv.setImageViewBitmap(R.id.widget_bg, roundedBackground(ctx, m, id))
             ITEMS.forEachIndexed { i, (label, to) ->
                 rv.setTextViewText(SLOTS[i], label)
                 rv.setTextColor(SLOTS[i], ThemeState.palette.muted.toInt())
@@ -79,26 +86,30 @@ class ShortcutsWidget : AppWidgetProvider() {
 /** The first four quick sites from the start page. */
 class SitesWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
-        ids.forEach { manager.updateAppWidget(it, build(ctx)) }
+        ids.forEach { manager.updateAppWidget(it, build(ctx, manager, it)) }
+    }
+
+    override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
+        manager.updateAppWidget(id, build(ctx, manager, id))
     }
 
     companion object {
         fun refresh(ctx: Context) = refreshAll(ctx, SitesWidget::class.java, ::build)
 
-        private fun build(ctx: Context): RemoteViews {
+        private fun build(ctx: Context, m: AppWidgetManager, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_sites)
-            background(rv)
+            rv.setImageViewBitmap(R.id.widget_bg, roundedBackground(ctx, m, id))
             val sites = Prefs.quickList().take(4)
-            SLOTS.forEachIndexed { i, id ->
+            SLOTS.forEachIndexed { i, slot ->
                 val s = sites.getOrNull(i)
                 val name = s?.let { it.second.ifEmpty { Uri.parse(it.first).host.orEmpty().removePrefix("www.") } }.orEmpty()
-                rv.setTextViewText(id, if (s == null && i == 0) "Add quick sites in the app" else name)
-                rv.setTextColor(id, ThemeState.palette.muted.toInt())
+                rv.setTextViewText(slot, if (s == null && i == 0) "Add quick sites in the app" else name)
+                rv.setTextColor(slot, ThemeState.palette.muted.toInt())
                 if (s != null) {
                     val intent = Intent(ctx, MainActivity::class.java).setAction(Intent.ACTION_VIEW)
                         .setData(Uri.parse(s.first)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     rv.setOnClickPendingIntent(
-                        id,
+                        slot,
                         PendingIntent.getActivity(ctx, 200 + i, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
                     )
                 }

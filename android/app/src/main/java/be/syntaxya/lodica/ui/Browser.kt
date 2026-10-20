@@ -410,10 +410,14 @@ private fun StartPage(modifier: Modifier) {
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
         }
-        if (mine.size < 24) Box(
-            Modifier.padding(top = 8.dp).size(36.dp).clip(CircleShape).background(GraphiteRaised).clickable { adding = true },
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(20.dp)) }
+        if (mine.size < 24) Row(
+            Modifier.padding(top = 8.dp).height(36.dp).clip(CircleShape).background(GraphiteRaised).clickable { adding = true }.padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.Add, null, tint = Amber, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Add shortcut", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        }
     }
     }
     if (adding) {

@@ -21,7 +21,11 @@ import be.syntaxya.lodica.ui.theme.ThemeState
  */
 class SearchWidget : AppWidgetProvider() {
     override fun onUpdate(ctx: Context, manager: AppWidgetManager, ids: IntArray) {
-        ids.forEach { manager.updateAppWidget(it, build(ctx)) }
+        ids.forEach { manager.updateAppWidget(it, build(ctx, manager, it)) }
+    }
+
+    override fun onAppWidgetOptionsChanged(ctx: Context, manager: AppWidgetManager, id: Int, options: android.os.Bundle) {
+        manager.updateAppWidget(id, build(ctx, manager, id))
     }
 
     companion object {
@@ -31,24 +35,19 @@ class SearchWidget : AppWidgetProvider() {
         fun refresh(ctx: Context) {
             val m = AppWidgetManager.getInstance(ctx)
             val ids = m.getAppWidgetIds(ComponentName(ctx, SearchWidget::class.java))
-            if (ids.isNotEmpty()) ids.forEach { m.updateAppWidget(it, build(ctx)) }
+            if (ids.isNotEmpty()) ids.forEach { m.updateAppWidget(it, build(ctx, m, it)) }
         }
 
-        private fun build(ctx: Context): RemoteViews {
+        private fun build(ctx: Context, m: AppWidgetManager, id: Int): RemoteViews {
             val open = PendingIntent.getActivity(
                 ctx, 0,
                 Intent(ctx, MainActivity::class.java).setAction(ACTION_SEARCH).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val p = ThemeState.palette
-            // The background is a small bitmap so the corner shape and theme colour work on every Android version.
-            val h = 120f
-            val radius = when (Prefs.widgetShape) { "square" -> 8f; "rounded" -> 28f; else -> h / 2 }
-            val bmp = Bitmap.createBitmap(720, h.toInt(), Bitmap.Config.ARGB_8888)
-            Canvas(bmp).drawRoundRect(RectF(0f, 0f, 720f, h), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = p.raised.toInt() })
             return RemoteViews(ctx.packageName, R.layout.widget_search).apply {
                 setOnClickPendingIntent(R.id.widget_search, open)
-                setImageViewBitmap(R.id.widget_bg, bmp)
+                setImageViewBitmap(R.id.widget_bg, roundedBackground(ctx, m, id))
                 setImageViewBitmap(R.id.widget_logo, kiteBitmap(p))
                 setTextViewText(R.id.widget_text, Prefs.widgetText.ifBlank { "Search or type a URL" })
                 setTextColor(R.id.widget_text, p.muted.toInt())

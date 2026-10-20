@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
@@ -217,7 +218,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
             Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
-            if (m.fileId != null) FileBody(m) else Text(m.text, color = Mist, fontSize = 14.sp)
+            if (m.fileId != null) FileBody(m) else SelectionContainer { Text(m.text, color = Mist, fontSize = 14.sp) }
             if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 11.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
