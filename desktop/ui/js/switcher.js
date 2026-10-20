@@ -62,11 +62,13 @@ function card(t) {
   const th = h("div", { class: "thumb" + (t.locked ? " locked" : "") }, ico(t.locked ? "lock" : t.home ? "search" : "globe"));
   th.dataset.id = t.id;
   const u = SW.thumbs.get(t.id); if (u) { th.style.backgroundImage = "url(" + JSON.stringify(u) + ")"; clear(th); }
-  return h("div", { class: "card" + (cur ? " cur" : "") + (t.private ? " priv" : ""), act: () => { SW.L && SW.L.close(); inv("tab.select", t.id); } },
+  const c = h("div", { class: "card" + (cur ? " cur" : "") + (t.private ? " priv" : ""), act: () => { SW.L && SW.L.close(); inv("tab.select", t.id); } },
     h("div", { class: "card-top" }, ico(t.private ? "private" : "globe", "fav"),
       h("span", { class: "t", text: t.home ? "New tab" : (t.title || t.url || "New tab") }),
       ib("close", "Close tab", () => closeTab(t.id))),
     th);
+  if (!t.locked) dragTab(c, t.id);
+  return c;
 }
 async function loadThumbs(tabs) {
   for (const t of tabs) {

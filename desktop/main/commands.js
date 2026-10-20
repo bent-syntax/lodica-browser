@@ -227,6 +227,7 @@ function init(deps) {
 
   on("tab.new", (o = {}) => tabs.create({ url: isWeb(o?.url) || str(o?.url).startsWith("lodica:") ? o.url : undefined, private: !!o?.private, background: !!o?.background }));
   on("tab.select", id => tabs.select(str(id)));
+  on("tab.move", (id, to) => tabs.move(str(id), str(to)));
   on("tab.close", id => tabs.close(id == null ? cur()?.id : str(id)));
   on("tab.undoClose", () => tabs.undoClose());
   // Middle click on a tab: closes that tab by default, else the configured action.

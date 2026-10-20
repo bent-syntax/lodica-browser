@@ -93,7 +93,7 @@ object TabManager {
 
     fun open(url: String, private: Boolean = false, select: Boolean = true, parent: Tab? = null): Tab {
         val tab = Tab(private = private, url = url, desktop = parent?.desktop ?: Prefs.desktopDefault)
-        val at = parent?.let { tabs.indexOf(it) }?.takeIf { it >= 0 }?.plus(1) ?: tabs.size
+        val at = tabs.size
         // A new private tab shares cookies with the others, so it waits behind the same lock.
         if (private && privateLocked) tab.locked = true
         tabs.add(at, tab)

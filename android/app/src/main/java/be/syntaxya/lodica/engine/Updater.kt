@@ -37,7 +37,7 @@ data class UpdateInfo(
 private data class GhAsset(val name: String = "", val size: Long = 0, val digest: String? = null, val browser_download_url: String = "")
 
 @Serializable
-private data class GhRelease(val tag_name: String = "", val name: String? = null, val body: String? = null, val assets: List<GhAsset> = emptyList())
+private data class GhRelease(val tag_name: String = "", val name: String? = null, val body: String? = null, val prerelease: Boolean = false, val draft: Boolean = false, val assets: List<GhAsset> = emptyList())
 
 sealed interface UpdateState {
     data object Idle : UpdateState
@@ -65,15 +65,23 @@ object Updater {
         runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "0"
 
     private const val LATEST = "https://api.github.com/repos/bent-syntax/lodica-browser/releases/latest"
+    private const val ALL = "https://api.github.com/repos/bent-syntax/lodica-browser/releases?per_page=30"
 
-    private fun cmp(a: String, b: String): Int {
-        val x = a.removePrefix("v").split('.', '-').map { it.toIntOrNull() ?: 0 }
-        val y = b.removePrefix("v").split('.', '-').map { it.toIntOrNull() ?: 0 }
+    /** Numeric parts first; a "-beta.N" suffix sorts below the same version without one. */
+    internal fun cmp(a: String, b: String): Int {
+        fun parts(v: String): Pair<List<Int>, Int> {
+            val t = v.removePrefix("v")
+            val core = t.substringBefore('-')
+            val pre = if (t.contains('-')) (Regex("\\d+").findAll(t.substringAfter('-')).firstOrNull()?.value?.toIntOrNull() ?: 0) else Int.MAX_VALUE
+            return core.split('.').map { it.toIntOrNull() ?: 0 } to pre
+        }
+        val (x, px) = parts(a)
+        val (y, py) = parts(b)
         for (i in 0 until maxOf(x.size, y.size)) {
-            val d = (x.getOrElse(i) { 0 }) - (y.getOrElse(i) { 0 })
+            val d = x.getOrElse(i) { 0 } - y.getOrElse(i) { 0 }
             if (d != 0) return d
         }
-        return 0
+        return px.compareTo(py)
     }
 
     private fun get(url: String, timeout: Int = 15_000): Pair<Int, String> {
@@ -95,10 +103,14 @@ object Updater {
         val cur = currentVersion(ctx)
         job = Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             state = runCatching {
-                val (code, body) = get(LATEST)
+                val beta = Prefs.betaEnabled
+                val (code, body) = get(if (beta) ALL else LATEST)
                 when (code) {
                     200 -> {
-                        val rel = json.decodeFromString<GhRelease>(body)
+                        val rel = if (beta) {
+                            json.decodeFromString<List<GhRelease>>(body).filter { !it.draft && it.tag_name.isNotEmpty() }
+                                .maxWithOrNull { x, y -> cmp(x.tag_name, y.tag_name) } ?: GhRelease()
+                        } else json.decodeFromString<GhRelease>(body)
                         val ver = rel.tag_name.removePrefix("v")
                         val a = rel.assets.firstOrNull { it.name.endsWith(".apk") }
                         if (ver.isEmpty() || cmp(ver, cur) <= 0) UpdateState.Latest(cur)

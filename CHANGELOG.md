@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.10.0
+
+- Beta tester mode (Android and desktop): in Settings, tap the logo in the update section 7 times to unlock a "Beta tester" switch. With it on, the updater also offers GitHub pre-releases (tags like `v1.10.0-beta.1`). Everyone else only sees stable releases. To promote a beta, publish the build as a normal (non-pre-release) release.
+- Tabs: new tabs always open as the rightmost tab. Drag a tab to move it (long-press and drag in the Android tab overview; drag in the desktop tab strip and tab overview). The order is saved.
+- Version comparison now ranks `1.10.0-beta.2` above `-beta.1` and below `1.10.0`.
+
 ## 1.9.2 (versionCode 46)
 
 - Search widget (and the shortcut and sites widgets): corners are now drawn at the widget's real size, so they stay round instead of stretched, and they redraw when you resize the widget.

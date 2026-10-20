@@ -69,6 +69,7 @@ function render(tabs) {
     x.title = "Close tab";
     x.addEventListener("click", e => { e.stopPropagation(); inv("tab.close", t.id); });
     row.append(x);
+    dragTab(row, t.id);
     row.addEventListener("click", () => inv("tab.select", t.id));
     row.addEventListener("auxclick", e => { if (e.button === 1) inv("tab.middle", t.id); });
     row.addEventListener("contextmenu", e => { e.preventDefault(); inv("tab.menu", t.id); });

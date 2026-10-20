@@ -123,3 +123,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .sw-t{width:42px;height:25px;border-radius:13px}
 .sw-t::after{width:19px;height:19px;top:3px;left:3px}
 .sw-t.on::after{transform:translateX(17px)}
+
+.card.dragging, .t.dragging { opacity: .5; }

@@ -61,6 +61,8 @@ object Prefs {
     var dnsServer by mutableStateOf(""); private set
     var autoArchiveDays by mutableStateOf(14); private set
     var desktopDefault by mutableStateOf(false); private set
+    var betaUnlocked by mutableStateOf(false); private set
+    var betaEnabled by mutableStateOf(false); private set
     var routeVps by mutableStateOf(false); private set
     /** Base domains the user signed in or up on. Always loaded direct, never through the VPS. */
     var direct by mutableStateOf<Set<String>>(emptySet()); private set
@@ -131,6 +133,8 @@ object Prefs {
         dnsServer = sp.getString("dnsServer", "") ?: ""
         autoArchiveDays = sp.getInt("autoArchiveDays", 14)
         desktopDefault = sp.getBoolean("desktopDefault", false)
+        betaUnlocked = sp.getBoolean("betaUnlocked", false)
+        betaEnabled = betaUnlocked && sp.getBoolean("betaEnabled", false)
         routeVps = sp.getBoolean("routeVps", false)
         direct = sp.getStringSet("direct", emptySet())!!.toSet()
         cookieReject = sp.getBoolean("cookieReject", true)
@@ -297,6 +301,8 @@ object Prefs {
     fun updateLiveChat(v: Boolean) { liveChat = v; sp.edit().putBoolean("liveChat", v).apply() }
     fun updateDummyLogin(v: Boolean) { dummyLogin = v; sp.edit().putBoolean("dummyLogin", v).apply() }
     fun updateAutoArchiveDays(v: Int) { autoArchiveDays = v; sp.edit().putInt("autoArchiveDays", v).apply() }
+    fun unlockBeta() { betaUnlocked = true; betaEnabled = true; sp.edit().putBoolean("betaUnlocked", true).putBoolean("betaEnabled", true).apply() }
+    fun updateBetaEnabled(v: Boolean) { betaEnabled = v; sp.edit().putBoolean("betaEnabled", v).apply() }
     fun updateDesktopDefault(v: Boolean) { desktopDefault = v; sp.edit().putBoolean("desktopDefault", v).apply() }
     fun updateRouteVps(v: Boolean) { routeVps = v; sp.edit().putBoolean("routeVps", v).apply(); Helper.push() }
     fun updateSpell(v: Boolean) { spell = v; sp.edit().putBoolean("spell", v).apply(); Helper.push() }

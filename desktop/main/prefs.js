@@ -32,6 +32,7 @@ const DEFAULTS = {
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, ai: false, aiAlways: false, trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], dnsRules: [], menuPins: null, customTheme: null, autoTop: true, bgHistory: [], noDummy: [], totpSkip: [],
+  betaUnlocked: false, betaEnabled: false,
   theme: "system", vertTabs: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,
   bg: { type: "none", value: "", dim: 0, blur: 0 }, keybinds: {}, mouse: { middle: "closeTab", back: "back", forward: "forward" },
 };

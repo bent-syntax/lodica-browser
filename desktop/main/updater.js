@@ -19,6 +19,7 @@ function init(deps) {
     api: "https://api.github.com/repos/" + REPO, version: require("../package.json").lodicaVersion || app.getVersion(),
     platform: process.platform === "win32" ? "win" : process.platform === "linux" ? "linux" : "",
     dir: () => app.getPath("downloads"),
+    beta: () => { const { p } = require("./prefs"); return !!(p.betaUnlocked && p.betaEnabled); },
   };
 }
 
@@ -30,11 +31,16 @@ function set(patch, replace) {
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const HDR = { Accept: "application/vnd.github+json", "User-Agent": "Lodica-updater" };
 
+// A "-beta.N" suffix sorts below the same version without one.
+function parse(v) {
+  const t = String(v).replace(/^v/, "");
+  const [core, pre] = [t.split("-")[0], t.includes("-") ? t.slice(t.indexOf("-") + 1) : null];
+  return { n: core.split(".").map(n => parseInt(n, 10) || 0), pre: pre === null ? Infinity : parseInt((pre.match(/\d+/) || ["0"])[0], 10) };
+}
 function cmp(a, b) {
-  const x = String(a).replace(/^v/, "").split(/[.-]/).map(n => parseInt(n, 10) || 0);
-  const y = String(b).replace(/^v/, "").split(/[.-]/).map(n => parseInt(n, 10) || 0);
-  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; }
-  return 0;
+  const x = parse(a), y = parse(b);
+  for (let i = 0; i < Math.max(x.n.length, y.n.length); i++) { const d = (x.n[i] || 0) - (y.n[i] || 0); if (d) return d; }
+  return x.pre === y.pre ? 0 : x.pre < y.pre ? -1 : 1;
 }
 
 function pick(assets) {
@@ -47,10 +53,12 @@ async function check() {
   if (!env.platform) { set({ state: "error", message: "Updates are not available on this system" }, true); return state; }
   set({ state: "checking" }, true);
   try {
-    const r = await fetch(env.api + "/releases/latest", { headers: HDR, signal: AbortSignal.timeout(20000) });
+    const beta = !!(env.beta && env.beta());
+    const r = await fetch(env.api + (beta ? "/releases?per_page=30" : "/releases/latest"), { headers: HDR, signal: AbortSignal.timeout(20000) });
     if (r.status === 404) throw new Error("No release published yet");
     if (r.status !== 200) throw new Error("GitHub answered " + r.status);
-    const rel = await r.json();
+    let rel = await r.json();
+    if (beta) rel = (Array.isArray(rel) ? rel : []).filter(x => x && !x.draft && x.tag_name).sort((a, b) => cmp(b.tag_name, a.tag_name))[0] || {};
     const ver = String(rel.tag_name || "").replace(/^v/, "");
     if (!ver || cmp(ver, env.version) <= 0) { set({ state: "latest", version: env.version }, true); return state; }
     const a = pick(rel.assets || []);
@@ -122,4 +130,4 @@ async function install() {
   return true;
 }
 
-module.exports = { init, check, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _reset: () => { state = { state: "idle" }; job = null; } };
+module.exports = { cmp, init, check, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _reset: () => { state = { state: "idle" }; job = null; } };

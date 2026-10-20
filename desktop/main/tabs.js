@@ -360,8 +360,7 @@ function create(o = {}) {
   // A first private tab has nothing to protect, so it opens unlocked.
   if (o.private && !list.some(x => x.private && !x.archived)) locked = false;
   const t = make({ url: o.url || HOME, private: !!o.private });
-  const at = cur ? list.indexOf(cur) + 1 : list.length;
-  list.splice(at, 0, t);
+  list.push(t); // new tabs always open rightmost
   if (o.background) {
     createView(t);
     pushCount(); persist();
@@ -406,10 +405,20 @@ function reopen(index = 0) {
   if (!c) return null;
   closed.splice(index, 1);
   const t = make({ url: c.url, title: c.title, entries: c.entries, index: c.index, private: c.private });
-  list.splice(cur ? list.indexOf(cur) + 1 : list.length, 0, t);
+  list.push(t);
   return select(t.id);
 }
 const undoClose = () => reopen(0);
+
+// Put tab `id` where tab `toId` is now.
+function move(id, toId) {
+  const a = list.findIndex(x => x.id === id), b = list.findIndex(x => x.id === toId);
+  if (a < 0 || b < 0 || a === b) return false;
+  const [t] = list.splice(a, 1);
+  list.splice(b, 0, t);
+  pushCount(); persist();
+  return true;
+}
 
 function closeAll(priv) {
   for (const t of list.filter(x => x.private === !!priv && !x.archived)) {
@@ -545,7 +554,7 @@ function init(d) {
 }
 
 module.exports = {
-  HOME, init, byContents, all, current, open, info, listing, select, create, newTab: create, close, reopen,
+  HOME, init, byContents, all, current, open, info, listing, select, create, move, newTab: create, close, reopen,
   undoClose, closeAll, archive, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
   isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
 };

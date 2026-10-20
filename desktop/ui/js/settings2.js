@@ -96,12 +96,25 @@ function secPrivacy() {
 // 10. About
 function secAbout() {
   return [secHead("About"),
-    h("div", { class: "about" }, kite(40),
+    h("div", { class: "about" }, aboutLogo(),
       h("div", null, h("div", { class: "t1", text: "Lodica " + (S.version || "") }),
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
     updateRow(),
+    S.prefs.betaUnlocked ? setToggle("betaEnabled", "Beta tester", "Get new features early from pre-releases. They may be unstable") : null,
     setRow("What's new", "Patch notes for every version", null, openNotes)];
+}
+// Seven quick clicks on the logo unlock Beta tester mode.
+let logoTaps = 0;
+function aboutLogo() {
+  const k = kite(40);
+  k.addEventListener("click", () => {
+    if (S.prefs.betaUnlocked || ++logoTaps < 7) return;
+    S.prefs.betaUnlocked = true; S.prefs.betaEnabled = true;
+    inv("prefs.set", "betaUnlocked", true); inv("prefs.set", "betaEnabled", true);
+    inv("update.check"); toast("Beta tester mode unlocked"); refreshSettings();
+  });
+  return k;
 }
 // Patch notes sheet: the bundled PATCH_NOTES.md, one block per version.
 function openNotes() {

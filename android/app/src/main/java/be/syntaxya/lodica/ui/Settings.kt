@@ -462,7 +462,19 @@ fun SettingsScreen() {
                 is UpdateState.Failed -> LinkRow("${upd.message} — retry") { Updater.check(ctx) }
             }
             Spacer(Modifier.height(24.dp))
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { Kite(40.dp) }
+            if (Prefs.betaUnlocked) {
+                SwitchRow("Beta tester", "Get new features early from pre-releases. They may be unstable", Prefs.betaEnabled) { Prefs.updateBetaEnabled(it); Updater.reset() }
+            }
+            var taps by remember { mutableStateOf(0) }
+            Box(
+                Modifier.fillMaxWidth().clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) {
+                    if (!Prefs.betaUnlocked && ++taps >= 7) {
+                        Prefs.unlockBeta(); Updater.reset()
+                        android.widget.Toast.makeText(ctx, "Beta tester mode unlocked", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                },
+                contentAlignment = Alignment.Center,
+            ) { Kite(40.dp) }
                 }
             }
             }

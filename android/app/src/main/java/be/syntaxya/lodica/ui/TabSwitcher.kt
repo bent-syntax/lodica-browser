@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -114,9 +116,12 @@ fun TabSwitcher() {
                 }) { Text("Close all", color = Muted) }
             }
 
+            val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+            var dragId by remember { mutableStateOf<String?>(null) }
             LazyVerticalGrid(
                 GridCells.Fixed(2),
-                Modifier.fillMaxSize(),
+                Modifier.fillMaxSize().androidx_reorder(gridState, { dragId }, { dragId = it }),
+                state = gridState,
                 contentPadding = PaddingValues(12.dp, 4.dp, 12.dp, 96.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -285,4 +290,31 @@ private fun ArchivedRow(r: TabRecord, modifier: Modifier) {
             Icon(Icons.Rounded.Delete, "Delete", tint = Muted, modifier = Modifier.size(20.dp))
         }
     }
+}
+
+
+/** Long-press a tab card, then drag it over another to move it there. Order is saved by TabManager.move. */
+private fun Modifier.androidx_reorder(
+    state: androidx.compose.foundation.lazy.grid.LazyGridState,
+    dragging: () -> String?,
+    setDragging: (String?) -> Unit,
+): Modifier = pointerInput(Unit) {
+    fun hit(o: androidx.compose.ui.geometry.Offset) = state.layoutInfo.visibleItemsInfo.firstOrNull {
+        o.x >= it.offset.x && o.x < it.offset.x + it.size.width && o.y >= it.offset.y && o.y < it.offset.y + it.size.height
+    }
+    detectDragGesturesAfterLongPress(
+        onDragStart = { o -> (hit(o)?.key as? String)?.let(setDragging) },
+        onDrag = { change, _ ->
+            val id = dragging() ?: return@detectDragGesturesAfterLongPress
+            change.consume()
+            val over = hit(change.position)?.key as? String ?: return@detectDragGesturesAfterLongPress
+            if (over != id) {
+                val from = TabManager.tabs.indexOfFirst { it.id == id }
+                val to = TabManager.tabs.indexOfFirst { it.id == over }
+                if (from >= 0 && to >= 0) TabManager.move(from, to)
+            }
+        },
+        onDragEnd = { setDragging(null) },
+        onDragCancel = { setDragging(null) },
+    )
 }
