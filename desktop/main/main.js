@@ -5,7 +5,7 @@ const fs = require("fs");
 const { pathToFileURL } = require("url");
 const {
   app, BaseWindow, BrowserWindow, WebContentsView, protocol, net, session,
-  clipboard, powerMonitor, Notification,
+  clipboard, powerMonitor, Notification, dialog,
 } = require("electron");
 
 const ROOT = path.join(__dirname, "..");
@@ -86,8 +86,32 @@ function serveLodica(req) {
   return net.fetch(pathToFileURL(file).toString());
 }
 
+// Saves the editor's blocks as a real .docx at a path the user picks (never a PDF).
+async function saveDocx(req) {
+  try {
+    const { name, blocks } = await req.json();
+    if (!Array.isArray(blocks)) return new Response("Bad request", { status: 400 });
+    const r = await dialog.showSaveDialog({
+      defaultPath: path.join(app.getPath("documents"), (String(name || "Document").replace(/[\\/:*?"<>|]/g, "_") || "Document") + ".docx"),
+      filters: [{ name: "Word document", extensions: ["docx"] }],
+    });
+    if (r.canceled || !r.filePath) return new Response(null, { status: 204 });
+    const file = /\.docx$/i.test(r.filePath) ? r.filePath : r.filePath + ".docx";
+    fs.writeFileSync(file, await require("./docx").fromBlocks(blocks));
+    return new Response(path.basename(file));
+  } catch (e) { return new Response(String(e.message), { status: 500 }); }
+}
+
 // Bundled pdf.js viewer. Remote and local PDFs go through /f?u=<url> so the viewer reads them same-origin.
 function servePdf(req, u) {
+  if (u.pathname === "/docx-html") {
+    const target = u.searchParams.get("u") || "";
+    if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
+    return require("./docx").toHtml(target)
+      .then(html => new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } }))
+      .catch(e => new Response(String(e.message), { status: 500 }));
+  }
+  if (u.pathname === "/docx-save" && req.method === "POST") return saveDocx(req);
   if (u.pathname === "/docx") {
     const target = u.searchParams.get("u") || "";
     if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });

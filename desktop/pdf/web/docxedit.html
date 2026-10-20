@@ -1,0 +1,12 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Document</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src data:; connect-src 'self'">
+<link rel="stylesheet" href="docxedit.css">
+</head><body>
+<div id="bar"><button data-c="bold"><b>B</b></button><button data-c="italic"><i>I</i></button><button data-c="underline"><u>U</u></button>
+<button data-b="h1">H1</button><button data-b="h2">H2</button><button data-b="p">Text</button>
+<button data-c="insertUnorderedList">&bull; List</button><button data-c="insertOrderedList">1. List</button>
+<span class="sp"></span><span id="msg"></span><button id="save">Save as .docx</button><button id="pdf">Export PDF</button></div>
+<div id="page" contenteditable="true" spellcheck="true"></div>
+<script src="docxedit.js"></script>
+</body></html>

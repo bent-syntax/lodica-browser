@@ -114,7 +114,8 @@ function pdfViewerUrl(url) {
   let u;
   try { u = new URL(url); } catch { return null; }
   if (!/^(https?|file):$/.test(u.protocol) || !/\.(pdf|docx)$/i.test(u.pathname)) return null;
-  const file = (/\.docx$/i.test(u.pathname) ? "lodica://pdf/docx?u=" : "lodica://pdf/f?u=") + encodeURIComponent(url);
+  if (/\.docx$/i.test(u.pathname)) return "lodica://pdf/web/docxedit.html?u=" + encodeURIComponent(url);
+  const file = "lodica://pdf/f?u=" + encodeURIComponent(url);
   return "lodica://pdf/web/viewer.html?file=" + encodeURIComponent(file);
 }
 

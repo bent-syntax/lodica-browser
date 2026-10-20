@@ -1,0 +1,6 @@
+body{margin:0;background:#2a2a2e;font:12pt/1.45 Calibri,Arial,sans-serif}
+#bar{position:sticky;top:0;display:flex;gap:6px;align-items:center;padding:8px 12px;background:#1c1c1f;z-index:1}
+#bar button{background:#3a3a40;color:#eee;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}
+#bar .sp{flex:1}#msg{color:#bbb;font-size:12px}
+#page{box-sizing:border-box;max-width:794px;min-height:1000px;margin:20px auto;padding:72px;background:#fff;color:#111;outline:0}
+#page img{max-width:100%}#page table{border-collapse:collapse}#page td,#page th{border:1px solid #999;padding:4px 6px}
