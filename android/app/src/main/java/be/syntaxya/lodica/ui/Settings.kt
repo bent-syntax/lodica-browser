@@ -1400,7 +1400,7 @@ private fun ControlsSection() {
     )
     Section("Toggles")
     SwitchRow("Swipe the address bar to change tab", "Swipe left or right on the URL pill", Prefs.gestureSwipeTabs) { Prefs.updateGestureSwipeTabs(it) }
-    SwitchRow("Smoother scrolling", "For slow phones: draws pages directly on screen. Tab previews may turn blank. Restart the browser to apply", Prefs.fastRender) { Prefs.updateFastRender(it) }
+    SwitchRow("Smoother scrolling", "For slow phones: draws pages directly on screen. Tab previews may turn blank and some phones show blank pages. Restart the browser to apply", Prefs.fastRender) { Prefs.updateFastRender(it) }
     SwitchRow("Hide bars on scroll", "Scrolling down tucks the toolbar away, scrolling up brings it back", Prefs.gestureBarHide) { Prefs.updateGestureBarHide(it) }
     Section("Gestures")
     GestureSlot.values().forEach { slot -> GestureRow(slot) }

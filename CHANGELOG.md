@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.5 (versionCode 53)
+- Android: fixes blank pages in 1.11.4. "Smoother scrolling" is off by default again and the setting was reset, so it starts off for everyone.
+
 ## 1.11.4 (versionCode 52)
 - Android: "Smoother scrolling" (draw pages directly on screen) is now on by default to fix slow scrolling on weaker phones. Tab previews may turn blank; turn it off in settings and restart if you prefer previews.
 

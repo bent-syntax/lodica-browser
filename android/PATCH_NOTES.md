@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.5
+- Fixes pages showing blank in 1.11.4. "Smoother scrolling" is off again by default and was reset for everyone.
+
 ## 1.11.4
 - "Smoother scrolling" is now on by default, to fix slow scrolling on weaker phones. Tab previews may turn blank; you can turn it off in settings (restart the browser to apply).
 
