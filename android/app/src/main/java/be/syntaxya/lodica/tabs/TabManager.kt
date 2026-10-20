@@ -104,6 +104,8 @@ object TabManager {
     fun select(tab: Tab) {
         val prev = current
         if (prev !== tab) {
+            // The card of the tab being left, while it is still the one on screen.
+            if (prev != null) be.syntaxya.lodica.ui.captureThumbnail(prev)
             prev?.session?.apply { setFocused(false); setActive(false) }
             current = tab
             // Leaving a private tab for a normal one locks private tabs again.
@@ -477,6 +479,10 @@ object TabManager {
         override fun onPageStop(session: GeckoSession, success: Boolean) {
             tab.loading = false
             tab.progress = 100
+            // Let the page paint, then keep its card fresh so background tabs never show an empty logo.
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (current === tab) be.syntaxya.lodica.ui.captureThumbnail(tab)
+            }, 1500)
         }
 
         override fun onProgressChange(session: GeckoSession, progress: Int) { tab.progress = progress }

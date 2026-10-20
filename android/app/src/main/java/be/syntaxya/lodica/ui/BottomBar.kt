@@ -418,14 +418,23 @@ fun openTabs() {
     // (compositor paused) must not leave the switcher stuck, so a short timeout opens it anyway.
     var shown = false
     fun show() { if (!shown) { shown = true; Ui.screen = Screen.Tabs } }
-    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ show() }, 500)
+    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ show() }, 250)
+    captureThumbnail(tab) { show() }
+}
+
+/** Grab the live page into the tab's card. Only works for the tab currently attached to the view. */
+fun captureThumbnail(tab: be.syntaxya.lodica.tabs.Tab, done: () -> Unit = {}) {
+    val g = Ui.gecko
+    if (g == null || g.session == null || TabManager.current !== tab || tab.url == TabManager.HOME || tab.crashed || tab.locked) {
+        done(); return
+    }
     g.capturePixels().accept(
         { b ->
             // A blank frame keeps the previous thumbnail instead of replacing it with an empty card.
             if (b != null) { if (isBlank(b)) b.recycle() else tab.thumbnail = shrink(b) }
-            show()
+            done()
         },
-        { _ -> show() },
+        { _ -> done() },
     )
 }
 
