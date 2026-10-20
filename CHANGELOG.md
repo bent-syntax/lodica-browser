@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.1 (versionCode 49)
+- Desktop: fixed the tab strip showing no tabs while the tab menu listed them.
+
 ## 1.11.0 (versionCode 48)
 - Install as app: a chip offers to install a site that has a web app manifest. Installed web apps set to fullscreen run with no system bars.
 - Page fullscreen (video, games) now hides the status and navigation bars. Swipe from the edge to peek.

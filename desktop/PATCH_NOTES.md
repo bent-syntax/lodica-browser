@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.1
+- Fixed: the tab strip on desktop showed no tabs even though they were listed in the tab menu.
+
 ## 1.11.0
 - Select an equation like 3x - 24 = -6 and the answer shows above it: x = 6. Works for one unknown, linear or quadratic.
 - Opening an IP address with no scheme now uses the plain web scheme.
