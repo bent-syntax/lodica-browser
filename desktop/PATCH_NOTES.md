@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.3
+- Chat files can be up to 5 GB (was 5 MB). Files are streamed, so large files no longer fill memory.
+
 ## 1.11.2
 - The private-tab start page shows the incognito mark.
 - The start page logo is the "l" of "Lodica".

@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.3 (versionCode 51)
+- Android and desktop: chat files up to 5 GB, streamed to disk on the relay (20 GB total quota, Range support).
+- Android: "Smoother scrolling" setting for slow phones (surface view backend).
+- Relay deploy: new `chatfiles` dir under the data dir, no request timeout (120 s idle timeout), check any reverse proxy body limit.
+
 ## 1.11.2 (versionCode 50)
 - Android and desktop: private tabs show the incognito mark on the start page.
 - Android: the start page logo is the "l" of "Lodica".

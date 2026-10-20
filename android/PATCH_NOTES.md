@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.11.3
+- Chat files can be up to 5 GB (was 5 MB). Files are streamed, so large files no longer fill memory.
+- New setting "Smoother scrolling" (gesture settings) for slow phones. It draws pages directly on screen; tab previews may turn blank. Restart the browser to apply.
+
 ## 1.11.2
 - The start page logo is now the "l" of "Lodica".
 - The start page of a private tab shows the incognito mark.
