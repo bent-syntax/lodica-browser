@@ -1,5 +1,12 @@
 # Patch notes
 
+## 1.11.0
+- Select an equation like 3x - 24 = -6 and the answer shows above it: x = 6. Works for one unknown, linear or quadratic.
+- Opening an IP address with no scheme now uses the plain web scheme.
+- New switch to turn off autocorrect in the search bar.
+- Double-click on the address path selects only path and query, so Backspace leaves the bare domain.
+- .docx files open in an editor. Edit text in place and save back as a real .docx. Tables and images are not kept.
+
 ## 1.10.0
 - Beta tester mode: tap the logo in Settings > Updates 7 times to unlock a Beta tester switch that also offers pre-releases.
 - New tabs open as the rightmost tab. Drag a tab to move it. The order is saved.

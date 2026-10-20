@@ -2,6 +2,18 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.0 (versionCode 48)
+- Install as app: a chip offers to install a site that has a web app manifest. Installed web apps set to fullscreen run with no system bars.
+- Page fullscreen (video, games) now hides the status and navigation bars. Swipe from the edge to peek.
+- Select an equation like 3x - 24 = -6 and the answer shows above it: x = 6. Works for one unknown, linear or quadratic, and for 3(x+1) = 12.
+- Address bar auto-hides on local files. Long-press the bar to hide it, long-press where it sat to bring it back. Editing and find always show it.
+- Tab previews are saved to disk, so cards are not blank after a restart or after a tab is unloaded. Private tabs are never saved.
+- Background tabs idle for 5 minutes are unloaded and at most 3 live sessions are kept, so passive CPU and memory drop.
+- Opening an IP address with no scheme now uses the plain web scheme.
+- New switch to turn off autocorrect in the search bar. Dropdown and keyboard alignment fixes.
+- Double-click on the address path selects only path and query, so Backspace leaves the bare domain.
+- Desktop: .docx files open in an editor. Edit text in place and save back as a real .docx.
+
 ## 1.10.0
 
 - Beta tester mode (Android and desktop): in Settings, tap the logo in the update section 7 times to unlock a "Beta tester" switch. With it on, the updater also offers GitHub pre-releases (tags like `v1.10.0-beta.1`). Everyone else only sees stable releases. To promote a beta, publish the build as a normal (non-pre-release) release.
