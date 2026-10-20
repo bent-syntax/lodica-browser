@@ -450,7 +450,7 @@ fun captureThumbnail(tab: be.syntaxya.lodica.tabs.Tab, done: () -> Unit = {}) {
     g.capturePixels().accept(
         { b ->
             // A blank frame keeps the previous thumbnail instead of replacing it with an empty card.
-            if (b != null) { if (isBlank(b)) b.recycle() else tab.thumbnail = shrink(b) }
+            if (b != null) { if (isBlank(b)) b.recycle() else { val s = shrink(b); tab.thumbnail = s; be.syntaxya.lodica.tabs.Thumbs.save(tab, s) } }
             done()
         },
         { _ -> done() },

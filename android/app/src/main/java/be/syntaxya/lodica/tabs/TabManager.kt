@@ -76,6 +76,7 @@ object TabManager {
         if (::app.isInitialized) return
         app = ctx.applicationContext
         TabStore.init(app)
+        Thumbs.init(app)
         val snap = TabStore.load()
         archived.addAll(snap.archived)
         val cutoff = System.currentTimeMillis() - Prefs.autoArchiveDays * DAY_MS
@@ -88,6 +89,7 @@ object TabManager {
         tabs.forEach { if (it.private) it.locked = true }
         val start = tabs.firstOrNull { it.id == snap.currentId } ?: tabs.lastOrNull()
         if (start != null) select(start) else open(HOME)
+        Thumbs.restore(tabs.toList(), tabs.map { it.id }.toSet() + archived.map { it.id })
     }
 
     // ---- tab lifecycle -------------------------------------------------------------------
