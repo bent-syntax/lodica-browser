@@ -366,7 +366,8 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
         factory = { ctx ->
             GeckoView(ctx).apply {
                 // A SurfaceView hands back blank frames to capturePixels (tab previews); a texture view is readable.
-                setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
+                // Slow GPUs stutter on a texture view; the "Smoother scrolling" setting trades previews for speed.
+                setViewBackend(if (Prefs.fastRender) GeckoView.BACKEND_SURFACE_VIEW else GeckoView.BACKEND_TEXTURE_VIEW)
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
             }
