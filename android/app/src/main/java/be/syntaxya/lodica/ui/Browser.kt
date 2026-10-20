@@ -428,10 +428,10 @@ private fun StartPage(modifier: Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Kite(52.dp)
-            Spacer(Modifier.width(10.dp))
+            // The mark is the "l" of the name.
+            if (TabManager.current?.private == true) IncognitoMark(52.dp) else Kite(52.dp)
             Text(
-                "Lodica",
+                "odica",
                 style = MaterialTheme.typography.headlineMedium,
                 color = Mist,
                 fontWeight = FontWeight.SemiBold,

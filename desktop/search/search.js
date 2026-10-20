@@ -324,6 +324,20 @@ function ask(data, cachedAnswer) {
 
 // Back-navigation (and reloads) reuse the last answer for a query instead of asking the server again.
 const priv = browser.extension.inIncognitoContext;
+// Private tabs show the incognito mark in place of the kite (the "l" of the name).
+if (priv) {
+  const mark = document.querySelector(".brand svg.mark");
+  if (mark) {
+    mark.innerHTML = '<g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">'
+      + '<path d="M28 9.5H38.5C43 9.5 46 12 47 14.6Q47.6 16 47 17.4C46 20 43 22.5 38.5 22.5H28A6.5 6.5 0 0 1 28 9.5Z"/>'
+      + '<rect x="21.5" y="33.5" width="25" height="13" rx="6.5"/><rect x="21.5" y="81.5" width="39" height="13" rx="6.5"/></g>'
+      + '<rect x="20" y="56" width="32" height="16" rx="8" fill="#8B7DFF"/>'
+      + '<path fill="currentColor" d="M77 68.5C84.5 68.5 89 79 89 86.5C89 92.5 84 96 77 96C70 96 65 92.5 65 86.5C65 79 69.5 68.5 77 68.5Z"/>'
+      + '<path fill="#5A48E6" d="M64 82.5Q70 79.3 77 81.8Q84 79.3 90 82.5Q91.4 88.2 86.4 90.6Q82.2 92.2 78.6 88.4Q77 87.2 75.4 88.4Q71.8 92.2 67.6 90.6Q62.6 88.2 64 82.5Z"/>'
+      + '<ellipse cx="71.8" cy="85.6" rx="2.7" ry="2.2" transform="rotate(-12 71.8 85.6)" fill="currentColor"/>'
+      + '<ellipse cx="82.2" cy="85.6" rx="2.7" ry="2.2" transform="rotate(12 82.2 85.6)" fill="currentColor"/>';
+  }
+}
 const CACHE_MS = 10 * 60e3;
 const ckey = "lodica:" + [q, page, cat, lang].join("|");
 function cacheGet() {
