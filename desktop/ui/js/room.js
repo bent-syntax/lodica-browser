@@ -27,7 +27,7 @@ function openRoom() {
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
         L.tabs, L.note, L.thread, L.prog,
-        h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 MB)", attach), ib("up", "Send", send))));
+        h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("up", "Send", send))));
   });
   inv("room.discover").then((s) => { if (s) { ROOM.state = s; roomRender(); } });
   inv("room.start").then((s) => { if (s) ROOM.state = s; ROOM.L && (ROOM.L.name.value = ROOM.state.name || ""); roomRender(); });

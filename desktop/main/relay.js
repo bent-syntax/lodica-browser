@@ -74,6 +74,50 @@ async function requestRaw(method, url, timeout = 60000, body, onProgress) {
   } finally { clearTimeout(t); }
 }
 
+/** Streams a file from disk to the relay. The timer restarts on every chunk, so only a stalled upload times out. */
+async function uploadFile(url, filePath, size, onProgress) {
+  const fs = require("fs");
+  const ctl = new AbortController();
+  let t;
+  const kick = () => { clearTimeout(t); t = setTimeout(() => ctl.abort(), 60000); };
+  kick();
+  try {
+    const src = fs.createReadStream(filePath);
+    let sent = 0;
+    const payload = new ReadableStream({
+      start(c) {
+        src.on("data", chunk => { sent += chunk.length; kick(); c.enqueue(chunk); if (onProgress) onProgress(sent / size); if (c.desiredSize <= 0) src.pause(); });
+        src.on("end", () => c.close());
+        src.on("error", e => c.error(e));
+      },
+      pull() { src.resume(); },
+      cancel() { src.destroy(); },
+    });
+    const r = await fetch(API + url, { method: "POST", headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/octet-stream", "Content-Length": String(size) }, body: payload, duplex: "half", signal: ctl.signal });
+    return [r.status, Buffer.from(await r.arrayBuffer())];
+  } finally { clearTimeout(t); }
+}
+
+/** Streams a download to [savePath] (mode 0600). Resolves to the HTTP status; the file is removed unless it is 200. */
+async function downloadTo(url, savePath) {
+  const fs = require("fs");
+  const { Readable } = require("stream");
+  const { pipeline } = require("stream/promises");
+  const ctl = new AbortController();
+  let t;
+  const kick = () => { clearTimeout(t); t = setTimeout(() => ctl.abort(), 60000); };
+  kick();
+  try {
+    const r = await fetch(API + url, { headers: { Authorization: "Bearer " + TOKEN }, signal: ctl.signal });
+    if (r.status !== 200) { await r.arrayBuffer(); return r.status; }
+    const body = Readable.fromWeb(r.body);
+    body.on("data", kick);
+    try { await pipeline(body, fs.createWriteStream(savePath, { mode: 0o600 })); }
+    catch (e) { fs.unlink(savePath, () => {}); throw e; }
+    return 200;
+  } finally { clearTimeout(t); }
+}
+
 async function fetchMail(alias, since) {
   const q = new URLSearchParams();
   if (alias) q.set("alias", alias);
@@ -322,7 +366,7 @@ function unlink() {
 module.exports = {
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
-  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, fetchMail, refresh, deleteMail,
+  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, uploadFile, downloadTo, fetchMail, refresh, deleteMail,
   forget, siteOf, newAlias, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };

@@ -207,28 +207,28 @@ async function send(text) {
 // Messages left over from a previous run go out as soon as the app is up.
 setTimeout(flush, 3000).unref?.();
 
-const MAX_FILE = 5 * 1024 * 1024;
+const MAX_FILE = 5 * 1024 * 1024 * 1024;
 const safeName = n => require("path").basename(String(n || "file")).replace(/[\u0000-\u001f\u007f-\u009f"*:<>?|\\/]/g, "_").replace(/^\.+/, "") || "file";
 
 /** Uploads a file from disk into the current chat. Resolves to an error string or null. */
 async function upload(filePath) {
   const fs = require("fs");
-  let buf;
+  let size;
   try {
     const st = fs.statSync(filePath);
     if (!st.isFile()) return "Not a file";
-    if (st.size > MAX_FILE) return "File is larger than 5 MB";
+    if (st.size > MAX_FILE) return "File is larger than 5 GB";
     if (!st.size) return "File is empty";
-    buf = fs.readFileSync(filePath);
+    size = st.size;
   } catch { return "Can't read that file"; }
   const name = safeName(filePath);
   state.upload = { name, pct: 0 };
   changed();
   try {
     const q = "?name=" + encodeURIComponent(name) + "&from=" + encodeURIComponent(state.name) + roomQ(state.room);
-    const [status, body] = await relay.requestRaw("POST", "/api/chat/file" + q, 120000, buf, f => { state.upload = { name, pct: Math.round(f * 100) }; changed(); });
+    const [status, body] = await relay.uploadFile("/api/chat/file" + q, filePath, size, f => { const pct = Math.round(f * 100); if (!state.upload || state.upload.pct !== pct) { state.upload = { name, pct }; changed(); } });
     if (status === 200) return null;
-    return status === 415 ? "This file type is not allowed" : status === 413 ? "File is larger than 5 MB" : status === 429 ? "Slow down a little" : status === 400 ? "Not sent: " + body.toString().slice(0, 60) : "Server answered " + status;
+    return status === 415 ? "This file type is not allowed" : status === 413 ? "File is larger than 5 GB" : status === 507 ? "The chat file store is full, try later" : status === 411 ? "Server answered 411" : status === 429 ? "Slow down a little" : status === 400 ? "Not sent: " + body.toString().slice(0, 60) : "Server answered " + status;
   } catch { return "Can't reach the server"; }
   finally { state.upload = null; changed(); }
 }
@@ -237,12 +237,12 @@ async function upload(filePath) {
 async function fetchFile(id, savePath) {
   if (!/^[0-9a-f]{24}$/.test(String(id))) return null;
   try {
-    const [status, buf] = await relay.requestRaw("GET", "/api/chat/file/" + id + (savePath ? "?dl=1" : ""), 60000);
-    if (status !== 200) return null;
-    if (savePath) { require("fs").writeFileSync(savePath, buf, { mode: 0o600 }); return true; }
+    if (savePath) return (await relay.downloadTo("/api/chat/file/" + id + "?dl=1", savePath)) === 200 ? true : null;
     const m = state.messages.find(x => x.file && x.file.id === id);
     const type = m && m.file.type;
-    return /^image\/(png|jpeg|gif|webp)$/.test(type || "") ? "data:" + type + ";base64," + buf.toString("base64") : null;
+    if (!/^image\/(png|jpeg|gif|webp)$/.test(type || "") || m.file.size > 20 * 1024 * 1024) return null; // previews stay small
+    const [status, buf] = await relay.requestRaw("GET", "/api/chat/file/" + id, 60000);
+    return status === 200 ? "data:" + type + ";base64," + buf.toString("base64") : null;
   } catch { return null; }
 }
 

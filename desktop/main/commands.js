@@ -372,7 +372,7 @@ function init(deps) {
   on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
   on("room.upload", async () => {
     const { dialog } = require("electron");
-    const r = await dialog.showOpenDialog(d.win(), { title: "Send a file to this chat (max 5 MB)", properties: ["openFile"] });
+    const r = await dialog.showOpenDialog(d.win(), { title: "Send a file to this chat (max 5 GB)", properties: ["openFile"] });
     if (r.canceled || !r.filePaths[0]) return null;
     return room.upload(r.filePaths[0]);
   });
