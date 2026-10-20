@@ -160,11 +160,8 @@ async function postFile(req, res, ip, url, h) {
   const rawRoom = q.get('room') || '';
   const room = cleanRoom(rawRoom);
   if (!room && rawRoom) return h.sendText(req, res, 400, 'bad room');
-  let buf;
-  try { buf = await h.readBody(req, chatfile.MAX_FILE); }
-  catch (e) { return h.sendText(req, res, e.status || 400, e.status === 413 ? 'file too large (5 MB limit)' : 'bad body', { Connection: 'close' }); }
-  const r = chatfile.put(q.get('name'), buf);
-  if (!r.file) return h.sendText(req, res, r.status, r.error);
+  const r = await chatfile.put(req, q.get('name'));
+  if (!r.file) return h.sendText(req, res, r.status, r.error, { Connection: 'close' });
   const name = (q.get('from') || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, NAME_MAX) || 'Anonymous';
   const msg = { id: ++seq, name, text: '\u{1F4CE} ' + r.file.name, at: Date.now(), room, file: r.file };
   touch(name);

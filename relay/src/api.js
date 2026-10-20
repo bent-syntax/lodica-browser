@@ -546,7 +546,8 @@ function start(log) {
   };
   const tune = (server) => {
     server.headersTimeout = 20e3;
-    server.requestTimeout = 60e3;
+    server.requestTimeout = 0;            // multi-GB chat uploads; the idle timeout below ends stalled bodies
+    server.timeout = 120e3;
     server.keepAliveTimeout = 30e3;
     server.on('tlsClientError', () => {});
     return server;

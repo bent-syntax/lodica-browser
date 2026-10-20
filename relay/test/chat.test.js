@@ -2,6 +2,7 @@
 // Run: node test/chat.test.js   (in-process; no network beyond loopback, no relay token)
 const http = require('http');
 const assert = require('assert');
+process.env.LODICA_CHATFILE_DIR = require('path').join(require('os').tmpdir(), 'lodica-chatfile-test-' + process.pid);
 const chat = require('../src/chat');
 
 const send = (req, res, status, body, headers = {}) => { res.writeHead(status, headers); res.end(body); };
@@ -79,7 +80,22 @@ server.listen(0, '127.0.0.1', async () => {
     assert.strictEqual((await raw(port, '/api/chat/file?name=a.png.sh', Buffer.from('hello'))).status, 415);
     assert.strictEqual((await raw(port, '/api/chat/file?name=ok.txt', Buffer.from('MZ\u0090\u0000'))).status, 415);
     assert.strictEqual((await raw(port, '/api/chat/file?name=ok.txt', Buffer.from('#!/bin/sh\n'))).status, 415);
-    assert.strictEqual((await raw(port, '/api/chat/file?name=big.bin.dat', Buffer.alloc(5 * 1024 * 1024 + 1))).status, 413);
+    // Over the limit by header alone: refused before any body is read.
+    const big = await new Promise((ok, bad) => {
+      const r = http.request({ port, method: 'POST', path: '/api/chat/file?name=big.bin.dat', headers: { 'content-length': 5 * 1024 * 1024 * 1024 + 1 } }, (res) => { ok(res.statusCode); r.destroy(); });
+      r.on('error', () => {}); r.write('x');
+    });
+    assert.strictEqual(big, 413);
+    // No Content-Length, or a body that does not match it, is refused and leaves nothing behind.
+    assert.strictEqual((await new Promise((ok) => { const r = http.request({ port, method: 'POST', path: '/api/chat/file?name=a.txt', headers: { 'transfer-encoding': 'chunked' } }, (res) => ok(res.statusCode)); r.end('abc'); })), 411);
+    // Range requests and a large streamed file.
+    const rid = (await raw(port, '/api/chat/file?name=r.dat', Buffer.from('0123456789'))).json.file.id;
+    const rg = await new Promise((ok, bad) => http.get({ port, path: '/api/chat/file/' + rid, headers: { range: 'bytes=2-4' } }, (res) => { const c = []; res.on('data', (d) => c.push(d)); res.on('end', () => ok({ status: res.statusCode, body: Buffer.concat(c).toString(), cr: res.headers['content-range'] })); }).on('error', bad));
+    assert.deepStrictEqual(rg, { status: 206, body: '234', cr: 'bytes 2-4/10' });
+    const mb = Buffer.alloc(64 * 1024 * 1024, 7);
+    const bigup = (await raw(port, '/api/chat/file?name=large.dat', mb)).json.file;
+    assert.strictEqual(bigup.size, mb.length);
+    assert.strictEqual((await get(port, '/api/chat/file/' + bigup.id)).body.length, mb.length);
     assert.strictEqual((await raw(port, '/api/chat/file?name=x.txt&room=bogus', Buffer.from('x'))).status, 400);
     assert.strictEqual((await get(port, '/api/chat/file/' + '0'.repeat(24))).status, 404);
     // Users list: posters and `name` pings show up.
