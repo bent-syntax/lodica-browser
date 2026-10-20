@@ -36,7 +36,8 @@ data class ContextMenuRequest(val tab: Tab, val element: ContextElement)
  */
 object TabManager {
     const val HOME = "about:blank"
-    private const val MAX_LIVE = 5
+    private const val MAX_LIVE = 3
+    private const val IDLE_UNLOAD_MS = 5 * 60_000L
     private const val MAX_CLOSED = 25
     private const val MAX_ARCHIVED = 200
     private const val DAY_MS = 86_400_000L
@@ -119,7 +120,21 @@ object TabManager {
         s.setActive(true)
         s.setFocused(true)
         live.remove(tab); live.add(tab)
+        unloadIdle()
         save()
+    }
+
+    /** Frees background pages untouched for a while (not playing media). Their saved state and thumbnail bring them back. */
+    private fun unloadIdle() {
+        val now = System.currentTimeMillis()
+        val it = live.iterator()
+        while (it.hasNext()) {
+            val t = it.next()
+            if (t === current || t.state == null || now - t.lastUsed < IDLE_UNLOAD_MS) continue
+            it.remove()
+            t.session?.close()
+            t.session = null
+        }
     }
 
     /** Hide every private tab until the next biometric check. Sessions stay alive so logins survive. */
