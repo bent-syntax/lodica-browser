@@ -113,6 +113,7 @@ function withLanguage(url) {
   } catch { return url; }
 }
 
+const isBareIp = hp => /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(hp) || hp.startsWith("[");
 const SCHEMES = ["http://", "https://", "about:", "file://", "data:", "view-source:", "lodica://", "chrome://"];
 /** Turns typed text into a URL: keeps URLs, adds https:// to hosts, otherwise searches. */
 function resolve(input, lodicaAvailable) {
@@ -120,7 +121,7 @@ function resolve(input, lodicaAvailable) {
   if (!t) return "about:blank";
   if (SCHEMES.some(s => t.toLowerCase().startsWith(s))) return t;
   const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || t.startsWith("localhost"));
-  if (host) return withLanguage((t.startsWith("localhost") ? "http://" : "https://") + t);
+  if (host) return withLanguage((t.startsWith("localhost") || isBareIp(t.split("/")[0]) ? "http://" : "https://") + t);
   const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");
   let engine = ENGINES[want];
   if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback];

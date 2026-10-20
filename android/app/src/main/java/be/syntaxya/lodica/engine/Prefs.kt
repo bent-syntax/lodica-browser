@@ -396,7 +396,12 @@ object Prefs {
         return !looksLikeHost
     }
 
-    /** Turns typed text into a URL: keeps URLs, adds https:// to hosts, otherwise searches. */
+    private val IPV4 = Regex("^(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?$")
+
+    /** True for a plain IPv4 address (optional port) or bracketed IPv6. */
+    fun isBareIp(hostPort: String) = IPV4.matches(hostPort) || hostPort.startsWith("[")
+
+    /** Turns typed text into a URL: keeps URLs, adds https:// to hosts (http:// to bare IPs), otherwise searches. */
     fun resolve(input: String): String {
         val t = input.trim()
         if (t.isEmpty()) return "about:blank"
@@ -405,7 +410,9 @@ object Prefs {
         val looksLikeHost = !t.contains(' ') &&
             (Regex("^[\\w-]+(\\.[\\w-]+)+(:\\d+)?(/.*)?$").matches(t) || t.startsWith("localhost") ||
                 isCustomHost(t.substringBefore('/').substringBefore(':')))
-        if (looksLikeHost) return withLanguage(applyOwnDns("https://$t"))
+        // Bare IPs (and localhost) rarely have a certificate, so they start on http. A server that redirects to https still wins.
+        val scheme = if (isBareIp(t.substringBefore('/'))) "http://" else "https://"
+        if (looksLikeHost) return withLanguage(applyOwnDns("$scheme$t"))
         val base = Helper.searchBase
         if (search == SearchEngine.LODICA && base != null && Relay.available)
             return base + "search.html?q=" + android.net.Uri.encode(t) + "&th=" + Helper.themeParam()
