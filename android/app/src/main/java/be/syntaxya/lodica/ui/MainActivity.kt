@@ -19,6 +19,7 @@ import android.widget.TextView
 import be.syntaxya.lodica.CrashLog
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -66,7 +67,15 @@ class MainActivity : HostActivity() {
             }
         })
 
-        setContent { LodicaTheme { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } }
+        setContent {
+            LaunchedEffect(TabManager.fullscreen) {
+                val c = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+                if (TabManager.fullscreen) {
+                    c.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                    c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                } else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            }
+            LodicaTheme { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */

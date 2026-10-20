@@ -64,13 +64,20 @@ object WebApps {
     private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
-    class Record(val url: String, val label: String)
+    class Record(val url: String, val label: String, val display: String = "standalone")
 
     /** The stored start URL and label of an installed web app, or null. */
     fun record(ctx: Context, pkg: String): Record? = runCatching {
         val o = JSONObject(File(dir(ctx), "$pkg.json").readText())
-        Record(o.getString("url"), o.getString("label"))
+        Record(o.getString("url"), o.getString("label"), o.optString("display", "standalone"))
     }.getOrNull()
+
+    /** True when the page declared a manifest that can be installed as a standalone app (not a plain browser tab). */
+    fun installable(tab: Tab): Boolean {
+        val m = tab.manifest ?: return false
+        if (tab.private || !tab.url.startsWith("https://")) return false
+        return m.optString("display", "browser") != "browser" && (m.has("name") || m.has("short_name"))
+    }
 
     fun icon(ctx: Context, pkg: String): Bitmap? =
         File(dir(ctx), "$pkg.png").takeIf { it.isFile }?.let { BitmapFactory.decodeFile(it.path) }
@@ -110,7 +117,7 @@ object WebApps {
                 val pkg = "be.syntaxya.lodica.app.w" + sha256(origin.toByteArray()).joinToString("") { "%02x".format(it) }.take(12)
                 val png = iconPng(tab.url, origin, manifest, links, label)
                 val apk = build(app, pkg, label, url, png)
-                File(dir(app), "$pkg.json").writeText(JSONObject().put("url", url).put("label", label).toString())
+                File(dir(app), "$pkg.json").writeText(JSONObject().put("url", url).put("label", label).put("display", manifest?.optString("display").orEmpty().ifEmpty { "standalone" }).toString())
                 File(dir(app), "$pkg.png").writeBytes(png)
                 val err = if (SilentInstall.ready) SilentInstall.install(apk) else "skipped"
                 if (err == null) main.post { toast(app, "Installed $label") }

@@ -52,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +81,7 @@ import be.syntaxya.lodica.engine.Helper
 import be.syntaxya.lodica.engine.History
 import be.syntaxya.lodica.engine.Mail
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.WebApps
 import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
@@ -199,6 +201,7 @@ private fun BrowserScreen() {
             ) {
                 Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
                 if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
+                if (tab != null && !Ui.editing && !locked && WebApps.installable(tab) && tab.host !in Ui.installDismissed) InstallChip(tab)
                 Relay.incoming?.let { MailBanner(it) }
             }
             BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
@@ -206,9 +209,9 @@ private fun BrowserScreen() {
                 // Long-press where the bar sits to bring it back.
                 val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
                 Box(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(barDp)
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
                         .pointerInput(Unit) {
-                            androidx.compose.foundation.gestures.detectTapGestures(onLongPress = {
+                            detectTapGestures(onLongPress = {
                                 haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 Ui.barHidden = false
                             })
@@ -244,6 +247,20 @@ private fun HiddenEmailChip(tab: Tab) {
 }
 
 /** A link the user copied elsewhere, offered when they come back to Lodica. */
+/** Offered when the page declares an installable web app manifest. */
+@Composable
+private fun InstallChip(tab: be.syntaxya.lodica.tabs.Tab) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val name = remember(tab.manifest) { tab.manifest?.let { it.optString("short_name").ifEmpty { it.optString("name") } }.orEmpty() }
+    Surface(shape = RoundedCornerShape(20.dp), color = GraphiteRaised, contentColor = Mist, shadowElevation = 4.dp, modifier = Modifier.padding(bottom = 6.dp)) {
+        Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Install ${name.ifEmpty { tab.host }} as an app", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            TextButton(onClick = { Ui.installDismissed += tab.host; WebApps.install(ctx, tab) }) { Text("Install", color = Amber, fontSize = 13.sp) }
+            TextButton(onClick = { Ui.installDismissed += tab.host }) { Text("Not now", color = Muted, fontSize = 13.sp) }
+        }
+    }
+}
+
 @Composable
 private fun ClipChip(link: String) {
     val host = remember(link) { runCatching { android.net.Uri.parse(link).host.orEmpty() }.getOrDefault("").removePrefix("www.") }

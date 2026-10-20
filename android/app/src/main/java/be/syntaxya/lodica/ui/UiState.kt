@@ -2,6 +2,7 @@ package be.syntaxya.lodica.ui
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.mozilla.geckoview.GeckoView
@@ -45,6 +46,9 @@ object Ui {
     /** How far the bottom bar has slid out of view, in px (0 = fully shown). */
     var barOffset by mutableFloatStateOf(0f)
     var barHeight by mutableFloatStateOf(0f)
+
+    /** Hosts whose "install as app" offer was answered this session. */
+    val installDismissed = mutableStateListOf<String>()
 
     /** Address bar tucked away on purpose (long-press) or because a file is open. Cleared on a new page or when typing. */
     var barHidden by mutableStateOf(false)

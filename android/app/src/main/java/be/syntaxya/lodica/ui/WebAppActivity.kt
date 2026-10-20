@@ -45,6 +45,7 @@ class WebAppActivity : HostActivity() {
     private var origin = ""
     private var canGoBack = false
     private var fullscreen by mutableStateOf(false)
+    private var alwaysFull = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -54,6 +55,9 @@ class WebAppActivity : HostActivity() {
         val pkg = intent.getStringExtra("pkg").orEmpty()
         val url = startUrl(intent) ?: run { finish(); return }
         origin = originOf(url)
+        // Manifest "display": "fullscreen" keeps the system bars away for the whole session.
+        alwaysFull = WebApps.record(this, pkg)?.display == "fullscreen"
+        if (alwaysFull) setSystemBars(true)
         val label = WebApps.record(this, pkg)?.label ?: Uri.parse(url).host.orEmpty()
         @Suppress("DEPRECATION")
         setTaskDescription(ActivityManager.TaskDescription(label, WebApps.icon(this, pkg)))
@@ -89,7 +93,7 @@ class WebAppActivity : HostActivity() {
             LodicaTheme {
                 Box(
                     Modifier.fillMaxSize().background(Graphite)
-                        .then(if (fullscreen) Modifier else Modifier.systemBarsPadding().imePadding())
+                        .then(if (fullscreen || alwaysFull) Modifier else Modifier.systemBarsPadding().imePadding())
                 ) {
                     AndroidView(
                         factory = { c ->
@@ -191,7 +195,7 @@ class WebAppActivity : HostActivity() {
 
         override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
             fullscreen = fullScreen
-            setSystemBars(fullScreen)
+            setSystemBars(fullScreen || alwaysFull)
         }
 
         override fun onCloseRequest(session: GeckoSession) { finish() }
