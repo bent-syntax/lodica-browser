@@ -6,6 +6,7 @@ const cut = (n) => src.slice(src.indexOf(`// lodica:${n}:start`), src.indexOf(`/
 const assert = require("assert");
 
 const calc = new Function(cut("math") + "; return calc;")();
+const solve = new Function(cut("math") + "; return solve;")();
 const cases = [
   ["2+2", "4"], ["12 * 3", "36"], ["(1+2)*3", "9"], ["10/4", "2.5"], ["2^10", "1024"], ["2**3", "8"],
   ["50% * 80", "40"], ["3 x 4", "12"], ["6 × 7", "42"], ["20 ÷ 5", "4"], ["sqrt(16)+1", "5"], ["-3 + 5", "2"],
@@ -15,6 +16,13 @@ const cases = [
   ["alert(1)+1", null], ["1+1; 2", null], ["3 4", null],
 ];
 for (const [i, o] of cases) assert.strictEqual(calc(i), o, `calc(${JSON.stringify(i)}) = ${calc(i)}, want ${o}`);
+
+const eq = [
+  ["3x - 24 = -6", "x = 6"], ["2x+3=11", "x = 4"], ["x/2 = 5", "x = 10"], ["5 = 2y + 1", "y = 2"], ["3(x+1)=12", "x = 3"],
+  ["x^2 = 9", "x = -3 or 3"], ["x^2 - 5x + 6 = 0", "x = 2 or 3"], ["x^2 + 1 = 0", null], ["x = x + 1", null],
+  ["2+2=4", null], ["x + y = 3", null], ["3x - 24", null], ["alert(x)=1", null], ["x = ", null],
+];
+for (const [i, o] of eq) assert.strictEqual(solve(i), o, `solve(${JSON.stringify(i)}) = ${solve(i)}, want ${o}`);
 
 // spell: tiny fake dictionaries
 const body = cut("spell").replace("const SPELL_LANGS", "const SPELL_LANGS");

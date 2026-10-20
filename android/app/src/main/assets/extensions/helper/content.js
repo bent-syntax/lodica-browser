@@ -1018,6 +1018,43 @@
     if (Math.abs(v) >= 1e15 || (v !== 0 && Math.abs(v) < 1e-9)) return v.toExponential(6).replace(/\.?0+e/, "e");
     return String(Number(v.toPrecision(12)));
   }
+
+  // "3x - 24 = -6" -> "x = 6"; one letter unknown, degree 1 or 2
+  function solve(src) {
+    let s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    if (s.length > 120 || (s.match(/=/g) || []).length !== 1) return null;
+    const [l, r] = s.split("=");
+    if (!l.trim() || !r.trim()) return null;
+    const vars = new Set((s.replace(/sqrt|pi/gi, "").match(/[a-z]/gi) || []).map((c) => c.toLowerCase()));
+    if (vars.size !== 1) return null;
+    const v = [...vars][0];
+    if (!/^[\d\s.,+\-*/^%()a-z=]+$/i.test(s) || !/\d/.test(s)) return null;
+    const side = (t, x) => t.replace(/sqrt|pi/gi, (m) => "\0" + m.toLowerCase() + "\0")
+      .replace(new RegExp(v, "gi"), "\u0001")
+      .replace(/(?<=[\d)])\s*(?=\u0001)/g, "*").replace(/(?<=\u0001)\s*(?=[\d(])/g, "*").replace(/\u0001\s*(?=\u0001)/g, "\u0001*")
+      .replace(/\u0001/g, "(" + x + ")").replace(/\0/g, "").replace(/(?<=[\d)])\s*(?=\()/g, "*");
+    const f = (x) => {
+      const a = calc("(" + side(l, x) + ")-(" + side(r, x) + ")");
+      return a == null ? NaN : Number(a);
+    };
+    const f0 = f(0), f1 = f(1), f2 = f(2), f3 = f(3);
+    if (![f0, f1, f2, f3].every(isFinite)) return null;
+    const A = (f2 - 2 * f1 + f0) / 2, B = f1 - f0 - A, C = f0;
+    const tol = 1e-7 * (1 + Math.abs(f0) + Math.abs(f1) + Math.abs(f2));
+    if (Math.abs(A * 9 + B * 3 + C - f3) > tol) return null;
+    const fmt = (n) => String(Number(n.toPrecision(10)));
+    const eps = 1e-9;
+    if (Math.abs(A) < eps) {
+      if (Math.abs(B) < eps) return null;
+      return v + " = " + fmt(-C / B);
+    }
+    const D = B * B - 4 * A * C;
+    if (D < -eps) return null;
+    if (Math.abs(D) <= eps) return v + " = " + fmt(-B / (2 * A));
+    const q = Math.sqrt(D), x1 = (-B - q) / (2 * A), x2 = (-B + q) / (2 * A);
+    const [p, o] = x1 < x2 ? [x1, x2] : [x2, x1];
+    return v + " = " + fmt(p) + " or " + fmt(o);
+  }
   // lodica:math:end
 
   // lodica:spell:start
@@ -1161,9 +1198,9 @@
     clearTimeout(selTimer);
     selTimer = setTimeout(() => {
       const s = selected();
-      const ans = s && calc(s.text);
+      const ans = s && (solve(s.text) || calc(s.text));
       if (ans == null) { if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble(); return; }
-      showBubble(s.x, s.y, (d) => { d.textContent = "= " + ans; d.setAttribute("data-kind", "math"); });
+      showBubble(s.x, s.y, (d) => { d.textContent = (ans.includes("=") ? "" : "= ") + ans; d.setAttribute("data-kind", "math"); });
     }, 200);
   });
 
