@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -158,6 +159,7 @@ private fun LoadLine(tab: Tab?) {
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
@@ -195,7 +197,10 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                         drag += dx
                     }
                 }
-                .clickable(onClick = onEdit)
+                .combinedClickable(onClick = onEdit, onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    Ui.barHidden = true
+                })
                 .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

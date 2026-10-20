@@ -46,6 +46,9 @@ object Ui {
     var barOffset by mutableFloatStateOf(0f)
     var barHeight by mutableFloatStateOf(0f)
 
+    /** Address bar tucked away on purpose (long-press) or because a file is open. Cleared on a new page or when typing. */
+    var barHidden by mutableStateOf(false)
+
     /** The single GeckoView, set while the browser screen is composed. */
     var gecko: GeckoView? = null
 

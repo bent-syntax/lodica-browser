@@ -52,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -127,6 +128,11 @@ private fun Overlay(visible: Boolean, content: @Composable () -> Unit) {
     }
 }
 
+private val FILE_URL = Regex("\\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf|txt|csv|epub)$", RegexOption.IGNORE_CASE)
+
+private fun isFileUrl(url: String): Boolean =
+    url.startsWith("file:") || url.startsWith("content:") || FILE_URL.containsMatchIn(url.substringBefore('#').substringBefore('?'))
+
 @Composable
 private fun BrowserScreen() {
     val tab = TabManager.current
@@ -135,10 +141,14 @@ private fun BrowserScreen() {
 
     DisposableEffect(Unit) {
         TabManager.onScroll = { dy, y ->
-            Ui.barOffset = if (y <= 0 || Ui.editing || Ui.finding || !Prefs.gestureBarHide) 0f else (Ui.barOffset + dy).coerceIn(0f, Ui.barHeight)
+            Ui.barOffset = if (Ui.barHidden) Ui.barHeight else if (y <= 0 || Ui.editing || Ui.finding || !Prefs.gestureBarHide) 0f else (Ui.barOffset + dy).coerceIn(0f, Ui.barHeight)
         }
         onDispose { TabManager.onScroll = null }
     }
+    // A file (PDF, document, local file) hides the bar by itself; a new page brings it back. Long-press toggles it by hand.
+    LaunchedEffect(tab?.url) { Ui.barHidden = tab?.url?.let(::isFileUrl) == true }
+    LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.barHidden = false }
+    LaunchedEffect(Ui.barHidden, Ui.barHeight) { Ui.barOffset = if (Ui.barHidden) Ui.barHeight else 0f }
     // Bottom toolbar slides with the page: tell Gecko how much of the viewport the bar still covers.
     LaunchedEffect(Unit) {
         snapshotFlow { Triple(Ui.barOffset, Ui.barHeight, TabManager.fullscreen) }.collect { (off, h, fs) ->
@@ -192,6 +202,19 @@ private fun BrowserScreen() {
                 Relay.incoming?.let { MailBanner(it) }
             }
             BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
+            if (Ui.barHidden) {
+                // Long-press where the bar sits to bring it back.
+                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                Box(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(barDp)
+                        .pointerInput(Unit) {
+                            androidx.compose.foundation.gestures.detectTapGestures(onLongPress = {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                Ui.barHidden = false
+                            })
+                        },
+                )
+            }
         }
     }
 }
