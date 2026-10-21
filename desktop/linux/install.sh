@@ -31,7 +31,9 @@ case "$(uname -m)" in
   *) echo "Only x86_64 is supported." >&2; exit 1 ;;
 esac
 
-TMP="$(mktemp -d)"
+# /tmp is often mounted noexec, which stops the AppImage from extracting. Work next to the install dir.
+mkdir -p "$(dirname "$APP_DIR")"
+TMP="$(mktemp -d "$(dirname "$APP_DIR")/.lodica-install.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 if [ -n "${1:-}" ]; then
@@ -46,14 +48,15 @@ else
 fi
 
 chmod +x "$TMP/Lodica.AppImage"
-(cd "$TMP" && ./Lodica.AppImage --appimage-extract >/dev/null)
+(cd "$TMP" && ./Lodica.AppImage --appimage-extract >/dev/null 2>&1) || { echo "Could not unpack the AppImage (is the file complete, and is the disk not mounted noexec?)." >&2; exit 1; }
+[ -x "$TMP/squashfs-root/AppRun" ] || { echo "The AppImage has no AppRun." >&2; exit 1; }
 
 remove_old
 mkdir -p "$APP_DIR" "$APPS_DIR" "$ICON_DIR" "$BIN_DIR"
-mv "$TMP/squashfs-root/"* "$APP_DIR/"
+cp -a "$TMP/squashfs-root/." "$APP_DIR/"
 
 ICON_SRC="$(find "$APP_DIR" -maxdepth 1 -name '*.png' | head -n1)"
-[ -n "$ICON_SRC" ] && cp "$ICON_SRC" "$ICON_DIR/lodica.png"
+if [ -n "$ICON_SRC" ]; then cp "$ICON_SRC" "$ICON_DIR/lodica.png"; fi
 
 cat > "$BIN_DIR/lodica" <<EOF
 #!/bin/sh
