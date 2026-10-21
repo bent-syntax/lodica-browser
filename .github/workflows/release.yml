@@ -98,3 +98,4 @@ jobs:
           name: ${{ github.ref_name }}
           body_path: notes.md
           files: artifacts/*
+          prerelease: ${{ contains(github.ref_name, '-') }}
