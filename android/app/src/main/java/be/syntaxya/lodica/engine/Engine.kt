@@ -6,7 +6,6 @@ import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.WebExtension
-import org.mozilla.geckoview.GeckoPreferenceController
 
 /** Owns the single GeckoRuntime. Only ever touched from the main process UI. */
 object Engine {
@@ -100,7 +99,6 @@ object Engine {
             }, { e -> Log.w(TAG, "uBlock Origin failed to load", e) }) }
         step("helper") { Helper.install(ctx, runtime) }
         step("extensions") { Extensions.init(ctx) }
-        step("exp-prefs") { GeckoPreferenceController.setGeckoPref("ui.prefersReducedMotion", 1, GeckoPreferenceController.PREF_BRANCH_USER) }
         // GeckoView installs its own crash handler while starting; wrap it so Java crashes are still recorded.
         val h = android.os.Handler(android.os.Looper.getMainLooper())
         for (ms in longArrayOf(0, 1000, 4000)) h.postDelayed({ be.syntaxya.lodica.CrashLog.install(ctx) }, ms)

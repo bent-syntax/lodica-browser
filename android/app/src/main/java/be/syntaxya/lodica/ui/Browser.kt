@@ -72,7 +72,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.Dispatchers
@@ -157,7 +156,7 @@ private fun BrowserScreen() {
     LaunchedEffect(Unit) {
         snapshotFlow { Triple(Ui.barOffset, Ui.barHeight, TabManager.fullscreen) }.collect { (off, h, fs) ->
             val g = Ui.gecko ?: return@collect
-            if (fs || true) {
+            if (fs) {
                 g.setDynamicToolbarMaxHeight(0); g.setVerticalClipping(0)
             } else {
                 g.setDynamicToolbarMaxHeight(h.toInt())
@@ -180,50 +179,47 @@ private fun BrowserScreen() {
             GeckoHost(tab?.session?.takeUnless { locked }, Modifier.fillMaxSize())
         }
 
-        // Own layer: the page's texture view invalidates its parents every frame; this keeps the chrome replayed, not re-recorded.
-        Box(Modifier.fillMaxSize().graphicsLayer()) {
-            val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
-            AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
-                StartPage(Modifier.fillMaxSize())
-            }
-            if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
-                modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
-            if (tab?.crashed == true && !locked) CrashedView(tab)
-            if (locked) LockedView()
+        val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
+        AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
+            StartPage(Modifier.fillMaxSize())
+        }
+        if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
+            modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
+        if (tab?.crashed == true && !locked) CrashedView(tab)
+        if (locked) LockedView()
 
-            AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
-                // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
-                val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
-                Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }
-            }
+        AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
+            // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
+            val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
+            Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }
+        }
 
-            if (!full) {
-                // Offset is read in the layout phase, so scrolling moves the chips without recomposing the screen.
-                Column(
-                    Modifier.align(Alignment.BottomCenter)
-                        .offset { androidx.compose.ui.unit.IntOffset(0, -(Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toInt()) }
-                        .padding(bottom = 8.dp).padding(horizontal = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
-                    if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
-                    if (tab != null && !Ui.editing && !locked && WebApps.installable(tab) && tab.host !in Ui.installDismissed) InstallChip(tab)
-                    Relay.incoming?.let { MailBanner(it) }
-                }
-                BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
-                if (Ui.barHidden) {
-                    // Long-press where the bar sits to bring it back.
-                    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-                    Box(
-                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
-                            .pointerInput(Unit) {
-                                detectTapGestures(onLongPress = {
-                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                    Ui.barHidden = false
-                                })
-                            },
-                    )
-                }
+        if (!full) {
+            // Offset is read in the layout phase, so scrolling moves the chips without recomposing the screen.
+            Column(
+                Modifier.align(Alignment.BottomCenter)
+                    .offset { androidx.compose.ui.unit.IntOffset(0, -(Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toInt()) }
+                    .padding(bottom = 8.dp).padding(horizontal = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
+                if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
+                if (tab != null && !Ui.editing && !locked && WebApps.installable(tab) && tab.host !in Ui.installDismissed) InstallChip(tab)
+                Relay.incoming?.let { MailBanner(it) }
+            }
+            BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
+            if (Ui.barHidden) {
+                // Long-press where the bar sits to bring it back.
+                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                Box(
+                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
+                        .pointerInput(Unit) {
+                            detectTapGestures(onLongPress = {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                Ui.barHidden = false
+                            })
+                        },
+                )
             }
         }
     }
@@ -372,9 +368,14 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
     AndroidView(
         factory = { ctx ->
             GeckoView(ctx).apply {
-                // A SurfaceView hands back blank frames to capturePixels (tab previews); a texture view is readable.
-                // Slow GPUs stutter on a texture view; the "Smoother scrolling" setting trades previews for speed.
-                setViewBackend(if (Prefs.fastRender) GeckoView.BACKEND_SURFACE_VIEW else GeckoView.BACKEND_TEXTURE_VIEW)
+                // GeckoView draws straight to a SurfaceView by default. Do not call setViewBackend(BACKEND_SURFACE_VIEW):
+                // re-creating the surface view leaves the compositor without a surface and every page stays blank.
+                // The TextureView option costs an extra GPU copy per frame and made scrolling choppy on 2-core GPUs.
+                if (!Prefs.fastRender) {
+                    setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
+                    // 120Hz panels give a texture view an 8.3ms budget that mid-range GPUs miss on every frame; 60Hz fits.
+                    if (android.os.Build.VERSION.SDK_INT >= 35) requestedFrameRate = 60f
+                }
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
             }
@@ -392,7 +393,7 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
                     // select() activates the session before the view is attached; repeat it so the
                     // compositor resumes on the new surface.
                     if (TabManager.current?.locked != true) { session.setActive(true); session.setFocused(true) }
-                    v.setDynamicToolbarMaxHeight(0)
+                    v.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt())
                 }
             }
         },
