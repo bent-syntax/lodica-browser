@@ -99,6 +99,12 @@ class EmojiKeyboardService : InputMethodService() {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(if (dark) 0xFF202124.toInt() else 0xFFE8EAED.toInt())
             setPadding(0, 0, 0, dp(4))
+            setOnApplyWindowInsetsListener { v, ins ->
+                val nav = androidx.core.view.WindowInsetsCompat.toWindowInsetsCompat(ins, v)
+                    .getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
+                v.setPadding(0, 0, 0, dp(4) + nav)
+                ins
+            }
         }
         strip = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         r.addView(strip, LinearLayout.LayoutParams(-1, dp(44)))
