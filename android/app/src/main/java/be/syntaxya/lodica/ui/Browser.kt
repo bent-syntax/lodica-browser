@@ -72,6 +72,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.Dispatchers
@@ -179,47 +180,50 @@ private fun BrowserScreen() {
             GeckoHost(tab?.session?.takeUnless { locked }, Modifier.fillMaxSize())
         }
 
-        val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
-        AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
-            StartPage(Modifier.fillMaxSize())
-        }
-        if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
-            modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
-        if (tab?.crashed == true && !locked) CrashedView(tab)
-        if (locked) LockedView()
-
-        AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
-            // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
-            val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
-            Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }
-        }
-
-        if (!full) {
-            // Offset is read in the layout phase, so scrolling moves the chips without recomposing the screen.
-            Column(
-                Modifier.align(Alignment.BottomCenter)
-                    .offset { androidx.compose.ui.unit.IntOffset(0, -(Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toInt()) }
-                    .padding(bottom = 8.dp).padding(horizontal = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
-                if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
-                if (tab != null && !Ui.editing && !locked && WebApps.installable(tab) && tab.host !in Ui.installDismissed) InstallChip(tab)
-                Relay.incoming?.let { MailBanner(it) }
+        // Own layer: the page's texture view invalidates its parents every frame; this keeps the chrome replayed, not re-recorded.
+        Box(Modifier.fillMaxSize().graphicsLayer()) {
+            val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
+            AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
+                StartPage(Modifier.fillMaxSize())
             }
-            BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
-            if (Ui.barHidden) {
-                // Long-press where the bar sits to bring it back.
-                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-                Box(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
-                        .pointerInput(Unit) {
-                            detectTapGestures(onLongPress = {
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                Ui.barHidden = false
-                            })
-                        },
-                )
+            if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
+                modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
+            if (tab?.crashed == true && !locked) CrashedView(tab)
+            if (locked) LockedView()
+
+            AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
+                // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
+                val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
+                Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }
+            }
+
+            if (!full) {
+                // Offset is read in the layout phase, so scrolling moves the chips without recomposing the screen.
+                Column(
+                    Modifier.align(Alignment.BottomCenter)
+                        .offset { androidx.compose.ui.unit.IntOffset(0, -(Ui.barHeight - Ui.barOffset).coerceAtLeast(0f).toInt()) }
+                        .padding(bottom = 8.dp).padding(horizontal = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Ui.clipLink?.takeIf { !Ui.editing }?.let { ClipChip(it) }
+                    if (tab != null && !Ui.editing && !locked && tab.emailFocus && tab.emailSignup && Prefs.dummyLogin && Relay.available && Relay.baseDomain(tab.host) !in Prefs.noDummy) HiddenEmailChip(tab)
+                    if (tab != null && !Ui.editing && !locked && WebApps.installable(tab) && tab.host !in Ui.installDismissed) InstallChip(tab)
+                    Relay.incoming?.let { MailBanner(it) }
+                }
+                BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
+                if (Ui.barHidden) {
+                    // Long-press where the bar sits to bring it back.
+                    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+                    Box(
+                        Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
+                            .pointerInput(Unit) {
+                                detectTapGestures(onLongPress = {
+                                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                    Ui.barHidden = false
+                                })
+                            },
+                    )
+                }
             }
         }
     }
