@@ -2,6 +2,7 @@ package be.syntaxya.lodica.ui
 
 import android.text.format.DateUtils
 import be.syntaxya.lodica.ui.theme.customPalette
+import be.syntaxya.lodica.engine.Emojis
 import be.syntaxya.lodica.engine.CustomTheme
 import android.view.WindowManager
 import android.net.Uri
