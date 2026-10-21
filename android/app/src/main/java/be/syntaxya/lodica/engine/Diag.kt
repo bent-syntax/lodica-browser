@@ -35,7 +35,7 @@ object Diag {
         }
     }
 
-    fun setOverlay(on: Boolean) {
+    fun enableOverlay(on: Boolean) {
         overlay = on
         if (on && !running) { running = true; Choreographer.getInstance().postFrameCallback(cb) }
     }

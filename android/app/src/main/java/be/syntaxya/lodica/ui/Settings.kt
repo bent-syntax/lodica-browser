@@ -437,7 +437,7 @@ fun SettingsScreen() {
             if (diagTaps >= 5) {
                 InfoRow("GPU", remember { Diag.gpu() })
                 InfoRow("Render path", if (Prefs.fastRender) "SurfaceView" else "TextureView")
-                SwitchRow("Frame time overlay", "Shows fps and slow frames on pages", Diag.overlay) { Diag.setOverlay(it) }
+                SwitchRow("Frame time overlay", "Shows fps and slow frames on pages", Diag.overlay) { Diag.enableOverlay(it) }
             }
             var notes by remember { mutableStateOf(false) }
             LinkRow("What's new") { notes = true }
