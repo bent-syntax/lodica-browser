@@ -61,6 +61,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -243,6 +244,8 @@ fun SettingsScreen() {
                 2 -> {
             Section("AI")
             AiSection()
+            Section("Emoji keyboard")
+            EmojiKeyboardSection()
             LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
                 }
                 8 -> {
@@ -521,6 +524,80 @@ fun SettingsScreen() {
             },
             dismissButton = { TextButton(onClick = { pairing = false }) { Text("Cancel", color = Muted) } },
         )
+    }
+}
+
+@Composable
+private fun EmojiKeyboardSection() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var gen by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val bytes = withContext(Dispatchers.IO) { runCatching { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() } }.getOrNull() }
+            val name = uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.') ?: "emoji"
+            val ok = bytes != null && withContext(Dispatchers.IO) { Emojis.addFromBytes(name, bytes) } != null
+            if (!ok) Toast.makeText(ctx, "Could not read that image", Toast.LENGTH_SHORT).show()
+        }
+    }
+    val imm = ctx.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+    val enabled = imm.enabledInputMethodList.any { it.packageName == ctx.packageName }
+    InfoRow("Lodica Keyboard", if (enabled) "Enabled" else "Off")
+    LinkRow(if (enabled) "Switch keyboard" else "Enable Lodica Keyboard", if (enabled) Mist else Amber) {
+        if (enabled) imm.showInputMethodPicker()
+        else runCatching {
+            ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
+    }
+    LinkRow("Import emoji from image") { pick.launch("image/*") }
+    LinkRow(if (busy) "Generating…" else "Generate emoji with Claude") {
+        if (busy) return@LinkRow
+        if (!Ai.hasKey) Toast.makeText(ctx, "Set the Anthropic API key first", Toast.LENGTH_SHORT).show() else gen = true
+    }
+    if (gen) {
+        var idea by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { gen = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Generate emoji") },
+            text = {
+                OutlinedTextField(
+                    idea, { idea = it }, Modifier.fillMaxWidth(), singleLine = true,
+                    placeholder = { Text("a happy pizza slice", color = Muted) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                        focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val q = idea.trim()
+                    if (q.isEmpty()) return@TextButton
+                    gen = false; busy = true
+                    Ai.drawEmoji(q) { r ->
+                        scope.launch {
+                            busy = false
+                            r.onSuccess { svg ->
+                                runCatching { withContext(Dispatchers.IO) { Emojis.add(q, Emojis.svgToBitmap(svg)) } }
+                                    .onFailure { Toast.makeText(ctx, "Could not draw that emoji", Toast.LENGTH_SHORT).show() }
+                            }.onFailure { Toast.makeText(ctx, it.message ?: "Generation failed", Toast.LENGTH_SHORT).show() }
+                        }
+                    }
+                }) { Text("Generate", color = Amber) }
+            },
+            dismissButton = { TextButton(onClick = { gen = false }) { Text("Cancel", color = Muted) } },
+        )
+    }
+    Emojis.list.toList().forEach { e ->
+        val bmp = remember(e.name, e.at) { android.graphics.BitmapFactory.decodeFile(Emojis.file(e.name).path)?.asImageBitmap() }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (bmp != null) androidx.compose.foundation.Image(bmp, e.name, Modifier.size(32.dp))
+            Text(":${e.name}:", color = Mist, modifier = Modifier.weight(1f).padding(start = 12.dp))
+            IconButton(onClick = { Emojis.remove(e.name) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Coral) }
+        }
     }
 }
 

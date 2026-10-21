@@ -36,6 +36,7 @@ object Engine {
         Playback.init(ctx)
         History.init(ctx)
         Relay.init(ctx)
+        Emojis.init(ctx)
         Notifier.schedule(ctx)
         ChatService.start(ctx)
         PcTabs.init(ctx)

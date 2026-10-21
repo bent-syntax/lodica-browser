@@ -3,4 +3,5 @@
     <external-files-path name="downloads" path="Download/" />
     <cache-path name="capture" path="capture/" />
     <cache-path name="updates" path="updates/" />
+    <files-path name="emoji" path="emojis/" />
 </paths>

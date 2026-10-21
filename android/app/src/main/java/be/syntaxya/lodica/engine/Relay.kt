@@ -397,6 +397,7 @@ object Relay {
         scope.launch {
             val synced = runCatching { syncAliases(local, gone) }.getOrNull()
             runCatching { syncTheme(Prefs.customTheme) }.getOrNull()?.let { withContext(Dispatchers.Main) { Prefs.updateCustomTheme(it) } }
+            runCatching { Emojis.syncBlocking() }
             val r = runCatching { fetch() }
             withContext(Dispatchers.Main) {
                 loading = false

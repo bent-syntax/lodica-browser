@@ -72,11 +72,14 @@ object WebApps {
         Record(o.getString("url"), o.getString("label"), o.optString("display", "standalone"))
     }.getOrNull()
 
+    /** String member of a manifest; JSON null and missing both read as [def] (org.json would say "null"). */
+    private fun str(o: JSONObject, k: String, def: String = ""): String = if (o.isNull(k)) def else o.optString(k, def)
+
     /** True when the page declared a manifest that can be installed as a standalone app (not a plain browser tab). */
     fun installable(tab: Tab): Boolean {
         val m = tab.manifest ?: return false
         if (tab.private || !tab.url.startsWith("https://")) return false
-        return m.optString("display", "browser") != "browser" && (m.has("name") || m.has("short_name"))
+        return str(m, "display", "browser") != "browser" && (m.has("name") || m.has("short_name"))
     }
 
     fun icon(ctx: Context, pkg: String): Bitmap? =
@@ -105,7 +108,7 @@ object WebApps {
         val origin = origin(page)
         val manifest = tab.manifest?.takeIf { m ->
             // A manifest is only trusted when its start URL stays on the page's origin.
-            m.optString("start_url").let { it.isEmpty() || origin(resolve(tab.url, it)) == origin }
+            str(m, "start_url").let { it.isEmpty() || origin(resolve(tab.url, it)) == origin }
         }
         val label = listOf("short_name", "name").map { k -> manifest?.takeUnless { it.isNull(k) }?.optString(k) } .plus(listOf(tab.title, tab.host))
             .firstOrNull { !it.isNullOrBlank() }!!.trim().take(40)
@@ -117,7 +120,7 @@ object WebApps {
                 val pkg = "be.syntaxya.lodica.app.w" + sha256(origin.toByteArray()).joinToString("") { "%02x".format(it) }.take(12)
                 val png = iconPng(tab.url, origin, manifest, links, label)
                 val apk = build(app, pkg, label, url, png)
-                File(dir(app), "$pkg.json").writeText(JSONObject().put("url", url).put("label", label).put("display", manifest?.optString("display").orEmpty().ifEmpty { "standalone" }).toString())
+                File(dir(app), "$pkg.json").writeText(JSONObject().put("url", url).put("label", label).put("display", manifest?.let { str(it, "display") }.orEmpty().ifEmpty { "standalone" }).toString())
                 File(dir(app), "$pkg.png").writeBytes(png)
                 val err = if (SilentInstall.ready) SilentInstall.install(apk) else "skipped"
                 if (err == null) main.post { toast(app, "Installed $label") }
@@ -282,10 +285,10 @@ object WebApps {
         manifest?.optJSONArray("icons")?.let { arr ->
             for (i in 0 until arr.length()) {
                 val o = arr.optJSONObject(i) ?: continue
-                val src = o.optString("src").takeIf { it.isNotEmpty() } ?: continue
-                val size = o.optString("sizes").split(' ').mapNotNull { it.substringBefore('x').toIntOrNull() }.maxOrNull()
-                    ?: if (o.optString("sizes") == "any") 512 else 0
-                cands += Cand(src, size, o.optString("purpose").split(' ').contains("maskable"))
+                val src = str(o, "src").takeIf { it.isNotEmpty() } ?: continue
+                val size = str(o, "sizes").split(' ').mapNotNull { it.substringBefore('x').toIntOrNull() }.maxOrNull()
+                    ?: if (str(o, "sizes") == "any") 512 else 0
+                cands += Cand(src, size, str(o, "purpose").split(' ').contains("maskable"))
             }
         }
         val ordered = cands.filter { it.maskable }.sortedByDescending { it.size } +

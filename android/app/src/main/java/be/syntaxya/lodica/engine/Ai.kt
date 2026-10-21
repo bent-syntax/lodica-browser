@@ -199,6 +199,26 @@ object Ai {
 
     private class Reply(val text: String, val input: Long, val output: Long)
 
+    /** Asks Claude for a flat SVG of [idea]. [done] gets the SVG markup, on the main thread. Needs an API key. */
+    fun drawEmoji(idea: String, done: (Result<String>) -> Unit) {
+        val key = apiKey ?: return done(Result.failure(IllegalStateException("Add an Anthropic API key first")))
+        io.execute {
+            val r = runCatching {
+                val body = JSONObject().put("model", MODEL).put("max_tokens", 1500)
+                    .put("system", "You draw emoji. Reply with one complete SVG and nothing else: viewBox=\"0 0 64 64\", flat colours, no text, no scripts, no external references, under 1500 characters.")
+                    .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Emoji: ${idea.take(80)}")))
+                val (code, j) = post(key, body)
+                if (code !in 200..299) throw apiError(code, j)
+                val a = j.optJSONArray("content") ?: throw IllegalStateException("Empty reply")
+                val text = (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("text") }.joinToString("")
+                val s = text.indexOf("<svg"); val e = text.lastIndexOf("</svg>")
+                if (s < 0 || e < s) throw IllegalStateException("No drawing returned")
+                text.substring(s, e + 6)
+            }
+            main.post { done(r) }
+        }
+    }
+
     private fun post(key: String, body: JSONObject): Pair<Int, JSONObject> {
         val c = URL(API_URL).openConnection() as HttpURLConnection
         try {

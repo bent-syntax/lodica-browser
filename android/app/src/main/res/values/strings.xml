@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Lodica</string>
+    <string name="keyboard_name">Lodica Keyboard</string>
     <string name="widget_search">Lodica search bar</string>
     <string name="widget_shortcuts">Lodica shortcuts</string>
     <string name="widget_sites">Lodica quick sites</string>

@@ -338,6 +338,47 @@ async function themePut(req, res) {
   sendJson(req, res, 200, out);
 }
 
+// ---------- custom emojis ----------
+// Shared sticker-style emojis for every browser on this token. Entries merge by name, newest `at` wins, `del` is a tombstone.
+const EMOJI_FILE = path.join(cfg.dataDir, 'emojis.json');
+const EMOJI_MAX = 200;
+const EMOJI_IMG_MAX = 96 * 1024;
+let emojiList = null;
+
+async function loadEmojis() {
+  if (emojiList) return emojiList;
+  try { emojiList = JSON.parse(await fsp.readFile(EMOJI_FILE, 'utf8')); } catch { emojiList = []; }
+  if (!Array.isArray(emojiList)) emojiList = [];
+  return emojiList;
+}
+
+async function emojisGet(req, res) {
+  sendJson(req, res, 200, await loadEmojis());
+}
+
+async function emojisPost(req, res) {
+  let b;
+  try { b = JSON.parse((await readBody(req, 160 * 1024)).toString('utf8')); }
+  catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const name = b && typeof b.name === 'string' ? b.name : '';
+  if (!/^[a-z0-9_]{1,32}$/.test(name)) return sendText(req, res, 400, 'bad name');
+  const del = b.del === true;
+  const png = typeof b.png === 'string' ? b.png : '';
+  if (!del && (!png || png.length > EMOJI_IMG_MAX || !/^[A-Za-z0-9+/=]+$/.test(png))) return sendText(req, res, 400, 'bad image');
+  const entry = { name, png: del ? '' : png, del, at: Number.isFinite(b.at) ? b.at : Date.now() };
+  const list = await loadEmojis();
+  const i = list.findIndex((x) => x.name === name);
+  if (i >= 0) { if (list[i].at > entry.at) return sendJson(req, res, 200, list[i]); list[i] = entry; }
+  else {
+    if (list.filter((x) => !x.del).length >= EMOJI_MAX && !del) return sendText(req, res, 409, 'emoji limit reached');
+    list.push(entry);
+  }
+  const tmp = `${EMOJI_FILE}.${process.pid}.tmp`;
+  await fsp.writeFile(tmp, JSON.stringify(list), { mode: 0o600 });
+  await fsp.rename(tmp, EMOJI_FILE);
+  sendJson(req, res, 200, entry);
+}
+
 // ---------- router ----------
 async function route(req, res) {
   stats.requests++;
@@ -416,6 +457,11 @@ async function route(req, res) {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
     if (!authed(req, res)) return;
     return m === 'GET' ? themeGet(req, res) : themePut(req, res);
+  }
+  if (p === '/api/emojis') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    return m === 'GET' ? emojisGet(req, res) : emojisPost(req, res);
   }
   if (p === '/api/aliases') {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
