@@ -6,7 +6,7 @@ const path = require("path");
 const root = path.join(__dirname, "..");
 const src = process.env.LODICA_HELPER ||
   path.join(root, "..", "android", "app", "src", "main", "assets", "extensions", "helper", "content.js");
-let js = fs.readFileSync(src, "utf8");
+let js = fs.readFileSync(src, "utf8").replace(/\r\n/g, "\n");
 
 function swap(from, to) {
   if (!js.includes(from)) throw new Error("build-preload: pattern not found: " + from.slice(0, 60));
