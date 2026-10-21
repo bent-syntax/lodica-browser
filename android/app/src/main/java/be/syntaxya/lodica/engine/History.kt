@@ -136,8 +136,13 @@ object History {
         emptyArray(),
     )
 
+    /** Newest first, with URLs differing only by fragment or trailing slash merged into one entry. */
     fun recent(limit: Int = 200): List<Visit> =
-        read("SELECT url, title, visits, last FROM visits ORDER BY last DESC LIMIT $limit", emptyArray())
+        read("SELECT url, title, visits, last FROM visits ORDER BY last DESC LIMIT ${limit * 3}", emptyArray())
+            .groupBy { it.url.substringBefore('#').trimEnd('/') }
+            .values
+            .map { g -> g.first().copy(title = g.firstOrNull { it.title.isNotBlank() }?.title.orEmpty(), visits = g.sumOf { it.visits }) }
+            .take(limit)
 
     fun clear() = io.execute { helper.writableDatabase.delete("visits", null, null) }
 

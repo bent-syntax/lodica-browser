@@ -199,7 +199,7 @@ fun AuthenticatorSection() {
     }
 
     if (adding) {
-        var site by remember { mutableStateOf(TabManager.current?.host.orEmpty().removePrefix("www.")) }
+        var site by remember { mutableStateOf(TabManager.current?.takeIf { it.url.startsWith("http") }?.host.orEmpty().removePrefix("www.")) }
         var secret by remember { mutableStateOf("") }
         val fieldColors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,

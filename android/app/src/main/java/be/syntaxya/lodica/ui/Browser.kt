@@ -254,7 +254,7 @@ private fun HiddenEmailChip(tab: Tab) {
 @Composable
 private fun InstallChip(tab: be.syntaxya.lodica.tabs.Tab) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val name = remember(tab.manifest) { tab.manifest?.let { it.optString("short_name").ifEmpty { it.optString("name") } }.orEmpty() }
+    val name = remember(tab.manifest) { tab.manifest?.let { m -> listOf("short_name", "name").map { if (m.isNull(it)) "" else m.optString(it).trim() }.firstOrNull { it.isNotEmpty() } }.orEmpty() }
     Surface(shape = RoundedCornerShape(20.dp), color = GraphiteRaised, contentColor = Mist, shadowElevation = 4.dp, modifier = Modifier.padding(bottom = 6.dp)) {
         Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Install ${name.ifEmpty { tab.host }} as an app", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))

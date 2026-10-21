@@ -69,7 +69,7 @@ fun customPalette(c: CustomTheme): Palette {
 /** Picker entries: "system" first, then every palette. */
 val ThemeChoices: List<Pair<String, String>> =
     listOf("system" to "System") +
-        (if (android.os.Build.VERSION.SDK_INT >= 31) listOf("dynamic" to "System colours") else emptyList()) +
+        (if (android.os.Build.VERSION.SDK_INT >= 31) listOf("dynamic" to "Wallpaper") else emptyList()) +
         Palettes.map { it.key to it.label }
 
 /** Palette from the wallpaper-derived Material You scheme. */
@@ -77,7 +77,7 @@ val ThemeChoices: List<Pair<String, String>> =
 private fun dynamicPalette(ctx: android.content.Context, dark: Boolean): Palette {
     val s = if (dark) dynamicDarkColorScheme(ctx) else dynamicLightColorScheme(ctx)
     fun c(x: Color) = x.toArgb().toLong() and 0xFFFFFFFFL
-    return Palette("dynamic", "System colours", dark, c(s.surface), c(s.surfaceContainer), c(s.surfaceContainerHighest),
+    return Palette("dynamic", "Wallpaper", dark, c(s.surface), c(s.surfaceContainer), c(s.surfaceContainerHighest),
         c(s.primary), c(s.tertiary), c(s.onSurface), c(s.onSurfaceVariant))
 }
 

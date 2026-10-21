@@ -1546,13 +1546,24 @@ private fun DnsSection() {
             text = {
                 Column {
                     Text("Your own DNS over HTTPS address. Leave blank for the default.", fontSize = 13.sp)
+                    val bad = draft.isNotBlank() && !draft.trim().startsWith("https://")
                     OutlinedTextField(
                         draft, { draft = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
                         placeholder = { Text("https://dns.example.com/dns-query", color = Muted) }, colors = fieldColors,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri, autoCorrectEnabled = false,
+                        ),
+                        isError = bad,
+                        supportingText = if (bad) ({ Text("Address must start with https://", color = Color(0xFFEF5350)) }) else null,
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { Prefs.updateDnsServer(draft); server = false }) { Text("Save", color = Amber) } },
+            confirmButton = {
+                TextButton(
+                    onClick = { Prefs.updateDnsServer(draft); server = false },
+                    enabled = draft.isBlank() || draft.trim().startsWith("https://"),
+                ) { Text("Save", color = Amber) }
+            },
             dismissButton = { TextButton(onClick = { server = false }) { Text("Cancel", color = Muted) } },
         )
     }

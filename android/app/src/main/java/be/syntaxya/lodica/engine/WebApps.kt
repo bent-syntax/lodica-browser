@@ -107,9 +107,9 @@ object WebApps {
             // A manifest is only trusted when its start URL stays on the page's origin.
             m.optString("start_url").let { it.isEmpty() || origin(resolve(tab.url, it)) == origin }
         }
-        val label = listOf(manifest?.optString("short_name"), manifest?.optString("name"), tab.title, tab.host)
+        val label = listOf("short_name", "name").map { k -> manifest?.takeUnless { it.isNull(k) }?.optString(k) } .plus(listOf(tab.title, tab.host))
             .firstOrNull { !it.isNullOrBlank() }!!.trim().take(40)
-        val url = manifest?.optString("start_url")?.takeIf { it.isNotEmpty() }?.let { resolve(tab.url, it).toString() } ?: tab.url
+        val url = manifest?.takeUnless { it.isNull("start_url") }?.optString("start_url")?.takeIf { it.isNotEmpty() }?.let { resolve(tab.url, it).toString() } ?: tab.url
         val links = tab.icons
         toast(app, "Building $label…")
         io.execute {

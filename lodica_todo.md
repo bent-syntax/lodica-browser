@@ -21,6 +21,9 @@ Release assets: Android APK from `cd android && ./gradlew assembleRelease` (need
 
 ## Done
 
+### 1.11.9 (versionCode 65)
+- [x] Theme labels, DNS https check, Install "null", authenticator prefill, Reader headings/RTL/citations, History duplicates
+
 ### 1.11.8 (versionCode 64)
 - [x] Web scroll jank (1.11.7, SurfaceView default)
 - [x] Settings search, dropdown anchors, scroll position, history Just now, private badge, start page shortcuts, spell text

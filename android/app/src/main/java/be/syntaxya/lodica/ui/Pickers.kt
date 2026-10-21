@@ -85,6 +85,7 @@ fun ReaderSheet(title: String, text: String) {
     }
     DisposableEffect(tts) { onDispose { tts.stop(); tts.shutdown() } }
     val paragraphs = remember(text) { text.split("\n").map { it.trim() }.filter { it.isNotEmpty() } }
+    val spoken = remember(paragraphs) { paragraphs.map { it.removePrefix("## ") } }
 
     Dialog(
         onDismissRequest = { Ui.reader = null },
@@ -99,7 +100,7 @@ fun ReaderSheet(title: String, text: String) {
                         else {
                             val max = TextToSpeech.getMaxSpeechInputLength()
                             tts.speak(title, TextToSpeech.QUEUE_FLUSH, null, "t")
-                            paragraphs.flatMap { it.chunked(max) }.forEachIndexed { i, p ->
+                            spoken.flatMap { it.chunked(max) }.forEachIndexed { i, p ->
                                 tts.speak(p, TextToSpeech.QUEUE_ADD, null, "p$i")
                             }
                             speaking = true
@@ -113,11 +114,20 @@ fun ReaderSheet(title: String, text: String) {
                     }
                 }
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 8.dp)) {
-                    Text(title, color = Mist, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, lineHeight = 30.sp)
+                    Text(title, color = Mist, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, lineHeight = 30.sp,
+                        style = androidx.compose.ui.text.TextStyle(textDirection = androidx.compose.ui.text.style.TextDirection.Content))
                     Spacer(Modifier.padding(6.dp))
+                    val dir = androidx.compose.ui.text.style.TextDirection.Content
                     paragraphs.forEach {
-                        Text(it, color = Mist, fontSize = 17.sp, lineHeight = 27.sp, fontFamily = FontFamily.Serif,
-                            modifier = Modifier.padding(bottom = 14.dp))
+                        if (it.startsWith("## ")) {
+                            Text(it.removePrefix("## "), color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, lineHeight = 26.sp,
+                                style = androidx.compose.ui.text.TextStyle(textDirection = dir),
+                                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
+                        } else {
+                            Text(it, color = Mist, fontSize = 17.sp, lineHeight = 27.sp, fontFamily = FontFamily.Serif,
+                                style = androidx.compose.ui.text.TextStyle(textDirection = dir),
+                                modifier = Modifier.padding(bottom = 14.dp))
+                        }
                     }
                 }
             }
