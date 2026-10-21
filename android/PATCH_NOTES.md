@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.7-beta.1
+- Beta: caps page drawing to 60 Hz on Android 15+ to fix laggy scrolling on 120 Hz phones.
+
 ## 1.11.6
 - Beta: hidden scroll diagnostics (tap "Build" 5 times in About) showing GPU, render path and an fps / slow frame overlay. Used to track down laggy scrolling on some phones.
 
