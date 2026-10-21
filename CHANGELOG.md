@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.8 (versionCode 64)
+- Android: Settings search finds Smoother scrolling (now under Sites & domains). Dropdown menus open under their value. Settings keeps its scroll position and page when you come back from Server chat. History says "Just now" for fresh entries. Private badge stays on one line. Start page shortcuts show site names, skip error pages and are hidden in private tabs. Spell check says long-press.
+
 ## 1.11.6 (versionCode 54)
 - Android: beta build with hidden scroll diagnostics. In Settings > Updates & About, tap "Build" 5 times to show GPU, render path and a frame time overlay. No scrolling fix yet.
 

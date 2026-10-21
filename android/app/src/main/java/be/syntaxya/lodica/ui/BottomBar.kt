@@ -226,6 +226,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                 },
                 color = if (home || locked) Muted else Mist,
                 fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             val routed = !home && !locked && Relay.routed(tab!!.url)
             if (tab?.private == true || routed) Spacer(Modifier.weight(1f))
@@ -234,7 +235,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             }
             if (tab?.private == true) {
                 if (routed) Spacer(Modifier.width(6.dp))
-                Text("Private", color = Coral, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text("Private", color = Coral, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }
         }
         IconButton(onClick = { TabManager.open(TabManager.HOME, private = tab?.private == true); Ui.editing = false }) {

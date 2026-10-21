@@ -14,6 +14,9 @@ enum class Picker { Speed, Quality, Remind, RemindAt, Closed }
 /** UI-only state shared by the screens. Process-wide so it survives activity recreation. */
 object Ui {
     var screen by mutableStateOf(Screen.Browser)
+    /** Settings page open (-1 = home) and the home scroll, kept while Settings is off screen. */
+    var settingsTab by androidx.compose.runtime.mutableIntStateOf(-1)
+    val settingsHomeScroll = androidx.compose.foundation.ScrollState(0)
     var menuOpen by mutableStateOf(false)
     var editing by mutableStateOf(false)
     /** otpauth-migration:// link waiting for the import dialog in Settings. */

@@ -15,12 +15,15 @@ Release assets: Android APK from `cd android && ./gradlew assembleRelease` (need
 - `npm test` cannot run on this server (no Electron binary). The user runs it locally.
 
 ## Pending
-- [ ] Web scroll jank (about 29-33%) unresolved
 - [ ] Idle unload may kill background media tabs
 - [ ] Desktop docx editor is lossy for tables and images; legacy .doc unsupported
 - [ ] Desktop has no equivalent of the bar auto-hide and web app install
 
 ## Done
+
+### 1.11.8 (versionCode 64)
+- [x] Web scroll jank (1.11.7, SurfaceView default)
+- [x] Settings search, dropdown anchors, scroll position, history Just now, private badge, start page shortcuts, spell text
 
 ### 1.11.0 (versionCode 48)
 - [x] Search bar autocorrect toggle

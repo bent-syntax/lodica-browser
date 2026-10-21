@@ -141,9 +141,10 @@ fun SettingsScreen() {
     var confirm by remember { mutableStateOf<Confirm?>(null) }
     var pairing by remember { mutableStateOf(false) }
     var pairText by remember { mutableStateOf("") }
-    var tab by rememberSaveable { mutableIntStateOf(-1) }
+    var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
     val scroll = rememberScrollState()
+    val homeScroll = Ui.settingsHomeScroll
     LaunchedEffect(tab) { scroll.scrollTo(0) }
 
     Column(Modifier.fillMaxSize()) {
@@ -169,7 +170,7 @@ fun SettingsScreen() {
             return@Column
         }
         if (tab < 0) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(homeScroll).padding(bottom = 32.dp)) {
                 SettingsGroups.forEach { (group, pages) ->
                     Section(group)
                     Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(10.dp))) {
@@ -235,6 +236,7 @@ fun SettingsScreen() {
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()
             QualityPicker()
+            SwitchRow("Smoother scrolling", "Draws pages directly on screen, which scrolls smoother on most phones. Turn off if pages or tab previews look wrong. Restart the browser to apply", Prefs.fastRender) { Prefs.updateFastRender(it) }
                     Section("Custom DNS")
                     DnsSection()
                 }
@@ -337,7 +339,7 @@ fun SettingsScreen() {
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
 
                     Section("Spelling")
-            SwitchRow("Spell check", "Right-click a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }
+            SwitchRow("Spell check", "Long-press a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }
             if (Prefs.spell) {
                 SwitchRow("Auto-correct", "Fix words as you type. Backspace undoes a fix", Prefs.spellAuto) { Prefs.updateSpellAuto(it) }
                 val langs = listOf("en" to "English", "nl" to "Nederlands", "de" to "Deutsch", "fr" to "Français", "es" to "Español", "it" to "Italiano", "pt" to "Português", "sv" to "Svenska", "da" to "Dansk", "pl" to "Polski")
@@ -727,14 +729,16 @@ private fun QualityPicker() {
                 Text("Video quality", color = Mist, fontSize = 15.sp)
                 Text("YouTube default. Change per site from the site menu", color = Muted, fontSize = 13.sp)
             }
-            Text("${Prefs.quality}p", color = Muted, fontSize = 14.sp)
+            Text("${Prefs.quality}p", color = Muted, fontSize = 14.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
         }
-        DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            Prefs.QUALITIES.forEach { q ->
-                DropdownMenuItem(
-                    text = { Text("${q}p", color = if (q == Prefs.quality) Amber else Mist) },
-                    onClick = { Prefs.updateQuality(q); open = false },
-                )
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                Prefs.QUALITIES.forEach { q ->
+                    DropdownMenuItem(
+                        text = { Text("${q}p", color = if (q == Prefs.quality) Amber else Mist) },
+                        onClick = { Prefs.updateQuality(q); open = false },
+                    )
+                }
             }
         }
     }
@@ -785,12 +789,14 @@ private fun EnginePicker(title: String, current: SearchEngine, options: List<Sea
             Text(title, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(current.label, color = Muted, fontSize = 14.sp)
         }
-        DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            options.forEach { e ->
-                DropdownMenuItem(
-                    text = { Text(e.label, color = if (e == current) Amber else Mist) },
-                    onClick = { onPick(e); open = false },
-                )
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                options.forEach { e ->
+                    DropdownMenuItem(
+                        text = { Text(e.label, color = if (e == current) Amber else Mist) },
+                        onClick = { onPick(e); open = false },
+                    )
+                }
             }
         }
     }
@@ -807,12 +813,14 @@ private fun AgentPicker() {
             Text("Identify as", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(Prefs.userAgent.label, color = Muted, fontSize = 14.sp)
         }
-        DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            UserAgent.entries.forEach { e ->
-                DropdownMenuItem(
-                    text = { Text(e.label, color = if (e == Prefs.userAgent) Amber else Mist) },
-                    onClick = { Prefs.updateUserAgent(e); open = false },
-                )
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                UserAgent.entries.forEach { e ->
+                    DropdownMenuItem(
+                        text = { Text(e.label, color = if (e == Prefs.userAgent) Amber else Mist) },
+                        onClick = { Prefs.updateUserAgent(e); open = false },
+                    )
+                }
             }
         }
     }
@@ -829,12 +837,14 @@ private fun LanguagePicker() {
             Text("Site language", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(Prefs.language.label, color = Muted, fontSize = 14.sp)
         }
-        DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            Language.entries.forEach { e ->
-                DropdownMenuItem(
-                    text = { Text(e.label, color = if (e == Prefs.language) Amber else Mist) },
-                    onClick = { Prefs.updateLanguage(e); open = false },
-                )
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                Language.entries.forEach { e ->
+                    DropdownMenuItem(
+                        text = { Text(e.label, color = if (e == Prefs.language) Amber else Mist) },
+                        onClick = { Prefs.updateLanguage(e); open = false },
+                    )
+                }
             }
         }
     }
@@ -1021,7 +1031,7 @@ fun HistoryScreen() {
                     Column(Modifier.weight(1f)) {
                         Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            "${DateUtils.getRelativeTimeSpanString(v.last)} · ${v.url}",
+                            "${if (System.currentTimeMillis() - v.last < 60_000) "Just now" else DateUtils.getRelativeTimeSpanString(v.last)} · ${v.url}",
                             color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -1206,6 +1216,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("User agent", 11, "browser identity"),
     SettingsEntry("Language", 1, "accept language"),
     SettingsEntry("Video quality", 1, "data saver"),
+    SettingsEntry("Smoother scrolling", 1, "scroll smooth fast render surface lag jank restart"),
     SettingsEntry("Data use", 8, "meter bandwidth"),
     SettingsEntry("AI answers", 2, "ai generate always allow summary assistant"),
     SettingsEntry("AI chats", 2, "history assistant"),
@@ -1408,7 +1419,6 @@ private fun ControlsSection() {
     )
     Section("Toggles")
     SwitchRow("Swipe the address bar to change tab", "Swipe left or right on the URL pill", Prefs.gestureSwipeTabs) { Prefs.updateGestureSwipeTabs(it) }
-    SwitchRow("Smoother scrolling", "Draws pages directly on screen, which scrolls smoother on most phones. Turn off if pages or tab previews look wrong. Restart the browser to apply", Prefs.fastRender) { Prefs.updateFastRender(it) }
     SwitchRow("Hide bars on scroll", "Scrolling down tucks the toolbar away, scrolling up brings it back", Prefs.gestureBarHide) { Prefs.updateGestureBarHide(it) }
     Section("Gestures")
     GestureSlot.values().forEach { slot -> GestureRow(slot) }
@@ -1437,12 +1447,14 @@ private fun GestureRow(slot: GestureSlot) {
             Text(slot.label, color = Mist, fontSize = 14.sp, modifier = Modifier.weight(1f))
             Text(slot.action.label, color = Amber, fontSize = 13.sp)
         }
-        DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
-            GestureAction.values().forEach { a ->
-                DropdownMenuItem(
-                    text = { Text(a.label, color = if (a == slot.action) Amber else Mist) },
-                    onClick = { Prefs.updateGestureAction(slot.name, a.name); open = false },
-                )
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                GestureAction.values().forEach { a ->
+                    DropdownMenuItem(
+                        text = { Text(a.label, color = if (a == slot.action) Amber else Mist) },
+                        onClick = { Prefs.updateGestureAction(slot.name, a.name); open = false },
+                    )
+                }
             }
         }
     }

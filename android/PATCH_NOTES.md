@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.8
+- Settings search finds Smoother scrolling (now under Sites & domains). Dropdown menus open under their value. Settings keeps its scroll position and page when you come back from Server chat. History says "Just now" for fresh entries. Private badge stays on one line. Start page shortcuts show site names, skip error pages and are hidden in private tabs. Spell check says long-press.
+
 ## 1.11.7
 - "Smoother scrolling" is on by default and uses GeckoView's own SurfaceView, which scrolls much smoother on weak phones. Turn it off in Settings if pages or tab previews look wrong.
 

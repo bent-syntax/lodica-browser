@@ -425,8 +425,9 @@ private fun StartPage(modifier: Modifier) {
     }
     val mine = Prefs.quickList()
     val seen = mine.map { runCatching { android.net.Uri.parse(it.first).host.orEmpty() }.getOrDefault("") }.toSet()
-    val auto = if (Prefs.quickAuto) top.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in seen }.take(maxOf(0, 8 - mine.size)) else emptyList()
-    val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, it.title, false) }
+    val priv = TabManager.current?.private == true
+    val auto = if (Prefs.quickAuto && !priv) top.filter { !it.title.contains("Forbidden") && !it.title.startsWith("Problem loading") && !it.title.startsWith("Server not found") }.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in seen }.take(maxOf(0, 8 - mine.size)) else emptyList()
+    val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, runCatching { android.net.Uri.parse(it.url).host.orEmpty().removePrefix("www.") }.getOrDefault("").ifBlank { it.title }, false) }
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<Shortcut?>(null) }
     Box(modifier.background(Graphite)) {
