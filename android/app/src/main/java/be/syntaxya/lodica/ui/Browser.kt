@@ -372,9 +372,10 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
     AndroidView(
         factory = { ctx ->
             GeckoView(ctx).apply {
-                // A SurfaceView hands back blank frames to capturePixels (tab previews); a texture view is readable.
-                // Slow GPUs stutter on a texture view; the "Smoother scrolling" setting trades previews for speed.
-                setViewBackend(if (Prefs.fastRender) GeckoView.BACKEND_SURFACE_VIEW else GeckoView.BACKEND_TEXTURE_VIEW)
+                // GeckoView draws straight to a SurfaceView by default. Do not call setViewBackend(BACKEND_SURFACE_VIEW):
+                // re-creating the surface view leaves the compositor without a surface and every page stays blank.
+                // The TextureView option costs an extra GPU copy per frame and made scrolling choppy on 2-core GPUs.
+                if (!Prefs.fastRender) setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
             }
