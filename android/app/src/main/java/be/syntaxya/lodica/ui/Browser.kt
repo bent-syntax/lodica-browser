@@ -379,7 +379,8 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
         },
         update = { v ->
             Ui.gecko = v
-            v.visibility = if (covered) android.view.View.INVISIBLE else android.view.View.VISIBLE
+            // A hidden SurfaceView loses its surface and can come back blank, so only texture views are hidden.
+            v.visibility = if (covered && !Prefs.fastRender) android.view.View.INVISIBLE else android.view.View.VISIBLE
             if (v.session !== session) {
                 if (v.session != null) v.releaseSession()
                 if (session != null) {

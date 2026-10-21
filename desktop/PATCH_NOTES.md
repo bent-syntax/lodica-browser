@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.7-beta.2
+- No desktop changes (version bump for the Android release).
+
 ## 1.11.7-beta.1
 - No desktop changes (version bump for the Android release).
 

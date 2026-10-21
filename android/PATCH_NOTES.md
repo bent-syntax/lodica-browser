@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.7-beta.2
+- Beta: "Smoother scrolling" (draws pages directly on screen) is on by default again, with a fix for blank pages after opening menus. Turn it off in Settings if pages look blank.
+
 ## 1.11.7-beta.1
 - Beta: caps page drawing to 60 Hz on Android 15+ to fix laggy scrolling on 120 Hz phones.
 

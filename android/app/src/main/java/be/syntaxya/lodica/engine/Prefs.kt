@@ -109,7 +109,7 @@ object Prefs {
     /** Gesture toggles for the Keybinds and controls section. */
     var gestureSwipeTabs by mutableStateOf(true); private set
     var gestureBarHide by mutableStateOf(true); private set
-    var fastRender by mutableStateOf(false); private set
+    var fastRender by mutableStateOf(true); private set
     /** Chosen action per gesture slot (see GestureSlot); missing means the slot's default. */
     var gestureActions by mutableStateOf<Map<String, String>>(emptyMap()); private set
 
@@ -171,7 +171,7 @@ object Prefs {
         startBlur = sp.getFloat("startBlur", 0f)
         gestureSwipeTabs = sp.getBoolean("gestureSwipeTabs", true)
         gestureBarHide = sp.getBoolean("gestureBarHide", true)
-        fastRender = sp.getBoolean("fastRender2", false)
+        fastRender = sp.getBoolean("fastRender3", true)
         gestureActions = sp.getString("gestureActions", "")!!.split(',').mapNotNull { e ->
             e.split('=', limit = 2).takeIf { it.size == 2 && it[0].isNotBlank() }?.let { it[0] to it[1] }
         }.toMap()
@@ -207,7 +207,7 @@ object Prefs {
         gestureActions = gestureActions + (slot to action)
         sp.edit().putString("gestureActions", gestureActions.entries.joinToString(",") { "${it.key}=${it.value}" }).apply()
     }
-    fun updateFastRender(v: Boolean) { fastRender = v; sp.edit().putBoolean("fastRender2", v).apply() }
+    fun updateFastRender(v: Boolean) { fastRender = v; sp.edit().putBoolean("fastRender3", v).apply() }
     fun updateGestureBarHide(v: Boolean) { gestureBarHide = v; sp.edit().putBoolean("gestureBarHide", v).apply() }
 
     fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply(); Helper.push() }
