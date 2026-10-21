@@ -1298,6 +1298,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Data use", 8, "meter bandwidth"),
     SettingsEntry("AI answers", 2, "ai generate always allow summary assistant"),
     SettingsEntry("AI chats", 2, "history assistant"),
+    SettingsEntry("Emoji keyboard", 2, "custom emoji lodica keyboard import generate sticker"),
     SettingsEntry("Web apps", 8, "install shortcut silent"),
     SettingsEntry("Extensions", 8, "addons add-ons"),
     SettingsEntry("Theme", 3, "colours dark light logo icon"),
