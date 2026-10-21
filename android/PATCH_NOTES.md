@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.7-beta.4
+- Beta: removes the 60 Hz cap on page drawing (Android 15+) to test whether it caused uneven scrolling.
+
 ## 1.11.7-beta.3
 - Beta: "Smoother scrolling" is off by default again, because it showed blank pages on some phones (Redmi 12, Android 15). Turning it on later needs a restart.
 

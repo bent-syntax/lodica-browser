@@ -371,8 +371,6 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
                 // A SurfaceView hands back blank frames to capturePixels (tab previews); a texture view is readable.
                 // Slow GPUs stutter on a texture view; the "Smoother scrolling" setting trades previews for speed.
                 setViewBackend(if (Prefs.fastRender) GeckoView.BACKEND_SURFACE_VIEW else GeckoView.BACKEND_TEXTURE_VIEW)
-                // 120Hz panels give a texture view an 8.3ms budget that mid-range GPUs miss on every frame; 60Hz is smooth and fits.
-                if (android.os.Build.VERSION.SDK_INT >= 35) requestedFrameRate = 60f
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
             }
