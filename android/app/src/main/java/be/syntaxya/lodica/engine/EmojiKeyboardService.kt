@@ -425,7 +425,7 @@ class EmojiKeyboardService : InputMethodService() {
             }
             scroll.addView(grid)
         }
-        col.addView(scroll, LinearLayout.LayoutParams(-1, dp(200)))
+        col.addView(scroll, LinearLayout.LayoutParams(-1, dp(164)))
         return col
     }
 
