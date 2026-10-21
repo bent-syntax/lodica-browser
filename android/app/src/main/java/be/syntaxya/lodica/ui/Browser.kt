@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import be.syntaxya.lodica.engine.Diag
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -182,6 +183,8 @@ private fun BrowserScreen() {
         AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
             StartPage(Modifier.fillMaxSize())
         }
+        if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
+            modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
         if (tab?.crashed == true && !locked) CrashedView(tab)
         if (locked) LockedView()
 

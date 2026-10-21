@@ -92,6 +92,7 @@ import be.syntaxya.lodica.engine.ChatService
 import be.syntaxya.lodica.engine.ChromeImport
 import be.syntaxya.lodica.engine.Chats
 import be.syntaxya.lodica.engine.Engine
+import be.syntaxya.lodica.engine.Diag
 import be.syntaxya.lodica.engine.UpdateState
 import be.syntaxya.lodica.engine.Updater
 import be.syntaxya.lodica.engine.History
@@ -431,6 +432,13 @@ fun SettingsScreen() {
             InfoRow("Lodica", version)
             InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: "loading…")
             InfoRow("Engine", "GeckoView")
+            var taps by remember { mutableIntStateOf(0) }
+            Box(Modifier.clickable { taps++ }) { InfoRow("Build", android.os.Build.MODEL + ", Android " + android.os.Build.VERSION.RELEASE) }
+            if (taps >= 5) {
+                InfoRow("GPU", remember { Diag.gpu() })
+                InfoRow("Render path", if (Prefs.fastRender) "SurfaceView" else "TextureView")
+                SwitchRow("Frame time overlay", "Shows fps and slow frames on pages", Diag.overlay) { Diag.setOverlay(it) }
+            }
             var notes by remember { mutableStateOf(false) }
             LinkRow("What's new") { notes = true }
             if (notes) {
