@@ -156,7 +156,7 @@ private fun BrowserScreen() {
     LaunchedEffect(Unit) {
         snapshotFlow { Triple(Ui.barOffset, Ui.barHeight, TabManager.fullscreen) }.collect { (off, h, fs) ->
             val g = Ui.gecko ?: return@collect
-            if (fs) {
+            if (fs || true) {
                 g.setDynamicToolbarMaxHeight(0); g.setVerticalClipping(0)
             } else {
                 g.setDynamicToolbarMaxHeight(h.toInt())
@@ -388,7 +388,7 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
                     // select() activates the session before the view is attached; repeat it so the
                     // compositor resumes on the new surface.
                     if (TabManager.current?.locked != true) { session.setActive(true); session.setFocused(true) }
-                    v.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt())
+                    v.setDynamicToolbarMaxHeight(0)
                 }
             }
         },
