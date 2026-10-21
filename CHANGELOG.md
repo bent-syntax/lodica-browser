@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.10 (versionCode 66)
+- Android: Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) looks like the stock keyboard, with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
+- Relay: new /api/emojis endpoint (deploy the relay for emoji sync).
+
 ## 1.11.9 (versionCode 65)
 - Android: Theme names are clearer (Wallpaper instead of a second System). DNS server box rejects addresses not starting with https://. Install-as-app no longer shows "null". Authenticator pre-fills the current site. Reader renders headings, keeps right-to-left text aligned and drops citation markers, tables and infoboxes. History merges duplicate pages.
 

@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.10
+- No desktop changes (version bump for the Android release).
+
 ## 1.11.9
 - No desktop changes (version bump for the Android release).
 

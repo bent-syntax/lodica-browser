@@ -1,7 +1,10 @@
 # Patch notes
 
+## 1.11.10
+- Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) looks like the stock keyboard, with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
+
 ## 1.11.9
-- Theme names are clearer (Wallpaper instead of a second System). DNS server box rejects addresses not starting with https://. Install-as-app no longer shows "null". Authenticator pre-fills the current site. Reader renders headings, keeps right-to-left text aligned and drops citation markers, tables and infoboxes. History merges duplicate pages.
+- Theme names are clearer (Wallpaper instead of a second System). DNS server box rejects addresses that are not secure web addresses. Install-as-app no longer shows "null". Authenticator pre-fills the current site. Reader renders headings, keeps right-to-left text aligned and drops citation markers, tables and infoboxes. History merges duplicate pages.
 
 ## 1.11.8
 - Settings search finds Smoother scrolling (now under Sites & domains). Dropdown menus open under their value. Settings keeps its scroll position and page when you come back from Server chat. History says "Just now" for fresh entries. Private badge stays on one line. Start page shortcuts show site names, skip error pages and are hidden in private tabs. Spell check says long-press.
