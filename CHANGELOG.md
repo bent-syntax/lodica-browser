@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.6 (versionCode 54)
+- Android: beta build with hidden scroll diagnostics. In Settings > Updates & About, tap "Build" 5 times to show GPU, render path and a frame time overlay. No scrolling fix yet.
+
 ## 1.11.5 (versionCode 53)
 - Android: fixes blank pages in 1.11.4. "Smoother scrolling" is off by default again and the setting was reset, so it starts off for everyone.
 

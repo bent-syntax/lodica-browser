@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.6
+- No desktop changes (version bump for the Android release).
+
 ## 1.11.5
 - No desktop changes (version bump for the Android release).
 

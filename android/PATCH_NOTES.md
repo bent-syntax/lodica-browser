@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.6
+- Beta: hidden scroll diagnostics (tap "Build" 5 times in About) showing GPU, render path and an fps / slow frame overlay. Used to track down laggy scrolling on some phones.
+
 ## 1.11.5
 - Fixes pages showing blank in 1.11.4. "Smoother scrolling" is off again by default and was reset for everyone.
 
