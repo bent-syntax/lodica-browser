@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.11.7-beta.3
+- Beta: "Smoother scrolling" is off by default again, because it showed blank pages on some phones (Redmi 12, Android 15). Turning it on later needs a restart.
+
 ## 1.11.7-beta.2
 - Beta: "Smoother scrolling" (draws pages directly on screen) is on by default again, with a fix for blank pages after opening menus. Turn it off in Settings if pages look blank.
 
