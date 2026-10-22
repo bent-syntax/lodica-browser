@@ -229,7 +229,7 @@ private class MenuItem(
 @Composable
 private fun MenuCell(m: MenuItem, modifier: Modifier, pinned: Boolean = false, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(14.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
+        modifier.clip(RoundedCornerShape(18.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(m.icon, null, tint = m.tint, modifier = Modifier.size(24.dp))

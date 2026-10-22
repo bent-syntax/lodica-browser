@@ -171,7 +171,7 @@ private fun LinkStep(ctx: Context, clean: String, ok: Boolean, next: () -> Unit)
 @Composable
 private fun Choice(title: String, sub: String, onClick: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GraphiteRaised).clickable(onClick = onClick).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).clickable(onClick = onClick).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(title, color = Amber, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
@@ -189,7 +189,7 @@ private fun Primary(label: String, enabled: Boolean = true, onClick: () -> Unit)
 
 @Composable
 private fun Code(ctx: Context, text: String, copy: String = text) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GraphiteRaised).padding(12.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GraphiteRaised).padding(12.dp)) {
         Text(text, color = Mist, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 17.sp)
         TextButton(onClick = {
             (ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Lodica setup", copy))

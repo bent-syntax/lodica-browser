@@ -164,7 +164,7 @@ fun PickerDialog(p: Picker) {
     val heading = when (p) { Picker.Speed -> "Video speed"; Picker.Quality -> "Video quality for ${tab?.host.orEmpty().removePrefix("www.")}"; Picker.Remind, Picker.RemindAt -> "Remind me"; Picker.Closed -> "Recently closed" }
 
     Dialog(onDismissRequest = { Ui.picker = null }) {
-        Column(Modifier.width(300.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
+        Column(Modifier.width(300.dp).clip(RoundedCornerShape(24.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
             Text(heading, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp))
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 rows.forEach { (label, action) ->
@@ -262,7 +262,7 @@ fun askAi(question: String, context: String? = null) {
 @Composable
 fun AnswerSheet(a: Answer) {
     Dialog(onDismissRequest = { Ui.answer = null }) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(GraphiteRaised).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Ask AI", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 IconButton(onClick = { Ui.answer = null }, modifier = Modifier.size(32.dp)) {
@@ -292,7 +292,7 @@ fun TotpAskDialog(a: Ui.TotpAsk) {
     var answered = false
     fun done(e: be.syntaxya.lodica.engine.TotpEntry?) { if (answered) return; answered = true; Ui.totpAsk = null; a.onPick(e) }
     Dialog(onDismissRequest = { done(null) }) {
-        Column(Modifier.width(300.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
+        Column(Modifier.width(300.dp).clip(RoundedCornerShape(24.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
             Text(
                 "Which authenticator code for ${a.host.removePrefix("www.")}? It fills automatically next time.",
                 color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),

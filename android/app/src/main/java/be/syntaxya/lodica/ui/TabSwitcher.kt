@@ -152,7 +152,7 @@ fun TabSwitcher() {
                 }
                 item(key = "new-tab") {
                     val accent = if (private) Coral else Amber
-                    val shape = RoundedCornerShape(16.dp)
+                    val shape = RoundedCornerShape(22.dp)
                     Box(
                         Modifier.animateItem().fillMaxWidth().aspectRatio(0.8f).clip(shape)
                             .border(BorderStroke(1.5.dp, accent.copy(alpha = 0.5f)), shape)
@@ -228,7 +228,7 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(22.dp)
     val accent = if (incognito) Coral else Amber
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
@@ -272,7 +272,7 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
 @Composable
 private fun ArchivedRow(r: TabRecord, modifier: Modifier) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GraphiteRaised)
+        modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GraphiteRaised)
             .clickable { TabManager.unarchive(r); Ui.screen = Screen.Browser }
             .padding(start = 14.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,

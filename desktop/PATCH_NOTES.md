@@ -1,5 +1,8 @@
 # Patch notes
 
+## 1.12.0-beta.1 (redesign test)
+- Visual redesign: rounder sheets, dialogs, cards, pill URL bar, softer shadows, smoother motion.
+
 ## 1.11.12
 - Image search viewer has a close button (and Esc) and an "Open image" link.
 - Reader shows headings as headings, keeps right-to-left text aligned, drops citation markers, tables and infoboxes, and no longer repeats the title.

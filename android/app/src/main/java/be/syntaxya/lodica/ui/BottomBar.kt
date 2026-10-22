@@ -174,7 +174,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         Row(
             Modifier.weight(1f).height(40.dp)
                 .graphicsLayer { translationX = drag; alpha = 1f - (kotlin.math.abs(drag) / (threshold * 3)).coerceAtMost(0.5f) }
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(24.dp))
                 .background(Graphite)
                 .pointerInput(tab, Prefs.gestureSwipeTabs) {
                     if (!Prefs.gestureSwipeTabs) return@pointerInput
@@ -252,7 +252,7 @@ private fun Shield(tab: Tab?) {
     val trusted = tab?.trusted == true
     val on = Engine.ublock != null && !trusted
     Box(
-        Modifier.size(44.dp).clip(RoundedCornerShape(10.dp)).clickable(enabled = tab != null) {
+        Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).clickable(enabled = tab != null) {
             val t = tab ?: return@clickable
             val msg = when {
                 !TabManager.toggleTrust(t) -> "Wait for the page to load"
@@ -284,7 +284,7 @@ private fun TabCount(tab: Tab?) {
     val private = tab?.private == true
     val n = TabManager.tabs.count { it.private == private }
     Box(
-        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(10.dp)).clickable { openTabs() },
+        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(14.dp)).clickable { openTabs() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -327,7 +327,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     ) {
         IconButton(onClick = { Ui.editing = false }) { Icon(Icons.Rounded.ArrowBack, "Cancel", tint = Mist) }
         Box(
-            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(24.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -381,7 +381,7 @@ private fun FindBar() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(20.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(24.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(

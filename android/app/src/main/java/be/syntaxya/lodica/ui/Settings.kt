@@ -178,7 +178,7 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(homeScroll).padding(bottom = 32.dp)) {
                 SettingsGroups.forEach { (group, pages) ->
                     Section(group)
-                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(10.dp))) {
+                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(18.dp))) {
                         pages.forEachIndexed { n, i ->
                             if (n > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
                             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = i }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -191,7 +191,7 @@ fun SettingsScreen() {
                     }
                 }
                 Section("Danger zone")
-                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(10.dp))) {
+                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(18.dp))) {
                     LinkRow("Clear history", Coral) {
                         confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
                     }
@@ -1014,7 +1014,7 @@ internal fun rowIcon(title: String): ImageVector {
 
 @Composable
 private fun RowTile(icon: ImageVector, tint: androidx.compose.ui.graphics.Color = Muted) {
-    Box(Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(36.dp).clip(RoundedCornerShape(14.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
