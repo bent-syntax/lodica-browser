@@ -135,15 +135,9 @@ class MainActivity : HostActivity() {
         }
         if (i.action == SearchWidget.ACTION_SEARCH) {
             Ui.closeAll()
-            // Always a fresh tab, pointing at the last page visited (the home page when there is none).
-            Thread {
-                val last = runCatching { History.recent(1).firstOrNull()?.url }.getOrNull()?.takeIf { it.startsWith("http") }
-                runOnUiThread {
-                    TabManager.open(last ?: TabManager.HOME)
-                    // Focus the bar after the overlay is gone, so Settings cannot keep the keyboard.
-                    window.decorView.post { Ui.editing = true }
-                }
-            }.start()
+            // Always a fresh blank tab with the address bar focused, ready to type in.
+            TabManager.open(TabManager.HOME)
+            window.decorView.post { Ui.editing = true }
             return
         }
         if (i.action == Intent.ACTION_PROCESS_TEXT) {

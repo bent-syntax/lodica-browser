@@ -84,7 +84,11 @@ fun ReaderSheet(title: String, text: String) {
         holder[0]!!
     }
     DisposableEffect(tts) { onDispose { tts.stop(); tts.shutdown() } }
-    val paragraphs = remember(text) { text.split("\n").map { it.trim() }.filter { it.isNotEmpty() } }
+    val paragraphs = remember(text, title) {
+        val all = text.split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+        val first = all.firstOrNull()?.removePrefix("## ")?.trim()
+        if (first != null && (first.equals(title.trim(), true) || title.trim().startsWith(first, true) && first.length > 8)) all.drop(1) else all
+    }
     val spoken = remember(paragraphs) { paragraphs.map { it.removePrefix("## ") } }
 
     Dialog(

@@ -262,7 +262,7 @@ fun SettingsScreen() {
             Section("Extensions")
             ExtensionsSection()
 
-                    Section("Import from Chrome")
+            Section("Import from Chrome")
             ChromeImportSection()
                 }
                 3 -> {
@@ -747,10 +747,22 @@ private fun ExtensionsSection() {
     if (ex.busy) InfoRow("Working", "…")
     ex.status?.let { InfoRow("Status", it) }
     ex.hits.forEach { h -> LinkRow("Install ${h.name}", Amber) { ex.install(ctx, h) } }
+    var confirmRemove by remember { mutableStateOf<be.syntaxya.lodica.engine.Extensions.Item?>(null) }
+    confirmRemove?.let { i ->
+        AlertDialog(
+            onDismissRequest = { confirmRemove = null },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Remove ${i.name}?") },
+            text = { Text("The extension and its data are deleted.") },
+            confirmButton = { TextButton({ ex.remove(ctx, i); confirmRemove = null }) { Text("Remove", color = Amber) } },
+            dismissButton = { TextButton({ confirmRemove = null }) { Text("Cancel", color = Muted) } },
+        )
+    }
+    InfoRow("Installed", if (ex.installed.isEmpty()) "No extensions yet" else "${ex.installed.size}")
     ex.installed.forEach { i ->
         SwitchRow(i.name, "v${i.version}", i.enabled) { ex.toggle(ctx, i) }
         if (i.enabled && ex.hasAction(i)) LinkRow("Open ${i.name}", Amber) { ex.openAction(i) }
-        LinkRow("Remove ${i.name}", Muted) { ex.remove(ctx, i) }
+        LinkRow("Remove ${i.name}", Muted) { confirmRemove = i }
     }
 }
 
