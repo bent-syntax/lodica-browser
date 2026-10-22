@@ -210,6 +210,7 @@ object Helper {
 
     /** Asks the tab's top frame for its main text; the answer arrives as an "article" message. */
     fun reader(tab: Tab): Boolean {
+        Log.i(TAG, "reader tab=${System.identityHashCode(tab)} frames=${frames.size}")
         val list = frames[tab]?.takeIf { it.isNotEmpty() } ?: return false
         val msg = JSONObject().put("type", "reader").put("value", "")
         for (f in list) f.port.postMessage(msg)
@@ -351,6 +352,7 @@ object Helper {
     private class Content(val tab: Tab) : WebExtension.MessageDelegate {
         override fun onConnect(port: WebExtension.Port) {
             val frame = Frame(port)
+            Log.i(TAG, "content connected tab=${System.identityHashCode(tab)}")
             frames.getOrPut(tab) { ArrayList() }.add(frame)
             resume(tab, port)
             port.setDelegate(object : WebExtension.PortDelegate {
