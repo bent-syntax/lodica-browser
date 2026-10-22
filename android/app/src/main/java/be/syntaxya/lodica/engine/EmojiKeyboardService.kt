@@ -407,11 +407,12 @@ class EmojiKeyboardService : InputMethodService() {
             } else {
                 items.forEach { e ->
                     val iv = ImageView(this).apply {
-                        setPadding(dp(6), dp(6), dp(6), dp(6))
+                        setPadding(dp(8), dp(8), dp(8), dp(8))
+                        background = bg(letterColor(), 10)
                         bitmap(e.name)?.let { setImageBitmap(it) }
                         setOnClickListener { performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP); sendCustom(e.name) }
                     }
-                    grid.addView(iv, GridLayout.LayoutParams().apply { width = cell; height = cell })
+                    grid.addView(iv, GridLayout.LayoutParams().apply { width = cell - dp(4); height = cell - dp(4); setMargins(dp(2), dp(2), dp(2), dp(2)) })
                 }
                 scroll.addView(grid)
             }
@@ -425,7 +426,7 @@ class EmojiKeyboardService : InputMethodService() {
             }
             scroll.addView(grid)
         }
-        col.addView(scroll, LinearLayout.LayoutParams(-1, dp(164)))
+        col.addView(scroll, LinearLayout.LayoutParams(-1, if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) dp(110) else dp(164)))
         return col
     }
 
@@ -444,7 +445,7 @@ class EmojiKeyboardService : InputMethodService() {
             }.getOrDefault(false)
             if (ok) return
         }
-        typeText(":$name:")
+        typeText(if (name.all { it.isDigit() }) ":emoji$name:" else ":$name:")
     }
 
     // ---------------------------------------------------------------- view factories

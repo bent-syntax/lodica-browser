@@ -133,6 +133,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInParent
 import be.syntaxya.lodica.ui.theme.Palettes
 import be.syntaxya.lodica.ui.theme.ThemeChoices
 
@@ -146,9 +148,9 @@ fun SettingsScreen() {
     var pairText by remember { mutableStateOf("") }
     var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
-    val scroll = rememberScrollState()
+    val scroll = Ui.settingsPageScroll
     val homeScroll = Ui.settingsHomeScroll
-    LaunchedEffect(tab) { scroll.scrollTo(0) }
+    LaunchedEffect(tab) { if (tab < 0) Ui.settingsTarget = null; if (Ui.settingsTarget == null) scroll.scrollTo(0) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
         androidx.activity.compose.BackHandler(enabled = tab >= 0 || find.isNotBlank()) { if (find.isNotBlank()) find = "" else tab = -1 }
@@ -164,7 +166,7 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
                 if (hits.isEmpty()) Text("No setting matches", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
                 hits.forEach { e ->
-                    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
+                    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { Ui.settingsTarget = e.title; tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
                         Text(e.title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                         Text(SettingsTabs[e.tab], color = Muted, fontSize = 13.sp)
                     }
@@ -849,9 +851,12 @@ internal fun TopBar(title: String, onBack: () -> Unit) {
 
 @Composable
 internal fun Section(title: String) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     Text(
         title, color = Muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 4.dp),
+        modifier = Modifier.onGloballyPositioned { c ->
+            if (Ui.settingsTarget == title) { Ui.settingsTarget = null; val y = c.positionInParent().y.toInt(); scope.launch { Ui.settingsPageScroll.scrollTo(y) } }
+        }.padding(start = 20.dp, top = 24.dp, bottom = 4.dp),
     )
 }
 

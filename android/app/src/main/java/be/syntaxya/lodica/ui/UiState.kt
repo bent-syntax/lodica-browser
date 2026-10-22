@@ -20,6 +20,9 @@ object Ui {
     /** Settings page open (-1 = home) and the home scroll, kept while Settings is off screen. */
     var settingsTab by androidx.compose.runtime.mutableIntStateOf(-1)
     val settingsHomeScroll = androidx.compose.foundation.ScrollState(0)
+    /** Scroll of the open Settings page, and a section title a search hit wants scrolled to. */
+    val settingsPageScroll = androidx.compose.foundation.ScrollState(0)
+    var settingsTarget by mutableStateOf<String?>(null)
     var menuOpen by mutableStateOf(false)
     var editing by mutableStateOf(false)
     /** otpauth-migration:// link waiting for the import dialog in Settings. */
