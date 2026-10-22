@@ -2,8 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.11.11 (versionCode 77)
+- Android: Fixes: date and file inputs work, Reader no longer repeats the title and works after upgrades, Inbox retry, archived rows, landscape keyboard, false crash screen, shared searches use a public link, image search viewer has a close button and Open image link, spell-check language label, alias reuse on sign-up forms, and other small fixes.
+
 ## 1.11.10 (versionCode 66)
-- Android: Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) looks like the stock keyboard, with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
+- Android: Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
 - Relay: new /api/emojis endpoint (deploy the relay for emoji sync).
 
 ## 1.11.9 (versionCode 65)

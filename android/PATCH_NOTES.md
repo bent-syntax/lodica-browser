@@ -1,7 +1,10 @@
 # Patch notes
 
+## 1.11.11
+- Fixes: date and file inputs work, Reader no longer repeats the title and works after upgrades, Inbox retry, archived rows, landscape keyboard, false crash screen, shared searches use a public link, image search viewer has a close button and Open image link, spell-check language label, alias reuse on sign-up forms, and other small fixes.
+
 ## 1.11.10
-- Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) looks like the stock keyboard, with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
+- Custom emoji keyboard: Lodica Keyboard (Settings > AI answers > Emoji keyboard) with better autocorrect and a ★ tab of custom emojis. Import emojis from an image or generate one with your Anthropic key. Emojis sync with your server and send as images where the app accepts them, otherwise as :name:. Settings search finds the Emoji keyboard section.
 
 ## 1.11.9
 - Theme names are clearer (Wallpaper instead of a second System). DNS server box rejects addresses that are not secure web addresses. Install-as-app no longer shows "null". Authenticator pre-fills the current site. Reader renders headings, keeps right-to-left text aligned and drops citation markers, tables and infoboxes. History merges duplicate pages.
