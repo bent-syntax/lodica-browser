@@ -109,3 +109,4 @@ body:not(.home) #topbar, body:not(.home) #addsite, body:not(.home) #autorow { di
 
 .lg-t { fill: var(--text); }
 .lg-a { fill: var(--amber); }
+#viewer #vclose { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border: 0; border-radius: 22px; background: rgba(255,255,255,.15); color: #fff; font-size: 20px; }

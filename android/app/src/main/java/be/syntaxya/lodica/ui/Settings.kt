@@ -350,6 +350,7 @@ fun SettingsScreen() {
             if (Prefs.spell) {
                 SwitchRow("Auto-correct", "Fix words as you type. Backspace undoes a fix", Prefs.spellAuto) { Prefs.updateSpellAuto(it) }
                 val langs = listOf("en" to "English", "nl" to "Nederlands", "de" to "Deutsch", "fr" to "Français", "es" to "Español", "it" to "Italiano", "pt" to "Português", "sv" to "Svenska", "da" to "Dansk", "pl" to "Polski")
+                Text("Languages to check and correct. Tap to turn on or off", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                 for (row in langs.chunked(3)) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         for ((code, name) in row) {

@@ -122,7 +122,11 @@ fun MenuSheet() {
                     else Icon(Icons.Rounded.Refresh, "Reload", tint = Mist)
                 }
                 IconButton(onClick = {
-                    tab?.let { Prompts.host?.share(it.title, null, Prefs.cleanUrl(it.url)) }
+                    tab?.let {
+                        val q = Prefs.searchQuery(it.url)
+                        if (q != null) Prompts.host?.share(q, null, Prefs.resolve(q))
+                        else Prompts.host?.share(it.title, null, Prefs.cleanUrl(it.url))
+                    }
                     close()
                 }, enabled = tab != null && tab.url != TabManager.HOME) {
                     Icon(Icons.Rounded.Share, "Share", tint = Mist)

@@ -242,7 +242,10 @@ function renderImages(data) {
 
 function view(x, u) {
   const v = el("div", { id: "viewer" }, img(x.f || x.i, null, x.t),
-    el("div", { class: "cap" }, x.t || "", el("a", { href: u }, "Visit " + (x.h || "page"))));
+    el("div", { class: "cap" }, x.t || "", el("a", { href: u }, "Visit " + (x.h || "page")),
+      el("a", { href: safe(x.f || x.i) || u }, "Open image")),
+    el("button", { id: "vclose", "aria-label": "Close" }, "\u2715"));
+  v.querySelector("#vclose").addEventListener("click", () => v.remove());
   v.addEventListener("click", (e) => { if (e.target === v || e.target.tagName === "IMG") v.remove(); });
   document.body.append(v);
 }
