@@ -345,7 +345,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 keyboardActions = KeyboardActions(onGo = { go(query.text) }),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus),
                 decorationBox = { inner ->
-                    if (query.text.isEmpty()) Text("Search ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
+                    if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
                     inner()
                 },
             )
