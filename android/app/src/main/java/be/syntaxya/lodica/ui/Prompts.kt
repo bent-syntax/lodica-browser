@@ -214,17 +214,30 @@ object Prompts : PromptDelegate, PermissionDelegate {
         return GeckoResult.fromValue(p.confirm(if (ok) PromptDelegate.SharePrompt.Result.SUCCESS else PromptDelegate.SharePrompt.Result.FAILURE))
     }
 
+    private fun copyToCache(u: Uri): Uri? = runCatching {
+        if (u.scheme == "file") return u
+        val name = app.contentResolver.query(u, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { if (it.moveToFirst()) it.getString(0) else null }
+            ?.replace(Regex("[/\\\\]"), "_")?.takeIf { it.isNotBlank() } ?: "upload"
+        val dir = java.io.File(app.cacheDir, "uploads/${System.nanoTime()}").apply { mkdirs() }
+        val f = java.io.File(dir, name)
+        app.contentResolver.openInputStream(u)!!.use { i -> f.outputStream().use { i.copyTo(it) } }
+        Uri.fromFile(f)
+    }.getOrNull()
+
     override fun onFilePrompt(s: GeckoSession, p: PromptDelegate.FilePrompt): GeckoResult<PromptResponse> {
         val h = host ?: return GeckoResult.fromValue(p.dismiss())
         val r = result()
         val mimes = p.mimeTypes?.filterNotNull()?.toTypedArray() ?: emptyArray()
         h.pickFiles(mimes, p.type == PromptDelegate.FilePrompt.Type.MULTIPLE, p.capture != PromptDelegate.FilePrompt.Capture.NONE) { uris ->
             if (p.isComplete) return@pickFiles
+            // Gecko can't resolve some document-provider content:// URIs ("Unrecognized path"), so hand it cache copies.
+            val local = uris?.mapNotNull { copyToCache(it) }?.toTypedArray()
             r.complete(
                 when {
-                    uris.isNullOrEmpty() -> p.dismiss()
-                    p.type == PromptDelegate.FilePrompt.Type.MULTIPLE -> p.confirm(app, uris)
-                    else -> p.confirm(app, uris[0])
+                    local.isNullOrEmpty() -> p.dismiss()
+                    p.type == PromptDelegate.FilePrompt.Type.MULTIPLE -> p.confirm(app, local)
+                    else -> p.confirm(app, local[0])
                 }
             )
         }
