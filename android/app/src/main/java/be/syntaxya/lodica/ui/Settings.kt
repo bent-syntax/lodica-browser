@@ -153,7 +153,7 @@ fun SettingsScreen() {
     LaunchedEffect(tab) { if (tab < 0) Ui.settingsTarget = null; if (Ui.settingsTarget == null) scroll.scrollTo(0) }
 
     Column(Modifier.fillMaxSize().imePadding()) {
-        androidx.activity.compose.BackHandler(enabled = tab >= 0 || find.isNotBlank()) { if (find.isNotBlank()) find = "" else tab = -1 }
+        androidx.activity.compose.BackHandler(enabled = Ui.screen == Screen.Settings && (tab >= 0 || find.isNotBlank())) { if (find.isNotBlank()) find = "" else tab = -1 }
         if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
         else {
             TopBar(if (find.isBlank()) "" else "Find") { if (find.isNotBlank()) find = "" else Ui.screen = Screen.Browser }
