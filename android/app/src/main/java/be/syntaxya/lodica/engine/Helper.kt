@@ -57,7 +57,7 @@ object Helper {
     }
 
     /** An alias waiting for its frames to report whether they could fill it. */
-    private class Fill(val alias: Alias, val signup: Signup, val waiting: MutableSet<WebExtension.Port>) {
+    private class Fill(val alias: Alias, val signup: Signup, val waiting: MutableSet<WebExtension.Port>, val fresh: Boolean = true) {
         var ok = false
     }
 
@@ -137,10 +137,12 @@ object Helper {
         if (!Relay.available) return false
         val list = frames[tab]?.takeIf { it.isNotEmpty() } ?: return false
         val targets = list.filter { it.focus }.ifEmpty { list }
-        pending.remove(tab)?.let { if (!it.ok) Relay.forget(it.alias) }
+        pending.remove(tab)?.let { if (!it.ok && it.fresh) Relay.forget(it.alias) }
+        val before = Relay.aliases.size
         val alias = Relay.newAlias(tab.host.ifBlank { "site" })
+        val fresh = Relay.aliases.size > before
         val signup = Signup(alias, password(), username(), FIRST.pick(), LAST.pick())
-        pending[tab] = Fill(alias, signup, targets.mapTo(HashSet()) { it.port })
+        pending[tab] = Fill(alias, signup, targets.mapTo(HashSet()) { it.port }, fresh)
         val msg = signup.json("fill")
         for (f in targets) f.port.postMessage(msg)
         return true

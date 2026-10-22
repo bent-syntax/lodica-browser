@@ -447,6 +447,7 @@ object Relay {
         val parts = base.split('.').filter { it.isNotEmpty() }
         val name = (if (parts.size >= 2) parts[parts.size - 2] else parts.firstOrNull()).orEmpty()
         val slug = name.replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).ifEmpty { "site" }
+        aliases.firstOrNull { it.site == base }?.let { return it }
         val abc = "abcdefghijklmnopqrstuvwxyz0123456789"
         val tail = (1..6).map { abc[rnd.nextInt(abc.length)] }.joinToString("")
         val a = Alias("$slug-$tail@$DOMAIN", base)
