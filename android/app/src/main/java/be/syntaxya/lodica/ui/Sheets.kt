@@ -155,8 +155,9 @@ fun MenuSheet() {
                     add(MenuItem("inbox", Icons.Rounded.Inbox, "Inbox") { Ui.go(Screen.Inbox) })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy
-                        add(MenuItem("dummy", Icons.Rounded.AlternateEmail, if (off) "Dummy mail off" else "Dummy mail on", if (off) Amber else Mist) {
+                        add(MenuItem("dummy", Icons.Rounded.AlternateEmail, if (off) "Email prompt off" else "Email prompt on", if (off) Amber else Mist) {
                             Prefs.toggleNoDummy(tab.host)
+                            Toast.makeText(ctx, if (off) "Hidden email offered on this site" else "Hidden email not offered on this site", Toast.LENGTH_SHORT).show()
                         })
                     }
                 }
@@ -167,11 +168,13 @@ fun MenuSheet() {
                     val lite = tab.host in Prefs.lite
                     add(MenuItem("lite", Icons.Rounded.DataSaverOn, if (lite) "Full site" else "Lite mode", if (lite) Amber else Mist) {
                         Prefs.toggleLite(tab.host); tab.session?.reload()
+                        Toast.makeText(ctx, if (lite) "Full site" else "Lite mode on for this site", Toast.LENGTH_SHORT).show()
                     })
                     add(MenuItem("remind", Icons.Rounded.Alarm, "Remind me") { Ui.picker = Picker.Remind })
                     val compat = Prefs.isCompat(tab.host)
                     add(MenuItem("compat", Icons.Rounded.Build, if (compat) "Compat on" else "Compat mode", if (compat) Amber else Mist) {
                         TabManager.setCompat(tab, !compat)
+                        Toast.makeText(ctx, if (compat) "Compat mode off" else "Compat mode on for this site", Toast.LENGTH_SHORT).show()
                     })
                     if (!tab.private) add(MenuItem("install", Icons.Rounded.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
                 }
@@ -179,7 +182,7 @@ fun MenuSheet() {
                     if (Prefs.speed != 1f) Amber else Mist) { Ui.picker = Picker.Speed })
                 if (tab != null) {
                     val q = Prefs.qualityFor(tab.host)
-                    add(MenuItem("quality", Icons.Rounded.HighQuality, "Quality ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
+                    add(MenuItem("quality", Icons.Rounded.HighQuality, "Video ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
                         Ui.picker = Picker.Quality
                     })
                 }
@@ -187,7 +190,7 @@ fun MenuSheet() {
                     add(MenuItem("closed", Icons.Rounded.RestoreFromTrash, "Closed tabs") { Ui.picker = Picker.Closed })
                 }
                 if (tab != null && !tab.private && tab.url != TabManager.HOME) {
-                    add(MenuItem("archive", Icons.Rounded.Inventory2, "Archive tab") { TabManager.archive(tab) })
+                    add(MenuItem("archive", Icons.Rounded.Inventory2, "Archive tab") { TabManager.archive(tab); Toast.makeText(ctx, "Tab archived", Toast.LENGTH_SHORT).show() })
                 }
             }
             var all by remember { mutableStateOf(false) }

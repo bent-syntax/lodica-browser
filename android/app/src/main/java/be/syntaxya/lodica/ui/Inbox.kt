@@ -68,7 +68,12 @@ private fun MailList() {
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
             item { Section("Mail") }
-            Relay.error?.let { e -> item { Text(e, color = Coral, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp)) } }
+            Relay.error?.let { e -> item {
+                Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(e, color = Coral, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { Relay.refresh() }, enabled = !Relay.loading) { Text("Retry", color = Amber) }
+                }
+            } }
             if (Relay.mails.isEmpty()) item {
                 Text(
                     if (Relay.loading) "Loading…" else if (Relay.error != null) "Mail unknown. Tap refresh to retry" else "No mail yet",

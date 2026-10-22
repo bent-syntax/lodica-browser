@@ -241,7 +241,7 @@ fun SettingsScreen() {
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()
             QualityPicker()
-            SwitchRow("Smoother scrolling", "Draws pages directly on screen, which scrolls smoother on most phones. Turn off if pages or tab previews look wrong. Restart the browser to apply", Prefs.fastRender) { Prefs.updateFastRender(it) }
+            SwitchRow("Smoother scrolling", "Faster page drawing. Takes effect after you restart the browser", Prefs.fastRender) { Prefs.updateFastRender(it) }
                     Section("Custom DNS")
                     DnsSection()
                 }
@@ -599,7 +599,7 @@ private fun EmojiKeyboardSection() {
         val bmp = remember(e.name, e.at) { android.graphics.BitmapFactory.decodeFile(Emojis.file(e.name).path)?.asImageBitmap() }
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (bmp != null) androidx.compose.foundation.Image(bmp, e.name, Modifier.size(32.dp))
-            Text(":${e.name}:", color = Mist, modifier = Modifier.weight(1f).padding(start = 12.dp))
+            Text(if (e.name.all { it.isDigit() }) "Custom emoji" else e.name, color = Mist, modifier = Modifier.weight(1f).padding(start = 12.dp))
             IconButton(onClick = { Emojis.remove(e.name) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Coral) }
         }
     }
@@ -961,7 +961,18 @@ internal fun rowIcon(title: String): ImageVector {
     val t = title.lowercase()
     fun has(vararg k: String) = k.any { t.contains(it) }
     return when {
-        has("clear", "reset", "disconnect", "forget", "delete", "remove") -> Icons.Rounded.DeleteOutline
+        has("notification") -> Icons.Rounded.Notifications
+        has("battery") -> Icons.Rounded.BatteryChargingFull
+        has("disconnect") -> Icons.Rounded.LinkOff
+        has("set up", "setup") -> Icons.Rounded.Settings
+        has("instant") -> Icons.Rounded.Bolt
+        has("anthropic", "api key") -> Icons.Rounded.Key
+        has("memory") -> Icons.Rounded.Memory
+        has("own domain") -> Icons.Rounded.Public
+        has("original domain") -> Icons.Rounded.Link
+        has("shortcut") -> Icons.Rounded.Bolt
+        has("smoother", "scrolling") -> Icons.Rounded.Swipe
+        has("clear", "reset", "forget", "delete", "remove") -> Icons.Rounded.DeleteOutline
         has("history") -> Icons.Rounded.History
         has("password") -> Icons.Rounded.Key
         has("authenticator") -> Icons.Rounded.Shield
@@ -1526,11 +1537,14 @@ private fun GestureRow(slot: GestureSlot) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
-            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 20.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(slot.label, color = Mist, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            RowTile(Icons.Rounded.Gesture)
+            Spacer(Modifier.width(14.dp))
+            Text(slot.label, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(slot.action.label, color = Amber, fontSize = 13.sp)
+            Icon(Icons.Rounded.ArrowDropDown, null, tint = Muted)
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
