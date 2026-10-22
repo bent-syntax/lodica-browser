@@ -208,6 +208,8 @@ function newAlias(host) {
   const labels = base.split(".");
   const name = labels.length > 1 ? labels[labels.length - 2] : labels[0];
   const slug = name.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "site";
+  const old = state.aliases.find(a => a.site === base);
+  if (old) return { ...old, reused: true }; // same site, same address
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
   let tail = ""; for (let i = 0; i < 6; i++) tail += chars[crypto.randomInt(chars.length)];
   const alias = { address: `${slug}-${tail}@${DOMAIN}`, site: base, created: Date.now() };

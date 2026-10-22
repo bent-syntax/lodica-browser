@@ -59,7 +59,9 @@ function openReader() {
     } }, "Read aloud");
     sheet({ title: "Reader", key: "reader", tall: true, wide: true, head: tts,
       onClose: () => { if (speaking) speechSynthesis.cancel(); } }, (b) => {
-      b.append(h("div", { class: "prose" }, r.title ? h("h1", { text: r.title }) : null, r.text));
+      // Headings come as "## text", list items as "• text"; dir=auto keeps right-to-left text aligned right.
+      b.append(h("div", { class: "prose" }, r.title ? h("h1", { text: r.title, dir: "auto" }) : null,
+        r.text.split("\n\n").map(p => p.startsWith("## ") ? h("h2", { text: p.slice(3), dir: "auto" }) : h("p", { text: p, dir: "auto" }))));
     });
   });
 }

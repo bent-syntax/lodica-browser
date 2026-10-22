@@ -19,7 +19,7 @@ function openHistory() {
         list.append(h("div", { class: "row click", act: () => { L.close(); inv("go", r.url); } },
           ico("globe"),
           h("div", { class: "main" }, h("div", { class: "t1", text: r.title || r.url }), h("div", { class: "t2", text: hostOf(r.url) })),
-          h("span", { class: "side", text: new Date(r.time || 0).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }),
+          h("span", { class: "side", text: Date.now() - (r.time || 0) < 6e4 ? "Just now" : new Date(r.time || 0).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }),
           ib("close", "Remove", async () => { await inv("history.delete", r.url); load(input.value); })));
       }
     };

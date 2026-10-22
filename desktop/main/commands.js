@@ -316,7 +316,15 @@ function init(deps) {
 
   on("share", (url, raw) => {
     const u0 = str(url) || cur()?.url || "";
-    const u = raw ? u0 : cleanUrl(u0);
+    let u = raw ? u0 : cleanUrl(u0);
+    if (u0.startsWith("lodica://search/")) {
+      // Lodica Search pages are local to this app: share the same query on a public engine.
+      const q = new URL(u0.replace("lodica://", "http://x/")).searchParams.get("q");
+      if (q) {
+        const eng = prefs.p.search && prefs.p.search !== "LODICA" ? prefs.p.search : prefs.p.searchFallback;
+        u = prefs.ENGINES[eng].query.replace("%s", encodeURIComponent(q));
+      }
+    }
     if (!u) return false;
     clipboard.writeText(u);
     ui.toast("Link copied");

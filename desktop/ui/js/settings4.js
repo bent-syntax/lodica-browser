@@ -57,7 +57,7 @@ async function openAuthenticator() {
             h("div", { class: "t1", text: r.label }),
             h("div", { class: "t2", text: shown + " · " + r.left + "s · " + (r.host ? "auto-fills on " + r.host : "copy only") })),
           ib("globe", "Auto-fill site", async () => {
-            const site = await textDialog({ title: "Auto-fill site", message: "Site, e.g. github.com. Leave empty for copy only.", value: r.host, ok: "Save" });
+            const site = await textDialog({ title: "Auto-fill site", message: "Site, e.g. github.com. Leave empty for copy only.", value: r.host || (S.tab && /^https?:/.test(S.tab.url || "") ? hostOf(S.tab.url) : ""), ok: "Save" });
             if (site != null) { await inv("auth.setHost", r.id, String(site).trim()); load(); }
           }),
           ib("edit", "Rename", async () => {

@@ -1353,9 +1353,11 @@ const lodicaMain = () => {
     const root = best && best.closest("article, main, [role=main]") || best || document.body;
     const parts = [];
     for (const el of root.querySelectorAll("h1, h2, h3, h4, p, li, blockquote, pre")) {
-      if (el.closest("nav, footer, aside, form, figure figcaption, [aria-hidden=true]")) continue;
+      if (el.closest("nav, footer, aside, form, table, figure figcaption, [aria-hidden=true], .infobox, .navbox, .reflist")) continue;
       if (el.parentElement && el.parentElement.closest("p, li, blockquote")) continue;
-      const t = el.textContent.replace(/\s+/g, " ").trim();
+      // Citation markers like [12] or [citation needed] are noise in reading text.
+      const t = el.textContent.replace(/\[(\d+|[a-z]|citation needed|edit)\]/gi, "").replace(/\s+/g, " ").trim();
+      if (el.tagName === "H1" && t === (document.querySelector("h1")?.textContent || "").trim()) continue;
       if (t.length < (/^H/.test(el.tagName) ? 2 : 25)) continue;
       parts.push(/^H/.test(el.tagName) ? "## " + t : el.tagName === "LI" ? "• " + t : t);
     }

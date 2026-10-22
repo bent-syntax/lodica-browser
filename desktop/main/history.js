@@ -9,9 +9,13 @@ const persistSearches = () => store.save("searches", () => searches, 2000);
 const SEARCH_CAP = 500;
 const web = u => /^https?:\/\//i.test(u || "");
 
+// Same page with a different fragment, trailing slash or www merges into one entry.
+const key = u => u.replace(/#.*$/, "").replace(/^https?:\/\/(www\.)?/i, "").replace(/\/$/, "").toLowerCase();
+
 function add(url, title) {
   if (!web(url)) return;
-  const i = entries.findIndex(e => e.url === url);
+  const k = key(url);
+  const i = entries.findIndex(e => key(e.url) === k);
   const old = i >= 0 ? entries.splice(i, 1)[0] : null;
   entries.unshift({ url, title: title || old?.title || url, time: Date.now(), visits: (old?.visits || 0) + 1 });
   if (entries.length > CAP) entries.length = CAP;

@@ -66,7 +66,7 @@ function fill(tab) {
   const focused = list.filter(f => f.focus);
   const targets = focused.length ? focused : list;
   const prev = pending.get(tab);
-  if (prev && !prev.ok) Relay.forget(prev.alias.address);
+  if (prev && !prev.ok && !prev.alias.reused) Relay.forget(prev.alias.address);
   if (!targets.length) { deps.ui.toast("No email field on this page"); return; }
   const alias = Relay.newAlias(tab.host || "site");
   const signup = newSignup(alias);

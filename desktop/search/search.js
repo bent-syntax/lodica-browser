@@ -250,9 +250,11 @@ function renderImages(data) {
 }
 
 function view(x, u) {
-  const v = el("div", { id: "viewer" }, img(x.f || x.i, null, x.t),
-    el("div", { class: "cap" }, x.t || "", el("a", { href: u }, "Visit " + (x.h || "page"))));
-  v.addEventListener("click", (e) => { if (e.target === v || e.target.tagName === "IMG") v.remove(); });
+  const close = el("button", { class: "x", title: "Close", "aria-label": "Close" }, "\u00d7");
+  const v = el("div", { id: "viewer" }, close, img(x.f || x.i, null, x.t),
+    el("div", { class: "cap" }, x.t || "", el("a", { href: u }, "Visit " + (x.h || "page")), el("a", { href: x.f || x.i }, "Open image")));
+  v.addEventListener("click", (e) => { if (e.target === v || e.target === close || e.target.tagName === "IMG") v.remove(); });
+  document.addEventListener("keydown", function esc(e) { if (e.key === "Escape" || !v.isConnected) { v.remove(); document.removeEventListener("keydown", esc); } });
   document.body.append(v);
 }
 
