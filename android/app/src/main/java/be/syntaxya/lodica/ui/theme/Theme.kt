@@ -147,7 +147,7 @@ fun LodicaTheme(content: @Composable () -> Unit) {
         SideEffect { ThemeState.dynamic = dyn }
     }
     val p = ThemeState.palette
-    LaunchedEffect(p.key, p.bg, p.accent) { withContext(Dispatchers.IO) { runCatching { LauncherIcon.apply(appCtx, p) } } }
+    LaunchedEffect(p.key, p.bg, p.accent) { LauncherIcon.schedule(p) }
     SideEffect {
         var c = view.context
         while (c is ContextWrapper && c !is Activity) c = c.baseContext

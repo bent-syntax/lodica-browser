@@ -203,6 +203,7 @@ class MainActivity : HostActivity() {
 
     override fun onStop() {
         super.onStop()
+        be.syntaxya.lodica.ui.theme.LauncherIcon.flush(applicationContext)
         if (showingReport) return
         stoppedAt = SystemClock.elapsedRealtime()
         TabManager.save()

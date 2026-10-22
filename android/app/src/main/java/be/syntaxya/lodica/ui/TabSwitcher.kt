@@ -281,7 +281,7 @@ private fun ArchivedRow(r: TabRecord, modifier: Modifier) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(r.title.ifBlank { r.url }, color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(r.url, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (r.title.isNotBlank() && r.title != r.url) Text(r.url, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = { TabManager.unarchive(r); Ui.screen = Screen.Browser }) {
             Icon(Icons.Rounded.Unarchive, "Restore", tint = Amber, modifier = Modifier.size(20.dp))

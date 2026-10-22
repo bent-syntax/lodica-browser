@@ -103,7 +103,7 @@ object WebApps {
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             }
-            toast(app, "Allow Lodica to install apps, then try again"); return
+            toast(app, "Installing an app needs the \"Install unknown apps\" permission. Allow it for Lodica, then try again"); return
         }
         val origin = origin(page)
         val manifest = tab.manifest?.takeIf { m ->

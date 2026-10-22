@@ -406,8 +406,8 @@ object Relay {
                     val extra = synced.filter { it.address.lowercase() !in known }
                     if (extra.isNotEmpty()) { aliases.addAll(extra); aliases.sortByDescending { it.created }; persist() }
                 }
-                r.onSuccess { list -> mails.clear(); mails.addAll(list); error = null }
-                    .onFailure { e -> error = "Couldn't reach the relay"; Log.w(TAG, "fetch failed", e) }
+                r.onSuccess { list -> mails.clear(); mails.addAll(list); error = null; up = true }
+                    .onFailure { e -> error = "Couldn't reach the relay"; up = false; Log.w(TAG, "fetch failed", e) }
             }
         }
     }

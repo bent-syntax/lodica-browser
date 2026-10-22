@@ -392,7 +392,7 @@ object TabManager {
             url ?: return
             // A restore briefly reports about:blank; don't let it clobber the saved URL.
             if (url == "about:blank" && tab.url != "about:blank") return
-            if (Uri.parse(url).host != Uri.parse(tab.url).host) { tab.manifest = null; tab.icons = emptyList() }
+            if (url.substringBefore('#') != tab.url.substringBefore('#')) { tab.manifest = null; tab.icons = emptyList() }
             val from = tab.navStart?.let { Uri.parse(it).host.orEmpty().removePrefix("www.") }.orEmpty()
             val to = Uri.parse(url).host.orEmpty().removePrefix("www.")
             tab.origin = if (from.isNotEmpty() && to.isNotEmpty() && from != to && url.startsWith("http")) from else ""

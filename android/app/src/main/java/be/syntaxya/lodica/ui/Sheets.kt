@@ -143,16 +143,16 @@ fun MenuSheet() {
                     tab?.let { TabManager.setDesktop(it, !it.desktop) }
                 })
                 add(MenuItem("downloads", Icons.Rounded.Download, "Downloads") { Ui.screen = Screen.Downloads })
-                add(MenuItem("history", Icons.Rounded.History, "History") { Ui.screen = Screen.History })
-                add(MenuItem("aichats", Icons.Rounded.AutoAwesome, "AI chats") { Ui.screen = Screen.Chats })
-                add(MenuItem("passwords", Icons.Rounded.Key, "Passwords") { Ui.screen = Screen.Passwords })
+                add(MenuItem("history", Icons.Rounded.History, "History") { Ui.go(Screen.History) })
+                add(MenuItem("aichats", Icons.Rounded.AutoAwesome, "AI chats") { Ui.go(Screen.Chats) })
+                add(MenuItem("passwords", Icons.Rounded.Key, "Passwords") { Ui.go(Screen.Passwords) })
                 add(MenuItem("settings", Icons.Rounded.Settings, "Settings") { Ui.screen = Screen.Settings })
                 if (Relay.available) {
                     if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", Icons.Rounded.AlternateEmail, "Hidden email", Amber) {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()
                     })
-                    add(MenuItem("chat", Icons.Rounded.Forum, "Server chat") { Ui.screen = Screen.Room })
-                    add(MenuItem("inbox", Icons.Rounded.Inbox, "Inbox") { Ui.screen = Screen.Inbox })
+                    add(MenuItem("chat", Icons.Rounded.Forum, "Server chat") { Ui.go(Screen.Room) })
+                    add(MenuItem("inbox", Icons.Rounded.Inbox, "Inbox") { Ui.go(Screen.Inbox) })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy
                         add(MenuItem("dummy", Icons.Rounded.AlternateEmail, if (off) "Dummy mail off" else "Dummy mail on", if (off) Amber else Mist) {

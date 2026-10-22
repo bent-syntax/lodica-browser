@@ -244,7 +244,7 @@ private fun HiddenEmailChip(tab: Tab) {
         ) {
             Icon(Icons.Rounded.AlternateEmail, null, tint = Amber, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Use hidden email", fontSize = 14.sp)
+            Text("Hidden email", fontSize = 14.sp)
         }
     }
 }

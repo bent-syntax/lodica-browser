@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -149,7 +150,7 @@ fun SettingsScreen() {
     val homeScroll = Ui.settingsHomeScroll
     LaunchedEffect(tab) { scroll.scrollTo(0) }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().imePadding()) {
         androidx.activity.compose.BackHandler(enabled = tab >= 0 || find.isNotBlank()) { if (find.isNotBlank()) find = "" else tab = -1 }
         if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
         else {
@@ -247,7 +248,7 @@ fun SettingsScreen() {
             AiSection()
             Section("Emoji keyboard")
             EmojiKeyboardSection()
-            LinkRow("AI chats (${Chats.list.size})") { Ui.screen = Screen.Chats }
+            LinkRow("AI chats (${Chats.list.size})") { Ui.go(Screen.Chats) }
                 }
                 8 -> {
             Section("Data use")
@@ -375,7 +376,7 @@ fun SettingsScreen() {
                 }
                 6 -> {
                     Section("History & site data")
-            LinkRow("History") { Ui.screen = Screen.History }
+            LinkRow("History") { Ui.go(Screen.History) }
             LinkRow("Clear history", Coral) {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
             }
@@ -396,7 +397,7 @@ fun SettingsScreen() {
                     Section("Browser identity")
             AgentPicker()
                     Section("Passwords")
-            LinkRow("Passwords") { Ui.screen = Screen.Passwords }
+            LinkRow("Passwords") { Ui.go(Screen.Passwords) }
 
                     Section("Authenticator")
                     AuthenticatorSection()
@@ -414,7 +415,7 @@ fun SettingsScreen() {
                             "Linked to lodica.${Relay.DOMAIN} (${if (Relay.up) "reachable" else "not reachable right now"})", color = Muted, fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
                         )
-                        LinkRow("Server chat") { Ui.screen = Screen.Room }
+                        LinkRow("Server chat") { Ui.go(Screen.Room) }
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
                 }
@@ -422,7 +423,7 @@ fun SettingsScreen() {
                     runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 } else LinkRow("Send a test notification") { Notifier.test(ctx) }
                 if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
-                        LinkRow("Inbox") { Ui.screen = Screen.Inbox }
+                        LinkRow("Inbox") { Ui.go(Screen.Inbox) }
                         Section("Hidden email")
                         SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
                         Section("Server")
@@ -1109,7 +1110,7 @@ fun HistoryScreen() {
                     Column(Modifier.weight(1f)) {
                         Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            "${if (System.currentTimeMillis() - v.last < 60_000) "Just now" else DateUtils.getRelativeTimeSpanString(v.last)} · ${v.url}",
+                            "${if (System.currentTimeMillis() - v.last < 60_000) "Just now" else DateUtils.getRelativeTimeSpanString(v.last)}${if (v.title.isBlank() || v.title == v.url) "" else " · ${v.url}"}",
                             color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }

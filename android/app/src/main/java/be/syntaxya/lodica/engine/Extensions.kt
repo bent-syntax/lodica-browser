@@ -28,6 +28,13 @@ object Extensions {
     private val builtIn = setOf("uBlock0@raymondhill.net", Helper.ID)
 
     class Item(val ext: WebExtension, val name: String, val version: String, val enabled: Boolean) { val id: String get() = ext.id }
+    /** The add-ons API returns a plain string or a {"en-US": "..."} map. */
+    private fun localized(v: Any?): String = when (v) {
+        is String -> v
+        is JSONObject -> v.optString("en-US").ifEmpty { v.keys().asSequence().firstNotNullOfOrNull { k -> v.optString(k).ifEmpty { null } }.orEmpty() }
+        else -> ""
+    }
+
     class Hit(val name: String, val summary: String, val xpi: String)
     class Prompt(val name: String, val permissions: List<String>, val answer: GeckoResult<WebExtension.PermissionPromptResponse>)
 
@@ -116,7 +123,7 @@ object Extensions {
                 val out = (0 until rs.length()).mapNotNull {
                     val r = rs.getJSONObject(it)
                     val xpi = r.optJSONObject("current_version")?.optJSONObject("file")?.optString("url").orEmpty()
-                    if (xpi.isEmpty()) null else Hit(r.optString("name"), r.optString("summary").take(120), xpi)
+                    if (xpi.isEmpty()) null else Hit(localized(r.opt("name")), localized(r.opt("summary")).take(120), xpi)
                 }
                 main.post { hits.clear(); hits.addAll(out); busy = false; status = if (out.isEmpty()) "Nothing found" else null }
             } catch (e: Exception) {

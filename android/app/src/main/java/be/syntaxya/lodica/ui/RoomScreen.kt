@@ -82,7 +82,7 @@ fun RoomScreen() {
 
     if (adding) NewChatDialog { adding = false }
     Column(Modifier.fillMaxSize().imePadding()) {
-        TopBar("Server chat") { Ui.screen = Screen.Settings }
+        TopBar("Server chat") { Ui.screen = Ui.returnTo }
         LazyRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items((listOf("") + Room.chats).toList(), key = { it }) { r ->
                 val on = Room.room == r

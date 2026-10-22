@@ -65,10 +65,10 @@ object CrashLog {
         val bad = setOf(
             ApplicationExitInfo.REASON_CRASH, ApplicationExitInfo.REASON_CRASH_NATIVE,
             ApplicationExitInfo.REASON_ANR, ApplicationExitInfo.REASON_SIGNALED,
-            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE, ApplicationExitInfo.REASON_LOW_MEMORY,
+            ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
             ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE, ApplicationExitInfo.REASON_DEPENDENCY_DIED,
         )
-        val fresh = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 8).filter { it.reason in bad && it.timestamp > seen }
+        val fresh = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 8).filter { it.reason in bad && it.timestamp > seen && it.processName == ctx.packageName }
         if (fresh.isEmpty()) return ""
         prefs.edit().putLong(SEEN, fresh.maxOf { it.timestamp }).apply()
         return fresh.joinToString("\n\n") { i ->

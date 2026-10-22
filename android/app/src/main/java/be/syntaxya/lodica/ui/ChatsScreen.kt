@@ -58,11 +58,11 @@ fun ChatsScreen() {
     val chat = Chats.get(open)
     Column(Modifier.fillMaxSize().background(Graphite).imePadding()) {
         TopBar(if (open != null || fresh) chat?.title?.ifBlank { "Chat" } ?: "New chat" else "AI chats") {
-            if (open != null || fresh) { open = null; fresh = false } else Ui.screen = Screen.Settings
+            if (open != null || fresh) { open = null; fresh = false } else Ui.screen = Ui.returnTo
         }
         if (open == null && !fresh) {
             if (!Ai.connected) {
-                Text("Add an Anthropic API key in Settings > Ask AI to start chatting.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(20.dp))
+                Text("Add an Anthropic API key in Settings > AI answers to start chatting.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(20.dp))
             }
             Row(
                 Modifier.fillMaxWidth().clickable { fresh = true }.padding(horizontal = 20.dp, vertical = 14.dp),

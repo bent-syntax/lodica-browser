@@ -23,7 +23,18 @@ object LauncherIcon {
         if (entries.containsKey(p.key)) p.key
         else Palettes.minBy { dist(it.bg, p.bg) + dist(it.accent, p.accent) }.key
 
-    fun apply(ctx: Context, p: Palette) {
+    @Volatile private var pending: Palette? = null
+
+    /** Changing launcher aliases while the app is in front can close it, so the switch waits for the app to leave the screen. */
+    fun schedule(p: Palette) { pending = p }
+
+    fun flush(ctx: Context) {
+        val p = pending ?: return
+        pending = null
+        runCatching { apply(ctx, p) }
+    }
+
+    private fun apply(ctx: Context, p: Palette) {
         val pm = ctx.packageManager
         val want = entries.getValue(nearest(p))
         fun set(name: String, on: Boolean) {

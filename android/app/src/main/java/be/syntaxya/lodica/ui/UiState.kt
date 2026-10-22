@@ -14,6 +14,9 @@ enum class Picker { Speed, Quality, Remind, RemindAt, Closed }
 /** UI-only state shared by the screens. Process-wide so it survives activity recreation. */
 object Ui {
     var screen by mutableStateOf(Screen.Browser)
+    /** Screen a sub-page returns to on back: the browser for menu links, Settings for Settings links. */
+    var returnTo = Screen.Browser
+    fun go(s: Screen) { returnTo = if (screen == Screen.Settings) Screen.Settings else Screen.Browser; screen = s }
     /** Settings page open (-1 = home) and the home scroll, kept while Settings is off screen. */
     var settingsTab by androidx.compose.runtime.mutableIntStateOf(-1)
     val settingsHomeScroll = androidx.compose.foundation.ScrollState(0)
@@ -88,7 +91,7 @@ object Ui {
         editing -> { editing = false; true }
         screen == Screen.Inbox && be.syntaxya.lodica.engine.Relay.selected != null -> { be.syntaxya.lodica.engine.Relay.selected = null; true }
         screen == Screen.Downloads -> { screen = Screen.Browser; true }
-        screen == Screen.Passwords || screen == Screen.History || screen == Screen.Inbox || screen == Screen.Chats || screen == Screen.Room -> { screen = Screen.Settings; true }
+        screen == Screen.Passwords || screen == Screen.History || screen == Screen.Inbox || screen == Screen.Chats || screen == Screen.Room -> { screen = returnTo; true }
         screen != Screen.Browser -> { screen = Screen.Browser; true }
         else -> false
     }

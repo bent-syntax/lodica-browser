@@ -71,7 +71,7 @@ private fun MailList() {
             Relay.error?.let { e -> item { Text(e, color = Coral, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp)) } }
             if (Relay.mails.isEmpty()) item {
                 Text(
-                    if (Relay.loading) "Loading…" else "No mail yet",
+                    if (Relay.loading) "Loading…" else if (Relay.error != null) "Mail unknown. Tap refresh to retry" else "No mail yet",
                     color = Muted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             }
@@ -95,7 +95,7 @@ private fun MailList() {
             item { Section("Addresses") }
             if (Relay.aliases.isEmpty()) item {
                 Text(
-                    "Tap \"Use hidden email\" on a sign-up form to make one",
+                    "Tap \"Hidden email\" on a sign-up form to make one",
                     color = Muted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             }
