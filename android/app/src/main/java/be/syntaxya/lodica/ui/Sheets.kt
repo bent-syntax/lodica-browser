@@ -124,7 +124,7 @@ fun MenuSheet() {
                 IconButton(onClick = {
                     tab?.let {
                         val q = Prefs.searchQuery(it.url)
-                        if (q != null) Prompts.host?.share(q, null, Prefs.resolve(q))
+                        if (q != null) Prompts.host?.share(q, null, Prefs.publicSearchUrl(q))
                         else Prompts.host?.share(it.title, null, Prefs.cleanUrl(it.url))
                     }
                     close()

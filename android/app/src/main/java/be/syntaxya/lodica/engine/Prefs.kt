@@ -432,6 +432,12 @@ object Prefs {
         return android.net.Uri.parse(url).getQueryParameter("q")?.takeIf { it.isNotBlank() }
     }
 
+    /** A web URL for a query that works outside Lodica (the Lodica Search page is a moz-extension URL). */
+    fun publicSearchUrl(q: String): String {
+        val engine = if (search != SearchEngine.LODICA) search else searchFallback
+        return withLanguage(engine.query.format(android.net.Uri.encode(q)))
+    }
+
     private val GOOGLE = Regex("^https?://(www\\.)?google\\.[a-z.]+(/|$)", RegexOption.IGNORE_CASE)
 
     /** Google picks its UI language from the IP; pin it to the chosen language instead. */
