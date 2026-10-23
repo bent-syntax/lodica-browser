@@ -24,6 +24,17 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import be.syntaxya.lodica.engine.Emojis
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,6 +80,7 @@ fun RoomScreen() {
     val state = rememberLazyListState()
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
+    var emojis by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
@@ -81,6 +93,20 @@ fun RoomScreen() {
     }
 
     if (adding) NewChatDialog { adding = false }
+    if (emojis) AlertDialog(
+        onDismissRequest = { emojis = false },
+        confirmButton = { TextButton({ emojis = false }) { Text("Close", color = Amber) } },
+        title = { Text("Server emojis") },
+        text = {
+            if (Emojis.list.isEmpty()) Text("No server emojis yet. Sync them in Settings.", color = Muted)
+            else LazyVerticalGrid(GridCells.Adaptive(48.dp), Modifier.heightIn(max = 300.dp)) {
+                gridItems(Emojis.list.toList(), key = { it.name }) { e ->
+                    val bmp = remember(e.name, e.at) { android.graphics.BitmapFactory.decodeFile(Emojis.file(e.name).path)?.asImageBitmap() }
+                    if (bmp != null) Image(bmp, e.name, Modifier.padding(4.dp).size(40.dp).clickable { text += ":" + e.name + ":"; emojis = false })
+                }
+            }
+        },
+    )
     Column(Modifier.fillMaxSize().imePadding()) {
         TopBar("Server chat") { Ui.screen = Ui.returnTo }
         LazyRow(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -125,7 +151,10 @@ fun RoomScreen() {
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 GB)", tint = Amber) }
+            Column {
+                IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 GB)", tint = Amber) }
+                IconButton(onClick = { emojis = true }) { Icon(Icons.Rounded.EmojiEmotions, "Server emojis", tint = Amber) }
+            }
             Column(Modifier.weight(1f)) {
                 OutlinedTextField(
                     name, { name = it.take(32) },
@@ -218,7 +247,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
             Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
-            if (m.fileId != null) FileBody(m) else SelectionContainer { Text(m.text, color = Mist, fontSize = 14.sp) }
+            if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text) }
             if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 11.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
@@ -260,4 +289,27 @@ private fun FileBody(m: RoomMsg) {
     }
     preview?.let { Image(it.asImageBitmap(), m.fileName, Modifier.fillMaxWidth().heightInMax(max = 260.dp)) }
     status?.let { Text(it, color = Muted, fontSize = 11.sp) }
+}
+
+/** Message text where :name: of a known server emoji is drawn as its image. */
+@Composable
+private fun EmojiText(t: String) {
+    val known = Emojis.list.map { it.name }.toSet()
+    val re = Regex(":([a-z0-9_]{1,32}):")
+    val used = re.findAll(t).map { it.groupValues[1] }.filter { it in known }.toSet()
+    val text = buildAnnotatedString {
+        var at = 0
+        for (m in re.findAll(t)) {
+            if (m.groupValues[1] !in used) continue
+            append(t.substring(at, m.range.first)); appendInlineContent(m.groupValues[1], m.value); at = m.range.last + 1
+        }
+        append(t.substring(at))
+    }
+    val inline = used.associateWith { n ->
+        InlineTextContent(Placeholder(24.sp, 24.sp, PlaceholderVerticalAlign.TextCenter)) {
+            val bmp = remember(n) { android.graphics.BitmapFactory.decodeFile(Emojis.file(n).path)?.asImageBitmap() }
+            if (bmp != null) Image(bmp, n, Modifier.fillMaxSize())
+        }
+    }
+    Text(text, color = Mist, fontSize = 14.sp, inlineContent = inline)
 }

@@ -23,12 +23,38 @@ function openRoom() {
       const err = await inv("room.upload");
       if (err) toast(err);
     };
+    const put = (t) => {
+      const a = L.ta.selectionStart ?? L.ta.value.length, b = L.ta.selectionEnd ?? a;
+      L.ta.value = L.ta.value.slice(0, a) + t + L.ta.value.slice(b);
+      L.ta.focus(); L.ta.selectionStart = L.ta.selectionEnd = a + t.length;
+    };
+    L.pick = h("div", { style: "display:none;flex-wrap:wrap;gap:4px;padding:6px 12px;max-height:180px;overflow:auto" });
+    const togglePick = async () => {
+      if (L.pick.style.display !== "none") { L.pick.style.display = "none"; return; }
+      clear(L.pick);
+      for (const c of ROOM_EMOJI) {
+        const b = h("button", { class: "ib", title: c, text: c, style: "font-size:20px" });
+        b.addEventListener("click", () => put(c));
+        L.pick.append(b);
+      }
+      const list = await inv("emojis.list") || [];
+      ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
+      for (const e of list) {
+        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:24px;height:24px" }));
+        b.addEventListener("click", () => put(":" + e.name + ":"));
+        L.pick.prepend(b);
+      }
+      L.pick.style.display = "flex";
+      roomRender();
+    };
     return h("div", { class: "spage" },
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
         L.tabs, L.note, L.thread, L.prog,
-        h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("up", "Send", send))));
+        L.pick,
+        h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
   });
+  inv("emojis.list").then((l) => { ROOM.emojis = new Map((l || []).map((e) => [e.name, e.png])); roomRender(); });
   inv("room.discover").then((s) => { if (s) { ROOM.state = s; roomRender(); } });
   inv("room.start").then((s) => { if (s) ROOM.state = s; ROOM.L && (ROOM.L.name.value = ROOM.state.name || ""); roomRender(); });
   return ROOM.L;
@@ -50,6 +76,21 @@ function roomFile(f) {
     box.append(view);
   }
   return box;
+}
+
+const ROOM_EMOJI = [..."😀😃😄😁😆😅😂🤣😊😇🙂😉😍🥰😘😋😎🤩🥳😏😒😞😔😢😭😤😡🤯😱😨😰🤔🙄😴🤗🤭🫡👍👎👏🙌🙏💪👀🔥✨🎉💯❤️💔💙💚💛🧡💜🖤🤝👋✅❌⭐🚀"].reduce((a, c) => { if (c === "\ufe0f" || c === "\u200d") a[a.length - 1] += c; else a.push(c); return a; }, []);
+
+// Text with :name: of a server emoji drawn as its image.
+function roomText(t) {
+  const map = ROOM.emojis; if (!map || !map.size) return t;
+  const out = []; let at = 0;
+  for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
+    const png = map.get(m[1]); if (!png) continue;
+    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:22px;height:22px;vertical-align:middle" }));
+    at = m.index + m[0].length;
+  }
+  out.push(t.slice(at));
+  return h("span", {}, ...out);
 }
 
 function roomLabel(r) {
@@ -112,7 +153,7 @@ function roomRender() {
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
-      mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : m.text));
+      mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
   }
   for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:11px", text: "Waiting for the server…" })));
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;

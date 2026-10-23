@@ -1,3 +1,7 @@
+## 1.12.0-beta.6 (redesign test)
+
+- Server chat: emoji button next to (desktop) or under (Android) the file button. Server emojis on both, normal emojis on desktop. Sent as `:name:`, shown as images.
+
 ## 1.12.0-beta.5 (redesign test)
 
 - Link devices with a 6-character code instead of a long link (Settings > Tabs on PC: Show link code / Enter link code), on desktop and Android.
