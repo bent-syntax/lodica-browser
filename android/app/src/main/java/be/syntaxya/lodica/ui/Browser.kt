@@ -466,19 +466,24 @@ private fun StartPage(modifier: Modifier) {
             ),
         )
         Spacer(Modifier.height(28.dp))
-        tiles.chunked(4).forEach { row ->
+        val cells: List<Shortcut?> = tiles + (if (mine.size < 24) listOf(null) else emptyList())
+        cells.chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                row.forEach { s -> SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null) }
+                row.forEach { s ->
+                    if (s != null) SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null)
+                    else Column(
+                        Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(Modifier.size(44.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        Text("Add", color = Muted, fontSize = 11.sp, maxLines = 1)
+                    }
+                }
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
-        }
-        if (mine.size < 24) Row(
-            Modifier.padding(top = 8.dp).height(36.dp).clip(CircleShape).background(GraphiteRaised).clickable { adding = true }.padding(horizontal = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(Icons.Rounded.Add, null, tint = Amber, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("Add shortcut", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
     }

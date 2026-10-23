@@ -1,3 +1,8 @@
+## 1.12.0-beta.2 (redesign test)
+
+- Android: tab switcher opens scrolled to the current tab.
+- Android: add-shortcut is now a circle tile at the end of the shortcut grid.
+
 # Patch notes
 
 ## 1.12.0-beta.1 (redesign test)

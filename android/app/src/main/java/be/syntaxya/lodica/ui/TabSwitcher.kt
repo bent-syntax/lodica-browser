@@ -118,6 +118,10 @@ fun TabSwitcher() {
 
             val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
             var dragId by remember { mutableStateOf<String?>(null) }
+            androidx.compose.runtime.LaunchedEffect(private) {
+                val i = shown.indexOfFirst { it === TabManager.current }
+                if (i > 0) gridState.scrollToItem(i)
+            }
             LazyVerticalGrid(
                 GridCells.Fixed(2),
                 Modifier.fillMaxSize().androidx_reorder(gridState, { dragId }, { dragId = it }),
