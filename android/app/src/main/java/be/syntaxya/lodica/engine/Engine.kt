@@ -115,7 +115,7 @@ object Engine {
     }
 
     private fun colorScheme() =
-        if (Prefs.darkPages) GeckoRuntimeSettings.COLOR_SCHEME_DARK else GeckoRuntimeSettings.COLOR_SCHEME_SYSTEM
+        if (Prefs.darkPages) GeckoRuntimeSettings.COLOR_SCHEME_DARK else GeckoRuntimeSettings.COLOR_SCHEME_LIGHT
 
     private fun insecurePolicy() =
         if (Prefs.httpsOnly) GeckoRuntimeSettings.HTTPS_ONLY else GeckoRuntimeSettings.HTTPS_ONLY_PRIVATE

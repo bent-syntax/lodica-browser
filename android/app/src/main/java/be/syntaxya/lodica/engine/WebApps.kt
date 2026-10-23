@@ -149,14 +149,14 @@ object WebApps {
                     if (e.name.startsWith("META-INF/")) continue
                     var data = zin.readBytes()
                     data = when {
-                        e.name == "AndroidManifest.xml" -> patchXml(data) { s ->
+                        e.name == "AndroidManifest.xml" -> patchVersion(patchXml(data) { s ->
                             when (s) {
                                 LABEL -> label
                                 URL_PH -> url
                                 HOST -> ctx.packageName
                                 else -> s.replace(TEMPLATE_PKG, pkg)
                             }
-                        }
+                        })
                         e.name == "resources.arsc" -> patchArsc(data, pkg)
                         e.name.startsWith("res/") && e.name.endsWith(".png") -> png
                         else -> data
@@ -211,6 +211,47 @@ object WebApps {
      * Rewrites the UTF-16 string pool of a binary XML file through [map]. The pool keeps its string count,
      * so every index in the rest of the file stays valid; the chunks after the pool are copied unchanged.
      */
+    /**
+     * Stamp the wrapper's versionCode with the build time (minutes). A fixed code made a rebuild after an
+     * uninstall that kept the app's data fail with "can't be installed unless it is a new version".
+     */
+    private fun patchVersion(src: ByteArray): ByteArray = runCatching {
+        val b = ByteBuffer.wrap(src.copyOf()).order(ByteOrder.LITTLE_ENDIAN)
+        val p = 8
+        val poolSize = b.getInt(p + 4)
+        val count = b.getInt(p + 8)
+        val hs = b.getShort(p + 2).toInt() and 0xffff
+        val start = b.getInt(p + 20)
+        fun str(i: Int): String {
+            var o = p + start + b.getInt(p + hs + i * 4)
+            var len = b.getShort(o).toInt() and 0xffff
+            o += 2
+            if (len and 0x8000 != 0) { len = (len and 0x7fff shl 16) or (b.getShort(o).toInt() and 0xffff); o += 2 }
+            return String(src, o, len * 2, Charsets.UTF_16LE)
+        }
+        var c = p + poolSize
+        while (c + 8 <= src.size) {
+            val type = b.getShort(c).toInt() and 0xffff
+            val size = b.getInt(c + 4)
+            if (type == 0x0102) {
+                val attrs = c + 16 + (b.getShort(c + 24).toInt() and 0xffff)
+                val n = b.getShort(c + 28).toInt() and 0xffff
+                for (i in 0 until n) {
+                    val a = attrs + i * 20
+                    val name = b.getInt(a + 4)
+                    if (name in 0 until count && str(name) == "versionCode") {
+                        b.putInt(a + 16, (System.currentTimeMillis() / 60000).toInt())
+                        return@runCatching b.array()
+                    }
+                }
+                break
+            }
+            if (size <= 0) break
+            c += size
+        }
+        src
+    }.getOrDefault(src)
+
     private fun patchXml(src: ByteArray, map: (String) -> String): ByteArray {
         val b = ByteBuffer.wrap(src).order(ByteOrder.LITTLE_ENDIAN)
         require(b.getShort(0).toInt() == 3 && b.getShort(2).toInt() == 8) { "not binary xml" }

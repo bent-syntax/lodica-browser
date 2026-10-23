@@ -744,7 +744,8 @@
     if (!p) return null;
     const hsl = rgbToHsl(p[0], p[1], p[2]);
     let l = hsl[2], s = hsl[1];
-    if (kind === "bg") { l = l >= 0.5 ? 0.1 + (1 - l) * 0.3 : Math.max(0.08, l * 0.6); s *= 0.85; }
+    if (kind === "bg" && s > 0.3 && l > 0.15 && l < 0.75) { l = Math.min(0.6, l * 1.15 + 0.05); } // accent fills (buttons, badges) keep their tint instead of sinking into the dark page
+    else if (kind === "bg") { l = l >= 0.5 ? 0.1 + (1 - l) * 0.3 : Math.max(0.08, l * 0.6); s *= 0.85; }
     else if (kind === "text") { l = 0.64 + (1 - l) * 0.3; }
     else { l = 0.2 + (1 - l) * 0.28; s *= 0.85; }
     const rgb = hslToRgb(hsl[0], s, l);

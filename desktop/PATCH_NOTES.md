@@ -1,3 +1,9 @@
+## 1.12.0-beta.3 (redesign test)
+
+- Android: turning Dark pages off now forces light pages; sites no longer stay dark by following the phone theme.
+- Android: Dark pages keeps accent colours (buttons, badges) at their tint instead of making them near-black.
+- Android: installed web apps get a fresh version code each build, so reinstalling after an uninstall no longer fails with "needs a new version".
+
 ## 1.12.0-beta.2 (redesign test)
 
 - Android: tab switcher opens scrolled to the current tab.
