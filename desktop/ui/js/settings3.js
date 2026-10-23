@@ -57,7 +57,7 @@ function setTabBody(tab) {
     case "ai": return secAi();
     case "theme": return [secTheme(), secDarkPages()];
     case "start": return secStart();
-    case "tabs": return [secLayout(), secTabs(), secPcTabs()];
+    case "tabs": return [secLayout(), secTabs(), secPcTabs(), secEmojis()];
     case "privacy": return secPrivacy();
     case "security": return [secHttps(), secBlocking(), secSpell()];
     case "data": return [secData(), secApps(), secExtensions()];

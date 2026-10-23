@@ -87,7 +87,34 @@ function list(query) {
   return rows.slice(0, 500).map(({ url, title, time }) => ({ url, title, time }));
 }
 
+/** Recent pages for sharing with a linked device. */
+function recent(n = 300) { return entries.slice(0, n).map(({ url, title, time, visits }) => ({ url, title, time, visits })); }
+
+/** Merge pages from a linked device: newest time wins, visit counts take the larger value. */
+function merge(list) {
+  if (!Array.isArray(list)) return;
+  let changed = false;
+  for (const r of list.slice(0, 1000)) {
+    if (!r || !web(r.url) || typeof r.url !== "string" || r.url.length > 2000) continue;
+    const time = Number(r.time) || 0;
+    const k = key(r.url);
+    const e = entries.find(x => key(x.url) === k);
+    if (e) {
+      if (time > e.time) { e.time = time; e.title = String(r.title || e.title).slice(0, 300); changed = true; }
+      const v = Math.min(Number(r.visits) || 1, 100000);
+      if (v > e.visits) { e.visits = v; changed = true; }
+    } else {
+      entries.push({ url: r.url, title: String(r.title || r.url).slice(0, 300), time, visits: Math.min(Number(r.visits) || 1, 100000) });
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  entries.sort((a, b) => b.time - a.time);
+  if (entries.length > CAP) entries.length = CAP;
+  persist();
+}
+
 function remove(url) { entries = entries.filter(e => e.url !== url); persist(); }
 function clear() { entries = []; persist(); }
 
-module.exports = { add, addSearch, clearSearches, title, suggest, topSites, list, remove, delete: remove, clear };
+module.exports = { add, addSearch, clearSearches, title, suggest, topSites, list, recent, merge, remove, delete: remove, clear };

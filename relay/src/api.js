@@ -379,6 +379,32 @@ async function emojisPost(req, res) {
   sendJson(req, res, 200, entry);
 }
 
+// ---------- device pairing codes ----------
+// A short code that hands the (already end-to-end encrypted) link secret to another device on the same token. 10 minutes, single use.
+const pairCodes = new Map();
+const PAIR_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+async function pairPost(req, res) {
+  let b;
+  try { b = JSON.parse((await readBody(req, 2048)).toString('utf8')); }
+  catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const link = b && typeof b.link === 'string' ? b.link : '';
+  if (!/^[A-Za-z0-9_-]{22}#[A-Za-z0-9_-]{43}$/.test(link.split('/').pop())) return sendText(req, res, 400, 'bad link');
+  const now = Date.now();
+  for (const [c, e] of pairCodes) if (now - e.at > 600e3) pairCodes.delete(c);
+  if (pairCodes.size > 200) return sendText(req, res, 429, 'too many codes');
+  let code;
+  do { const r = require('crypto').randomBytes(6); code = ''; for (let i = 0; i < 6; i++) code += PAIR_ALPHA[r[i] & 31]; } while (pairCodes.has(code));
+  pairCodes.set(code, { link: link.split('/').pop(), at: now });
+  sendJson(req, res, 200, { code, expires: now + 600e3 });
+}
+async function pairGet(req, res, code) {
+  const k = String(code).toUpperCase();
+  const e = pairCodes.get(k);
+  if (!e || Date.now() - e.at > 600e3) return sendText(req, res, 404, 'unknown or expired code');
+  pairCodes.delete(k);
+  sendJson(req, res, 200, { link: e.link });
+}
+
 // ---------- router ----------
 async function route(req, res) {
   stats.requests++;
@@ -457,6 +483,16 @@ async function route(req, res) {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
     if (!authed(req, res)) return;
     return m === 'GET' ? themeGet(req, res) : themePut(req, res);
+  }
+  if (p === '/api/pair') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return pairPost(req, res);
+  }
+  if ((r = /^\/api\/pair\/([A-Za-z0-9]{6})$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return pairGet(req, res, r[1]);
   }
   if (p === '/api/emojis') {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');

@@ -145,6 +145,9 @@ fun SettingsScreen() {
     val ctx = LocalContext.current
     var confirm by remember { mutableStateOf<Confirm?>(null) }
     var pairing by remember { mutableStateOf(false) }
+    var codeShown by remember { mutableStateOf<String?>(null) }
+    var enterCode by remember { mutableStateOf(false) }
+    var codeText by remember { mutableStateOf("") }
     var pairText by remember { mutableStateOf("") }
     var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
@@ -294,6 +297,7 @@ fun SettingsScreen() {
                 Section("Sync")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link
+                if (!PcTabs.enabled) TextButton(onClick = { codeText = ""; enterCode = true }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Enter link code", color = Amber) }
                 if (PcTabs.enabled && link != null) {
                     Text(
                         link, color = Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
@@ -316,8 +320,18 @@ fun SettingsScreen() {
                     )
                     Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(onClick = { pairText = ""; pairing = true }) { Text("Link with other device", color = Amber) }
+                        TextButton(onClick = { codeText = ""; enterCode = true }) { Text("Enter link code", color = Amber) }
                         TextButton(onClick = { PcTabs.refresh() }) { Text("Refresh", color = Amber) }
                     }
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = {
+                            PcTabs.makeCode { c ->
+                                if (c == null) Toast.makeText(ctx, "Could not get a code", Toast.LENGTH_SHORT).show() else codeShown = c
+                            }
+                        }) { Text("Show link code", color = Amber) }
+                    }
+                    SwitchRow("Share history", "Browsing history is shared with the linked device, encrypted", PcTabs.shareHistory) { PcTabs.setShareHistory(it) }
+                    SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.setAllowControl(it) }
                     PcTabs.status?.let {
                         Text(it, color = Coral, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }
@@ -501,6 +515,50 @@ fun SettingsScreen() {
         }
     }
     confirm?.let { c -> ConfirmDialog(c) { confirm = null } }
+    codeShown?.let { c ->
+        AlertDialog(
+            onDismissRequest = { codeShown = null },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Link code") },
+            text = {
+                Column {
+                    Text(c, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace)
+                    Text("Enter this code on your other device within 10 minutes. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            },
+            confirmButton = { TextButton(onClick = { codeShown = null }) { Text("Done", color = Amber) } },
+        )
+    }
+    if (enterCode) {
+        AlertDialog(
+            onDismissRequest = { enterCode = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Enter link code") },
+            text = {
+                Column {
+                    Text("Type the 6 character code shown on your other Lodica. This also turns on Tabs on PC.", fontSize = 13.sp)
+                    OutlinedTextField(
+                        codeText, { codeText = it.take(6).uppercase() },
+                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                        ),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    enterCode = false
+                    PcTabs.redeemCode(codeText) { ok ->
+                        Toast.makeText(ctx, if (ok) "Linked" else "Code not valid or expired", Toast.LENGTH_SHORT).show()
+                    }
+                }) { Text("Link", color = Amber) }
+            },
+            dismissButton = { TextButton(onClick = { enterCode = false }) { Text("Cancel", color = Muted) } },
+        )
+    }
     if (pairing) {
         AlertDialog(
             onDismissRequest = { pairing = false },
@@ -555,6 +613,10 @@ private fun EmojiKeyboardSection() {
         else runCatching {
             ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_INPUT_METHOD_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
         }
+    }
+    LinkRow("Sync server emojis") {
+        if (!Relay.available) Toast.makeText(ctx, "No server linked", Toast.LENGTH_SHORT).show()
+        else { Emojis.syncNow(); Toast.makeText(ctx, "Syncing emojis", Toast.LENGTH_SHORT).show() }
     }
     LinkRow("Import emoji from image") { pick.launch("image/*") }
     LinkRow(if (busy) "Generating…" else "Generate emoji with Claude") {

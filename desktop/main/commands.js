@@ -476,6 +476,28 @@ function init(deps) {
   on("pctabs.link", () => pctabs.link());
   on("pctabs.reset", () => pctabs.reset());
   on("pctabs.pair", text => pctabs.pair(str(text)));
+  on("pctabs.code", () => pctabs.pairCode());
+  on("pctabs.pairCode", code => pctabs.pairWithCode(str(code)));
+  on("pctabs.control", (type, url) => pctabs.control({ type: str(type), url: str(url) }));
+  const listEmojis = async () => {
+    if (!relay.available) return [];
+    try {
+      const r = await fetch(`${relay.API}/api/emojis`, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(20000) });
+      if (!r.ok) return [];
+      const j = await r.json();
+      return (Array.isArray(j) ? j : []).filter(e => e && !e.del && /^[a-z0-9_]{1,32}$/.test(e.name) && typeof e.png === "string" && e.png.length < 700000)
+        .map(e => ({ name: e.name, png: e.png, at: e.at }));
+    } catch { return []; }
+  };
+  on("emojis.list", listEmojis);
+  on("emojis.copy", async name => {
+    const { nativeImage } = require("electron");
+    const list = await listEmojis();
+    const e = list.find(x => x.name === str(name));
+    if (!e) return false;
+    clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(e.png, "base64")));
+    return true;
+  });
   on("pctabs.remote", async () => { await pctabs.refresh(); return pctabs.status(); });
   on("ext.list", () => extensions.list());
   on("ext.install", s => extensions.install(str(s)));

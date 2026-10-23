@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const store = require("./store");
 const prefs = require("./prefs");
 const relay = require("./relay");
+const history = require("./history");
 
 const MAX = 512 * 1024;
 const POLL_MS = 30 * 1000;
@@ -51,10 +52,13 @@ function payload() {
     .map(t => ({ title: t.title || t.url, url: t.url, private: false }));
   // Chats ride along in the same encrypted blob; they are the first thing dropped when it gets too big.
   let chats = ai ? ai.chats.raw() : [];
-  let out = JSON.stringify({ updated: Date.now(), tabs: list, chats });
-  while (Buffer.byteLength(out) > MAX - 1024 && chats.length) {
-    chats = chats.slice().sort((a, b) => b.updated - a.updated).slice(0, Math.floor(chats.length / 2));
-    out = JSON.stringify({ updated: Date.now(), tabs: list, chats });
+  let hist = prefs.p.shareHistory ? history.recent(300) : undefined;
+  const build = () => JSON.stringify({ updated: Date.now(), tabs: list, chats, history: hist });
+  let out = build();
+  while (Buffer.byteLength(out) > MAX - 1024 && (chats.length || hist?.length)) {
+    if (hist?.length) hist = hist.slice(0, Math.floor(hist.length / 2));
+    else chats = chats.slice().sort((a, b) => b.updated - a.updated).slice(0, Math.floor(chats.length / 2));
+    out = build();
   }
   return out;
 }
@@ -107,6 +111,7 @@ async function fetchRemote() {
     if (r.ok) {
       const j = JSON.parse(decrypt(Buffer.from(await r.arrayBuffer()), key));
       if (ai && Array.isArray(j.chats)) ai.chats.merge(j.chats);
+      if (prefs.p.shareHistory && Array.isArray(j.history)) history.merge(j.history);
       const list = Array.isArray(j.tabs) ? j.tabs : [];
       next = {
         updated: Number(j.updated) || 0,
@@ -159,6 +164,50 @@ async function reset() {
   return viewLink();
 }
 
+// Pairing by short code: one device shows a code, the other types it. Both are on the same relay token.
+async function pairCode() {
+  if (!relay.available) return null;
+  const r = await fetch(`${relay.API}/api/pair`, {
+    method: "POST", headers: { ...auth(), "Content-Type": "application/json" },
+    body: JSON.stringify({ link: viewLink() }), signal: AbortSignal.timeout(15000),
+  }).catch(() => null);
+  if (!r || !r.ok) return null;
+  return (await r.json()).code || null;
+}
+
+async function pairWithCode(code) {
+  const c = String(code || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+  if (c.length !== 6 || !relay.available) return false;
+  const r = await fetch(`${relay.API}/api/pair/${c}`, { headers: auth(), signal: AbortSignal.timeout(15000) }).catch(() => null);
+  if (!r || !r.ok) return false;
+  const j = await r.json().catch(() => null);
+  if (!j || typeof j.link !== "string") return false;
+  if (!prefs.p.pcTabs) prefs.set("pcTabs", true);
+  return pair(j.link);
+}
+
+// Phone control: commands for the linked phone ride in their own encrypted blob that only this side writes.
+let cmds = [];
+const cmdId = () => { const { key } = sides(); return crypto.createHmac("sha256", key).update("cmd").digest().subarray(0, 16).toString("base64url"); };
+
+async function control(cmd) {
+  if (!enabled() || !cmd || typeof cmd !== "object") return false;
+  const type = String(cmd.type);
+  if (!["open", "close", "focus", "reload"].includes(type)) return false;
+  const url = String(cmd.url || "");
+  if (type !== "reload" && !/^https?:\/\//i.test(url)) return false;
+  const now = Date.now();
+  cmds = cmds.filter(c => now - c.at < 10 * 60e3).slice(-19);
+  cmds.push({ at: now, type, url: url.slice(0, 2000) });
+  try {
+    const r = await fetch(`${relay.API}/api/tabs/${cmdId()}`, {
+      method: "PUT", body: encrypt(JSON.stringify({ cmds }), sides().key),
+      headers: { ...auth(), "Content-Type": "application/octet-stream" }, signal: AbortSignal.timeout(15000),
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
 const status = () => ({ owner: load().owner, ...remote });
 
 function init(deps) {
@@ -166,7 +215,7 @@ function init(deps) {
   ai = deps.ai;
   ui = deps.ui;
   if (ai) ai.chats.onChange(() => { schedule(); ui?.push("ai.chats", ai.chats.get()); });
-  prefs.events.on("change", k => { if (k === "pcTabs" && prefs.p.pcTabs) { schedule(); fetchRemote(); } });
+  prefs.events.on("change", k => { if ((k === "pcTabs" || k === "shareHistory") && prefs.p.pcTabs) { schedule(); fetchRemote(); } });
   schedule();
   fetchRemote();
   poll = setInterval(() => { fetchRemote(); }, POLL_MS);
@@ -175,4 +224,4 @@ function init(deps) {
   keepalive.unref();
 }
 
-module.exports = { init, schedule, link, reset, pair, status, refresh: fetchRemote };
+module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote };

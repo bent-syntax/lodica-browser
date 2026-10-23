@@ -714,6 +714,7 @@
   let darkRecs = new WeakMap();
   let darkTouched = [];
   let darkObs = null;
+  let darkAttrObs = null;
   let darkQueue = [];
   let darkTimer = 0;
   let darkCount = 0;
@@ -780,6 +781,8 @@
     return false;
   }
 
+  function lum(c) { return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255; }
+
   function darkSet(el, prop, value) {
     let rec = darkRecs.get(el);
     if (!rec.saved) { rec.saved = {}; darkTouched.push(new WeakRef(el)); }
@@ -788,7 +791,7 @@
   }
 
   function darkElement(el, parentRec) {
-    const rec = { oc: null, nc: null, keep: false, saved: null };
+    const rec = { oc: null, nc: null, bg: null, keep: false, saved: null };
     // oc is the original text colour as [r,g,b], nc the remapped one (null when left alone).
     darkRecs.set(el, rec);
     if (DARK_SKIP.has(el.tagName)) { rec.keep = true; return; }
@@ -809,8 +812,23 @@
       if (nc) { darkSet(el, "color", nc.css); rec.nc = nc.rgb; }
     }
     const bg = parseRgb(cs.backgroundColor);
-    if (bg && bg[3] > 0) darkSet(el, "background-color", remapColor(cs.backgroundColor, "bg").css);
-    else if (el === document.documentElement) darkSet(el, "background-color", "hsl(0,0%,10%)");
+    if (bg && bg[3] > 0.5) {
+      const nb = remapColor(cs.backgroundColor, "bg");
+      darkSet(el, "background-color", nb.css);
+      rec.bg = nb.rgb;
+    } else {
+      if (bg && bg[3] > 0) darkSet(el, "background-color", remapColor(cs.backgroundColor, "bg").css);
+      else if (el === document.documentElement) darkSet(el, "background-color", "hsl(0,0%,10%)");
+      rec.bg = (parentRec && parentRec.bg) || [26, 26, 26];
+    }
+    // Dark text on a dark background: flip its lightness (black becomes white), keeping the hue.
+    const tc = rec.nc || rec.oc;
+    if (tc && rec.bg && lum(rec.bg) < 0.45 && lum(tc) < 0.45) {
+      const h = rgbToHsl(tc[0], tc[1], tc[2]);
+      const rgb = hslToRgb(h[0], h[1], Math.max(0.75, 1 - h[2]));
+      darkSet(el, "color", "rgb(" + rgb.join(",") + ")");
+      rec.nc = rgb;
+    }
     for (const side of ["top", "right", "bottom", "left"]) {
       if (cs.getPropertyValue("border-" + side + "-style") === "none" || parseFloat(cs.getPropertyValue("border-" + side + "-width")) === 0) continue;
       const bc = remapColor(cs.getPropertyValue("border-" + side + "-color"), "border");
@@ -849,6 +867,7 @@
 
   function darkStop() {
     if (darkObs) { darkObs.disconnect(); darkObs = null; }
+    if (darkAttrObs) { darkAttrObs.disconnect(); darkAttrObs = null; }
     clearTimeout(darkTimer); darkTimer = 0;
     darkQueue = [];
     for (const ref of darkTouched) {
@@ -890,6 +909,22 @@
         }, 200);
       });
       darkObs.observe(document.documentElement, { childList: true, subtree: true });
+      darkAttrObs = new MutationObserver((muts) => {
+        for (const m of muts) {
+          const el = m.target;
+          const rec = darkRecs.get(el);
+          if (!rec || !el.isConnected) continue;
+          if (rec.saved) for (const prop in rec.saved) {
+            const [v, pri] = rec.saved[prop];
+            if (v) el.style.setProperty(prop, v, pri); else el.style.removeProperty(prop);
+          }
+          darkRecs.delete(el);
+          darkCount--;
+          darkQueue.push(() => { if (el.isConnected && !darkRecs.has(el)) { darkCount++; darkElement(el, el.parentElement && darkRecs.get(el.parentElement) || null); } });
+        }
+        if (!darkTimer) darkTimer = setTimeout(darkPump, 0);
+      });
+      darkAttrObs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"], subtree: true });
     } else if (!want && st) {
       st.remove();
       darkStop();
@@ -1056,6 +1091,57 @@
     const [p, o] = x1 < x2 ? [x1, x2] : [x2, x1];
     return v + " = " + fmt(p) + " or " + fmt(o);
   }
+  // "f(x) = 3x + 14" or "y = x^2" -> { v, f } where f maps the unknown to a number
+  function graphOf(src) {
+    const s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    const m = /^(?:[a-z]\s*\(\s*([a-z])\s*\)|y)\s*=\s*([^=]+)$/i.exec(s);
+    if (!m || s.length > 120) return null;
+    const e = m[2].trim();
+    const vars = new Set((e.replace(/sqrt|pi/gi, "").match(/[a-z]/gi) || []).map((c) => c.toLowerCase()));
+    const v = m[1] ? m[1].toLowerCase() : [...vars][0] || "x";
+    if (vars.size > 1 || (vars.size === 1 && !vars.has(v)) || !vars.size) return null;
+    if (!/^[\d\s.,+\-*/^%()a-z]+$/i.test(e)) return null;
+    const sub = (x) => e.replace(/sqrt/gi, "\u0002").replace(/pi/gi, "\u0003")
+      .replace(new RegExp(v, "gi"), "\u0001")
+      .replace(/(?<=[\d)])\s*(?=\u0001)/g, "*").replace(/(?<=\u0001)\s*(?=[\d(])/g, "*").replace(/\u0001\s*(?=\u0001)/g, "\u0001*")
+      .replace(/\u0001/g, "(" + x + ")").replace(/\u0002/g, "sqrt").replace(/\u0003/g, "pi").replace(/(?<=[\d)])\s*(?=\()/g, "*");
+    const f = (x) => { const a = calc("(" + sub(x) + ")+0"); return a == null ? NaN : Number(a); };
+    if (!isFinite(f(1)) && !isFinite(f(2)) && !isFinite(f(0.5))) return null;
+    return { v, f };
+  }
+
+  function drawGraph(g) {
+    const W = 260, H = 180, c = document.createElement("canvas");
+    c.width = W * 2; c.height = H * 2;
+    c.style.cssText = "display:block;width:" + W + "px;height:" + H + "px;border-radius:6px;background:#111";
+    const k = c.getContext("2d");
+    k.scale(2, 2);
+    const xs = [], ys = [];
+    for (let i = 0; i <= 240; i++) { const x = -10 + i / 12; xs.push(x); ys.push(g.f(x)); }
+    const fin = ys.filter(isFinite).sort((a, b) => a - b);
+    if (!fin.length) return null;
+    let lo = fin[0], hi = fin[fin.length - 1];
+    if (hi - lo > 200) { lo = fin[Math.floor(fin.length * 0.05)]; hi = fin[Math.ceil(fin.length * 0.95) - 1]; }
+    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+    const pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
+    const px = (x) => (x + 10) / 20 * W, py = (y) => H - (y - lo) / (hi - lo) * H;
+    k.strokeStyle = "#555"; k.lineWidth = 1; k.beginPath();
+    if (lo < 0 && hi > 0) { k.moveTo(0, py(0)); k.lineTo(W, py(0)); }
+    k.moveTo(px(0), 0); k.lineTo(px(0), H); k.stroke();
+    k.fillStyle = "#aaa"; k.font = "10px system-ui,sans-serif";
+    k.fillText(String(Number(hi.toPrecision(3))), 3, 11);
+    k.fillText(String(Number(lo.toPrecision(3))), 3, H - 4);
+    k.strokeStyle = "#F59E0B"; k.lineWidth = 2; k.beginPath();
+    let pen = false;
+    for (let i = 0; i < xs.length; i++) {
+      const y = ys[i];
+      if (!isFinite(y) || y < lo - (hi - lo) || y > hi + (hi - lo)) { pen = false; continue; }
+      if (pen) k.lineTo(px(xs[i]), py(y)); else { k.moveTo(px(xs[i]), py(y)); pen = true; }
+    }
+    k.stroke();
+    return c;
+  }
+
   // lodica:math:end
 
   // lodica:spell:start
@@ -1200,7 +1286,13 @@
     selTimer = setTimeout(() => {
       const s = selected();
       const ans = s && (solve(s.text) || calc(s.text));
-      if (ans == null) { if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble(); return; }
+      if (ans == null) {
+        const g = s && graphOf(s.text);
+        const cv = g && drawGraph(g);
+        if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
+        if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
+        return;
+      }
       showBubble(s.x, s.y, (d) => { d.textContent = (ans.includes("=") ? "" : "= ") + ans; d.setAttribute("data-kind", "math"); });
     }, 200);
   });

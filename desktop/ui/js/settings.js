@@ -143,13 +143,42 @@ function secVps() {
   return out;
 }
 // 4. Tabs on PC
+function enterCodeBtn() {
+  return btn("Enter link code", async () => {
+      const v = await textDialog({ title: "Enter link code", message: "Type the 6 character code shown on the other device.", placeholder: "ABC123", ok: "Link" });
+      if (v == null) return;
+      const ok = await inv("pctabs.pairCode", v.trim());
+      if (!ok) { toast("Wrong or expired code"); return; }
+      SET.pcLink = null; SET.pcRemote = null;
+      toast("Linked");
+      refreshSettings();
+    });
+}
+
+function secEmojis() {
+  const out = [secHead("Server emojis", "emojis"), setRow("Server emojis", "Custom emojis stored on your Lodica server. Click one to copy it as an image", null)];
+  if (!S.relayAvail) return out.concat(setRow("No server linked", "Set up a relay first", null));
+  out.push(h("div", { class: "chips" }, btn("Load server emojis", async () => {
+    SET.emojis = (await inv("emojis.list")) || [];
+    if (!SET.emojis.length) toast("No emojis on the server");
+    refreshSettings();
+  })));
+  if (SET.emojis && SET.emojis.length) {
+    out.push(h("div", { class: "chips" }, SET.emojis.map(e => h("img", {
+      src: "data:image/png;base64," + e.png, title: e.name, width: 36, height: 36, style: "cursor:pointer",
+      act: async () => toast((await inv("emojis.copy", e.name)) ? "Copied " + e.name : "Could not copy"),
+    }))));
+  }
+  return out;
+}
+
 function secPcTabs() {
   const on = !!S.prefs.pcTabs;
   const out = [secHead("Tabs on PC", "pctabs"),
     setRow("Tabs on PC", "Share open tabs with your other device. Link once, both sides stay in sync", toggleEl(on), () => {
       SET.pcLink = null; SET.pcRemote = null; setPref("pcTabs", !on);
     })];
-  if (!on) return out;
+  if (!on) { out.push(h("div", { class: "chips" }, enterCodeBtn())); return out; }
   if (!SET.pcSub) {
     SET.pcSub = true;
     window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; refreshSettings(); });
@@ -167,6 +196,12 @@ function secPcTabs() {
   out.push(h("div", { class: "chips" },
     u ? btn("Copy", () => { inv("copy", u); toast("Link copied"); }) : null,
     u ? btn("Share", () => inv("share", u, true)) : null,
+    btn("Show link code", async () => {
+      const c = await inv("pctabs.code");
+      if (!c) { toast("Could not make a code. Is the relay set up?"); return; }
+      await textDialog({ title: "Link code", message: "Type this code on your other device within 10 minutes: Settings, Tabs on PC, Enter link code.", value: c, ok: "Done" });
+    }),
+    enterCodeBtn(),
     btn("Link with other device", async () => {
       const v = await textDialog({ title: "Link with other device", message: "Paste the link shown on the other device.", placeholder: "https://…/t/…#…", ok: "Link" });
       if (v == null) return;
@@ -181,10 +216,28 @@ function secPcTabs() {
       if (!ok) return;
       SET.pcLink = (await inv("pctabs.reset")) || ""; SET.pcRemote = null; refreshSettings();
     }, "muted") : null));
+  out.push(setRow("Share history with linked devices", "Pages you visit appear in the history of the other device too", toggleEl(!!S.prefs.shareHistory), () => setPref("shareHistory", !S.prefs.shareHistory)));
+  out.push(setRow("Control the phone", "Open a page on the linked phone. The phone must allow control in its settings", null));
+  out.push(h("div", { class: "chips" },
+    btn("Open page on phone", async () => {
+      const v = await textDialog({ title: "Open on phone", message: "Address to open on the linked phone.", placeholder: "https://…", ok: "Send" });
+      if (v == null || !v.trim()) return;
+      const u = /^https?:\/\//i.test(v.trim()) ? v.trim() : "https://" + v.trim();
+      toast((await inv("pctabs.control", "open", u)) ? "Sent to phone" : "Could not send");
+    }),
+    btn("Show phone tab", async () => {
+      const r = SET.pcRemote;
+      if (!r || !r.tabs.length) { toast("No phone tabs yet"); return; }
+      const v = await textDialog({ title: "Show phone tab", message: "Number of the tab to switch to on the phone (1 to " + Math.min(r.tabs.length, 40) + ").", placeholder: "1", ok: "Show" });
+      const t = r.tabs[Number(v) - 1];
+      if (!t) return;
+      toast((await inv("pctabs.control", "focus", t.url)) ? "Sent to phone" : "Could not send");
+    }, "muted"),
+    btn("Reload on phone", async () => toast((await inv("pctabs.control", "reload", "")) ? "Sent to phone" : "Could not send"), "muted")));
   const r = SET.pcRemote;
   if (r && r.tabs.length) {
     out.push(setRow("Tabs on the other device", r.tabs.length + (r.tabs.length === 1 ? " tab" : " tabs"), null));
-    for (const t of r.tabs.slice(0, 40)) out.push(setRow(t.title, t.url, null, () => inv("link.open", t.url, false)));
+    for (const [i, t] of r.tabs.slice(0, 40).entries()) out.push(setRow((i + 1) + ". " + t.title, t.url, null, () => inv("link.open", t.url, false)));
     if (r.tabs.length > 40) out.push(setRow("+" + (r.tabs.length - 40) + " more", null, null));
   } else if (r) out.push(setRow("No tabs from the other device yet", "They appear once it links and syncs", null));
   return out;

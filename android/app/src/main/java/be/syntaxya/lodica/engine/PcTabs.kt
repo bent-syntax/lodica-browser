@@ -44,7 +44,16 @@ private data class PcMsg(val role: String = "", val text: String = "", val t: Lo
 private data class PcChat(val id: String = "", val title: String = "", val updated: Long = 0, val messages: List<PcMsg> = emptyList(), val deleted: Boolean = false)
 
 @Serializable
-private data class PcList(val updated: Long, val tabs: List<PcTab>, val chats: List<PcChat> = emptyList())
+private data class PcHist(val url: String = "", val title: String = "", val time: Long = 0, val visits: Int = 1)
+
+@Serializable
+private data class PcList(val updated: Long, val tabs: List<PcTab>, val chats: List<PcChat> = emptyList(), val history: List<PcHist>? = null)
+
+@Serializable
+private data class PcCmd(val at: Long = 0, val type: String = "", val url: String = "")
+
+@Serializable
+private data class PcCmds(val cmds: List<PcCmd> = emptyList())
 
 /**
  * "Tabs on PC": an end-to-end encrypted copy of the open (non-private) tabs at
@@ -77,6 +86,10 @@ object PcTabs {
     /** Tabs last read from the other device. */
     var remote by mutableStateOf<List<RemoteTab>>(emptyList()); private set
     var remoteUpdated by mutableStateOf(0L); private set
+    /** Share browsing history with the linked device. */
+    var shareHistory by mutableStateOf(false); private set
+    /** Let the linked desktop open, close, focus and reload tabs here. */
+    var allowControl by mutableStateOf(false); private set
 
     private var id: String? = null
     private var key: ByteArray? = null
@@ -102,6 +115,8 @@ object PcTabs {
         if (::sp.isInitialized) return
         sp = ctx.applicationContext.getSharedPreferences("pctabs", Context.MODE_PRIVATE)
         enabled = Relay.available && sp.getBoolean("enabled", false)
+        shareHistory = sp.getBoolean("shareHistory", false)
+        allowControl = sp.getBoolean("allowControl", false)
         if (enabled) runCatching { load() }.onFailure { Log.w(TAG, "secrets unreadable", it); enabled = false }
         if (enabled) startPoll()
     }
@@ -124,6 +139,20 @@ object PcTabs {
             remoteUpdated = 0L
             if (old != null) Relay.scope.launch { io.withLock { remove(old) } }
         }
+    }
+
+    fun setShareHistory(on: Boolean) {
+        shareHistory = on
+        sp.edit().putBoolean("shareHistory", on).apply()
+        lastSent = null
+        if (enabled) upload()
+    }
+
+    fun setAllowControl(on: Boolean) {
+        allowControl = on
+        sp.edit().putBoolean("allowControl", on).apply()
+        // Ignore anything the desktop queued while control was off.
+        if (on) sp.edit().putLong("cmdAt", System.currentTimeMillis()).apply()
     }
 
     /** New id and key. The old page is deleted first so the old link stops working. */
@@ -193,6 +222,37 @@ object PcTabs {
         return true
     }
 
+    /** Asks the relay for a short code that hands this device's link to another device. Null on failure. */
+    fun makeCode(onDone: (String?) -> Unit) {
+        val l = link
+        if (!Relay.available || !enabled || l == null) { onDone(null); return }
+        Relay.scope.launch {
+            val code = runCatching {
+                val body = """{"link":"$l"}""".toByteArray()
+                val (st, txt) = Relay.request("POST", "/api/pair", body, "application/json")
+                if (st == 200) Regex("\"code\"\\s*:\\s*\"([A-Za-z0-9]+)\"").find(txt)?.groupValues?.get(1) else null
+            }.onFailure { Log.w(TAG, "pair code failed", it) }.getOrNull()
+            withContext(Dispatchers.Main) { onDone(code) }
+        }
+    }
+
+    /** Redeems a code made on another device, turns Tabs on PC on and adopts its secret. */
+    fun redeemCode(code: String, onDone: (Boolean) -> Unit) {
+        val c = code.trim().uppercase()
+        if (!Relay.available || !Regex("[A-Z0-9]{6}").matches(c)) { onDone(false); return }
+        Relay.scope.launch {
+            val found = runCatching {
+                val (st, txt) = Relay.request("GET", "/api/pair/$c")
+                if (st == 200) LINK.find(txt)?.value else null
+            }.onFailure { Log.w(TAG, "redeem failed", it) }.getOrNull()
+            withContext(Dispatchers.Main) {
+                if (found == null) { onDone(false); return@withContext }
+                if (!enabled) toggle(true)
+                onDone(enabled && pair(found))
+            }
+        }
+    }
+
     /** Fetches and decrypts the other device's tabs. */
     fun refresh() {
         if (!enabled) return
@@ -214,10 +274,49 @@ object PcTabs {
                 .filter { it.url.startsWith("https://") || it.url.startsWith("http://") }
                 .take(200)
                 .map { RemoteTab(it.title.take(300), it.url) }
+            val hist = list.history.orEmpty().take(1000)
+                .filter { it.url.startsWith("https://") || it.url.startsWith("http://") }
+                .map { Visit(it.url.take(2000), it.title.take(300), it.visits.coerceIn(1, 100000), it.time) }
             val chats = list.chats.take(100).map { c -> Chat(c.id, c.title.take(80), c.updated, c.messages.takeLast(200).map { ChatMsg(it.role, it.text.take(8000), it.t) }, c.deleted) }
             withContext(Dispatchers.Main) {
                 if (enabled && rid == readId()) { remote = tabs; remoteUpdated = list.updated; Chats.merge(chats) }
+                if (enabled && rid == readId() && shareHistory && hist.isNotEmpty()) History.importVisits(hist)
             }
+        }
+        pollCommands()
+    }
+
+    /** Commands queued by the linked desktop. Runs only when the user allowed control. */
+    private fun pollCommands() {
+        if (!allowControl || !enabled) return
+        val k = key ?: return
+        val cid = b64url(Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(k, "HmacSHA256")) }.doFinal("cmd".toByteArray()).copyOfRange(0, 16))
+        Relay.scope.launch {
+            val (code, bytes) = runCatching { Relay.requestBytes("GET", "/api/tabs/$cid") }.getOrNull() ?: return@launch
+            if (code != 200 || bytes.size < 29) return@launch
+            val cmds = runCatching {
+                val c = Cipher.getInstance("AES/GCM/NoPadding")
+                c.init(Cipher.DECRYPT_MODE, SecretKeySpec(k, "AES"), GCMParameterSpec(128, bytes, 0, 12))
+                json.decodeFromString<PcCmds>(String(c.doFinal(bytes, 12, bytes.size - 12), Charsets.UTF_8)).cmds
+            }.getOrNull() ?: return@launch
+            val now = System.currentTimeMillis()
+            withContext(Dispatchers.Main) {
+                if (!allowControl) return@withContext
+                val last = sp.getLong("cmdAt", 0L)
+                val fresh = cmds.filter { it.at > last && now - it.at < 10 * 60_000L }.sortedBy { it.at }
+                if (cmds.isNotEmpty()) sp.edit().putLong("cmdAt", maxOf(last, cmds.maxOf { it.at })).apply()
+                fresh.take(10).forEach { runCommand(it) }
+            }
+        }
+    }
+
+    private fun runCommand(c: PcCmd) {
+        val web = c.url.startsWith("https://") || c.url.startsWith("http://")
+        when (c.type) {
+            "open" -> if (web) TabManager.open(c.url)
+            "close" -> TabManager.tabs.firstOrNull { !it.private && it.url == c.url }?.let { TabManager.close(it) }
+            "focus" -> TabManager.tabs.firstOrNull { !it.private && it.url == c.url }?.let { TabManager.select(it) }
+            "reload" -> TabManager.current?.session?.reload()
         }
     }
 
@@ -231,11 +330,12 @@ object PcTabs {
         val list = TabManager.tabs.filter { !it.private && (it.url.startsWith("https://") || it.url.startsWith("http://")) }
             .map { PcTab(it.title.ifBlank { it.host }, it.url, false) }
         val chats = Chats.raw().map { c -> PcChat(c.id, c.title, c.updated, c.messages.map { PcMsg(it.role, it.text, it.t) }, c.deleted) }
-        val sig = list.joinToString("\n") { it.url + "\t" + it.title } + "\n#" + chats.joinToString(",") { it.id + ":" + it.updated }
+        val hist = if (shareHistory) History.recent(300).filter { !it.url.startsWith("about:") }.map { PcHist(it.url, it.title, it.last, it.visits) } else null
+        val sig = list.joinToString("\n") { it.url + "\t" + it.title } + "\n@" + (hist?.size ?: -1) + "\n#" + chats.joinToString(",") { it.id + ":" + it.updated }
         if (sig == lastSent) return
         lastSent = sig
         lastKeep = System.currentTimeMillis()
-        val body = json.encodeToString(PcList(System.currentTimeMillis(), list, chats)).toByteArray()
+        val body = json.encodeToString(PcList(System.currentTimeMillis(), list, chats, hist)).toByteArray()
         Relay.scope.launch {
             io.withLock {
                 val ok = runCatching {

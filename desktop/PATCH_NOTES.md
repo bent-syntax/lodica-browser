@@ -1,3 +1,12 @@
+## 1.12.0-beta.4 (redesign test)
+
+- Link devices with a 6-character code instead of a long link (Settings > Tabs on PC: Show link code / Enter link code), on desktop and Android.
+- Share history with linked devices (option, off by default).
+- Control the phone from the desktop: open a page, show a phone tab, reload. The phone must allow it (Allow control from desktop, off by default).
+- Server emojis button: Android syncs them, desktop lists them and copies one to the clipboard.
+- Select "f(x)=3x+14" or "y=x^2" on a page to see its graph.
+- Dark pages: dark text on a dark page now flips to a light colour (black becomes white).
+
 ## 1.12.0-beta.3 (redesign test)
 
 - Android: turning Dark pages off now forces light pages; sites no longer stay dark by following the phone theme.
