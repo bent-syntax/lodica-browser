@@ -1,4 +1,4 @@
-## 1.12.0-beta.4 (redesign test)
+## 1.12.0-beta.5 (redesign test)
 
 - Link devices with a 6-character code instead of a long link (Settings > Tabs on PC: Show link code / Enter link code), on desktop and Android.
 - Share history with linked devices (option, off by default).

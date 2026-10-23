@@ -330,8 +330,8 @@ fun SettingsScreen() {
                             }
                         }) { Text("Show link code", color = Amber) }
                     }
-                    SwitchRow("Share history", "Browsing history is shared with the linked device, encrypted", PcTabs.shareHistory) { PcTabs.setShareHistory(it) }
-                    SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.setAllowControl(it) }
+                    SwitchRow("Share history", "Browsing history is shared with the linked device, encrypted", PcTabs.shareHistory) { PcTabs.updateShareHistory(it) }
+                    SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.updateAllowControl(it) }
                     PcTabs.status?.let {
                         Text(it, color = Coral, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }

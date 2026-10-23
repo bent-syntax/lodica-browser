@@ -141,14 +141,14 @@ object PcTabs {
         }
     }
 
-    fun setShareHistory(on: Boolean) {
+    fun updateShareHistory(on: Boolean) {
         shareHistory = on
         sp.edit().putBoolean("shareHistory", on).apply()
         lastSent = null
         if (enabled) upload()
     }
 
-    fun setAllowControl(on: Boolean) {
+    fun updateAllowControl(on: Boolean) {
         allowControl = on
         sp.edit().putBoolean("allowControl", on).apply()
         // Ignore anything the desktop queued while control was off.
