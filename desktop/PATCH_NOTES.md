@@ -1,4 +1,4 @@
-## 1.12.0-beta.7 (redesign test)
+## 1.12.0-beta.8 (redesign test)
 
 - Go back to an older version: Settings > About > Go back to an older version (desktop). Pick a release from the list; the download is still checksum verified.
 - Android: autocorrect fixes, Gboard-like keyboard look, better landscape keyboard, IME switcher no longer overlaps the keyboard.
