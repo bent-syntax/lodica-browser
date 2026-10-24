@@ -710,7 +710,7 @@
   // the previous inline values remembered so that switching the option off restores the page exactly.
   const DARK_PROPS = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"];
   const DARK_SKIP = new Set(["IMG", "VIDEO", "CANVAS", "PICTURE", "IFRAME", "EMBED", "OBJECT", "SOURCE", "SCRIPT", "STYLE", "LINK", "META", "HEAD", "TITLE", "NOSCRIPT", "BR", "WBR"]);
-  const DARK_MAX = 12000;
+  const DARK_MAX = 40000;
   let darkRecs = new WeakMap();
   let darkTouched = [];
   let darkObs = null;
@@ -766,18 +766,7 @@
     if (bg !== undefined && bg < 0.4) return true;
     const meta = document.querySelector("meta[name='color-scheme']");
     if (meta && /^\s*dark\s*$/i.test(meta.content || "")) return true;
-    let scanned = 0;
-    const scan = (rules) => {
-      for (const r of rules) {
-        if (++scanned > 6000) return false;
-        if (r.media && /prefers-color-scheme:\s*dark/i.test(r.media.mediaText || "")) return true;
-        if (r.cssRules && scan(r.cssRules)) return true;
-      }
-      return false;
-    };
-    for (const sh of document.styleSheets) {
-      try { if (scan(sh.cssRules)) return true; } catch (e) { /* cross-origin sheet: unreadable */ }
-    }
+    // A dark media rule in a sheet is no proof: most light sites ship one that is not active here.
     return false;
   }
 

@@ -9,7 +9,8 @@ import java.io.File
 object Thumbs {
     private lateinit var dir: File
 
-    fun init(ctx: Context) { dir = File(ctx.cacheDir, "thumbs").apply { mkdirs() } }
+    /** Kept in the files folder: Android may clear the cache folder at any time. */
+    fun init(ctx: Context) { dir = File(ctx.filesDir, "thumbs").apply { mkdirs() } }
 
     private fun file(id: String) = File(dir, "$id.jpg")
 

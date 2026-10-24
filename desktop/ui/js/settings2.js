@@ -101,6 +101,7 @@ function secAbout() {
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
     updateRow(),
+    setRow("Go back to an older version", "Pick a previous release if an update causes problems", null, openVersions),
     S.prefs.betaUnlocked ? setToggle("betaEnabled", "Beta tester", "Get new features early from pre-releases. They may be unstable") : null,
     setRow("What's new", "Patch notes for every version", null, openNotes)];
 }
@@ -142,12 +143,23 @@ function updateRow() {
   switch (u.state) {
     case "checking": return setRow("Check for updates", "Checking...", null);
     case "latest": return setRow("Check for updates", "Up to date (" + u.version + ")", null, () => inv("update.check"));
-    case "available": return setRow("Update " + u.version + " available", (u.notes ? u.notes.split("\n")[0] + " · " : "") + mb(u.size) + " · tap to download", null, () => inv("update.download"));
+    case "available": if (u.older) return setRow("Go back to " + u.version, mb(u.size) + " · tap to download this older version", null, () => inv("update.download"));
+      return setRow("Update " + u.version + " available", (u.notes ? u.notes.split("\n")[0] + " · " : "") + mb(u.size) + " · tap to download", null, () => inv("update.download"));
     case "downloading": return setRow("Downloading " + (u.version || ""), (u.size ? Math.round(100 * (u.received || 0) / u.size) + "% · " : "") + mb(u.received) + " · tap to cancel", null, () => inv("update.cancel"));
     case "ready": return setRow("Update ready", u.path ? "Checksum verified. Tap to install" : "", null, () => inv("update.install"));
     case "error": return setRow("Check for updates", u.message + " · tap to retry", null, () => inv("update.check"), "danger-row");
     default: return setRow("Check for updates", "Look for a newer Lodica", null, () => inv("update.check"));
   }
+}
+// Rollback: pick an older release from the list. The usual checksum check still applies.
+function openVersions() {
+  return sheet({ title: "Older versions", key: "versions", tall: true }, async (b, L) => {
+    const list = (await inv("update.versions")) || [];
+    if (!list.length) { b.append(h("div", { class: "empty", text: "No versions found. Check your connection." })); return; }
+    for (const v of list) b.append(setRow(v.name + (v.current ? " (installed)" : ""), (v.date || "").slice(0, 10), null, v.current ? null : async () => {
+      await inv("update.pick", v.tag); L.close();
+    }));
+  });
 }
 // Data meter detail sheet.
 function openMeter() {

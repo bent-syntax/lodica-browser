@@ -59,6 +59,8 @@ class Tab(
     internal var trackPerm: GeckoSession.PermissionDelegate.ContentPermission? = null
     /** The page's web app manifest, if it declared one; used by "Install as app". */
     var manifest: org.json.JSONObject? = null
+    /** Opened by a page (target=_blank, window.open) and not yet shown a page of its own. */
+    var spawned = false
     /** Icons the page links (`<link rel=icon>`, apple-touch-icon) as absolute URLs, biggest first. */
     var icons: List<String> = emptyList()
 

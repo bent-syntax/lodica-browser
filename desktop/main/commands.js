@@ -448,6 +448,8 @@ function init(deps) {
   on("update.status", () => updater.status());
   on("notes.get", () => { try { return require("fs").readFileSync(require("path").join(app.getAppPath(), "PATCH_NOTES.md"), "utf8"); } catch { return ""; } });
   on("update.check", () => updater.check());
+  on("update.versions", () => updater.versions());
+  on("update.pick", tag => updater.pickVersion(str(tag)));
   on("update.download", () => updater.download());
   on("update.cancel", () => updater.cancel());
   on("update.install", () => updater.install());

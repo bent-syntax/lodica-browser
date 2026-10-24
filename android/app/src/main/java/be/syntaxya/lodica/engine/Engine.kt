@@ -2,6 +2,9 @@ package be.syntaxya.lodica.engine
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -11,7 +14,10 @@ import org.mozilla.geckoview.WebExtension
 object Engine {
     private const val TAG = "LodicaEngine"
     @Volatile private var rt: GeckoRuntime? = null
-    var ublock: WebExtension? = null
+    var ublock: WebExtension? by mutableStateOf(null)
+        private set
+    /** True once loading uBlock Origin has failed, so Settings stops saying "loading". */
+    var ublockFailed by mutableStateOf(false)
         private set
 
     val ready: Boolean get() = rt != null
@@ -94,10 +100,10 @@ object Engine {
         step("ublock") { runtime.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
             .accept({ ext ->
-                if (ext == null) return@accept
+                if (ext == null) { ublockFailed = true; return@accept }
                 ublock = ext
                 runtime.webExtensionController.setAllowedInPrivateBrowsing(ext, true)
-            }, { e -> Log.w(TAG, "uBlock Origin failed to load", e) }) }
+            }, { e -> ublockFailed = true; Log.w(TAG, "uBlock Origin failed to load", e) }) }
         step("helper") { Helper.install(ctx, runtime) }
         step("extensions") { Extensions.init(ctx) }
         // GeckoView installs its own crash handler while starting; wrap it so Java crashes are still recorded.

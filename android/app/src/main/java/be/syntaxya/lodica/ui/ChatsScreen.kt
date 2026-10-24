@@ -62,7 +62,7 @@ fun ChatsScreen() {
         }
         if (open == null && !fresh) {
             if (!Ai.connected) {
-                Text("Add an Anthropic API key in Settings > AI answers to start chatting.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(20.dp))
+                Text("Add an Anthropic API key in Settings > Ask AI to start chatting.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(20.dp))
             }
             Row(
                 Modifier.fillMaxWidth().clickable { fresh = true }.padding(horizontal = 20.dp, vertical = 14.dp),

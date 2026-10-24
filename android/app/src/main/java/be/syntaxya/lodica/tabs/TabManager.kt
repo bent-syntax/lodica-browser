@@ -424,6 +424,22 @@ object TabManager {
         override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) { tab.canBack = canGoBack }
         override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) { tab.canFwd = canGoForward }
 
+        override fun onLoadError(session: GeckoSession, uri: String?, error: org.mozilla.geckoview.WebRequestError): GeckoResult<String>? {
+            val esc = { t: String -> t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;") }
+            val what = when (error.category) {
+                org.mozilla.geckoview.WebRequestError.ERROR_CATEGORY_URI -> "The address is not valid."
+                org.mozilla.geckoview.WebRequestError.ERROR_CATEGORY_PROXY -> "The proxy server did not answer."
+                org.mozilla.geckoview.WebRequestError.ERROR_CATEGORY_SECURITY -> "The connection is not secure, so the page was not opened."
+                else -> "The page could not be reached. Check the address and your connection."
+            }
+            val html = "<!doctype html><meta name=viewport content='width=device-width,initial-scale=1'><title>Can't open page</title>" +
+                "<body style='font:16px sans-serif;margin:0;padding:48px 24px;background:#16181d;color:#e8eaed'>" +
+                "<h2 style='margin:0 0 12px'>Can't open this page</h2><p>$what</p>" +
+                "<p style='color:#9aa0a6;word-break:break-all'>${esc(uri ?: "")}</p>" +
+                "<p><a href=\"${esc(uri ?: "")}\" style='color:#8ab4f8'>Try again</a></p></body>"
+            return GeckoResult.fromValue("data:text/html;charset=utf-8," + android.net.Uri.encode(html))
+        }
+
         override fun onLoadRequest(session: GeckoSession, request: GeckoSession.NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
             val scheme = request.uri.substringBefore(':', "").lowercase()
             if (scheme in WEB_SCHEMES) {
@@ -455,6 +471,7 @@ object TabManager {
 
         override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
             val child = Tab(private = tab.private, url = uri, desktop = tab.desktop)
+            child.spawned = true
             val s = newSession(child)
             child.session = s
             val at = tabs.indexOf(tab).let { if (it < 0) tabs.size else it + 1 }
@@ -496,6 +513,12 @@ object TabManager {
         override fun onPageStop(session: GeckoSession, success: Boolean) {
             tab.loading = false
             tab.progress = 100
+            // A desktop layout can open scrolled off to the right: bring the left edge back into view.
+            if (tab.desktop) android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (current === tab) be.syntaxya.lodica.ui.Ui.gecko?.panZoomController?.scrollTo(
+                    org.mozilla.geckoview.ScreenLength.zero(), org.mozilla.geckoview.ScreenLength.zero(),
+                    org.mozilla.geckoview.PanZoomController.SCROLL_BEHAVIOR_AUTO)
+            }, 400)
             // Let the page paint, then keep its card fresh so background tabs never show an empty logo.
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                 if (current === tab) be.syntaxya.lodica.ui.captureThumbnail(tab)
@@ -532,7 +555,11 @@ object TabManager {
             contextMenu = ContextMenuRequest(tab, element)
         }
 
-        override fun onExternalResponse(session: GeckoSession, response: WebResponse) = Downloads.save(app, response, tab.private)
+        override fun onExternalResponse(session: GeckoSession, response: WebResponse) {
+            Downloads.save(app, response, tab.private)
+            // A download link opened in a new tab would leave that tab empty.
+            if (tab.spawned && tab.title.isBlank()) main.post { close(tab) }
+        }
 
         override fun onWebAppManifest(session: GeckoSession, manifest: org.json.JSONObject) { tab.manifest = manifest }
 

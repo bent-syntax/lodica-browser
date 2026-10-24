@@ -133,6 +133,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import be.syntaxya.lodica.ui.theme.Palettes
@@ -454,7 +456,7 @@ fun SettingsScreen() {
                 runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
             }
             InfoRow("Lodica", version)
-            InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: "loading…")
+            InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: if (Engine.ublockFailed) "not loaded" else "loading…")
             InfoRow("Engine", "GeckoView")
             var diagTaps by remember { mutableIntStateOf(0) }
             Box(Modifier.clickable { diagTaps++ }) { InfoRow("Build", android.os.Build.MODEL + ", Android " + android.os.Build.VERSION.RELEASE) }
@@ -699,7 +701,7 @@ private fun AiSection() {
             dismissButton = { if (Ai.hasKey) TextButton(onClick = { Ai.setKey(""); keyDialog = false }) { Text("Remove", color = Coral) } else TextButton(onClick = { keyDialog = false }) { Text("Cancel", color = Muted) } },
         )
     }
-    SwitchRow("Always generate AI answers", "Off: search shows a button and only asks the AI when you tap it", Prefs.aiAlways) { Prefs.updateAiAlways(it) }
+    SwitchRow("Always ask AI", "Off: search shows a button and only asks the AI when you tap it", Prefs.aiAlways) { Prefs.updateAiAlways(it) }
     SwitchRow("Ask AI via Termux", "No API key? Use your own Claude Code in Termux instead. Off by default, at your own risk", Ai.enabled) {
         Ai.updateEnabled(it)
     }
@@ -800,12 +802,16 @@ private fun ExtensionsSection() {
             }
         }
     }
+    val bring = remember { androidx.compose.foundation.relocation.BringIntoViewRequester() }
+    val focusScope = rememberCoroutineScope()
     OutlinedTextField(
         q, { q = it }, singleLine = true,
         placeholder = { Text("Search Firefox add-ons", color = Muted) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { ex.search(q) }),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            .bringIntoViewRequester(bring)
+            .onFocusChanged { if (it.isFocused) focusScope.launch { kotlinx.coroutines.delay(350); bring.bringIntoView() } },
     )
     if (ex.busy) InfoRow("Working", "…")
     ex.status?.let { InfoRow("Status", it) }
@@ -1357,7 +1363,7 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 // Must be declared before SettingsIndex: the index reads it during file-level initialisation.
 // Same 13 pages, same order and same groups as the desktop settings.
 private val SettingsTabs = listOf(
-    "Search", "Sites & domains", "AI answers", "Theme", "Start page", "Tabs", "Privacy & history",
+    "Search", "Sites & domains", "Ask AI", "Theme", "Start page", "Tabs", "Privacy & history",
     "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & passwords", "Updates & About",
 )
 
@@ -1388,7 +1394,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Video quality", 1, "data saver"),
     SettingsEntry("Smoother scrolling", 1, "scroll smooth fast render surface lag jank restart"),
     SettingsEntry("Data use", 8, "meter bandwidth"),
-    SettingsEntry("AI answers", 2, "ai generate always allow summary assistant"),
+    SettingsEntry("Ask AI", 2, "ai generate always allow summary assistant"),
     SettingsEntry("AI chats", 2, "history assistant"),
     SettingsEntry("Emoji keyboard", 2, "custom emoji lodica keyboard import generate sticker"),
     SettingsEntry("Web apps", 8, "install shortcut silent"),
@@ -1526,13 +1532,17 @@ private fun StartBackgroundSettings() {
             } else Toast.makeText(ctx, "Could not read that image", Toast.LENGTH_SHORT).show()
         }
     }
+    Text(
+        "Background of the start page, the page you see in a new tab. Pick a type below; the preview shows the result.",
+        color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+    )
     BackgroundTypes(
         onNone = { Prefs.updateStartBg("none") },
         onGradient = { if (Prefs.startBg != "gradient") Prefs.updateStartBg("gradient", StartBg.Gradients[0].key) },
         onColour = { if (Prefs.startBg != "color") Prefs.updateStartBg("color", StartBg.Colors[0]) },
         onImage = { if (StartBg.imageFile(ctx).exists()) Prefs.updateStartBg("image") else pick.launch("image/*") },
     )
-    if (Prefs.startBg != "none") StartPreview()
+    StartPreview()
     when (Prefs.startBg) {
         "gradient" -> Row(
             Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
@@ -1563,9 +1573,7 @@ private fun StartBackgroundSettings() {
         else -> {}
     }
     if (Prefs.startBg == "none") {
-        TextButton(onClick = { pick.launch("image/*") }, modifier = Modifier.padding(horizontal = 12.dp)) {
-            Text("Pick your own image", color = Amber)
-        }
+        Text("Plain start page with no background. Choose Gradient, Colour or Image above to change it.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp))
     } else {
         Text("Dim", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
         Slider(

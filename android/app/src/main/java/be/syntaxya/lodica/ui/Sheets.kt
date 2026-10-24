@@ -180,7 +180,7 @@ fun MenuSheet() {
                         TabManager.setCompat(tab, !compat)
                         Toast.makeText(ctx, if (compat) "Compat mode off" else "Compat mode on for this site", Toast.LENGTH_SHORT).show()
                     })
-                    if (!tab.private) add(MenuItem("install", Icons.Rounded.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
+                    if (WebApps.installable(tab)) add(MenuItem("install", Icons.Rounded.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
                 }
                 add(MenuItem("speed", Icons.Rounded.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
                     if (Prefs.speed != 1f) Amber else Mist) { Ui.picker = Picker.Speed })

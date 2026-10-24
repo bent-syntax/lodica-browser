@@ -21,10 +21,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -136,6 +138,7 @@ private val FILE_URL = Regex("\\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp|rtf|txt|csv|
 private fun isFileUrl(url: String): Boolean =
     url.startsWith("file:") || url.startsWith("content:") || FILE_URL.containsMatchIn(url.substringBefore('#').substringBefore('?'))
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun BrowserScreen() {
     val tab = TabManager.current
@@ -165,7 +168,31 @@ private fun BrowserScreen() {
             }
         }
     }
+    // After the keyboard (or find bar) goes away Gecko can keep the shrunken or widened viewport: resend the size.
+    val imeUp = WindowInsets.isImeVisible
+    LaunchedEffect(imeUp, Ui.finding) {
+        if (imeUp) return@LaunchedEffect
+        for (ms in longArrayOf(120, 400)) {
+            kotlinx.coroutines.delay(ms)
+            val g = Ui.gecko ?: return@LaunchedEffect
+            g.requestLayout()
+            g.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt())
+            g.panZoomController.scrollBy(
+                org.mozilla.geckoview.ScreenLength.zero(), org.mozilla.geckoview.ScreenLength.zero(),
+                org.mozilla.geckoview.PanZoomController.SCROLL_BEHAVIOR_AUTO,
+            )
+        }
+    }
     LaunchedEffect(tab) { Ui.showBar() }
+    // A private page can stay unpainted or leave a grey strip after a navigation: wake the compositor and re-send the toolbar height.
+    LaunchedEffect(tab?.url) {
+        if (tab == null || !tab.private || tab.locked) return@LaunchedEffect
+        for (ms in longArrayOf(150, 600)) {
+            delay(ms)
+            tab.session?.setActive(true)
+            Ui.gecko?.let { it.requestLayout(); it.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt()) }
+        }
+    }
     // Selecting or copying the address must never move the bar: pin it while editing or finding.
     LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.showBar() }
 

@@ -48,6 +48,45 @@ function pick(assets) {
   return assets.find(a => re.test(a.name));
 }
 
+// Turns a release into the "available" state. Used for updates and for rollbacks.
+async function offer(rel, ver) {
+  const a = pick(rel.assets || []);
+  if (!a) throw new Error("This release has no file for this system");
+  let sha = String(a.digest || "").replace(/^sha256:/, "").toLowerCase();
+  if (!sha) {
+    const s = (rel.assets || []).find(x => x.name === a.name + ".sha256");
+    if (s) { const t = await (await fetch(s.browser_download_url, { headers: HDR, signal: AbortSignal.timeout(20000) })).text(); sha = (t.match(/[0-9a-f]{64}/i) || [""])[0].toLowerCase(); }
+  }
+  set({ state: "available", version: ver, name: rel.name || "v" + ver, notes: rel.body || "", size: a.size, file: a.name, url: a.browser_download_url, sha256: sha, older: cmp(ver, env.version) < 0 }, true);
+}
+
+// Older releases the user can go back to. Betas only show when beta mode is on.
+async function versions() {
+  if (!env?.platform) return [];
+  try {
+    const r = await fetch(env.api + "/releases?per_page=50", { headers: HDR, signal: AbortSignal.timeout(20000) });
+    if (r.status !== 200) return [];
+    const beta = !!(env.beta && env.beta());
+    return (await r.json()).filter(x => x && !x.draft && x.tag_name && (beta || !x.prerelease) && pick(x.assets || []))
+      .sort((a, b) => cmp(b.tag_name, a.tag_name))
+      .map(x => ({ tag: x.tag_name, name: x.name || x.tag_name, date: x.published_at || "", current: cmp(x.tag_name, env.version) === 0 }));
+  } catch { return []; }
+}
+
+// Picks any listed release (older or newer) as the next download.
+async function pickVersion(tag) {
+  if (job || !/^v?[\w.\-]{1,40}$/.test(String(tag))) return state;
+  set({ state: "checking" }, true);
+  try {
+    const r = await fetch(env.api + "/releases/tags/" + encodeURIComponent(tag), { headers: HDR, signal: AbortSignal.timeout(20000) });
+    if (r.status !== 200) throw new Error("GitHub answered " + r.status);
+    await offer(await r.json(), String(tag).replace(/^v/, ""));
+  } catch (e) {
+    set({ state: "error", message: e.message || "Could not load that version" }, true);
+  }
+  return state;
+}
+
 async function check() {
   if (job) return state;
   if (!env.platform) { set({ state: "error", message: "Updates are not available on this system" }, true); return state; }
@@ -61,14 +100,7 @@ async function check() {
     if (beta) rel = (Array.isArray(rel) ? rel : []).filter(x => x && !x.draft && x.tag_name).sort((a, b) => cmp(b.tag_name, a.tag_name))[0] || {};
     const ver = String(rel.tag_name || "").replace(/^v/, "");
     if (!ver || cmp(ver, env.version) <= 0) { set({ state: "latest", version: env.version }, true); return state; }
-    const a = pick(rel.assets || []);
-    if (!a) throw new Error("This release has no file for this system");
-    let sha = String(a.digest || "").replace(/^sha256:/, "").toLowerCase();
-    if (!sha) {
-      const s = (rel.assets || []).find(x => x.name === a.name + ".sha256");
-      if (s) { const t = await (await fetch(s.browser_download_url, { headers: HDR, signal: AbortSignal.timeout(20000) })).text(); sha = (t.match(/[0-9a-f]{64}/i) || [""])[0].toLowerCase(); }
-    }
-    set({ state: "available", version: ver, name: rel.name || "v" + ver, notes: rel.body || "", size: a.size, file: a.name, url: a.browser_download_url, sha256: sha }, true);
+    await offer(rel, ver);
   } catch (e) {
     set({ state: "error", message: e.name === "TimeoutError" ? "GitHub did not answer" : e.message || "Check failed" }, true);
   }
@@ -130,4 +162,4 @@ async function install() {
   return true;
 }
 
-module.exports = { cmp, init, check, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _reset: () => { state = { state: "idle" }; job = null; } };
+module.exports = { cmp, init, check, versions, pickVersion, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _reset: () => { state = { state: "idle" }; job = null; } };

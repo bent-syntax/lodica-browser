@@ -63,6 +63,7 @@ class EmojiKeyboardService : InputMethodService() {
     private var spell: SpellCheckerSession? = null
     private var spellWord = ""
     private var spellTop: String? = null
+    private var late: Pair<String, Long>? = null // word already followed by a space while its suggestion was still pending
     private var emojiTab = -1 // -1 custom, otherwise index into UNICODE
     private val bitmaps = object : LruCache<String, Bitmap>(80) {}
 
@@ -78,9 +79,10 @@ class EmojiKeyboardService : InputMethodService() {
                 override fun onGetSuggestions(results: Array<out SuggestionsInfo>?) {}
                 override fun onGetSentenceSuggestions(results: Array<out SentenceSuggestionsInfo>?) {
                     val info = results?.firstOrNull()?.takeIf { it.suggestionsCount > 0 }?.getSuggestionsInfoAt(0) ?: return
-                    val typo = info.suggestionsAttributes and SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO != 0
-                    val top = if (typo && info.suggestionsCount > 0) info.getSuggestionAt(0) else null
-                    ui.post { spellTop = top; refreshStrip() }
+                    val attrs = info.suggestionsAttributes
+                    val typo = attrs and SuggestionsInfo.RESULT_ATTR_LOOKS_LIKE_TYPO != 0 || attrs and SuggestionsInfo.RESULT_ATTR_IN_THE_DICTIONARY == 0
+                    val top = if (typo && info.suggestionsCount > 0) info.getSuggestionAt(0)?.takeIf { it.isNotBlank() } else null
+                    ui.post { spellTop = top; lateFix(); refreshStrip() }
                 }
             }, true)
         }
@@ -97,17 +99,19 @@ class EmojiKeyboardService : InputMethodService() {
         dark = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         val r = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(if (dark) 0xFF202124.toInt() else 0xFFE8EAED.toInt())
+            setBackgroundColor(if (dark) 0xFF202124.toInt() else 0xFFF1F3F4.toInt())
             setPadding(0, 0, 0, dp(4))
             setOnApplyWindowInsetsListener { v, ins ->
                 val nav = androidx.core.view.WindowInsetsCompat.toWindowInsetsCompat(ins, v)
                     .getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars()).bottom
-                v.setPadding(0, 0, 0, dp(4) + nav)
+                // Gesture navigation can report a small bar: keep clear of the system IME switcher button.
+                val bar = resources.getIdentifier("navigation_bar_height", "dimen", "android").let { if (it > 0) resources.getDimensionPixelSize(it) else 0 }
+                v.setPadding(0, 0, 0, dp(4) + maxOf(nav, minOf(bar, dp(48)), dp(24)))
                 ins
             }
         }
         strip = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        r.addView(strip, LinearLayout.LayoutParams(-1, dp(44)))
+        r.addView(strip, LinearLayout.LayoutParams(-1, dp(if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 34 else 44)))
         body = FrameLayout(this)
         r.addView(body, LinearLayout.LayoutParams(-1, -2))
         root = r
@@ -163,7 +167,7 @@ class EmojiKeyboardService : InputMethodService() {
         if (w.length >= 3 && autocorrect) {
             spellWord = w
             ui.removeCallbacks(spellReq)
-            ui.postDelayed(spellReq, 120)
+            ui.postDelayed(spellReq, 30)
         }
         refreshStrip()
         updateAutoShift()
@@ -192,11 +196,29 @@ class EmojiKeyboardService : InputMethodService() {
             if (fix != null) {
                 c.beginBatchEdit(); c.deleteSurroundingText(w.length, 0); c.commitText("$fix ", 1); c.endBatchEdit()
                 undo = w to fix; done = true
-            } else learn(w, 1)
+            } else {
+                learn(w, 1)
+                if (w.length >= 3 && spellTop == null) late = w to now
+            }
         }
         if (!done) { c.commitText(" ", 1); undo = null }
         spellTop = null
         refreshStrip(); updateAutoShift()
+    }
+
+    /** The suggestion arrived after the space was typed: swap the word if nothing else was typed since. */
+    private fun lateFix() {
+        val l = late ?: return
+        val top = spellTop
+        if (top == null || spellWord != l.first || System.currentTimeMillis() - l.second > 2000) return
+        late = null
+        val c = ic() ?: return
+        val w = l.first
+        if (c.getTextBeforeCursor(w.length + 1, 0)?.toString() != "$w ") return
+        if (top.equals(w, true) || distance(w.lowercase(Locale.ROOT), top.lowercase(Locale.ROOT)) > 2) return
+        val fix = matchCase(w, top)
+        c.beginBatchEdit(); c.deleteSurroundingText(w.length + 1, 0); c.commitText("$fix ", 1); c.endBatchEdit()
+        undo = w to fix
     }
 
     /** Best replacement for a finished word, or null to keep it. */
@@ -453,13 +475,13 @@ class EmojiKeyboardService : InputMethodService() {
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
     private fun fgColor() = if (dark) 0xFFE8EAED.toInt() else 0xFF202124.toInt()
     private fun letterColor() = if (dark) 0xFF3C4043.toInt() else 0xFFFFFFFF.toInt()
-    private fun fnColor() = if (dark) 0xFF5F6368.toInt() else 0xFFC4C7CC.toInt()
+    private fun fnColor() = if (dark) 0xFF4A4D51.toInt() else 0xFFDADCE0.toInt()
     private fun accentColor() = if (dark) 0xFF8AB4F8.toInt() else 0xFF1A73E8.toInt()
     private fun bg(color: Int, radius: Int = 8) = GradientDrawable().apply { setColor(color); cornerRadius = dp(radius).toFloat() }
 
     private fun column() = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(3), dp(2), dp(3), 0) }
     private fun row() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(52))
+    private fun rowParams() = LinearLayout.LayoutParams(-1, dp(if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 38 else 52))
     private fun spacer(w: Float) = View(this).apply { layoutParams = LinearLayout.LayoutParams(0, -1, w) }
 
     private fun charKey(label: String, w: Float, longDigit: String?): View =

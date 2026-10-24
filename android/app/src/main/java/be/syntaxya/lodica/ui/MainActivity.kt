@@ -195,6 +195,12 @@ class MainActivity : HostActivity() {
         if (url != TabManager.current?.url) Ui.clipLink = url
     }
 
+    override fun onPause() {
+        super.onPause()
+        // Keep the card of the page in view fresh, so it is not a bare logo after a restart.
+        TabManager.current?.let { be.syntaxya.lodica.ui.captureThumbnail(it) }
+    }
+
     override fun onStop() {
         super.onStop()
         be.syntaxya.lodica.ui.theme.LauncherIcon.flush(applicationContext)

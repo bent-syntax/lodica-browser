@@ -32,7 +32,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `vault.state` -> {pinSet, unlocked}; `vault.setPin(pin)`; `vault.unlock(pin)` -> bool; `vault.list` -> [{origin,user,saved}]
 - `vault.delete(origin,user)`; `vault.copy(origin,user)` (password to clipboard, cleared after 30s)
 - `downloads.list` -> [{id,name,url,state,received,total,path,time}]; `downloads.open(id)`; `downloads.show(id)`
-- `update.status` -> current update state (same shape as the `update` event); `update.check`; `update.download`; `update.cancel`; `update.install`. The relay is the only update source; no GitHub credential is held here.
+- `update.status` -> current update state (same shape as the `update` event); `update.check`; `update.versions` -> releases to roll back to; `update.pick(tag)` -> offers that release as the next download (state has `older: true` when it is lower than the running version); `update.download`; `update.cancel`; `update.install`. The relay is the only update source; no GitHub credential is held here.
 - `downloads.cancel(id)`; `downloads.resume(id)`; `downloads.remove(id)`; `downloads.clear`
 - `meter.list` -> [{host,blocked,saved}] + totals; `meter.reset`
 - `ai.ask(q, ctx)` -> {text}|{error}; `ai.status` -> {status, connected, hasKey}; `ai.setKey(key)` -> status

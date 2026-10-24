@@ -47,7 +47,14 @@ function safe(u) {
 
 function img(src, cls, alt) {
   if (!src) return null;
-  return el("img", { src: BASE + src, class: cls, alt: alt || "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer" });
+  // The proxy can answer too early on a first load: try again a few times before giving up.
+  let tries = 0;
+  const i = el("img", { src: BASE + src, class: cls, alt: alt || "", loading: "lazy", decoding: "async", referrerpolicy: "no-referrer" });
+  i.addEventListener("error", () => {
+    if (++tries > 3) { i.classList.add("broken"); return; }
+    setTimeout(() => { i.src = BASE + src + (src.includes("?") ? "&" : "?") + "r=" + tries; }, 400 * tries);
+  });
+  return i;
 }
 
 // Round site icon: a letter circle first, swapped for the site's own favicon once the helper has fetched it.

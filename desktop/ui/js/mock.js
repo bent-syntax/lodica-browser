@@ -65,6 +65,8 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     "history.list": (q) => history.filter((r) => !q || (r.title + r.url).toLowerCase().includes(q.toLowerCase())),
     "downloads.list": () => downloads,
     "update.status": () => ({ state: "idle" }),
+    "update.versions": () => [{ tag: "v1.0.0", name: "v1.0.0", date: "2026-01-01", current: true }],
+    "update.pick": () => ({ state: "idle" }),
     "update.check": () => ({ state: "latest", version: "1.0.0" }),
     "vault.state": () => ({ pinSet: true, unlocked: false }),
     "vault.unlock": (pin) => pin === "1234",

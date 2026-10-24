@@ -1,3 +1,13 @@
+## 1.12.0-beta.7 (redesign test)
+
+- Go back to an older version: Settings > About > Go back to an older version (desktop). Pick a release from the list; the download is still checksum verified.
+- Android: autocorrect fixes, Gboard-like keyboard look, better landscape keyboard, IME switcher no longer overlaps the keyboard.
+- Android: tab switcher and search thumbnails load reliably, find bar layout, viewport after the keyboard closes.
+- Android: friendly error page when a site cannot be loaded, private tabs no longer stay blank, desktop-site pages no longer clip on the left.
+- Android: start page settings show an explanation and a preview, also with None selected.
+- Dark pages: detection only looks at the real page colours, so light sites are no longer darkened.
+- Fixes for installing a site as an app and for a blank tab after a download.
+
 ## 1.12.0-beta.6 (redesign test)
 
 - Server chat: emoji button next to (desktop) or under (Android) the file button. Server emojis on both, normal emojis on desktop. Sent as `:name:`, shown as images.
