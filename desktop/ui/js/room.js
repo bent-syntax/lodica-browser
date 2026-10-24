@@ -148,6 +148,9 @@ function roomRender() {
   const up = ROOM.state.upload;
   L.prog.style.display = up ? "" : "none";
   L.prog.textContent = up ? "Uploading " + up.name + " " + up.pct + "%" : "";
+  const sig = JSON.stringify([ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
+  if (L.sig === sig) return;
+  L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
   for (const m of ROOM.state.messages) {

@@ -498,6 +498,24 @@ fun SettingsScreen() {
                 is UpdateState.Ready -> LinkRow("Install ${upd.info.version}", color = Amber) { Updater.install(ctx) }
                 is UpdateState.Failed -> LinkRow("${upd.message} — retry") { Updater.check(ctx) }
             }
+            var older by remember { mutableStateOf(false) }
+            LinkRow("Go back to an older version") { older = true; Updater.loadVersions() }
+            if (older) {
+                AlertDialog(
+                    onDismissRequest = { older = false },
+                    confirmButton = { TextButton(onClick = { older = false }) { Text("Close") } },
+                    title = { Text("Older versions") },
+                    text = {
+                        val list = Updater.versions
+                        Column(Modifier.verticalScroll(rememberScrollState())) {
+                            Text("Android may refuse an older version while a newer one is installed. If so, uninstall first. Your data stays only if the install succeeds over the top.", fontSize = 12.sp, color = Muted)
+                            if (list == null) Text("Loading…", Modifier.padding(top = 8.dp))
+                            else if (list.isEmpty()) Text("No versions found. Check your connection.", Modifier.padding(top = 8.dp))
+                            else list.forEach { t -> LinkRow(t) { older = false; Updater.pickVersion(ctx, t) } }
+                        }
+                    },
+                )
+            }
             Spacer(Modifier.height(24.dp))
             if (Prefs.betaUnlocked) {
                 SwitchRow("Beta tester", "Get new features early from pre-releases. They may be unstable", Prefs.betaEnabled) { Prefs.updateBetaEnabled(it); Updater.reset() }

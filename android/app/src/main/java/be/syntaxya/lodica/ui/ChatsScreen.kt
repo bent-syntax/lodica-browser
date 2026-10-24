@@ -97,11 +97,12 @@ fun ChatsScreen() {
                     val m = msgs[i]
                     val mine = m.role == "user"
                     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
-                        Text(
-                            m.text, color = Mist, fontSize = 14.sp,
-                            modifier = Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp))
-                                .background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
-                        )
+                        androidx.compose.foundation.text.selection.SelectionContainer(
+                            Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp))
+                                .background(if (mine) GraphiteHigh else GraphiteRaised),
+                        ) {
+                            Text(m.text, color = Mist, fontSize = 14.sp, modifier = Modifier.padding(12.dp))
+                        }
                     }
                 }
                 item { if (busy) Text("Researching…", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(8.dp)) else Box(Modifier) }

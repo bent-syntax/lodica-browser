@@ -187,6 +187,43 @@ object Updater {
 
     fun cancel() { job?.cancel() }
 
+    /** Release tags the user can go back to. Betas only show with beta mode on. */
+    var versions by mutableStateOf<List<String>?>(null)
+        private set
+
+    fun loadVersions() {
+        versions = null
+        Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            versions = runCatching {
+                val (code, body) = get(ALL.replace("per_page=30", "per_page=50"))
+                if (code != 200) emptyList() else json.decodeFromString<List<GhRelease>>(body)
+                    .filter { !it.draft && it.tag_name.isNotEmpty() && (Prefs.betaEnabled || !it.prerelease) && it.assets.any { a -> a.name.endsWith(".apk") } }
+                    .sortedWith { x, y -> cmp(y.tag_name, x.tag_name) }.map { it.tag_name }
+            }.getOrElse { emptyList() }
+        }
+    }
+
+    /** Offers any listed release, older or newer, as the next download. */
+    fun pickVersion(ctx: Context, tag: String) {
+        if (state is UpdateState.Checking || state is UpdateState.Downloading) return
+        state = UpdateState.Checking
+        job = Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            state = runCatching {
+                val (code, body) = get(ALL.substringBefore("?").replace("/releases", "/releases/tags/") + java.net.URLEncoder.encode(tag, "UTF-8"))
+                if (code != 200) return@runCatching UpdateState.Failed("GitHub answered $code")
+                val rel = json.decodeFromString<GhRelease>(body)
+                val a = rel.assets.firstOrNull { it.name.endsWith(".apk") } ?: return@runCatching UpdateState.Failed("This release has no APK")
+                var sha = a.digest?.removePrefix("sha256:")?.lowercase()
+                if (sha.isNullOrEmpty()) {
+                    val sf = rel.assets.firstOrNull { it.name == a.name + ".sha256" }
+                    if (sf != null) sha = Regex("[0-9a-fA-F]{64}").find(get(sf.browser_download_url).second)?.value?.lowercase()
+                }
+                val ver = rel.tag_name.removePrefix("v")
+                UpdateState.Available(UpdateInfo(ver, rel.name ?: "v$ver", rel.body ?: "", a.name, a.size, sha, cmp(ver, currentVersion(ctx)) > 0, a.browser_download_url))
+            }.getOrElse { Log.w(TAG, "pick failed", it); UpdateState.Failed("Could not reach GitHub") }
+        }
+    }
+
     /** Opens the system installer for the verified APK; sends the user to the "install unknown apps" screen first if needed. */
     fun install(ctx: Context) {
         val path = (state as? UpdateState.Ready)?.path ?: return

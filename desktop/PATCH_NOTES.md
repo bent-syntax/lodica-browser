@@ -1,6 +1,12 @@
+## 1.12.6
+
+- Mobile: "Go back to an older version" in Settings, like on desktop. Android may refuse a downgrade until the newer app is uninstalled.
+- Mobile: text in AI chats can now be selected and copied.
+- Desktop: server chat no longer loses your text selection every few seconds, so messages can be copied.
+
 ## 1.12.5
 
-- Dark pages: the helper extension now forces the page colour scheme to light when Dark pages is off (and dark when on), so sites with their own dark mode no longer turn dark by themselves. Not confirmed on a device yet.
+- Dark pages: the helper extension now forces the page colour scheme to light when Dark pages is off (and dark when on), so sites with their own dark mode no longer turn dark by themselves. Checked on a phone: a site renders light with the setting off.
 
 ## 1.12.4
 
