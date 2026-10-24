@@ -157,3 +157,14 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 #bar{background:var(--raised);height:64px;border-top:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
 .pill{height:44px;padding:0 6px}
 .toast{border:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
+
+/* Redesign pass: type scale 26/20/15/13/12, pill buttons, amber settings nav selection. */
+.sp-head h2{font-size:26px;font-weight:600}
+.sp-title{font-size:20px}
+.sh-head h2,.dialog h3{font-size:20px;font-weight:600}
+.btn{border-radius:var(--r-pill);padding:10px 18px;min-height:40px}
+.btn.fill,.btn.fill.danger{padding:10px 20px}
+.sp-tab{min-height:44px;border-radius:12px;font-size:15px}
+.sp-tab.sel{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.set-card{border-radius:var(--r-l)}
+.set-row .t2,.set-note{font-size:13px}
