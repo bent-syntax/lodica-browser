@@ -95,6 +95,8 @@ object Engine {
             runtime.settings.setFingerprintingProtection(true)
             runtime.settings.setFingerprintingProtectionPrivateBrowsing(true)
         }
+        // Set again after the protection flags: the page colour scheme must follow the Dark pages switch.
+        step("colorScheme") { runtime.settings.setPreferredColorScheme(colorScheme()) }
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
 
         step("ublock") { runtime.webExtensionController

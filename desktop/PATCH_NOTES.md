@@ -1,3 +1,7 @@
+## 1.12.4
+
+- Dark pages: the page colour scheme is set again after startup, so sites with their own dark mode follow the Dark pages switch. Not confirmed on a device yet.
+
 ## 1.12.3
 
 - Dark pages: fixed text that stayed invisible or turned grey on sites using modern colour formats (oklch and similar), such as chores.vpswb.store. White text on buttons now stays white, and any text with too little contrast against its background is flipped to light or dark. Desktop now uses the same dark page code as mobile.
