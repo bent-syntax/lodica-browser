@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,12 +95,12 @@ private fun Dialog(
         title = title?.let { { Text(it, fontSize = 18.sp) } },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) { body() } },
         confirmButton = {
-            if (confirm != null) TextButton(onClick = onConfirm) { Text(confirm, color = Amber) }
+            if (confirm != null) DlgPrimary(onClick = onConfirm) { Text(confirm) }
         },
         dismissButton = {
             Row {
                 extra?.invoke()
-                if (dismiss != null) TextButton(onClick = { req.cancel() }) { Text(dismiss, color = Muted) }
+                if (dismiss != null) DlgSecondary(onClick = { req.cancel() }) { Text(dismiss) }
             }
         },
     )
@@ -141,8 +143,8 @@ private fun AskPrompt(req: Req.Ask) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { req.answer(true, remember) }) { Text(req.yes, color = Amber) } },
-        dismissButton = { TextButton(onClick = { req.answer(false, remember) }) { Text(req.no, color = Muted) } },
+        confirmButton = { DlgPrimary(onClick = { req.answer(true, remember) }) { Text(req.yes) } },
+        dismissButton = { DlgSecondary(onClick = { req.answer(false, remember) }) { Text(req.no) } },
     )
 }
 
@@ -258,15 +260,15 @@ private fun DateTimePromptDialog(req: Req.DateTime) {
             DatePickerDialog(
                 onDismissRequest = { req.cancel() },
                 confirmButton = {
-                    TextButton(onClick = {
+                    DlgPrimary(onClick = {
                         val ms = state.selectedDateMillis
                         if (ms == null) req.clear() else req.submit(fmt.format(java.util.Date(ms)))
-                    }) { Text("OK", color = Amber) }
+                    }) { Text("OK") }
                 },
                 dismissButton = {
                     Row {
-                        TextButton(onClick = { req.clear() }) { Text("Clear", color = Muted) }
-                        TextButton(onClick = { req.cancel() }) { Text("Cancel", color = Muted) }
+                        DlgSecondary(onClick = { req.clear() }) { Text("Clear") }
+                        DlgSecondary(onClick = { req.cancel() }) { Text("Cancel") }
                     }
                 },
                 colors = DatePickerDefaults.colors(containerColor = GraphiteRaised),

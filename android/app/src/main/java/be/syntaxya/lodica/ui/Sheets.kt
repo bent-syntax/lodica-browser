@@ -16,10 +16,12 @@ import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -96,32 +98,34 @@ fun MenuSheet() {
     val tab = TabManager.current
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() { Ui.menuOpen = false }
+    val navTile = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(GraphiteHigh)
 
     ModalBottomSheet(
         onDismissRequest = { close() },
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
-                IconButton(onClick = { tab?.session?.goBack(); close() }, enabled = tab?.canBack == true) {
+                IconButton(modifier = navTile, onClick = { tab?.session?.goBack(); close() }, enabled = tab?.canBack == true) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = if (tab?.canBack == true) Mist else Muted)
                 }
-                IconButton(onClick = { tab?.session?.goForward(); close() }, enabled = tab?.canFwd == true) {
+                IconButton(modifier = navTile, onClick = { tab?.session?.goForward(); close() }, enabled = tab?.canFwd == true) {
                     Icon(Icons.AutoMirrored.Rounded.ArrowForward, "Forward", tint = if (tab?.canFwd == true) Mist else Muted)
                 }
-                IconButton(onClick = {
+                IconButton(modifier = navTile, onClick = {
                     if (tab?.loading == true) tab.session?.stop() else tab?.session?.reload()
                     close()
                 }) {
                     if (tab?.loading == true) Icon(Icons.Rounded.Close, "Stop", tint = Mist)
                     else Icon(Icons.Rounded.Refresh, "Reload", tint = Mist)
                 }
-                IconButton(onClick = {
+                IconButton(modifier = navTile, onClick = {
                     tab?.let {
                         val q = Prefs.searchQuery(it.url)
                         if (q != null) Prompts.host?.share(q, null, Prefs.publicSearchUrl(q))
@@ -132,7 +136,7 @@ fun MenuSheet() {
                     Icon(Icons.Rounded.Share, "Share", tint = Mist)
                 }
             }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp), color = GraphiteHigh)
+            Spacer(Modifier.height(12.dp))
 
             val items = buildList {
                 add(MenuItem("new", Icons.Rounded.Add, "New tab") {
@@ -229,12 +233,17 @@ private class MenuItem(
 @Composable
 private fun MenuCell(m: MenuItem, modifier: Modifier, pinned: Boolean = false, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(18.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
+        modifier.clip(RoundedCornerShape(16.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(m.icon, null, tint = m.tint, modifier = Modifier.size(24.dp))
+        val active = m.tint != Mist
+        Box(
+            Modifier.size(52.dp).clip(RoundedCornerShape(14.dp))
+                .background(if (active) m.tint.copy(alpha = 0.16f) else GraphiteHigh),
+            contentAlignment = Alignment.Center,
+        ) { Icon(m.icon, null, tint = m.tint, modifier = Modifier.size(24.dp)) }
         Spacer(Modifier.height(6.dp))
-        Text(if (pinned) "\u2605 " + m.label else m.label, color = if (pinned) Amber else Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(if (pinned) "\u2605 " + m.label else m.label, color = if (pinned) Amber else Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -253,6 +262,7 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Text(
@@ -293,10 +303,11 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
 @Composable
 private fun Action(icon: ImageVector, label: String, tint: androidx.compose.ui.graphics.Color = Mist, run: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { run(); TabManager.contextMenu = null }.padding(horizontal = 20.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clickable { run(); TabManager.contextMenu = null }.padding(horizontal = 20.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp))
+        Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (tint != Mist) tint.copy(alpha = 0.16f) else GraphiteHigh),
+            contentAlignment = Alignment.Center) { Icon(icon, null, tint = tint, modifier = Modifier.size(22.dp)) }
         Spacer(Modifier.width(16.dp))
         Text(label, color = Mist, fontSize = 15.sp)
     }

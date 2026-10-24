@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -290,7 +292,7 @@ private fun HiddenEmailChip(tab: Tab) {
 private fun InstallChip(tab: be.syntaxya.lodica.tabs.Tab) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val name = remember(tab.manifest) { tab.manifest?.let { m -> listOf("short_name", "name").map { if (m.isNull(it)) "" else m.optString(it).trim() }.firstOrNull { it.isNotEmpty() } }.orEmpty() }
-    Surface(shape = RoundedCornerShape(24.dp), color = GraphiteRaised, contentColor = Mist, shadowElevation = 4.dp, modifier = Modifier.padding(bottom = 6.dp)) {
+    Surface(shape = RoundedCornerShape(20.dp), color = GraphiteRaised, contentColor = Mist, shadowElevation = 4.dp, modifier = Modifier.padding(bottom = 6.dp)) {
         Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Install ${name.ifEmpty { tab.host }} as an app", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             TextButton(onClick = { Ui.installDismissed += tab.host; WebApps.install(ctx, tab) }) { Text("Install", color = Amber, fontSize = 13.sp) }
@@ -303,7 +305,7 @@ private fun InstallChip(tab: be.syntaxya.lodica.tabs.Tab) {
 private fun ClipChip(link: String) {
     val host = remember(link) { runCatching { android.net.Uri.parse(link).host.orEmpty() }.getOrDefault("").removePrefix("www.") }
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(20.dp),
         color = GraphiteRaised,
         contentColor = Mist,
         shadowElevation = 4.dp,
@@ -552,13 +554,13 @@ private fun StartPage(modifier: Modifier) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     val u = url.trim().let { if (it.isEmpty() || Regex("^[a-z][a-z0-9+.-]*:", RegexOption.IGNORE_CASE).containsMatchIn(it)) it else "https://$it" }
                     if (u.isNotEmpty()) Prefs.updateQuick(Prefs.quickList() + (u to name.trim().ifEmpty { android.net.Uri.parse(u).host.orEmpty().removePrefix("www.") }))
                     adding = false
-                }) { Text("Add", color = Amber) }
+                }) { Text("Add") }
             },
-            dismissButton = { TextButton(onClick = { adding = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { adding = false }) { Text("Cancel") } },
         )
     }
     removing?.let { r ->
@@ -566,8 +568,8 @@ private fun StartPage(modifier: Modifier) {
             onDismissRequest = { removing = null },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
             title = { Text("Remove ${r.title.ifBlank { r.url }}?") },
-            confirmButton = { TextButton(onClick = { Prefs.updateQuick(Prefs.quickList().filter { it.first != r.url }); removing = null }) { Text("Remove", color = Amber) } },
-            dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel", color = Muted) } },
+            confirmButton = { DlgPrimary(onClick = { Prefs.updateQuick(Prefs.quickList().filter { it.first != r.url }); removing = null }) { Text("Remove") } },
+            dismissButton = { DlgSecondary(onClick = { removing = null }) { Text("Cancel") } },
         )
     }
 }

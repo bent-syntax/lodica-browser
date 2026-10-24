@@ -253,7 +253,7 @@ private fun Shield(tab: Tab?) {
     val trusted = tab?.trusted == true
     val on = Engine.ublock != null && !trusted
     Box(
-        Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).clickable(enabled = tab != null) {
+        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).clickable(enabled = tab != null) {
             val t = tab ?: return@clickable
             val msg = when {
                 !TabManager.toggleTrust(t) -> "Wait for the page to load"
@@ -285,7 +285,7 @@ private fun TabCount(tab: Tab?) {
     val private = tab?.private == true
     val n = TabManager.tabs.count { it.private == private }
     Box(
-        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(14.dp)).clickable { openTabs() },
+        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(12.dp)).clickable { openTabs() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
