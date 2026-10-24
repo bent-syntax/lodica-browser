@@ -3,7 +3,11 @@
 // picks it up over the admin API, talks to the user through the same ticket and reports progress.
 //   POST /api/support {text, name, app, version, platform}  -> {id}              (client token)
 //   GET  /api/support/<id>                                   -> ticket           (client token)
-//   POST /api/support/<id> {text}                            -> ticket           (client token, user reply)
+//   POST /api/support/<id> {text, images?, resolved?}        -> ticket           (client token, user reply; resolved:true closes it)
+//   POST /api/support/<id>/push {token}                      -> {}               (client token, FCM device token for instant alerts)
+//   GET  /api/support/<id>/img/<name>                        -> image            (client token)
+//   GET  /api/support/admin/<id>/img/<name>                  -> image            (admin token)
+// images: up to 3 base64 JPEG or PNG strings per message, stored beside the ticket.
 //   GET  /api/support/admin?after=<rev>&wait=<s>             -> {tickets, rev}   (admin token)
 //   POST /api/support/admin/<id> {status, text}              -> ticket           (admin token)
 // The admin token is a separate secret (LODICA_SUPPORT_ADMIN_TOKEN_PATH); without that file the admin API is off.
@@ -12,11 +16,14 @@ const fsp = fs.promises;
 const path = require('path');
 const crypto = require('crypto');
 const { cfg } = require('./config');
+const fcm = require('./fcm');
 
 const DIR = path.join(cfg.dataDir, 'support');
+const IMG_DIR = path.join(DIR, 'img');
 const ADMIN_TOKEN_PATH = process.env.LODICA_SUPPORT_ADMIN_TOKEN_PATH || '/etc/lodica-relay/support-admin-token';
+const IMG_MAX = 3, IMG_BYTES = 700 * 1024, BODY_MAX = 3 * 1024 * 1024;
 const TEXT_MAX = 4000, NAME_MAX = 40, MAX_MSGS = 60, MAX_TICKETS = 2000, WAIT_MAX = 25;
-const STATUSES = new Set(['new', 'seen', 'needs-info', 'fixing', 'done', 'closed']);
+const STATUSES = new Set(['new', 'seen', 'needs-info', 'fixing', 'awaiting-confirm', 'done', 'closed']);
 const ID_RE = /^[0-9a-f]{16}$/;
 const TTL = 90 * 24 * 3600e3;
 
@@ -41,7 +48,7 @@ function adminOk(req) {
 function load() {
   loadAdmin();
   try {
-    fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
+    fs.mkdirSync(IMG_DIR, { recursive: true, mode: 0o700 });
     for (const f of fs.readdirSync(DIR)) {
       if (!/^[0-9a-f]{16}\.json$/.test(f)) continue;
       try {
@@ -63,10 +70,28 @@ function save(t) {
 function sweep() {
   const now = Date.now();
   for (const [id, t] of tickets) {
-    if (now - t.updated > TTL) { tickets.delete(id); fsp.unlink(path.join(DIR, id + '.json')).catch(() => {}); }
+    if (now - t.updated > TTL) {
+      tickets.delete(id); fsp.unlink(path.join(DIR, id + '.json')).catch(() => {});
+      for (const m of t.messages) for (const n of m.images || []) fsp.unlink(path.join(IMG_DIR, n)).catch(() => {});
+    }
   }
 }
 
+const IMG_RE = /^[0-9a-f]{16}-[0-9a-f]{12}\.(jpg|png)$/;
+// Decodes and stores the images of one message; returns their file names. Anything that is not a JPEG or PNG is dropped.
+function saveImages(t, list) {
+  const out = [];
+  for (const v of Array.isArray(list) ? list.slice(0, IMG_MAX) : []) {
+    if (typeof v !== 'string') continue;
+    const buf = Buffer.from(v.replace(/^data:[^,]*,/, ''), 'base64');
+    const ext = buf.length > 8 && buf[0] === 0xff && buf[1] === 0xd8 ? 'jpg' : buf.length > 8 && buf.subarray(0, 4).toString('hex') === '89504e47' ? 'png' : '';
+    if (!ext || buf.length > IMG_BYTES) continue;
+    const name = t.id + '-' + crypto.randomBytes(6).toString('hex') + '.' + ext;
+    fsp.writeFile(path.join(IMG_DIR, name), buf, { mode: 0o600 }).catch(() => {});
+    out.push(name);
+  }
+  return out;
+}
 const clean = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim().slice(0, max) : '');
 const view = (t) => ({ id: t.id, status: t.status, at: t.at, updated: t.updated, rev: t.rev, messages: t.messages });
 
@@ -80,7 +105,7 @@ function limited(ip) {
 }
 
 async function body(req, h) {
-  try { return JSON.parse((await h.readBody(req, 16 * 1024)).toString('utf8')); } catch { return null; }
+  try { return JSON.parse((await h.readBody(req, BODY_MAX)).toString('utf8')); } catch { return null; }
 }
 
 async function create(req, res, ip, h) {
@@ -93,8 +118,10 @@ async function create(req, res, ip, h) {
   const t = {
     id: crypto.randomBytes(8).toString('hex'), at: Date.now(), status: 'new',
     name: clean(b.name, NAME_MAX), app: clean(b.app, 20), version: clean(b.version, 20), platform: clean(b.platform, 40),
-    messages: [{ from: 'user', text, at: Date.now() }],
+    messages: [],
   };
+  const images = saveImages(t, b.images);
+  t.messages.push(images.length ? { from: 'user', text, at: Date.now(), images } : { from: 'user', text, at: Date.now() });
   tickets.set(t.id, t);
   save(t);
   h.sendJson(req, res, 200, view(t));
@@ -110,14 +137,42 @@ async function reply(req, res, id, ip, h) {
   const t = ID_RE.test(id) && tickets.get(id);
   if (!t) return h.sendText(req, res, 404, 'unknown ticket');
   const b = await body(req, h);
-  const text = clean(b && b.text, TEXT_MAX);
+  const resolved = !!(b && b.resolved === true);
+  const text = clean(b && b.text, TEXT_MAX) || (resolved ? 'Yes, it is fixed.' : '');
   if (!text) return h.sendText(req, res, 400, 'text required');
   if (t.messages.length >= MAX_MSGS) return h.sendText(req, res, 429, 'conversation is full');
   if (limited(ip)) return h.sendText(req, res, 429, 'too many messages, try again later');
-  t.messages.push({ from: 'user', text, at: Date.now() });
-  if (t.status === 'needs-info' || t.status === 'done' || t.status === 'closed') t.status = 'new';
+  const images = saveImages(t, b.images);
+  const m = { from: 'user', text, at: Date.now() };
+  if (images.length) m.images = images;
+  if (resolved) m.resolved = true;
+  t.messages.push(m);
+  if (resolved) t.status = 'closed';
+  else if (t.status === 'needs-info' || t.status === 'awaiting-confirm' || t.status === 'done' || t.status === 'closed') t.status = 'new';
   save(t);
   h.sendJson(req, res, 200, view(t));
+}
+
+async function push(req, res, id, h) {
+  const t = ID_RE.test(id) && tickets.get(id);
+  if (!t) return h.sendText(req, res, 404, 'unknown ticket');
+  const b = await body(req, h);
+  const v = b && typeof b.token === 'string' && /^[\w:\-]{20,400}$/.test(b.token) ? b.token : '';
+  if (!v) return h.sendText(req, res, 400, 'token required');
+  if (t.push !== v) { t.push = v; save(t); }
+  h.sendJson(req, res, 200, {});
+}
+
+// Serves a stored image. `admin` routes check the admin token here; client routes are checked by the caller.
+async function image(req, res, id, name, admin, h) {
+  if (admin && !adminOk(req)) return h.sendText(req, res, 401, 'unauthorized');
+  const t = ID_RE.test(id) && tickets.get(id);
+  if (!t || !IMG_RE.test(name) || !name.startsWith(id) || !t.messages.some((m) => (m.images || []).includes(name))) return h.sendText(req, res, 404, 'unknown image');
+  try {
+    const buf = await fsp.readFile(path.join(IMG_DIR, name));
+    res.writeHead(200, { 'content-type': name.endsWith('.png') ? 'image/png' : 'image/jpeg', 'content-length': buf.length, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff' });
+    res.end(buf);
+  } catch { h.sendText(req, res, 404, 'unknown image'); }
 }
 
 function adminList(req, res, url, h) {
@@ -146,7 +201,8 @@ async function adminPost(req, res, id, h) {
   if (text) t.messages.push({ from: 'team', text, at: Date.now() });
   if (b.status) t.status = b.status;
   save(t);
+  if (t.push && (text || b.status)) fcm.send(t.push, { ticket: t.id, status: t.status }).then((ok) => { if (!ok) { delete t.push; save(t); } });
   h.sendJson(req, res, 200, view(t));
 }
 
-module.exports = { load, create, get, reply, adminList, adminPost, sweep };
+module.exports = { load, create, get, reply, push, image, adminList, adminPost, sweep };

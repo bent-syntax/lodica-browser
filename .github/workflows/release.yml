@@ -22,11 +22,13 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.LODICA_KEYSTORE }}
           RELAY_TOKEN: ${{ secrets.LODICA_RELAY_TOKEN }}
+          FCM_PROPERTIES: ${{ secrets.LODICA_FCM_PROPERTIES }}
           LODICA_KEYSTORE_PASS: ${{ secrets.LODICA_KEYSTORE_PASS }}
         run: |
           mkdir -p android/keystore
           printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/lodica.jks
           if [ -n "$RELAY_TOKEN" ]; then printf '%s' "$RELAY_TOKEN" > android/keystore/relay-token; fi
+          if [ -n "$FCM_PROPERTIES" ]; then printf '%s\n' "$FCM_PROPERTIES" > android/keystore/fcm.properties; fi
           keytool -list -keystore android/keystore/lodica.jks -storepass "$LODICA_KEYSTORE_PASS" -alias lodica > /dev/null \
             || { echo "::error::Keystore does not load: check LODICA_KEYSTORE (base64 -w0 lodica.jks) and LODICA_KEYSTORE_PASS"; exit 1; }
       - name: Build signed release APK

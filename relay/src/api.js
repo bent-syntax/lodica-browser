@@ -441,6 +441,20 @@ async function route(req, res) {
     if (m !== 'POST') return not('POST');
     return support.adminPost(req, res, r[1], { sendJson, sendText, readBody });
   }
+  if ((r = /^\/api\/support\/admin\/([0-9a-f]{16})\/img\/([0-9a-f]{16}-[0-9a-f]{12}\.(?:jpg|png))$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
+    return support.image(req, res, r[1], r[2], true, { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/([0-9a-f]{16})\/img\/([0-9a-f]{16}-[0-9a-f]{12}\.(?:jpg|png))$/.exec(p))) {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return support.image(req, res, r[1], r[2], false, { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/([0-9a-f]{16})\/push$/.exec(p))) {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return support.push(req, res, r[1], { sendJson, sendText, readBody });
+  }
   if ((r = /^\/api\/support\/([0-9a-f]{16})$/.exec(p))) {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
     if (!authed(req, res)) return;

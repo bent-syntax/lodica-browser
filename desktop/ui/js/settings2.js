@@ -152,6 +152,17 @@ function updateRow() {
     default: return setRow("Check for updates", "Look for a newer Lodica", null, () => inv("update.check"));
   }
 }
+// Shrinks a picked image to a JPEG data (longest side 1280 px) for the support relay.
+async function shrink(f) {
+  try {
+    const bmp = await createImageBitmap(f);
+    const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    for (let q = 0.85; q > 0.2; q -= 0.15) { const d = c.toDataURL("image/jpeg", q); if (d.length < 900000) return d.split(",")[1]; }
+  } catch {}
+  return null;
+}
 // Support: one open conversation with the team; answers and questions also arrive as notifications.
 function openSupport() {
   return sheet({ title: "Contact support", key: "support", tall: true }, async (b, L) => {
@@ -160,18 +171,33 @@ function openSupport() {
       const ta = h("textarea", { class: "field", rows: "4", maxlength: "4000", placeholder: st.open ? "Reply" : "Describe a bug or something you'd like added" });
       const err = h("div", { class: "empty", text: "" });
       if (st.open) {
-        for (const m of st.messages) b.append(h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t2", text: m.fromUser ? "You" : "Support" }), h("div", { class: "t1", text: m.text }))));
+        const steps = ["Sent", "Reviewing", "Asking", "Fixing", "Confirming", "Done"];
+        const at = { new: 0, seen: 1, "needs-info": 2, fixing: 3, "awaiting-confirm": 4, done: 5, closed: 5 }[st.status] ?? 0;
+        b.append(h("div", { class: "bar-meter" }, h("i", { style: "width:" + Math.round(100 * (at + 1) / steps.length) + "%" })),
+          h("div", { class: "t2", text: steps.map((x, i) => (i === at ? "[" + x + "]" : x)).join(" > ") }));
+        for (const m of st.messages) b.append(h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t2", text: m.fromUser ? "You" : "Support" }), h("div", { class: "t1", text: m.text + (m.images ? " [" + m.images + " image" + (m.images > 1 ? "s" : "") + "]" : "") }))));
         if (st.status === "needs-info") b.append(h("div", { class: "empty", text: "Support needs more information. Reply below." }));
         if (st.status === "fixing") b.append(h("div", { class: "empty", text: "A fix is being built and tested." }));
+        if (st.status === "awaiting-confirm") b.append(h("div", { class: "empty", text: "Is it fixed or working now?" }));
         if (st.status === "done") b.append(h("div", { class: "empty", text: "Fixed. Update the browser to get it." }));
       }
+      const pics = [];
+      const file = h("input", { type: "file", accept: "image/*", multiple: "" });
+      const addBtn = h("button", { class: "btn", text: "Add image", act: () => file.click() });
+      file.onchange = async () => {
+        for (const f of file.files) if (pics.length < 3) { const d = await shrink(f); if (d) pics.push(d); }
+        file.value = ""; addBtn.textContent = pics.length ? "Images: " + pics.length + "/3" : "Add image";
+      };
+      if (st.open && st.status === "awaiting-confirm") b.append(
+        h("button", { class: "btn", text: "Yes, fixed", act: async () => draw(await inv("support.send", "Yes, it is fixed.", { resolved: true })) }),
+        h("button", { class: "btn", text: "No", act: () => { ta.value = "No, it is still not fixed: "; ta.focus(); } }));
       const btn = h("button", { class: "btn", text: "Send", act: async () => {
         const text = ta.value.trim(); if (!text) return;
         btn.disabled = true; btn.textContent = "Sending...";
-        const r = await inv("support.send", text);
+        const r = await inv("support.send", text, { images: pics });
         if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
       } });
-      b.append(ta, btn, err);
+      b.append(ta, addBtn, btn, err);
     };
     draw((await inv("support.open")) || { messages: [] });
   });

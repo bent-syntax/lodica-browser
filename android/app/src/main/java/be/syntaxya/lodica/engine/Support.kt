@@ -12,7 +12,7 @@ import org.json.JSONObject
  * answers and questions arrive as notifications (see [Notifier]) and show up in the support dialog.
  */
 object Support {
-    data class Msg(val fromUser: Boolean, val text: String)
+    data class Msg(val fromUser: Boolean, val text: String, val images: Int = 0)
 
     var messages by mutableStateOf<List<Msg>>(emptyList())
         private set
@@ -24,11 +24,13 @@ object Support {
     fun ticketId(ctx: Context): String? = prefs(ctx).getString("ticket", null)
 
     /** Sends [text] as a new ticket, or as a reply when a ticket is open. Returns an error message, or null on success. */
-    fun send(ctx: Context, text: String): String? {
+    fun send(ctx: Context, text: String, images: List<Uri> = emptyList(), resolved: Boolean = false): String? {
         Relay.init(ctx)
         if (!Relay.available) return "No relay is set up. Pair this browser with your server first."
         val id = ticketId(ctx)?.takeIf { status != "closed" }
         val body = JSONObject().put("text", text)
+        if (images.isNotEmpty()) body.put("images", org.json.JSONArray(images.mapNotNull { encode(ctx, it) }))
+        if (resolved && id != null) body.put("resolved", true)
         val path = if (id == null) {
             val v = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""
             body.put("name", Room.name(ctx)).put("app", "android").put("version", v)
@@ -40,18 +42,33 @@ object Support {
         } catch (e: java.io.IOException) {
             return "Can't reach the server. Try again later."
         }
-        if (code == 404 && id != null) { prefs(ctx).edit().remove("ticket").apply(); messages = emptyList(); return send(ctx, text) }
+        if (code == 404 && id != null) { prefs(ctx).edit().remove("ticket").apply(); messages = emptyList(); return send(ctx, text, images, resolved) }
         if (code != 200) return resp.ifBlank { "Support refused the message ($code)" }
         apply(ctx, JSONObject(resp), notifyTeam = false)
-        if (id == null) Notifier.supportSent(ctx)
+        Notifier.supportSent(ctx)
+        SupportPush.register(ctx)
         return null
     }
+
+    /** Shrinks a picked image to a JPEG the relay accepts (longest side 1280 px, under 700 KB). */
+    private fun encode(ctx: Context, uri: Uri): String? = runCatching {
+        val bmp = ctx.contentResolver.openInputStream(uri)!!.use { android.graphics.BitmapFactory.decodeStream(it) } ?: return null
+        val k = 1280f / maxOf(bmp.width, bmp.height)
+        val b = if (k < 1f) android.graphics.Bitmap.createScaledBitmap(bmp, (bmp.width * k).toInt(), (bmp.height * k).toInt(), true) else bmp
+        var q = 85
+        var out: ByteArray
+        do {
+            val o = java.io.ByteArrayOutputStream(); b.compress(android.graphics.Bitmap.CompressFormat.JPEG, q, o); out = o.toByteArray(); q -= 15
+        } while (out.size > 650_000 && q > 20)
+        android.util.Base64.encodeToString(out, android.util.Base64.NO_WRAP)
+    }.getOrNull()
 
     /** Fetches the open ticket and notifies about new answers from the team. */
     fun refresh(ctx: Context, notify: Boolean) {
         val id = ticketId(ctx) ?: return
         Relay.init(ctx)
         if (!Relay.available) return
+        SupportPush.register(ctx)
         val (code, resp) = Relay.request("GET", "/api/support/" + Uri.encode(id))
         if (code == 404) { prefs(ctx).edit().remove("ticket").remove("seen").apply(); return }
         if (code != 200) return
@@ -60,7 +77,7 @@ object Support {
 
     private fun apply(ctx: Context, t: JSONObject, notifyTeam: Boolean) {
         val arr = t.optJSONArray("messages")
-        val list = (0 until (arr?.length() ?: 0)).map { val m = arr!!.getJSONObject(it); Msg(m.optString("from") == "user", m.optString("text")) }
+        val list = (0 until (arr?.length() ?: 0)).map { val m = arr!!.getJSONObject(it); Msg(m.optString("from") == "user", m.optString("text"), m.optJSONArray("images")?.length() ?: 0) }
         val p = prefs(ctx)
         val seen = p.getInt("seen", 0)
         val st = t.optString("status")

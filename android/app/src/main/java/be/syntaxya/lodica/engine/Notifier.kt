@@ -89,7 +89,7 @@ object Notifier {
         post(ctx, SUPPORT, "Support", "support", 91, "Message sent to support", "We got your message. You'll be notified here when there's an update or a question.")
 
     fun supportReply(ctx: Context, text: String, status: String) =
-        post(ctx, SUPPORT, "Support", "support", 92, if (status == "done") "Support: your issue is fixed" else if (status == "needs-info") "Support needs more information" else "Support replied", text)
+        post(ctx, SUPPORT, "Support", "support", 92, if (status == "done" || status == "awaiting-confirm") "Support: your issue is fixed" else if (status == "needs-info") "Support needs more information" else "Support replied", text)
 
     private suspend fun checkUpdate(ctx: Context) {
         val cur = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: return

@@ -9,6 +9,8 @@ const state = { id: store.load("supportTicket", "") || "", seen: store.load("sup
 const persist = () => { store.save("supportTicket", () => state.id); store.save("supportSeen", () => state.seen); };
 
 function notify(title, body, onClick) {
+  // In-app toast always, since system notifications can be missing or muted (e.g. on Linux).
+  try { require("./ui").toast(title + ": " + body.slice(0, 120), onClick ? "Open" : undefined).then((ok) => { if (ok && onClick) onClick(); }).catch(() => {}); } catch {}
   if (!Notification.isSupported()) return;
   const n = new Notification({ title, body });
   if (onClick) n.on("click", onClick);
@@ -16,26 +18,28 @@ function notify(title, body, onClick) {
 }
 
 function apply(t, notifyTeam, onClick) {
-  const list = (t.messages || []).map((m) => ({ fromUser: m.from === "user", text: m.text }));
+  const list = (t.messages || []).map((m) => ({ fromUser: m.from === "user", text: m.text, images: (m.images || []).length }));
   if (notifyTeam && list.length > state.seen) {
     const fresh = list.slice(state.seen).filter((m) => !m.fromUser);
-    if (fresh.length) notify(t.status === "done" ? "Support: your issue is fixed" : t.status === "needs-info" ? "Support needs more information" : "Support replied", fresh[fresh.length - 1].text, onClick);
+    if (fresh.length) notify(t.status === "done" || t.status === "awaiting-confirm" ? "Support: your issue is fixed" : t.status === "needs-info" ? "Support needs more information" : "Support replied", fresh[fresh.length - 1].text, onClick);
   }
   state.id = t.id; state.seen = list.length; state.status = t.status; state.messages = list;
   persist();
 }
 
-async function send(text, onClick) {
+async function send(text, images = [], resolved = false, onClick) {
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
   const id = state.status === "closed" ? "" : state.id;
   const body = { text };
+  if (images.length) body.images = images;
+  if (resolved && id) body.resolved = true;
   if (!id) Object.assign(body, { name: require("./room").state.name, app: "desktop", version: require("../package.json").lodicaVersion || require("electron").app.getVersion(), platform: process.platform + " " + os.release() });
   try {
     const [st, resp] = await relay.request("POST", id ? "/api/support/" + id : "/api/support", 15000, body);
-    if (st === 404 && id) { state.id = ""; state.seen = 0; state.messages = []; persist(); return send(text, onClick); }
+    if (st === 404 && id) { state.id = ""; state.seen = 0; state.messages = []; persist(); return send(text, images, resolved, onClick); }
     if (st !== 200) return { error: resp || "Support refused the message (" + st + ")" };
     apply(JSON.parse(resp), false);
-    if (!id) notify("Message sent to support", "We got your message. You'll be notified when there's an update or a question.", onClick);
+    notify("Message sent to support", id ? "Support has your reply." : "We got your message. You'll be notified when there's an update or a question.", onClick);
     return get();
   } catch { return { error: "Can't reach the server. Try again later." }; }
 }
@@ -51,6 +55,6 @@ async function refresh(notifyTeam, onClick) {
 
 const get = () => ({ messages: state.messages, status: state.status, open: state.messages.length > 0 && state.status !== "closed" });
 async function open() { await refresh(false); return get(); }
-function watch(onClick) { setTimeout(() => refresh(true, onClick), 20000); setInterval(() => refresh(true, onClick), 2 * 60 * 1000); }
+function watch(onClick) { setTimeout(() => refresh(true, onClick), 20000); setInterval(() => { if (state.status !== "closed") refresh(true, onClick); }, 30 * 1000); }
 
 module.exports = { send, open, watch };

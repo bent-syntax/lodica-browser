@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -14,14 +16,20 @@ android {
         applicationId = "be.syntaxya.lodica"
         minSdk = 26
         targetSdk = 36
-        versionCode = 97
-        versionName = "1.12.9"
+        versionCode = 98
+        versionName = "1.12.10"
         ndk { abiFilters += "arm64-v8a" }
 
         // Shared secret for the Lodica VPS relay (proxy, mail, tabs). Lives in the gitignored keystore/
         // dir; an empty value disables the VPS features at runtime.
         val relayToken = rootDir.resolve("keystore/relay-token").takeIf { it.isFile }?.readText()?.trim().orEmpty()
         buildConfigField("String", "RELAY_TOKEN", "\"$relayToken\"")
+
+        // Firebase client config for instant support alerts (FCM). keystore/fcm.properties holds app_id,
+        // api_key, project_id and sender_id; without it push stays off and the app keeps polling.
+        val fcm = Properties().apply { rootDir.resolve("keystore/fcm.properties").takeIf { it.isFile }?.reader()?.use { load(it) } }
+        for (k in listOf("app_id", "api_key", "project_id", "sender_id"))
+            buildConfigField("String", "FCM_" + k.uppercase(), "\"${fcm.getProperty(k, "").trim()}\"")
     }
 
     signingConfigs {
@@ -79,6 +87,8 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.fragment:fragment-ktx:1.8.9")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+    // Instant support alerts. Initialised by hand from BuildConfig, no google-services plugin.
+    implementation("com.google.firebase:firebase-messaging:25.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
     implementation("net.zetetic:sqlcipher-android:4.19.1@aar")
     implementation("androidx.sqlite:sqlite:2.7.1")

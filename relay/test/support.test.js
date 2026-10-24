@@ -66,6 +66,15 @@ server.listen(0, '127.0.0.1', async () => {
     const r = await call(port, 'POST', '/api/support/' + id, { text: 'example.com' });
     assert.strictEqual(r.json.status, 'new');
     assert.strictEqual(r.json.messages[2].from, 'user');
+    const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(32)]).toString('base64');
+    const im = await call(port, 'POST', '/api/support/' + id, { text: 'screenshot', images: [png, 'bm90IGFuIGltYWdl'] });
+    const last = im.json.messages[im.json.messages.length - 1];
+    assert.strictEqual(last.images.length, 1);
+    assert.match(last.images[0], /^[0-9a-f]{16}-[0-9a-f]{12}\.png$/);
+    assert.strictEqual((await call(port, 'POST', '/api/support/admin/' + id, { status: 'awaiting-confirm', text: 'Fixed?' }, ADMIN)).json.status, 'awaiting-confirm');
+    const yes = await call(port, 'POST', '/api/support/' + id, { resolved: true });
+    assert.strictEqual(yes.json.status, 'closed');
+    assert.strictEqual(yes.json.messages[yes.json.messages.length - 1].resolved, true);
     console.log('support ok');
   } catch (e) { console.error(e); process.exitCode = 1; }
   server.close(); process.exit(process.exitCode || 0);

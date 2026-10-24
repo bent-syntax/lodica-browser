@@ -38,3 +38,4 @@ Release assets: Android APK from `cd android && ./gradlew assembleRelease` (need
 - [x] Selection equation solver (b7ddfc2)
 - [x] Desktop .docx editor (76b0a37)
 - [x] Version bump, changelog, patch notes (f4ce870)
+- [x] Support: FCM push, progress bar, needs-info toasts, approval loop, reply images (1.12.10)

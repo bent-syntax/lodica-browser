@@ -1,3 +1,10 @@
+## 1.12.10
+
+- Contact support: a progress bar shows where your report is (sent, reviewing, asking, fixing, confirming, done), on mobile and desktop.
+- Contact support: you now always get a confirmation when your message is sent, and the app shows a message when support answers or needs more information.
+- Mobile: support answers arrive instantly as a notification instead of up to 15 minutes later.
+- Reply to support with up to 3 images, and confirm with Yes, fixed / No once a fix is published.
+
 ## 1.12.9
 
 - Swipe the "Open link" bar (and the mail bar) at the bottom of the browser away to dismiss it, on mobile.
