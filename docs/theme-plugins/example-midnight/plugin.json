@@ -1,0 +1,8 @@
+{
+  "name": "Midnight",
+  "author": "Lodica",
+  "version": "1.0.0",
+  "description": "Deep blue example theme",
+  "vars": { "--bg": "#0b1020", "--raised": "#141b33", "--high": "#222b4d", "--amber": "#7aa2f7", "--link": "#9ecbff" },
+  "css": "theme.css"
+}

@@ -1,5 +1,6 @@
 ## 1.12.10
 
+- Theme plugins: community themes. Drop a folder with plugin.json into the plugins folder (Settings > Themes > Theme plugins). See docs/theme-plugins.
 - Contact support: a progress bar shows where your report is (sent, reviewing, asking, fixing, confirming, done), on mobile and desktop.
 - Contact support: you now always get a confirmation when your message is sent, and the app shows a message when support answers or needs more information.
 - Mobile: support answers arrive instantly as a notification instead of up to 15 minutes later.
