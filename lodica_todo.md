@@ -1,5 +1,7 @@
 # Lodica todo
 
+Bug tracking moved to the Google Tasks list "lodica" (see docs/STRUCTURE.md). This file is the old tracker.
+
 Trigger: "Run Keep bug fixes". Read Pending, implement, move finished items to Done with commit hash, then release (changelog, patch notes, version bump, compile and tests, commit, tag, `git push origin main --tags`), then publish a GitHub Release.
 
 Release assets: Android APK from `cd android && ./gradlew assembleRelease` (needs `LODICA_KEYSTORE_PASS`; use `assembleDebug` if unsigned), desktop installers from `cd desktop && npm run dist:linux` (or `npm run dist` for Windows). Publish with `gh release create vX.Y.Z <assets> --title "vX.Y.Z" --notes-file <section of PATCH_NOTES.md>`. Needs `gh auth login` or `GH_TOKEN`. If a build or `gh` step is unavailable, report it and skip.

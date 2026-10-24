@@ -11,6 +11,8 @@ A privacy-focused browser for Android (GeckoView) and desktop (Electron), with v
 
 Both apps share one version number (currently 1.7.3).
 
+Repo layout and build flow: [docs/STRUCTURE.md](docs/STRUCTURE.md).
+
 ## Highlights
 
 - Search uses the engine you choose, on the start page, in the widget and on desktop.
