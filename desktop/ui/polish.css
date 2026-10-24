@@ -132,3 +132,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* Hit targets: at least 28px, pointer cursor on every control */
 .bg-x,.key-x{width:28px;height:28px;border-radius:14px}
 button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
+
+.btn.fill.danger{background:var(--coral);color:contrast-color(var(--coral))}.btn.fill.danger:hover{background:color-mix(in srgb,var(--coral) 85%,white)}

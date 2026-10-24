@@ -25,14 +25,14 @@ function confirmDialog(o) {
     d.append(btnRow(
       o.extra ? btn(o.extra, () => L.close("extra"), "muted") : null,
       btn(o.cancel || "Cancel", () => L.close(false), "muted"),
-      h("button", { class: "btn" + (o.danger ? " danger" : ""), act: () => L.close(true), autofocus: true }, o.ok || "OK")));
+      h("button", { class: "btn fill" + (o.danger ? " danger" : ""), act: () => L.close(true), autofocus: true }, o.ok || "OK")));
   });
 }
 function textDialog(o) {
   return dialog(o, (d, L) => {
     const i = h("input", { class: "field", type: o.secret ? "password" : "text", placeholder: o.placeholder || "", value: o.value || "", autofocus: true });
     L.submit = () => L.close(i.value);
-    d.append(i, btnRow(btn("Cancel", () => L.close(null), "muted"), btn(o.ok || "OK", () => L.submit())));
+    d.append(i, btnRow(btn("Cancel", () => L.close(null), "muted"), btn(o.ok || "OK", () => L.submit(), "fill")));
   });
 }
 // PIN entry (4-8 digits). confirm:true asks twice.
@@ -49,7 +49,7 @@ function pinDialog(o) {
       if (o.confirm && first !== v) { first = null; i.value = ""; note.textContent = "PINs don't match"; return; }
       L.close(v);
     };
-    d.append(i, note, btnRow(btn("Cancel", () => L.close(null), "muted"), btn(o.ok || "OK", () => L.submit())));
+    d.append(i, note, btnRow(btn("Cancel", () => L.close(null), "muted"), btn(o.ok || "OK", () => L.submit(), "fill")));
   });
 }
 function authDialog(o) {
@@ -59,7 +59,7 @@ function authDialog(o) {
     const r = h("input", { type: "checkbox" });
     L.submit = () => L.close({ user: u.value, pass: p.value, remember: r.checked });
     d.append(u, p, h("label", { class: "chk" }, r, "Remember for this site"),
-      btnRow(btn("Clear", () => { u.value = ""; p.value = ""; u.focus(); }, "muted"), btn(o.cancel || "Cancel", () => L.close(null), "muted"), btn("OK", () => L.submit())));
+      btnRow(btn("Clear", () => { u.value = ""; p.value = ""; u.focus(); }, "muted"), btn(o.cancel || "Cancel", () => L.close(null), "muted"), btn("OK", () => L.submit(), "fill")));
   });
 }
 function selectDialog(o) {
@@ -83,7 +83,7 @@ function colorDialog(o) {
       class: c.toLowerCase() === cur.toLowerCase() ? "sel" : "", act: (e, el) => { cur = c; pick.value = c; $$(".sel", sw).forEach((x) => x.classList.remove("sel")); el.classList.add("sel"); } })));
     pick.addEventListener("input", () => { cur = pick.value; });
     L.submit = () => L.close(cur.toLowerCase());
-    d.append(sw, pick, btnRow(btn("Cancel", () => L.close(null), "muted"), btn("OK", () => L.submit())));
+    d.append(sw, pick, btnRow(btn("Cancel", () => L.close(null), "muted"), btn("OK", () => L.submit(), "fill")));
   });
 }
 

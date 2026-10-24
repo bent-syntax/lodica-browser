@@ -24,6 +24,22 @@ const T = [
   ["kanagawa", "Kanagawa", "dark", "#1F1F28", "#2A2A37", "#363646", "#DCD7BA", "#8A8980", "#E6C384", "#E46876", "#7E9CD8", "#98BB6C"],
 ];
 
+// Contrast helpers. --muted must reach 4.5:1 on --bg and --raised; fix it here, never in the generated css.
+const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const mix = (a, b, p) => "#" + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - p) + parseInt(b.slice(i, i + 2), 16) * p).toString(16).padStart(2, "0")).join("").toUpperCase();
+const MARGIN = 4.55;
+const okMuted = (m, t) => ratio(m, t[3]) >= MARGIN && ratio(m, t[4]) >= MARGIN;
+for (const t of T) {
+  if (okMuted(t[7], t)) continue;
+  // Move the muted colour toward the text colour (keeps its hue); if text is too weak itself, toward white or black.
+  const target = okMuted(t[6], t) ? t[6] : t[2] === "dark" ? "#FFFFFF" : "#000000";
+  let p = 0;
+  while (p < 1 && !okMuted(mix(t[7], target, p), t)) p += 0.01;
+  console.log("muted", t[0], t[7], "->", mix(t[7], target, p));
+  t[7] = mix(t[7], target, p);
+}
+
 const vars = (t) =>
   `--bg:${t[3]};--raised:${t[4]};--high:${t[5]};--mist:${t[6]};--text:${t[6]};--muted:${t[7]};` +
   `--amber:${t[8]};--coral:${t[9]};--link:${t[10]};--url:${t[11]};--sub:${t[12] || t[6]};color-scheme:${t[2]}`;
