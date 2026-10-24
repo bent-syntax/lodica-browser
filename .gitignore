@@ -9,3 +9,14 @@ keystore/
 config.json
 relay-token
 *.env
+
+# Local working data, never commit
+.uploads/
+.flatpak-builder/
+.playwright-mcp/
+.support-bridge.json
+.support-work/
+.claude/settings.local.json
+.claude/worktrees/
+*.log
+*.bak*
