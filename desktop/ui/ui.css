@@ -18,7 +18,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 #loadline{height:2px;background:transparent}
 #loadline i{display:block;height:2px;width:0;background:var(--amber);transition:width .2s,opacity .3s;opacity:0}
 #loadline.on i{opacity:1}
-#bar{height:56px;background:var(--raised);display:flex;align-items:center;padding:0 6px;gap:2px}
+#bar{height:56px;background:color-mix(in srgb,var(--raised) calc(var(--ui-a,1)*100%),transparent);display:flex;align-items:center;padding:0 6px;gap:2px}
 .ib{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--mist);position:relative}
 .ib:hover{background:var(--hover)}.ib:active{background:var(--hover2)}
 .ib[disabled]{opacity:.35;pointer-events:none}
@@ -60,7 +60,7 @@ body.ov #banner>.toast{position:static;max-width:560px;width:calc(100% - 24px)}
 body.ov #layers{z-index:60}
 .layer.above,.layer.screenL{z-index:0}
 .sheet{position:absolute;left:50%;bottom:0;width:100%;max-width:560px;max-height:calc(100% - 40px);transform:translate(-50%,24px);
-  background:var(--raised);border-radius:10px 10px 0 0;display:flex;flex-direction:column;transition:transform .16s ease-out;
+  background:color-mix(in srgb,var(--raised) calc(var(--ui-a,1)*100%),transparent);backdrop-filter:blur(var(--ui-blur,0px));border-radius:10px 10px 0 0;display:flex;flex-direction:column;transition:transform .16s ease-out;
   box-shadow:0 -8px 40px rgba(0,0,0,.4);overflow:hidden}
 .layer.on .sheet{transform:translate(-50%,0)}
 .layer.out .sheet{transform:translate(-50%,24px);transition-duration:.12s}

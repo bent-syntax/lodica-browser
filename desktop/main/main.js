@@ -262,8 +262,14 @@ function checkClipboard() {
 }
 
 function createWindow() {
+  // A see-through window must be created that way, so changing transparency or blur applies after a restart.
+  const pp = (M && M.prefs.p) || {};
+  const seeThrough = (pp.uiAlpha || 100) < 100 || !!pp.uiBlur;
   win = new BaseWindow({
-    width: 1200, height: 800, minWidth: 400, minHeight: 500, backgroundColor: "#111827",
+    width: 1200, height: 800, minWidth: 400, minHeight: 500, backgroundColor: seeThrough ? "#00000000" : "#111827",
+    ...(seeThrough ? { transparent: true } : {}),
+    ...(seeThrough && pp.uiBlur && process.platform === "win32" ? { backgroundMaterial: "acrylic" } : {}),
+    ...(seeThrough && pp.uiBlur && process.platform === "darwin" ? { vibrancy: "under-window" } : {}),
     title: "Lodica", autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
   });
   win.setMenuBarVisibility?.(false);

@@ -33,6 +33,7 @@ const DEFAULTS = {
   pcTabs: false, shareHistory: false, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], dnsRules: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, plannerIcs: "", bgHistory: [], noDummy: [], totpSkip: [],
   betaUnlocked: false, betaEnabled: false,
+  uiAlpha: 100, uiBlur: false,
   theme: "system", vertTabs: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,
   bg: { type: "none", value: "", dim: 0, blur: 0 }, keybinds: {}, mouse: { middle: "closeTab", back: "back", forward: "forward" },
 };

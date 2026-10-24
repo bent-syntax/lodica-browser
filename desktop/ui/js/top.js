@@ -7,6 +7,7 @@ let vert = false, folded = false;
 const foldBtn = document.getElementById("fold"), grip = document.getElementById("grip");
 const applyPrefs = p => {
   document.documentElement.dataset.theme = (p && p.theme) || "system";
+  document.documentElement.style.setProperty("--ui-a", String(Math.min(100, Math.max(30, (p && p.uiAlpha) || 100)) / 100));
   vert = !!(p && p.vertTabs); folded = vert && !!p.vertCollapsed;
   document.body.classList.toggle("vert", vert);
   document.body.classList.toggle("fold", folded);

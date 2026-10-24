@@ -110,6 +110,9 @@ const applyTheme = () => {
   const t = (S.prefs && S.prefs.theme) || "system";
   document.documentElement.dataset.theme = t;
   applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme, S.prefs && S.prefs.sysAccent);
+  const a = Math.min(100, Math.max(30, (S.prefs && S.prefs.uiAlpha) || 100)) / 100;
+  document.documentElement.style.setProperty("--ui-a", String(a));
+  document.documentElement.style.setProperty("--ui-blur", S.prefs && S.prefs.uiBlur ? "18px" : "0px");
   reportColors();
   applyPlugin();
 };
