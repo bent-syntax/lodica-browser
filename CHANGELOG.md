@@ -2,6 +2,21 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.0 (versionCode 101)
+- Rounder look: the address bar, search fields and chips are full pills, cards have softer corners, and selected chips show amber text on an amber tint.
+- The search button on the Lodica Search page is now a round amber button.
+- Text on amber and rose buttons is easier to read in every theme, on desktop and Android.
+- Muted grey text has more contrast in several themes.
+- Android: buttons and icons are at least 44 dp, so they are easier to tap.
+
+Known leftovers:
+- About 46 animation durations are still hardcoded in ui.css, search.css and polish.css.
+- Settings sidebar icons repeat across sections.
+- A few `:root` fallback colours and the `html.mock` gradient are not theme variables.
+- Duplicate `.sw-t` rules.
+- Solarized-dark text on raised surfaces has contrast 3.7.
+- Not yet redrawn from the design PDF: new-tab shortcut tiles, 6-box PIN dialog, Appearance cards, Ask AI and support chat layout, reader toolbar and player.
+
 ## 1.12.12 (versionCode 100)
 - Desktop: redesign pass. Buttons and chips on amber or coral fills use black or white text for contrast. Dim behind sheets and dialogs has no blur. Toggles are larger. Delete (×) buttons are 28 px with a pointer cursor. Search page has visible focus rings. Motion respects the system reduced-motion setting. Removed the Fill button glow and the search card hover lift.
 - Android: floating chips, toasts and the tab switcher share one shadow depth.

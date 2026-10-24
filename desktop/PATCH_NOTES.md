@@ -1,3 +1,11 @@
+## 1.13.0
+
+- Rounder look: the address bar, search fields and chips are full pills, cards have softer corners, and selected chips show amber text on an amber tint.
+- The search button on the Lodica Search page is now a round amber button.
+- Text on amber and rose buttons is easier to read in every theme, on desktop and Android.
+- Muted grey text has more contrast in several themes.
+- Android: buttons and icons are at least 44 dp, so they are easier to tap.
+
 ## 1.12.12
 
 - Redesign pass: buttons on amber or coral fills use readable text, the dim behind sheets is flat, toggles are larger, delete buttons are easier to hit, the search page shows focus rings, and animations follow the system reduced-motion setting.
