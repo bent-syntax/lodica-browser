@@ -1,3 +1,7 @@
+## 1.12.3
+
+- Dark pages: fixed text that stayed invisible or turned grey on sites using modern colour formats (oklch and similar), such as chores.vpswb.store. White text on buttons now stays white, and any text with too little contrast against its background is flipped to light or dark. Desktop now uses the same dark page code as mobile.
+
 ## 1.12.2
 
 - Smartschool planner on the start page: add your Smartschool ICS link in Settings, Start page. Until then the start page says no planner is added. Desktop and Android.

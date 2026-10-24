@@ -698,9 +698,9 @@
   }
 
   function luminance(c) {
-    const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/.exec(c || "");
-    if (!m || (m[4] !== undefined && +m[4] < 0.1)) return -1;
-    return (0.2126 * m[1] + 0.7152 * m[2] + 0.0722 * m[3]) / 255;
+    const p = parseRgb(c);
+    if (!p || p[3] < 0.1) return -1;
+    return (0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]) / 255;
   }
 
   // Force dark: a hue-preserving lightness remap. Each element's computed text, background and border
@@ -719,12 +719,31 @@
   let darkTimer = 0;
   let darkCount = 0;
 
+  // Modern colour syntaxes (oklch, lab, color-mix, color()) are read back through a 1px canvas.
+  let colCtx = null;
+  const colCache = new Map();
   function parseRgb(c) {
-    const m = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?/.exec(c || "");
-    if (!m) return null;
-    let a = 1;
-    if (m[4] !== undefined) a = m[4].endsWith("%") ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
-    return [+m[1], +m[2], +m[3], a];
+    const m = /^rgba?\(\s*(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)(?:[,\s/]+([\d.]+%?))?/.exec(c || "");
+    if (m) {
+      let a = 1;
+      if (m[4] !== undefined) a = m[4].endsWith("%") ? parseFloat(m[4]) / 100 : parseFloat(m[4]);
+      return [Math.round(+m[1]), Math.round(+m[2]), Math.round(+m[3]), a];
+    }
+    if (!c || c === "transparent" || !/^(oklch|oklab|lab|lch|color|hwb|hsl|hsla|#)/i.test(c)) return null;
+    if (colCache.has(c)) return colCache.get(c);
+    let out = null;
+    try {
+      if (!colCtx) { const cv = document.createElement("canvas"); cv.width = cv.height = 1; colCtx = cv.getContext("2d", { willReadFrequently: true }); }
+      colCtx.clearRect(0, 0, 1, 1);
+      colCtx.fillStyle = "#000";
+      colCtx.fillStyle = c;
+      colCtx.fillRect(0, 0, 1, 1);
+      const d = colCtx.getImageData(0, 0, 1, 1).data;
+      out = [d[0], d[1], d[2], d[3] / 255];
+    } catch (e) { out = null; }
+    if (colCache.size > 500) colCache.clear();
+    colCache.set(c, out);
+    return out;
   }
 
   function rgbToHsl(r, g, b) {
@@ -747,7 +766,7 @@
     let l = hsl[2], s = hsl[1];
     if (kind === "bg" && s > 0.3 && l > 0.15 && l < 0.75) { l = Math.min(0.6, l * 1.15 + 0.05); } // accent fills (buttons, badges) keep their tint instead of sinking into the dark page
     else if (kind === "bg") { l = l >= 0.5 ? 0.1 + (1 - l) * 0.3 : Math.max(0.08, l * 0.6); s *= 0.85; }
-    else if (kind === "text") { l = 0.64 + (1 - l) * 0.3; }
+    else if (kind === "text") { if (l < 0.6) l = 0.64 + (1 - l) * 0.3; } // light text (white on a button) stays as it is
     else { l = 0.2 + (1 - l) * 0.28; s *= 0.85; }
     const rgb = hslToRgb(hsl[0], s, l);
     return { css: "rgba(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + "," + p[3] + ")", rgb };
@@ -770,6 +789,14 @@
     return false;
   }
 
+  function rl(c) {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  }
+  function contrast(a, b) {
+    const x = rl(a), y = rl(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  }
   function lum(c) { return (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255; }
 
   function darkSet(el, prop, value) {
@@ -810,11 +837,13 @@
       else if (el === document.documentElement) darkSet(el, "background-color", "hsl(0,0%,10%)");
       rec.bg = (parentRec && parentRec.bg) || [26, 26, 26];
     }
-    // Dark text on a dark background: flip its lightness (black becomes white), keeping the hue.
+    // Keep text readable on its background: when the contrast is low, flip it to light or dark,
+    // keeping the hue (black becomes white on a dark background, white becomes black on a light one).
     const tc = rec.nc || rec.oc;
-    if (tc && rec.bg && lum(rec.bg) < 0.45 && lum(tc) < 0.45) {
+    if (tc && rec.bg && contrast(tc, rec.bg) < 3.5) {
       const h = rgbToHsl(tc[0], tc[1], tc[2]);
-      const rgb = hslToRgb(h[0], h[1], Math.max(0.75, 1 - h[2]));
+      const dark = lum(rec.bg) < 0.45;
+      const rgb = hslToRgb(h[0], h[1], dark ? Math.max(0.78, 1 - h[2]) : Math.min(0.15, 1 - h[2]));
       darkSet(el, "color", "rgb(" + rgb.join(",") + ")");
       rec.nc = rgb;
     }
