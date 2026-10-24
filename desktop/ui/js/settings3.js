@@ -124,7 +124,24 @@ function secTheme() {
           h("i", { style: "background:" + raised }), h("i", { style: "background:" + accent })),
         h("span", { class: "theme-name", text: label })))),
     h("div", { class: "set-note", text: "Themes colour the browser, start page and settings. Websites keep their own colours." }),
-    secHead("Preview", "preview"), themePreviewBox(), secHead("Custom theme", "custom"), themeEditor()];
+    secHead("Preview", "preview"), themePreviewBox(), secHead("Custom theme", "custom"), themeEditor(),
+    secHead("Theme plugins", "plugins"), pluginList()];
+}
+let pluginRows = null;
+function pluginList() {
+  const box = h("div", { class: "ct" });
+  const draw = (list) => {
+    const cur = S.prefs.themePlugin || "";
+    box.replaceChildren(
+      ...list.map((p) => h("div", { class: "ct-row" },
+        h("span", { text: p.name + (p.author ? " by " + p.author : "") + (p.version ? " v" + p.version : ""), title: p.description }),
+        h("button", { class: "ct-btn" + (cur === p.id ? " sel" : ""), text: cur === p.id ? "Using" : "Use", act: () => inv("plugins.use", cur === p.id ? "" : p.id) }))),
+      h("div", { class: "ct-row" }, h("button", { class: "ct-btn", text: "Open plugins folder", act: () => inv("plugins.open") })),
+      h("div", { class: "set-note", text: list.length ? "Plugins are folders with a plugin.json. They only change colours and styles, they never run code." : "No plugins yet. Put a plugin folder in the plugins folder and reopen this page." }));
+  };
+  if (pluginRows) draw(pluginRows);
+  inv("plugins.list").then((l) => { pluginRows = l || []; draw(pluginRows); });
+  return box;
 }
 function secStart() {
   const bg = Object.assign({ type: "none", value: "", dim: 0, blur: 0 }, S.prefs.bg);

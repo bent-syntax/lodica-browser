@@ -111,6 +111,25 @@ const applyTheme = () => {
   document.documentElement.dataset.theme = t;
   applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme, S.prefs && S.prefs.sysAccent);
   reportColors();
+  applyPlugin();
+};
+
+// Community theme plugin: its variables and stylesheet go on top of the chosen theme.
+let pluginVars = [], pluginKey = "";
+const applyPlugin = async () => {
+  const id = (S.prefs && S.prefs.themePlugin) || "";
+  const p = id ? await inv("plugins.active") : null;
+  const key = p ? JSON.stringify(p) : "";
+  if (key === pluginKey) return;
+  pluginKey = key;
+  const root = document.documentElement;
+  for (const k of pluginVars) root.style.removeProperty(k);
+  pluginVars = p ? Object.keys(p.vars) : [];
+  for (const k of pluginVars) root.style.setProperty(k, p.vars[k]);
+  let el = document.getElementById("plugin-css");
+  if (!el) { el = document.createElement("style"); el.id = "plugin-css"; document.head.append(el); }
+  el.textContent = p ? p.css : "";
+  reportColors();
 };
 
 // Tells main the theme's kite colors so the window icon follows the theme.

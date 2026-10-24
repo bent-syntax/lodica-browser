@@ -366,6 +366,12 @@ function init(deps) {
     pullTheme();
     return true;
   });
+  // Community theme plugins (see themeplugins.js).
+  const tp = require("./themeplugins");
+  on("plugins.list", () => tp.list().map(({ css, ...p }) => p));
+  on("plugins.active", () => tp.get(d.prefs.p.themePlugin));
+  on("plugins.use", (id) => { d.prefs.set("themePlugin", id && tp.get(id) ? String(id) : ""); return true; });
+  on("plugins.open", () => shell.openPath(tp.folder()));
   on("email.fill", () => (cur() ? helper.fill(cur()) : false));
   on("reader", () => (cur() ? helper.reader(cur()) : null));
 
