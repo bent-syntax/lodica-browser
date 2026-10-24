@@ -1,3 +1,11 @@
+## 1.12.11
+
+- Contact support: chat bubbles, step chips and a cleaner composer.
+- Settings: window opacity slider and blur toggle; the pane animates only on tab change.
+- System theme follows the Hyprland, KDE, GNOME or GTK dark/light preference on Linux.
+- AI chat: choose the folder where chats are saved.
+- Theme plugins: author docs and an example plugin.
+
 ## 1.12.10
 
 - Theme plugins: community themes. Drop a folder with plugin.json into the plugins folder (Settings > Themes > Theme plugins). See docs/theme-plugins.
