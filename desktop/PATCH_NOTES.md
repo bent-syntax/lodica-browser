@@ -1,3 +1,7 @@
+## 1.12.0-beta.10 (redesign test)
+
+- Fix the Android build of beta.9 (missing import). Same changes as beta.9.
+
 ## 1.12.0-beta.9 (redesign test)
 
 - Server chat: long press a message on Android to copy it; text in the desktop chat can now be selected.
