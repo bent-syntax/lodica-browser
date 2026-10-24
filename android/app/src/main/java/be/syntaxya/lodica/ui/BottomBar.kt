@@ -95,6 +95,7 @@ import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
@@ -272,7 +273,7 @@ private fun Shield(tab: Tab?) {
         if (n > 0 && !trusted) {
             Text(
                 if (n > 99) "99+" else "$n",
-                color = Graphite, fontSize = 8.sp, fontWeight = FontWeight.Bold,
+                color = OnAmber, fontSize = 8.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Center).padding(top = 1.dp),
             )
         }

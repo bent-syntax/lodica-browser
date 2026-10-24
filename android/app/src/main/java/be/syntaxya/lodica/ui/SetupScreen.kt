@@ -48,6 +48,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -183,7 +184,7 @@ private fun Choice(title: String, sub: String, onClick: () -> Unit) {
 private fun Primary(label: String, enabled: Boolean = true, onClick: () -> Unit) {
     Button(
         onClick, enabled = enabled, shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite, disabledContainerColor = GraphiteHigh, disabledContentColor = Muted),
+        colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber, disabledContainerColor = GraphiteHigh, disabledContentColor = Muted),
     ) { Text(label) }
 }
 

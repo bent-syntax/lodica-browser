@@ -103,7 +103,7 @@ fun RoomScreen() {
             else LazyVerticalGrid(GridCells.Adaptive(48.dp), Modifier.heightIn(max = 300.dp)) {
                 gridItems(Emojis.list.toList(), key = { it.name }) { e ->
                     val bmp = remember(e.name, e.at) { android.graphics.BitmapFactory.decodeFile(Emojis.file(e.name).path)?.asImageBitmap() }
-                    if (bmp != null) Image(bmp, e.name, Modifier.padding(4.dp).size(40.dp).clickable { text += ":" + e.name + ":"; emojis = false })
+                    if (bmp != null) Image(bmp, e.name, Modifier.padding(4.dp).size(44.dp).clickable { text += ":" + e.name + ":"; emojis = false })
                 }
             }
         },

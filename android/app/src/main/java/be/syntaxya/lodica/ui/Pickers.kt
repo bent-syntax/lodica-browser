@@ -265,7 +265,7 @@ fun AnswerSheet(a: Answer) {
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(GraphiteRaised).padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Ask AI", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                IconButton(onClick = { Ui.answer = null }, modifier = Modifier.size(32.dp)) {
+                IconButton(onClick = { Ui.answer = null }, modifier = Modifier.size(44.dp)) {
                     Icon(Icons.Rounded.Close, "Close", tint = Muted, modifier = Modifier.size(18.dp))
                 }
             }

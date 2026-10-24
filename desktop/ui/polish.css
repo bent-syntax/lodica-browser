@@ -2,7 +2,7 @@
 /* Design tokens: one scale for space, radius, type, motion. Reduce-motion sets --mo to 0. */
 html:root[data-theme]{--grad:var(--amber);--ease:cubic-bezier(.2,.8,.2,1);--mo:1;
 --s1:4px;--s2:6px;--s3:8px;--s4:12px;--s5:16px;
---r-s:8px;--r-m:12px;--r-l:16px;--r-pill:999px;--radius:var(--r-m);--r1:var(--r-m);--r2:var(--r-l);
+--r-s:8px;--r-m:12px;--r-l:20px;--r-pill:999px;--radius:var(--r-m);--r1:var(--r-m);--r2:var(--r-l);
 --fs-s:12px;--fs-m:14px;--fs-l:16px;--fs-xl:22px;
 --t-fast:calc(120ms*var(--mo));--t-base:calc(180ms*var(--mo));--t-slow:calc(240ms*var(--mo));
 --line:color-mix(in srgb,var(--high) 60%,transparent);
@@ -15,7 +15,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* Bottom bar */
 #bar{height:60px;padding:0 10px;gap:4px;box-shadow:0 -1px 0 color-mix(in srgb,var(--high) 70%,transparent)}
 .ib{border-radius:12px}
-.pill{height:40px;border-radius:12px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 80%,transparent);transition:box-shadow var(--t-base) var(--ease)}
+.pill{height:40px;border-radius:999px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 80%,transparent);transition:box-shadow var(--t-base) var(--ease)}
 .pill:focus-within{box-shadow:inset 0 0 0 2px var(--amber)}
 
 /* Layers, sheets and dialogs */
@@ -24,7 +24,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .dialog{animation:popIn .2s var(--ease)}
 .opt,.mcell{border-radius:10px;transition:background var(--t-base) var(--ease)}
 .opt:hover,.mcell:hover{background:var(--hover2)}
-.btn{border-radius:10px}
+.btn{border-radius:12px}
 .toast{border-radius:var(--r-m);box-shadow:var(--shadow);animation:popIn var(--t-base) var(--ease)}
 
 /* Settings: nav */
@@ -108,20 +108,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .sp-head h2{font-size:22px;font-weight:600;letter-spacing:0}
 .sp-body .set-pane{max-width:764px;margin:0;padding:0 44px 40px}
 .set-sec{padding:24px 2px 8px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted)}
-.set-card{border-radius:10px;background:var(--raised);box-shadow:none;border:1px solid color-mix(in srgb,var(--high) 60%,transparent)}
+.set-card{border-radius:20px;background:var(--raised);box-shadow:none;border:1px solid color-mix(in srgb,var(--high) 60%,transparent)}
 .set-card>.set-row{min-height:58px;padding:12px 16px}
 .set-card>*+*{border-top:1px solid color-mix(in srgb,var(--high) 60%,transparent)}
 .set-row .t1{font-size:15px;font-weight:500}
 .set-row .t2{font-size:13px;line-height:1.4;margin-top:2px}
-.set-row select,.set-row .set-input{height:34px;border-radius:8px;padding:0 10px;background:var(--bg);border:1px solid color-mix(in srgb,var(--high) 80%,transparent);color:inherit}
-.chip{border-radius:8px;height:34px;display:inline-flex;align-items:center;padding:0 14px;background:var(--bg);border:1px solid color-mix(in srgb,var(--high) 80%,transparent);color:var(--text,var(--mist));font-weight:400}
-.chip.sel{background:var(--high);color:var(--text,var(--mist));font-weight:500;border-color:var(--amber)}
+.set-row select,.set-row .set-input{height:36px;border-radius:12px;padding:0 10px;background:var(--bg);border:1px solid color-mix(in srgb,var(--high) 80%,transparent);color:inherit}
+.chip{border-radius:999px;height:34px;display:inline-flex;align-items:center;padding:0 14px;background:var(--bg);border:1px solid color-mix(in srgb,var(--high) 80%,transparent);color:var(--text,var(--mist));font-weight:400}
+.chip.sel{background:var(--amber-bg);color:var(--amber);font-weight:600;border-color:var(--amber)}
 .set-note{padding:8px 2px 0;font-size:13px;line-height:1.4}
 .set-card>.set-note{padding:10px 16px 12px}
 .set-row.flash{animation:setFlash 1.4s ease-out}
 @keyframes setFlash{0%,40%{background:color-mix(in srgb,var(--amber) 22%,transparent)}100%{background:transparent}}
 .sp-hits{display:flex;flex-direction:column;gap:2px}
-.sp-hit{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:8px 12px;border-radius:8px;gap:1px}
+.sp-hit{display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:8px 12px;border-radius:12px;gap:1px}
 .sp-hit:hover{background:var(--hover)}
 .sp-hit .hit-t{font-size:14px;font-weight:500}.sp-hit .hit-p,.sp-hit .hit-s{font-size:12px;color:var(--muted)}
 .sp-hit .hit-s{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}

@@ -95,6 +95,7 @@ import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.KiteGradient
@@ -320,7 +321,7 @@ private fun ClipChip(link: String) {
                 }
             }
             TextButton(onClick = { Ui.clipLink = null; Ui.preview = link }) { Text("Preview", color = Amber, fontSize = 13.sp) }
-            IconButton(onClick = { Ui.clipLink = null }, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = { Ui.clipLink = null }, modifier = Modifier.size(44.dp)) {
                 Icon(Icons.Rounded.Close, "Dismiss", tint = Muted, modifier = Modifier.size(16.dp))
             }
         }
@@ -349,7 +350,7 @@ private fun LockedView() {
         Spacer(Modifier.height(20.dp))
         Button(
             onClick = { error = null; unlock() },
-            colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite),
+            colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
         ) { Text("Unlock") }
     }
 }
@@ -614,7 +615,7 @@ private fun CrashedView(tab: Tab) {
         Spacer(Modifier.height(20.dp))
         Button(
             onClick = { TabManager.reviveCrashed(tab) },
-            colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite),
+            colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
         ) { Text("Reload tab") }
     }
 }

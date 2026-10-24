@@ -228,7 +228,7 @@ private fun ColorPrompt(req: Req.Color) {
                 row.forEach { p ->
                     val c = parseHex(p) ?: return@forEach
                     Box(
-                        Modifier.size(40.dp).clip(CircleShape).background(c)
+                        Modifier.size(44.dp).clip(CircleShape).background(c)
                             .border(if (p.equals(hex, true)) 3.dp else 1.dp, if (p.equals(hex, true)) Amber else GraphiteHigh, CircleShape)
                             .clickable { hex = p }
                     )

@@ -111,6 +111,7 @@ import be.syntaxya.lodica.engine.Vault
 import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
@@ -1299,7 +1300,7 @@ fun PasswordsScreen() {
                 Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = { unlock() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite),
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
                 ) { Text("Unlock") }
             }
             return@Column
@@ -1727,7 +1728,7 @@ private fun DnsSection() {
                     onClick = { save(pairs.filter { it[0] != f } + listOf(listOf(f, t))); from = ""; to = "" },
                     enabled = f.isNotEmpty() && !f.contains(' ') && t.isNotEmpty() && !t.contains(' '),
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Graphite),
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
                 ) { Text("Add") }
                 LazyColumn(Modifier.padding(top = 8.dp).heightIn(max = 280.dp)) {
                     items(pairs) { p ->

@@ -256,7 +256,7 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
                 color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onClose, modifier = Modifier.size(44.dp)) {
                 Icon(Icons.Rounded.Close, "Close tab", tint = Muted, modifier = Modifier.size(18.dp))
             }
         }
