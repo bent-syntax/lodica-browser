@@ -1,5 +1,5 @@
 'use strict';
-// Support tickets. A user sends a message from the app; the maintainer's bridge (tools/support-bridge.js)
+// Support tickets. A user sends a message from the app; the maintainer's private bridge
 // picks it up over the admin API, talks to the user through the same ticket and reports progress.
 //   POST /api/support {text, name, app, version, platform}  -> {id}              (client token)
 //   GET  /api/support/<id>                                   -> ticket           (client token)
