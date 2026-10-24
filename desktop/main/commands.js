@@ -473,6 +473,15 @@ function init(deps) {
   on("ai.chats", () => ai.chats.get());
   on("ai.chat.send", (id, text) => ai.chats.send(str(id), str(text)));
   on("ai.chat.delete", id => ai.chats.delete(str(id)));
+  on("ai.chat.dir", () => ai.chats.dir());
+  on("ai.chat.pickDir", async (reset) => {
+    if (reset) { ai.chats.setDir(""); return ""; }
+    const { dialog } = require("electron");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Choose where AI chats are saved", defaultPath: ai.chats.dir() || undefined, properties: ["openDirectory", "createDirectory"] });
+    if (r.canceled || !r.filePaths[0]) return null;
+    ai.chats.setDir(r.filePaths[0]);
+    return r.filePaths[0];
+  });
   on("ai.setKey", k => ai.setKey(str(k)));
   on("ai.usage", () => ai.usage());
   on("ai.resetUsage", () => ai.resetUsage());

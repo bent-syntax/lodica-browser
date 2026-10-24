@@ -62,8 +62,8 @@ function openLocal(buf) {
 }
 const keyringOk = () => { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } };
 
-function loadSecret(name, fallback) {
-  const f = path.join(dir(), name + ".bin");
+function loadSecret(name, fallback, where) {
+  const f = path.join(where || dir(), name + ".bin");
   for (const p of [f, f + ".bak"]) {
     try {
       const buf = fs.readFileSync(p);
@@ -75,10 +75,10 @@ function loadSecret(name, fallback) {
   return fallback;
 }
 
-function saveSecret(name, value) {
+function saveSecret(name, value, where) {
   try {
-    fs.mkdirSync(dir(), { recursive: true });
-    const f = path.join(dir(), name + ".bin");
+    fs.mkdirSync(where || dir(), { recursive: true });
+    const f = path.join(where || dir(), name + ".bin");
     try { fs.copyFileSync(f, f + ".bak"); } catch {}
     const text = JSON.stringify(value);
     fs.writeFileSync(f, keyringOk() ? safeStorage.encryptString(text) : sealLocal(text));

@@ -2,6 +2,7 @@
 const { spawn, execFile } = require("child_process");
 const store = require("./store");
 const memory = require("./memory");
+const prefs = require("./prefs");
 
 // Only Haiku is used, on purpose: cheap and fast. The CLI fallback takes the alias.
 const MODEL = "claude-haiku-5-5";
@@ -173,11 +174,12 @@ async function ask(q, ctx, prior) {
 
 // ---- chats: kept encrypted on this PC and mirrored to the linked phone through pctabs ----
 let chats = null, onChats = () => {};
+const chatDir = () => (typeof prefs.p.aiChatDir === "string" && prefs.p.aiChatDir) || undefined;
 const chatList = () => {
-  if (!chats) { chats = store.loadSecret("aichats", []); if (!Array.isArray(chats)) chats = []; }
+  if (!chats) { chats = store.loadSecret("aichats", [], chatDir()); if (!Array.isArray(chats)) chats = []; }
   return chats;
 };
-const saveChats = () => { store.saveSecret("aichats", chats); onChats(); };
+const saveChats = () => { store.saveSecret("aichats", chats, chatDir()); onChats(); };
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 function chatsGet() {
@@ -228,12 +230,21 @@ function chatMerge(remote) {
 }
 
 const chatsRaw = () => chatList().slice();
+/** Use [dir] for the chat file ("" = default). Chats already in the new folder are merged with the current ones. */
+function chatsSetDir(dir) {
+  const cur = chatList().map(c => Object.assign({}, c));
+  prefs.set("aiChatDir", dir);
+  chats = null;
+  chatMerge(cur);
+  saveChats();
+  return chatsGet();
+}
 function onChatsChange(fn) { onChats = fn; }
 
 module.exports = {
   init, ask, status, setKey, usage, resetUsage,
   memory: { get: memory.get, set: memory.set },
-  chats: { get: chatsGet, send: chatSend, delete: chatDelete, merge: chatMerge, raw: chatsRaw, onChange: onChatsChange },
+  chats: { get: chatsGet, send: chatSend, delete: chatDelete, merge: chatMerge, setDir: chatsSetDir, dir: () => chatDir() || "", raw: chatsRaw, onChange: onChatsChange },
   MODEL,
   SYSTEM,
 };

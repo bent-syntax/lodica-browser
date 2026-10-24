@@ -80,6 +80,8 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     "ai.chat.send": (id, text) => { let c = mockChats.find((x) => x.id === id); if (!c) mockChats.unshift(c = { id: "c" + Date.now(), title: text.slice(0, 40), updated: Date.now(), messages: [] });
       c.messages.push({ role: "user", text }, { role: "assistant", text: "Mock reply: " + text }); return Promise.resolve({ id: c.id, text: "ok" }); },
     "ai.chat.delete": (id) => { mockChats = mockChats.filter((x) => x.id !== id); return mockChats; },
+    "ai.chat.dir": () => "",
+    "ai.chat.pickDir": (reset) => (reset ? "" : "/home/user/lodica-chats"),
     "ai.memory.get": () => memory,
     "ai.memory.set": (text) => { memory = String(text || "").split("\n").filter(Boolean); return true; },
     "ai.usage": () => ({ used: 1200, limit: 50000, days: [{ day: "Today", tokens: 1200 }] }),

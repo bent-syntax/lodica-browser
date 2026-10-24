@@ -37,7 +37,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `meter.list` -> [{host,blocked,saved}] + totals; `meter.reset`
 - `ai.ask(q, ctx)` -> {text}|{error}; `ai.status` -> {status, connected, hasKey}; `ai.setKey(key)` -> status
 - `ai.usage` -> {today:{r,i,o}, month:{r,i,o}, all:{r,i,o}}; `ai.resetUsage`; `ai.memory.get` -> [facts]; `ai.memory.set(text)`
-- `ai.chats` -> [{id,title,updated,messages:[{role,text,t}]}]; `ai.chat.send(id|"", text)` -> {id,text}|{error} (empty id starts a chat); `ai.chat.delete(id)` -> remaining chats. Push event `ai.chats` carries the list after any change, including chats merged from the phone link.
+- `ai.chats` -> [{id,title,updated,messages:[{role,text,t}]}]; `ai.chat.send(id|"", text)` -> {id,text}|{error} (empty id starts a chat); `ai.chat.delete(id)` -> remaining chats. `ai.chat.dir` -> custom chat folder or ""; `ai.chat.pickDir(reset)` -> opens a folder picker (or resets to default when `reset`), moves/merges chats there, returns the folder, "" or null if cancelled. Push event `ai.chats` carries the list after any change, including chats merged from the phone link.
 - Search page messages (`lodica://search/` only): `suggest` {q} -> [strings]; `top` -> [{host,title}]; `icon` {host} -> data URL.
 - `pctabs.link` -> url|null; `pctabs.reset` -> url; `pctabs.pair(text)` -> bool (adopt other device's link); `pctabs.remote` -> {owner,tabs:[{title,url}],updated}. Event `pctabs.remote {tabs,updated}`
 - `webapps.install`; `webapps.list` -> [{id,name,url,icon}]; `webapps.open(id)`; `webapps.remove(id)`

@@ -29,6 +29,17 @@ function secAi() {
   if (!S.prefs.ai) return out;
   out.push(setToggle("aiAlways", "Always generate AI answers", "Off: search shows a button and only asks Claude when you click it"));
   out.push(setRow("AI chat", "Chat with Claude, saved here and on your phone", ico("chevron", "chev"), () => openAiChat()));
+  out.push(setRow("AI chat location", S.prefs.aiChatDir || "Default (app data folder). Click to choose a folder; click again to pick another.", ico("chevron", "chev"), async () => {
+    let reset = false;
+    if (S.prefs.aiChatDir) {
+      const a = await confirmDialog({ title: "AI chat location", message: "Chats are saved in " + S.prefs.aiChatDir, ok: "Choose folder", extra: "Use default" });
+      if (!a) return;
+      reset = a === "extra";
+    }
+    const r = await inv("ai.chat.pickDir", reset);
+    if (r == null) return;
+    S.prefs.aiChatDir = r; toast("AI chats saved " + (r ? "in " + r : "in the default folder")); refreshSettings();
+  }));
   out.push(setRow("Memory", null, ico("chevron", "chev"), () => openAiMemory()));
   if (SET.usage == null) { SET.usage = false; inv("ai.usage").then((u) => { SET.usage = u || {}; refreshSettings(); }); }
   const u = SET.usage;
