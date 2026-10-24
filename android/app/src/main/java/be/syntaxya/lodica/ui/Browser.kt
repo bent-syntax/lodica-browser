@@ -10,6 +10,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import be.syntaxya.lodica.engine.Diag
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.AlertDialog
@@ -36,6 +37,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.AlternateEmail
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Link
@@ -484,30 +486,29 @@ private fun StartPage(modifier: Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // The mark is the "l" of the name.
-            if (TabManager.current?.private == true) IncognitoMark(52.dp) else Kite(52.dp)
-            Text(
-                "odica",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Mist,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-            )
+        if (TabManager.current?.private == true) IncognitoMark(72.dp)
+        else Box(Modifier.size(72.dp).clip(RoundedCornerShape(20.dp)).background(Amber), contentAlignment = Alignment.Center) {
+            Text("L", color = OnAmber, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(28.dp))
         OutlinedTextField(
             q, { q = it },
             Modifier.fillMaxWidth(),
             singleLine = true,
-            shape = RoundedCornerShape(28.dp),
-            placeholder = { Text("Search or enter address", color = Muted) },
-            trailingIcon = { Icon(Icons.Rounded.Search, null, tint = Amber, modifier = Modifier.clickable { go(q); q = "" }) },
+            shape = RoundedCornerShape(50),
+            placeholder = { Text("Search the web", color = Muted) },
+            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Muted) },
+            trailingIcon = {
+                Box(Modifier.padding(end = 6.dp).size(44.dp).clip(CircleShape).background(Amber.copy(alpha = 0.18f))
+                    .clickable { if (q.isNotBlank()) { askAi(q.trim()); q = "" } else go(q) }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.AutoAwesome, "Ask AI", tint = Amber, modifier = Modifier.size(20.dp))
+                }
+            },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { go(q); q = "" }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
-                focusedBorderColor = Amber, unfocusedBorderColor = Amber.copy(alpha = 0.6f),
+                focusedBorderColor = Amber, unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
                 focusedContainerColor = GraphiteRaised, unfocusedContainerColor = GraphiteRaised,
             ),
         )
@@ -588,7 +589,7 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
                 }.getOrNull()
             }?.also { FavCache[host] = it }
         }
-        Box(Modifier.size(44.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
             val ic = icon
             if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(26.dp))
             else Text(host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
