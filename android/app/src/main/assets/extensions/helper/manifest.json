@@ -15,6 +15,7 @@
     "nativeMessagingFromContent",
     "geckoViewAddons",
     "storage",
+    "browserSettings",
     "webRequest",
     "webRequestBlocking"
   ],

@@ -242,6 +242,11 @@ function connect() {
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
       browser.storage.local.set({ page: Object.assign({}, msg.page || {}, { lite: cfg.lite }), domain, legacy });
+      // Force the page colour scheme; the engine setting alone did not stop sites from going dark.
+      try {
+        const bs = browser.browserSettings && browser.browserSettings.overrideContentColorScheme;
+        if (bs) bs.set({ value: msg.page && msg.page.dark ? "dark" : "light" });
+      } catch (e) {}
       ready();
     } else if (msg && msg.type === "found") {
       const done = asks.get(msg.id);

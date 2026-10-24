@@ -1,3 +1,7 @@
+## 1.12.5
+
+- Dark pages: the helper extension now forces the page colour scheme to light when Dark pages is off (and dark when on), so sites with their own dark mode no longer turn dark by themselves. Not confirmed on a device yet.
+
 ## 1.12.4
 
 - Dark pages: the page colour scheme is set again after startup, so sites with their own dark mode follow the Dark pages switch. Not confirmed on a device yet.
