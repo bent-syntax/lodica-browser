@@ -57,6 +57,10 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.composed
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -300,7 +304,7 @@ private fun ClipChip(link: String) {
         color = GraphiteRaised,
         contentColor = Mist,
         shadowElevation = 4.dp,
-        modifier = Modifier.padding(bottom = 6.dp),
+        modifier = Modifier.padding(bottom = 6.dp).swipeAway { Ui.clipLink = null },
     ) {
         Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Row(
@@ -350,6 +354,19 @@ private fun LockedView() {
     }
 }
 
+/** Lets a bottom chip be flicked sideways to dismiss it; a short drag springs back. */
+private fun Modifier.swipeAway(onDismiss: () -> Unit): Modifier = composed {
+    var dx by remember { mutableFloatStateOf(0f) }
+    this
+        .graphicsLayer { translationX = dx; alpha = (1f - kotlin.math.abs(dx) / (size.width * 1.2f)).coerceIn(0f, 1f) }
+        .pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onDragEnd = { if (kotlin.math.abs(dx) > size.width * 0.3f) onDismiss() else dx = 0f },
+                onDragCancel = { dx = 0f },
+            ) { _, delta -> dx += delta }
+        }
+}
+
 /** A confirmation mail arrived for an alias we are watching. */
 @Composable
 private fun MailBanner(m: Mail) {
@@ -360,7 +377,7 @@ private fun MailBanner(m: Mail) {
         color = GraphiteRaised,
         contentColor = Mist,
         shadowElevation = 6.dp,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).swipeAway { Relay.incoming = null },
     ) {
         Row(Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.MarkEmailUnread, null, tint = Amber, modifier = Modifier.size(18.dp))

@@ -499,6 +499,9 @@ fun SettingsScreen() {
                 is UpdateState.Failed -> LinkRow("${upd.message} — retry") { Updater.check(ctx) }
             }
             var older by remember { mutableStateOf(false) }
+            var support by remember { mutableStateOf(false) }
+            LinkRow("Contact support") { support = true }
+            if (support) SupportDialog { support = false }
             LinkRow("Go back to an older version") { older = true; Updater.loadVersions() }
             if (older) {
                 AlertDialog(

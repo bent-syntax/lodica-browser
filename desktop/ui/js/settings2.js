@@ -101,6 +101,7 @@ function secAbout() {
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
     updateRow(),
+    setRow("Contact support", "Report a bug or ask for a feature. You get a notification when it is sent and when there is news", null, openSupport),
     setRow("Go back to an older version", "Pick a previous release if an update causes problems", null, openVersions),
     S.prefs.betaUnlocked ? setToggle("betaEnabled", "Beta tester", "Get new features early from pre-releases. They may be unstable") : null,
     setRow("What's new", "Patch notes for every version", null, openNotes)];
@@ -150,6 +151,30 @@ function updateRow() {
     case "error": return setRow("Check for updates", u.message + " · tap to retry", null, () => inv("update.check"), "danger-row");
     default: return setRow("Check for updates", "Look for a newer Lodica", null, () => inv("update.check"));
   }
+}
+// Support: one open conversation with the team; answers and questions also arrive as notifications.
+function openSupport() {
+  return sheet({ title: "Contact support", key: "support", tall: true }, async (b, L) => {
+    const draw = (st) => {
+      b.textContent = "";
+      const ta = h("textarea", { class: "field", rows: "4", maxlength: "4000", placeholder: st.open ? "Reply" : "Describe a bug or something you'd like added" });
+      const err = h("div", { class: "empty", text: "" });
+      if (st.open) {
+        for (const m of st.messages) b.append(h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t2", text: m.fromUser ? "You" : "Support" }), h("div", { class: "t1", text: m.text }))));
+        if (st.status === "needs-info") b.append(h("div", { class: "empty", text: "Support needs more information. Reply below." }));
+        if (st.status === "fixing") b.append(h("div", { class: "empty", text: "A fix is being built and tested." }));
+        if (st.status === "done") b.append(h("div", { class: "empty", text: "Fixed. Update the browser to get it." }));
+      }
+      const btn = h("button", { class: "btn", text: "Send", act: async () => {
+        const text = ta.value.trim(); if (!text) return;
+        btn.disabled = true; btn.textContent = "Sending...";
+        const r = await inv("support.send", text);
+        if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
+      } });
+      b.append(ta, btn, err);
+    };
+    draw((await inv("support.open")) || { messages: [] });
+  });
 }
 // Rollback: pick an older release from the list. The usual checksum check still applies.
 function openVersions() {

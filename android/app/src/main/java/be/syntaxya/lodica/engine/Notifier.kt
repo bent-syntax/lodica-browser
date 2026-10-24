@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit
  */
 object Notifier {
     private const val UPDATES = "updates"
+    private const val SUPPORT = "support"
     private const val CHAT = "chat"
     private const val CHAT_CH = "chat-high"
     private const val WORK = "lodica-notify"
@@ -49,7 +50,7 @@ object Notifier {
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences("notifier", Context.MODE_PRIVATE)
 
-    private fun post(ctx: Context, channel: String, channelName: String, tag: String, id: Int, title: String, text: String, high: Boolean = false) {
+    internal fun post(ctx: Context, channel: String, channelName: String, tag: String, id: Int, title: String, text: String, high: Boolean = false) {
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return
         if (Build.VERSION.SDK_INT >= 26) {
@@ -81,7 +82,14 @@ object Notifier {
         runCatching { checkUpdate(ctx) }
         runCatching { Relay.request("GET", "/api/chat/users?name=" + Uri.encode(Room.name(ctx))) }
         runCatching { checkChat(ctx) }
+        runCatching { Support.refresh(ctx, notify = true) }
     }
+
+    fun supportSent(ctx: Context) =
+        post(ctx, SUPPORT, "Support", "support", 91, "Message sent to support", "We got your message. You'll be notified here when there's an update or a question.")
+
+    fun supportReply(ctx: Context, text: String, status: String) =
+        post(ctx, SUPPORT, "Support", "support", 92, if (status == "done") "Support: your issue is fixed" else if (status == "needs-info") "Support needs more information" else "Support replied", text)
 
     private suspend fun checkUpdate(ctx: Context) {
         val cur = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: return

@@ -1,3 +1,9 @@
+## 1.12.9
+
+- Swipe the "Open link" bar (and the mail bar) at the bottom of the browser away to dismiss it, on mobile.
+- New: Settings > Contact support, on mobile and desktop. You get a notification when your message is sent, and again when it is answered, fixed, or when more information is needed.
+- Server emoji button in the server chat, on mobile and desktop.
+
 ## 1.12.8
 
 - Dark pages: text that sets its own colour (not inherited) is now recoloured too. This fixes the invisible "Chores" label on chores.vpswb.store, on mobile and desktop.

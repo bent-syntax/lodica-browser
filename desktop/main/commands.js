@@ -186,7 +186,7 @@ function initPayload() {
 
 function init(deps) {
   d = deps;
-  const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions } = d;
+  const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
   const host = () => cur()?.host || "";
 
@@ -447,6 +447,8 @@ function init(deps) {
     return !!c;
   });
 
+  on("support.open", () => support.open());
+  on("support.send", text => support.send(str(text).slice(0, 4000).trim()));
   on("update.status", () => updater.status());
   on("notes.get", () => { try { return require("fs").readFileSync(require("path").join(app.getAppPath(), "PATCH_NOTES.md"), "utf8"); } catch { return ""; } });
   on("update.check", () => updater.check());

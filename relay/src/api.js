@@ -12,6 +12,7 @@ const page = require('./tabs-page');
 const search = require('./search');
 const updates = require('./updates');
 const chat = require('./chat');
+const support = require('./support');
 const chatfile = require('./chatfile');
 const enroll = require('./enroll');
 const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
@@ -427,6 +428,25 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return mailDelete(req, res, r[1]);
   }
+  if (p === '/api/support') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return support.create(req, res, clientIp(req), { sendJson, sendText, readBody });
+  }
+  if (p === '/api/support/admin') {
+    if (m !== 'GET') return not('GET, HEAD');
+    return support.adminList(req, res, url, { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/admin\/([0-9a-f]{16})$/.exec(p))) {
+    if (m !== 'POST') return not('POST');
+    return support.adminPost(req, res, r[1], { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/([0-9a-f]{16})$/.exec(p))) {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? support.get(req, res, r[1], h) : support.reply(req, res, r[1], clientIp(req), h);
+  }
   if (p === '/api/chat') {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
     if (!authed(req, res)) return;
@@ -652,7 +672,8 @@ function start(log) {
   if (cfg.apiLocalPort) {
     tune(http.createServer(handler)).listen(cfg.apiLocalPort, '127.0.0.1', () => log(`api: loopback http on 127.0.0.1:${cfg.apiLocalPort}`));
   }
-  const runSweep = () => sweep(log);
+  support.load();
+  const runSweep = () => { support.sweep(); sweep(log); };
   setTimeout(runSweep, 10e3).unref();
   setInterval(runSweep, cfg.sweepMs).unref();
   return server;

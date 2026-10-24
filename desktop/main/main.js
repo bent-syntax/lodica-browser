@@ -51,6 +51,7 @@ function startNotifier(m) {
       }
     } catch {}
   };
+  m.support.watch(() => openSheet("settings"));
   setTimeout(tick, 15000);
   setInterval(tick, 60 * 1000);
   m.room.watch((g) => {
@@ -301,7 +302,7 @@ function loadModules() {
     store: r("store"), prefs: r("prefs"), relay: r("relay"), history: r("history"), vault: r("vault"),
     meter: r("meter"), helper: r("helper"), ai: r("ai"), search: r("search"), net: r("net"),
     room: r("room"), pctabs: r("pctabs"), downloads: r("downloads"), remind: r("remind"), webapps: r("webapps"),
-    perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
+    perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), support: r("support"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
   };
 }
 
