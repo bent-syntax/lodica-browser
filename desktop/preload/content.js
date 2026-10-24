@@ -839,7 +839,14 @@ const lodicaMain = () => {
     rec.oc = col;
     if (parentRec && parentRec.keep && !root) { rec.keep = true; return; }
     const bgImg = cs.backgroundImage !== "none";
-    if (bgImg && !root) { rec.keep = true; return; }
+    if (bgImg && !root) {
+      const g = !/url\(/.test(cs.backgroundImage) && parseRgb((cs.backgroundImage.match(/rgba?\([^)]*\)/) || [""])[0]);
+      if (!g) { rec.keep = true; return; }
+      // A plain gradient is not a picture: keep this element as is, but let its children adapt to the gradient colour.
+      rec.nc = col;
+      rec.bg = g.slice(0, 3);
+      return;
+    }
     if (parentRec && (same(parentRec.oc, col) || same(parentRec.nc, col))) {
       // Inherited from the parent, which already carries the new colour (or keeps the old one).
       rec.oc = parentRec.oc;

@@ -1,3 +1,8 @@
+## 1.12.7
+
+- Dark pages: elements with a plain gradient background no longer hide the text inside them (the small "Chores" label on chores.vpswb.store), on mobile and desktop.
+- Checked on a phone: the "Older versions" dialog lists every release.
+
 ## 1.12.6
 
 - Mobile: "Go back to an older version" in Settings, like on desktop. Android may refuse a downgrade until the newer app is uninstalled.
