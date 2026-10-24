@@ -1,3 +1,7 @@
+## 1.12.8
+
+- Dark pages: text that sets its own colour (not inherited) is now recoloured too. This fixes the invisible "Chores" label on chores.vpswb.store, on mobile and desktop.
+
 ## 1.12.7
 
 - Dark pages: elements with a plain gradient background no longer hide the text inside them (the small "Chores" label on chores.vpswb.store), on mobile and desktop.

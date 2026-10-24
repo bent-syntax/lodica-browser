@@ -847,7 +847,7 @@ const lodicaMain = () => {
       rec.bg = g.slice(0, 3);
       return;
     }
-    if (parentRec && (same(parentRec.oc, col) || same(parentRec.nc, col))) {
+    if (parentRec && (parentRec.nc ? same(parentRec.nc, col) : same(parentRec.oc, col))) {
       // Inherited from the parent, which already carries the new colour (or keeps the old one).
       rec.oc = parentRec.oc;
       rec.nc = parentRec.nc;
