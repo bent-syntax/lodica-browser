@@ -5,7 +5,7 @@ const fs = require("fs");
 const { pathToFileURL } = require("url");
 const {
   app, BaseWindow, BrowserWindow, WebContentsView, protocol, net, session,
-  clipboard, powerMonitor, Notification, dialog,
+  clipboard, powerMonitor, Notification, dialog, nativeTheme,
 } = require("electron");
 
 const ROOT = path.join(__dirname, "..");
@@ -361,6 +361,7 @@ function wire(m) {
 if (process.platform === "linux") app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 
 app.whenReady().then(() => {
+  require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
   for (const ses of sessions()) registerProtocol(ses);
   createWindow();
   const m = loadModules();
