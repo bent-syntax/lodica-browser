@@ -1,3 +1,9 @@
+## 1.12.1
+
+- Select a word or short phrase to get a Translate button (Dutch, French, English, language detected automatically), with a definition for English words. Desktop and Android.
+- Desktop: drag a link or image onto the tab strip to open it in a new tab.
+- GoDaddy sites use compatibility mode, which avoids the Akamai "Access Denied" page.
+
 ## 1.12.0-beta.10 (redesign test)
 
 - Fix the Android build of beta.9 (missing import). Same changes as beta.9.

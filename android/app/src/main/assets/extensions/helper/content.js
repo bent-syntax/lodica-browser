@@ -1290,6 +1290,66 @@
     return { text: t, x: r.left + r.width / 2, y: r.top };
   }
 
+  const trFetch = (u) => fetch(u).then((r) => r.json());
+
+  // Translate / dictionary for a selected word or short phrase (Dutch, French, English)
+  const TR_LANGS = ["en", "nl", "fr"];
+  const TR_TARGET = { en: "nl", nl: "en", fr: "en" };
+  async function detectLang(text) {
+    const words = text.toLowerCase().match(/[\p{L}']+/gu) || [];
+    const ds = await Promise.all(TR_LANGS.map(loadDict));
+    const score = TR_LANGS.map((l, i) => words.filter((w) => ds[i].has(w)).length);
+    const best = Math.max(...score);
+    if (!best) return /[éèêàçùâîôû]/i.test(text) ? "fr" : null;
+    const tied = TR_LANGS.filter((l, i) => score[i] === best);
+    if (tied.length > 1 && /[éèêàçùâîôû]/i.test(text) && tied.includes("fr")) return "fr";
+    return tied[0];
+  }
+
+  async function lookupText(text) {
+    const from = await detectLang(text);
+    if (!from) return { error: "Language not recognised" };
+    const to = TR_TARGET[from];
+    const out = { from, to, text: "", def: "" };
+    try {
+      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + from + "|" + to);
+      out.text = (j && j.responseData && j.responseData.translatedText) || "";
+    } catch (e) { /* offline */ }
+    if (from === "en" && !/\s/.test(text.trim())) {
+      try {
+        const j = await trFetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(text.trim().toLowerCase()));
+        const m = j && j[0] && j[0].meanings && j[0].meanings[0];
+        if (m) out.def = m.partOfSpeech + ": " + m.definitions[0].definition;
+      } catch (e) { /* no entry */ }
+    }
+    if (!out.text && !out.def) return { error: "No translation found" };
+    return out;
+  }
+
+  function translateBubble(s) {
+    showBubble(s.x, s.y, (d) => {
+      d.setAttribute("data-kind", "translate");
+      const b = document.createElement("button");
+      b.textContent = "Translate";
+      b.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 4px";
+      b.addEventListener("mousedown", (e) => e.preventDefault());
+      b.addEventListener("click", async () => {
+        b.textContent = "…";
+        const r = await lookupText(s.text);
+        showBubble(s.x, s.y, (d2) => {
+          d2.setAttribute("data-kind", "translate");
+          if (r.error) { d2.textContent = r.error; return; }
+          const h = document.createElement("div");
+          h.textContent = r.from.toUpperCase() + " → " + r.to.toUpperCase() + (r.text ? ": " + r.text : "");
+          h.style.cssText = "font-weight:600";
+          d2.appendChild(h);
+          if (r.def) { const p = document.createElement("div"); p.textContent = r.def; p.style.cssText = "margin-top:4px;opacity:.85;max-width:260px"; d2.appendChild(p); }
+        }, true);
+      });
+      d.appendChild(b);
+    }, true);
+  }
+
   let selTimer = 0;
   document.addEventListener("selectionchange", () => {
     clearTimeout(selTimer);
@@ -1301,6 +1361,8 @@
         const cv = g && drawGraph(g);
         if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
+        if (s && s.text.trim().length > 1 && s.text.length <= 80 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { translateBubble(s); bubble.dataset.t = s.text; }
+        else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
         return;
       }
       showBubble(s.x, s.y, (d) => { d.textContent = (ans.includes("=") ? "" : "= ") + ans; d.setAttribute("data-kind", "math"); });

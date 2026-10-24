@@ -1,6 +1,6 @@
 // Bridge to the in-page helper (preload/content.js): hidden-email fill, one-time codes,
 // saved logins, reader text, site icons and data use. Mirrors the Android Helper object.
-const { ipcMain } = require("electron");
+const { ipcMain, net } = require("electron");
 const crypto = require("crypto");
 const Relay = require("./relay");
 const prefs = require("./prefs");
@@ -292,6 +292,13 @@ function init(d) {
   ipcMain.on("siteOverride", (e, host) => { e.returnValue = overrideFor(host); });
   ipcMain.handle("page", e => pageState(deps.tabs.byContents(e.sender)));
   ipcMain.handle("dict", (e, lang) => dictText(lang));
+  // Translate / dictionary lookups for the selection bubble; only these two services
+  ipcMain.handle("fetchJson", async (e, url) => {
+    const u = new URL(String(url));
+    if (u.protocol !== "https:" || !["api.mymemory.translated.net", "api.dictionaryapi.dev"].includes(u.hostname)) throw new Error("blocked");
+    const r = await net.fetch(u.href, { signal: AbortSignal.timeout(8000) });
+    return r.json();
+  });
   prefs.events.on("change", pushPage);
 }
 

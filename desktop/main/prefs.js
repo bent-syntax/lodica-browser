@@ -82,7 +82,7 @@ function toggleLite(host) {
   if (!h) return;
   set("lite", p.lite.includes(h) ? p.lite.filter(x => x !== h) : p.lite.concat(h));
 }
-function isForcedCompat(host) { const h = bare(host); return ALWAYS_COMPAT.has(h) || /^accounts\.google\.[a-z.]+$/.test(h); }
+function isForcedCompat(host) { const h = bare(host); return ALWAYS_COMPAT.has(h) || /^accounts\.google\.[a-z.]+$/.test(h) || /(^|\.)(godaddy\.com|secureserver\.net)$/.test(h); }
 function isCompat(host) { const h = bare(host); return !!h && (isForcedCompat(h) || matches(h, p.compat)); }
 function setCompat(host, on) {
   const h = bare(host);

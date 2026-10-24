@@ -123,3 +123,18 @@ grip.addEventListener("pointerup", e => { grip.releasePointerCapture(e.pointerId
 inv("prefs.all").then(applyPrefs);
 window.lodica.on("prefs", applyPrefs);
 refresh();
+
+// Links and images dragged out of a page open in a new tab when dropped on the tab strip.
+const dropUrl = dt => {
+  const raw = (dt.getData("text/uri-list") || dt.getData("text/plain") || "").split(/\r?\n/).find(l => l && !l.startsWith("#")) || "";
+  return /^https?:\/\//i.test(raw.trim()) ? raw.trim() : "";
+};
+document.addEventListener("dragover", e => {
+  if (e.dataTransfer && [...e.dataTransfer.types].some(t => t === "text/uri-list" || t === "text/plain")) { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }
+});
+document.addEventListener("drop", e => {
+  const u = e.dataTransfer && dropUrl(e.dataTransfer);
+  if (!u) return;
+  e.preventDefault();
+  inv("tab.new", { url: u });
+});
