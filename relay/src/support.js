@@ -104,6 +104,21 @@ function limited(ip) {
   return false;
 }
 
+// Hands new tickets and user messages to the support desk (support/, same machine). Off unless LODICA_DESK_URL is set.
+// Fire and forget: the app never waits on the desk, and a failure only logs. The shared secret is read from a file outside the repo.
+const DESK_URL = process.env.LODICA_DESK_URL || '';
+const DESK_SECRET_PATH = process.env.LODICA_DESK_SECRET_PATH || '/etc/lodica-relay/desk-secret';
+function forward(t, text) {
+  if (!DESK_URL) return;
+  let secret = '';
+  try { secret = fs.readFileSync(DESK_SECRET_PATH, 'utf8').trim(); } catch { /* not configured */ }
+  if (!secret) return;
+  const payload = JSON.stringify({ relayId: t.id, text, name: t.name, app: t.app, version: t.version, platform: t.platform });
+  fetch(DESK_URL.replace(/\/$/, '') + '/relay/ticket', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + secret }, body: payload, signal: AbortSignal.timeout(10000),
+  }).then((r) => { if (!r.ok) console.error('support desk refused ticket:', r.status); }).catch((e) => console.error('support desk unreachable:', e.message));
+}
+
 async function body(req, h) {
   try { return JSON.parse((await h.readBody(req, BODY_MAX)).toString('utf8')); } catch { return null; }
 }
@@ -124,6 +139,7 @@ async function create(req, res, ip, h) {
   t.messages.push(images.length ? { from: 'user', text, at: Date.now(), images } : { from: 'user', text, at: Date.now() });
   tickets.set(t.id, t);
   save(t);
+  forward(t, text);
   h.sendJson(req, res, 200, view(t));
 }
 
@@ -150,6 +166,7 @@ async function reply(req, res, id, ip, h) {
   if (resolved) t.status = 'closed';
   else if (t.status === 'needs-info' || t.status === 'awaiting-confirm' || t.status === 'done' || t.status === 'closed') t.status = 'new';
   save(t);
+  forward(t, text);
   h.sendJson(req, res, 200, view(t));
 }
 
