@@ -281,6 +281,8 @@ fun SettingsScreen() {
                 4 -> {
                     Section("Start page background")
                     StartBackgroundSettings()
+                    Section("Smartschool planner")
+                    PlannerSetting()
                 }
                 5 -> {
             Section("Tabs")
@@ -1403,6 +1405,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Search widget", 3, "home screen"),
     SettingsEntry("Dark pages", 3, "force dark websites"),
     SettingsEntry("Start page background", 4, "wallpaper image"),
+    SettingsEntry("Smartschool planner", 4, "ics calendar agenda schedule"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
@@ -1748,5 +1751,22 @@ private fun DnsSection() {
             },
             dismissButton = { TextButton(onClick = { server = false }) { Text("Cancel", color = Muted) } },
         )
+    }
+}
+
+@Composable
+private fun PlannerSetting() {
+    var draft by remember { mutableStateOf(Prefs.plannerIcs) }
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Text("Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.", color = Muted, fontSize = 13.sp)
+        OutlinedTextField(
+            draft, { draft = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
+            placeholder = { Text("https://…/planner.ics", color = Muted) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+            ),
+        )
+        TextButton(onClick = { Prefs.updatePlannerIcs(draft) }) { Text("Save", color = Amber) }
     }
 }

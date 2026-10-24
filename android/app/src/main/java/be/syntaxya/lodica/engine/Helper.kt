@@ -93,6 +93,7 @@ object Helper {
                 .put("dns", JSONArray(Prefs.dnsPairs().map { JSONArray(it) }))
                 .put("ai", Ai.connected)
                 .put("aiAlways", Prefs.aiAlways)
+                .put("planner", Prefs.plannerIcs)
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
                 .put("fallback", Prefs.searchFallback.query)

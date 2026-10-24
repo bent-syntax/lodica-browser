@@ -2,7 +2,7 @@
 const { app, session } = require("electron");
 const store = require("./store");
 
-const ALLOW = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock", "mediaKeySystem", "persistent-storage", "screen-wake-lock", "serial", "usb", "hid"]);
+const ALLOW = new Set(["fullscreen", "clipboard-sanitized-write", "pointerLock", "mediaKeySystem", "persistent-storage", "screen-wake-lock", "serial", "usb", "hid", "fileSystem"]);
 let saved = store.load("permissions", {}); // "host|key" -> true/false
 const persist = () => store.save("permissions", () => saved);
 const pending = new Map();

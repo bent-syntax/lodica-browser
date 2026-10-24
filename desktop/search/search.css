@@ -145,3 +145,12 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #top a .fav { width: 56px; height: 56px; border-radius: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
 #pages a { transition: background .15s; }
 #viewer img { border-radius: 16px; box-shadow: 0 16px 50px rgba(0,0,0,.5); }
+
+#plan { max-width: 640px; margin: 28px auto 0; padding: 14px 18px; border-radius: 16px; background: var(--card, rgba(127,127,127,.12)); text-align: left; }
+#plan:empty { display: none; }
+#plan h3 { margin: 0 0 8px; font-size: 15px; }
+#plan .none { margin: 0; color: var(--sub); font-size: 13px; }
+#plan .pd { margin: 10px 0 4px; font-size: 12px; color: var(--sub); text-transform: capitalize; }
+#plan .pe { display: flex; gap: 10px; font-size: 14px; padding: 2px 0; }
+#plan .pe b { min-width: 52px; font-weight: 600; }
+body:not(.home) #plan { display: none; }

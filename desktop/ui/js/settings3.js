@@ -11,7 +11,7 @@ const SET_TABS = [
   ["about", "Updates & About", "About"]];
 // Section ids that other code passes to openSettings() -> the page that holds them.
 const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", ai: "ai", theme: "theme", appearance: "theme", pages: "theme",
-  background: "start", shortcuts: "start", start: "start", tabs: "tabs", pctabs: "tabs", layout: "tabs", privacy: "privacy", https: "security", blocking: "security",
+  background: "start", shortcuts: "start", planner: "start", start: "start", tabs: "tabs", pctabs: "tabs", layout: "tabs", privacy: "privacy", https: "security", blocking: "security",
   security: "security", vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", keys: "keys", keybinds: "keys",
   identity: "identity", auth: "identity", authenticator: "identity", about: "about", updates: "about" };
 
@@ -161,7 +161,11 @@ function secStart() {
     out.push(setSlider("Dim", bg.dim, 0, 100, (v) => setBg({ dim: v })), setSlider("Blur", bg.blur, 0, 40, (v) => setBg({ blur: v })));
   }
   out.push(secHead("Shortcuts", "shortcuts"),
-    setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."));
+    setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
+    secHead("Smartschool planner", "planner"),
+    setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
+      h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",
+        on: { change: (e) => { S.prefs.plannerIcs = e.target.value.trim(); inv("prefs.set", "plannerIcs", S.prefs.plannerIcs); } } })));
   return out;
 }
 function secLayout() {

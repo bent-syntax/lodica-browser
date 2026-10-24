@@ -1,3 +1,8 @@
+## 1.12.2
+
+- Smartschool planner on the start page: add your Smartschool ICS link in Settings, Start page. Until then the start page says no planner is added. Desktop and Android.
+- Desktop: sites can use the file picker API (fixes importing files on Sprint Online).
+
 ## 1.12.1
 
 - Select a word or short phrase to get a Translate button (Dutch, French, English, language detected automatically), with a definition for English words. Desktop and Android.

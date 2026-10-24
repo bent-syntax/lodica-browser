@@ -194,6 +194,7 @@ function setup() {
   if (!q) {
     document.body.classList.add("home");
     setupHome();
+    if (!priv) planner();
     $("q").focus();
     return false;
   }
@@ -373,6 +374,67 @@ async function run() {
     if (state.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
     else askButton(data);
   }
+}
+
+// Smartschool planner on the start page: reads the ICS export the user added in Settings.
+function icsDate(v, params) {
+  const m = /^(\d{4})(\d\d)(\d\d)(?:T(\d\d)(\d\d)(\d\d)?(Z)?)?$/.exec(v);
+  if (!m) return null;
+  const n = m.slice(1, 7).map((x) => parseInt(x || "0", 10));
+  const allDay = m[4] == null || /VALUE=DATE(?!-)/.test(params);
+  const d = m[7] ? new Date(Date.UTC(n[0], n[1] - 1, n[2], n[3], n[4], n[5])) : new Date(n[0], n[1] - 1, n[2], n[3], n[4], n[5]);
+  return { d, allDay };
+}
+function parseIcs(text) {
+  const lines = String(text).replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
+  const out = [];
+  let cur = null;
+  for (const line of lines) {
+    if (line === "BEGIN:VEVENT") { cur = {}; continue; }
+    if (line === "END:VEVENT") {
+      if (cur && cur.start) out.push(cur);
+      cur = null;
+      continue;
+    }
+    if (!cur) continue;
+    const i = line.indexOf(":");
+    if (i < 0) continue;
+    const [name, ...ps] = line.slice(0, i).split(";");
+    const val = line.slice(i + 1).replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1");
+    if (name === "DTSTART") { const r = icsDate(val, ps.join(";")); if (r) { cur.start = r.d; cur.allDay = r.allDay; } }
+    else if (name === "DTEND") { const r = icsDate(val, ps.join(";")); if (r) cur.end = r.d; }
+    else if (name === "SUMMARY") cur.title = val;
+    else if (name === "LOCATION") cur.where = val;
+  }
+  return out;
+}
+function drawPlanner(text, url) {
+  const box = $("plan");
+  if (!url) {
+    box.replaceChildren(el("h3", null, "Smartschool planner"), el("p", { class: "none" }, "No planner added yet. Add your Smartschool ICS link in Settings, Start page."));
+    return;
+  }
+  const from = new Date(); from.setHours(0, 0, 0, 0);
+  const to = new Date(from.getTime() + 7 * 864e5);
+  const evs = parseIcs(text || "").filter((e) => (e.end || e.start) >= from && e.start < to).sort((a, b) => a.start - b.start).slice(0, 14);
+  const day = (d) => d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+  const kids = [el("h3", null, "Smartschool planner")];
+  if (!evs.length) kids.push(el("p", { class: "none" }, text == null ? "Planner could not be loaded." : "Nothing planned in the next 7 days."));
+  let last = "";
+  for (const e of evs) {
+    const dl = day(e.start);
+    if (dl !== last) { kids.push(el("div", { class: "pd" }, dl)); last = dl; }
+    const t = e.allDay ? "All day" : e.start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    kids.push(el("div", { class: "pe" }, el("b", null, t), el("span", null, (e.title || "Untitled") + (e.where ? " (" + e.where + ")" : ""))));
+  }
+  box.replaceChildren(...kids);
+}
+async function planner() {
+  const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+  const url = st && st.planner || "";
+  let text = null;
+  if (url) text = await fetch(url).then((r) => (r.ok ? r.text() : null)).catch(() => null);
+  drawPlanner(text, url);
 }
 
 run();

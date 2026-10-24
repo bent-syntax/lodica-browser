@@ -1,6 +1,6 @@
 // Lodica Search pages (lodica://search/): results from the VPS search API, AI box answered locally.
 const path = require("path");
-const { ipcMain } = require("electron");
+const { ipcMain, net } = require("electron");
 const relay = require("./relay");
 const prefs = require("./prefs");
 
@@ -30,6 +30,7 @@ async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
   if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, auto: prefs.p.autoTop };
   if (msg.type === "quick") return setQuick(msg.list);
+  if (msg.type === "planner") return planner();
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);
   if (msg.type === "ask") return ask(msg);
@@ -37,6 +38,19 @@ async function handle(msg) {
   if (msg.type === "top") return topSites ? topSites() : [];
   if (msg.type === "icon") return icon(msg.h);
   return undefined;
+}
+
+// Smartschool planner: the ICS export is fetched here because the start page has no cross-origin access.
+async function planner() {
+  const url = String(prefs.p.plannerIcs || "").trim().replace(/^webcal:\/\//i, "https://");
+  if (!/^https:\/\/[^\s]+$/.test(url)) return { url: "" };
+  try {
+    const r = await net.fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return { url, text: null };
+    return { url, text: (await r.text()).slice(0, 2e6) };
+  } catch {
+    return { url, text: null };
+  }
 }
 
 // Own shortcuts for the start page: up to 24 http(s) sites, each with an optional short name.

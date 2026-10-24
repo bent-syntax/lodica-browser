@@ -54,6 +54,8 @@ object Prefs {
     var dnsRules by mutableStateOf(""); private set
     var showRedirectOrigin by mutableStateOf(false); private set
     var aiAlways by mutableStateOf(false); private set
+    /** Smartschool planner ICS link shown on the start page; empty means not added. */
+    var plannerIcs by mutableStateOf(""); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
@@ -130,6 +132,7 @@ object Prefs {
         dnsRules = sp.getString("dnsRules", "") ?: ""
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
+        plannerIcs = sp.getString("plannerIcs", "") ?: ""
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
         dnsServer = sp.getString("dnsServer", "") ?: ""
@@ -225,6 +228,7 @@ object Prefs {
         appCtx?.let { refreshWidgets(it) }
     }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
+    fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateDnsRules(v: String) { dnsRules = v.trim(); sp.edit().putString("dnsRules", dnsRules).apply(); Helper.push() }
