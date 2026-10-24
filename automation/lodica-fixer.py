@@ -98,6 +98,13 @@ class Tasks:
                 return None
             page = "&pageToken=" + urllib.parse.quote(j["nextPageToken"])
 
+    def create_list(self):
+        self.list_id = self.call("POST", API + "/users/@me/lists", {"title": LIST_TITLE})["id"]
+        return self.list_id
+
+    def add(self, title, notes=""):
+        return self.call("POST", API + "/lists/%s/tasks" % self.list_id, {"title": title, "notes": notes})
+
     def tasks(self):
         out, page = [], ""
         while True:
@@ -419,9 +426,15 @@ def main():
     try:
         tk = Tasks()
         if not tk.find_list():
-            log("list '%s' not found" % LIST_TITLE)
-            return 0 if not DRY else 1
+            if DRY:
+                print("List '%s' not found. A normal run creates it with a '%s' task." % (LIST_TITLE, TRIGGER))
+                return 0
+            tk.create_list()
+            log("created list '%s'" % LIST_TITLE)
         items = tk.tasks()
+        if not DRY and not any(one(t.get("title")).lower() == TRIGGER for t in items):
+            items.append(tk.add(TRIGGER, "Check this task to start fixing the open tasks in this list."))
+            log("created trigger task '%s'" % TRIGGER)
     except (OSError, ValueError, KeyError, urllib.error.URLError) as e:
         log("Google Tasks not reachable:", type(e).__name__, str(e)[:120])
         return 1
