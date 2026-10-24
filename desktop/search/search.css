@@ -161,3 +161,7 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #topbar button { min-height: 30px; }
 #f button { background: var(--amber); color: contrast-color(var(--amber)); border-radius: 50%; }
 #f button:hover { background: var(--amber-hi); }
+/* 1.13.1 redesign: new-tab shortcut tiles as cards. */
+#top a { padding: 14px 8px 10px; border-radius: 20px; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
+#top a:hover { background: var(--hover2, var(--raised)); transform: translateY(-2px); }
+#top a .fav { border-radius: 16px; }

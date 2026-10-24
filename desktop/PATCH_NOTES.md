@@ -1,3 +1,10 @@
+## 1.13.1
+
+- Menu is now a popover with a row of back, forward and reload buttons and a three-column grid of icon tiles.
+- List rows show their icon in a rounded tile, and settings rows are taller.
+- The bottom bar, sheets and toasts have raised surfaces with thin borders.
+- New-tab shortcuts are rounded cards.
+
 ## 1.13.0
 
 - Rounder look: the address bar, search fields and chips are full pills, cards have softer corners, and selected chips show amber text on an amber tint.

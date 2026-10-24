@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.1
+- Version matches desktop 1.13.1. The new menu, icon-tile rows and shortcut cards are desktop only in this release.
+
 ## 1.13.0
 - Rounder look: the address bar, search fields and chips are full pills, cards have softer corners, and selected chips show amber text on an amber tint.
 - The search button on the Lodica Search page is now a round amber button.

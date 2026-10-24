@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.1 (versionCode 102)
+- Menu is now a popover with a row of back, forward and reload buttons and a three-column grid of icon tiles.
+- List rows show their icon in a rounded tile, and settings rows are taller.
+- The bottom bar, sheets and toasts have raised surfaces with thin borders.
+- New-tab shortcuts are rounded cards.
+- Android: version bump only.
+
 ## 1.13.0 (versionCode 101)
 - Rounder look: the address bar, search fields and chips are full pills, cards have softer corners, and selected chips show amber text on an amber tint.
 - The search button on the Lodica Search page is now a round amber button.

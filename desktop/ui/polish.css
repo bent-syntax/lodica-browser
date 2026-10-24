@@ -134,3 +134,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 
 .btn.fill.danger{background:var(--coral);color:contrast-color(var(--coral))}.btn.fill.danger:hover{background:color-mix(in srgb,var(--coral) 85%,white)}
+
+/* 1.13.1 redesign: popover-style menu with tile grid, icon-tile rows, elevated bar, rounded cards. */
+.sheet{border:1px solid color-mix(in srgb,var(--high) 70%,transparent);box-shadow:0 16px 40px rgba(0,0,0,.35);background:var(--raised)}
+.menu .mtop{gap:8px;padding:14px 16px 10px;justify-content:stretch}
+.menu .mtop .ib{flex:1;height:44px;border-radius:12px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 70%,transparent)}
+.menu .mtop .ib:hover{background:var(--hover2)}
+.mgrid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 16px 16px}
+.mcell{flex-direction:column;justify-content:center;gap:8px;padding:14px 6px 12px;min-height:84px;border-radius:16px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 60%,transparent);text-align:center}
+.mcell .ico{width:36px;height:36px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber);box-sizing:border-box}
+.mcell.coral .ico{background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--coral)}
+.mcell.amber{background:color-mix(in srgb,var(--amber) 10%,var(--bg))}
+.mcell span{font-size:13px;font-weight:500;text-align:center}
+.mcell:hover{background:var(--hover2)}
+.mcell.pinned{outline:0;box-shadow:inset 0 0 0 1.5px var(--amber)}
+.row{border-radius:12px}
+.row>.ico:first-child{flex:none;width:36px;height:36px;padding:8px;border-radius:12px;background:var(--high);box-sizing:border-box}
+.ctx .row>.ico:first-child{width:28px;height:28px;padding:5px;border-radius:8px}
+.row.coral>.ico:first-child{background:color-mix(in srgb,var(--coral) 16%,transparent)}
+.row.amber>.ico:first-child{background:color-mix(in srgb,var(--amber) 16%,transparent)}
+.set-card>.set-row{min-height:64px}
+#bar{background:var(--raised);height:64px;border-top:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
+.pill{height:44px;padding:0 6px}
+.toast{border:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
