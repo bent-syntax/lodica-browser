@@ -44,29 +44,29 @@ val LodicaTypography = Typography(
 )
 
 @Composable
-private fun DlgButton(onClick: () -> Unit, modifier: Modifier, fill: Color, content: Color, body: @Composable RowScope.() -> Unit) {
+private fun DlgButton(onClick: () -> Unit, modifier: Modifier, enabled: Boolean, fill: Color, content: Color, body: @Composable RowScope.() -> Unit) {
     Button(
-        onClick, modifier.defaultMinSize(minHeight = 44.dp),
+        onClick, modifier.defaultMinSize(minHeight = 44.dp), enabled = enabled,
         shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = content),
+        colors = ButtonDefaults.buttonColors(containerColor = fill, contentColor = content, disabledContainerColor = GraphiteHigh, disabledContentColor = Muted),
         content = body,
     )
 }
 
 /** Filled accent button for the confirming action of a dialog. */
 @Composable
-fun DlgPrimary(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
-    DlgButton(onClick, modifier, Amber, OnAmber, content)
+fun DlgPrimary(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, content: @Composable RowScope.() -> Unit) =
+    DlgButton(onClick, modifier, enabled, Amber, OnAmber, content)
 
 /** Filled raised button for Cancel and other secondary actions. */
 @Composable
-fun DlgSecondary(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
-    DlgButton(onClick, modifier, GraphiteHigh, Mist, content)
+fun DlgSecondary(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, content: @Composable RowScope.() -> Unit) =
+    DlgButton(onClick, modifier, enabled, GraphiteHigh, Mist, content)
 
 /** Filled danger button for destructive actions. */
 @Composable
-fun DlgDanger(onClick: () -> Unit, modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) =
-    DlgButton(onClick, modifier, Coral, Color.Black, content)
+fun DlgDanger(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, content: @Composable RowScope.() -> Unit) =
+    DlgButton(onClick, modifier, enabled, Coral, Color.Black, content)
 
 /** Rounded-square icon tile; tinted when [tint] is given. */
 @Composable

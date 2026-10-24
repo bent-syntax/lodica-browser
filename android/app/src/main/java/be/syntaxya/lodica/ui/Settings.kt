@@ -671,7 +671,7 @@ private fun EmojiKeyboardSection() {
             confirmButton = {
                 DlgPrimary(onClick = {
                     val q = idea.trim()
-                    if (q.isEmpty()) return@TextButton
+                    if (q.isEmpty()) return@DlgPrimary
                     gen = false; busy = true
                     Ai.drawEmoji(q) { r ->
                         scope.launch {
