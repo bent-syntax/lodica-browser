@@ -1,4 +1,7 @@
 # Patch notes
+## 1.12.12
+- Redesign pass: floating chips, toasts and the tab switcher share one shadow depth.
+
 
 ## 1.11.11
 - Fixes: date and file inputs work, Reader no longer repeats the title and works after upgrades, Inbox retry, archived rows, landscape keyboard, false crash screen, shared searches use a public link, image search viewer has a close button and Open image link, spell-check language label, alias reuse on sign-up forms, and other small fixes.

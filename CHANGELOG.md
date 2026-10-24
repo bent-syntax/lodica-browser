@@ -2,7 +2,7 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
-## Unreleased
+## 1.12.12 (versionCode 100)
 - Desktop: redesign pass. Buttons and chips on amber or coral fills use black or white text for contrast. Dim behind sheets and dialogs has no blur. Toggles are larger. Delete (×) buttons are 28 px with a pointer cursor. Search page has visible focus rings. Motion respects the system reduced-motion setting. Removed the Fill button glow and the search card hover lift.
 - Android: floating chips, toasts and the tab switcher share one shadow depth.
 

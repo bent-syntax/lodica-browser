@@ -1,3 +1,8 @@
+## 1.12.12
+
+- Redesign pass: buttons on amber or coral fills use readable text, the dim behind sheets is flat, toggles are larger, delete buttons are easier to hit, the search page shows focus rings, and animations follow the system reduced-motion setting.
+- Android: floating chips, toasts and the tab switcher share one shadow depth.
+
 ## 1.12.11
 
 - Contact support: chat bubbles, step chips and a cleaner composer.
