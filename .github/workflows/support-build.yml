@@ -1,0 +1,39 @@
+name: Support build
+
+# Runs only in the maintainer's private CI repo (it needs the signing secrets); never triggers in the public repo.
+on:
+  push:
+    branches: ["support/**"]
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Restore signing key and relay token
+        env:
+          KEYSTORE_B64: ${{ secrets.LODICA_KEYSTORE }}
+          RELAY_TOKEN: ${{ secrets.LODICA_RELAY_TOKEN }}
+          FCM_PROPERTIES: ${{ secrets.LODICA_FCM_PROPERTIES }}
+          LODICA_KEYSTORE_PASS: ${{ secrets.LODICA_KEYSTORE_PASS }}
+        run: |
+          mkdir -p android/keystore
+          printf '%s' "$KEYSTORE_B64" | base64 -d > android/keystore/lodica.jks
+          if [ -n "$RELAY_TOKEN" ]; then printf '%s' "$RELAY_TOKEN" > android/keystore/relay-token; fi
+          if [ -n "$FCM_PROPERTIES" ]; then printf '%s\n' "$FCM_PROPERTIES" > android/keystore/fcm.properties; fi
+          keytool -list -keystore android/keystore/lodica.jks -storepass "$LODICA_KEYSTORE_PASS" -alias lodica > /dev/null
+      - name: Build signed release APK
+        working-directory: android
+        env:
+          LODICA_KEYSTORE_PASS: ${{ secrets.LODICA_KEYSTORE_PASS }}
+        run: ./gradlew --no-daemon assembleRelease
+      - uses: actions/upload-artifact@v5
+        with:
+          name: app-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 3
