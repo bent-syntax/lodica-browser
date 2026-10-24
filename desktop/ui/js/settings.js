@@ -35,9 +35,10 @@ function renderSettings() {
   const b = SET.L.body, top = b.scrollTop;
   clear(b); clear(SET.L.nav);
   $("#sp-title", SET.L.el).textContent = SET.find ? "Search results" : (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
-  if (SET.find) { add(SET.L.nav, [setFindList(SET.find)]); add(b, [h("div", { class: "set-pane" }, h("div", { class: "set-note", text: "Pick a result on the left." }))]); b.scrollTop = 0; return; }
+  if (SET.find) { SET.shownTab = null; add(SET.L.nav, [setFindList(SET.find)]); add(b, [h("div", { class: "set-pane" }, h("div", { class: "set-note", text: "Pick a result on the left." }))]); b.scrollTop = 0; return; }
   add(SET.L.nav, [setTabBar()]);
-  const pane = h("div", { class: "set-pane" }, setTabBody(SET.tab));
+  const pane = h("div", { class: "set-pane" + (SET.shownTab === SET.tab ? "" : " in") }, setTabBody(SET.tab));
+  SET.shownTab = SET.tab;
   cardify(pane);
   add(b, [pane]);
   b.scrollTop = top;
