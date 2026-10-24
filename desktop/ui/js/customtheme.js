@@ -9,9 +9,12 @@ function customVars(c) {
     "color-scheme": lum(c.bg) > 0.5 ? "light" : "dark",
   };
 }
-function applyCustom(root, theme, c) {
+function applyCustom(root, theme, c, sys) {
   const ok = c && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(c[k]));
   const vars = ok && theme === "custom" ? customVars(c) : null;
+  const accent = !vars && theme === "system" && /^#[0-9a-f]{6}$/i.test(sys || "") ? sys : null;
+  if (accent) { root.style.setProperty("--amber", accent); root.style.setProperty("--link", accent); }
+  else if (!vars) { root.style.removeProperty("--amber"); root.style.removeProperty("--link"); }
   for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "color-scheme"]) {
     if (vars) root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
   }

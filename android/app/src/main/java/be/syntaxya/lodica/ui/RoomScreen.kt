@@ -241,10 +241,19 @@ private fun NewChatDialog(onDone: () -> Unit) {
 }
 
 @Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
+    val clip = androidx.compose.ui.platform.LocalClipboardManager.current
+    val ctx = LocalContext.current
     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
         Column(
-            Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised).padding(12.dp),
+            Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised)
+                .combinedClickable(onClick = {}, onLongClick = {
+                    if (m.fileId == null) {
+                        clip.setText(androidx.compose.ui.text.AnnotatedString(m.text))
+                        android.widget.Toast.makeText(ctx, "Message copied", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }).padding(12.dp),
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
             if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text) }

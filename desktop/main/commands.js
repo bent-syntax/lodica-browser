@@ -1,5 +1,7 @@
 // Renderer commands (see IPC.md), registered on the ui dispatcher.
 const keys = require("./keys");
+const { systemAccent } = require("./sysaccent");
+let sysAccentCache;
 const { app, clipboard, shell, session, net, WebContentsView, Menu, screen } = require("electron");
 
 let d = null, preview = null, previewPrivate = false;
@@ -280,7 +282,7 @@ function init(deps) {
   on("suggest", suggest);
   on("topSites", () => history.topSites());
   on("prefs.set", (k, v) => { prefs.set(str(k), v); return true; });
-  on("prefs.all", () => prefs.p);
+  on("prefs.all", () => Object.assign({}, prefs.p, { sysAccent: sysAccentCache ??= systemAccent() }));
   on("bg.pick", async () => {
     const { dialog } = require("electron");
     const fs = require("fs"), path = require("path");

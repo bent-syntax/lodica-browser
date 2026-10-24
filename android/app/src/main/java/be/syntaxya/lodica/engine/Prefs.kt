@@ -365,10 +365,10 @@ object Prefs {
      * fingerprint is hidden, so its account pages always run in compatibility mode.
      */
     private val ALWAYS_COMPAT = setOf("accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com")
-    fun isForcedCompat(host: String): Boolean = host.removePrefix("www.") in ALWAYS_COMPAT
+    fun isForcedCompat(host: String): Boolean = host.removePrefix("www.").let { it in ALWAYS_COMPAT || Regex("accounts\\.google\\.[a-z.]+").matches(it) }
     fun isCompat(host: String): Boolean {
         val h = host.removePrefix("www.")
-        return h.isNotBlank() && (h in ALWAYS_COMPAT || compat.any { h == it || h.endsWith(".$it") })
+        return h.isNotBlank() && (isForcedCompat(h) || compat.any { h == it || h.endsWith(".$it") })
     }
     fun setCompat(host: String, on: Boolean) {
         val h = host.removePrefix("www.")

@@ -1,3 +1,11 @@
+## 1.12.0-beta.9 (redesign test)
+
+- Server chat: long press a message on Android to copy it; text in the desktop chat can now be selected.
+- Graphs show where the line crosses the axes, with coordinates.
+- Tabs show the site icon (desktop and Android); search tabs show the Lodica logo.
+- Google sign-in on all country domains (accounts.google.*) uses the compatibility user agent.
+- Linux: the system theme takes the accent colour of KDE or GNOME.
+
 ## 1.12.0-beta.8 (redesign test)
 
 - Go back to an older version: Settings > About > Go back to an older version (desktop). Pick a release from the list; the download is still checksum verified.

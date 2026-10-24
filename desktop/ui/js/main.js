@@ -69,7 +69,7 @@ function subscribe() {
   on("context", openContext);
   on("clipboard", onClipboard);
   on("mail", onMail);
-  on("prefs", (d) => { if (d) S.prefs = d; loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
+  on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: d.sysAccent || (S.prefs && S.prefs.sysAccent) }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
   on("relay", (d) => { S.relay = Object.assign({}, S.relay, d || {}); refreshInbox(); refreshSettings(); });
   on("downloads", (list) => refreshDownloads(list));
   on("openRoom", (r) => { openRoom(); if (r) inv("room.select", r); });
@@ -109,7 +109,7 @@ document.addEventListener("keydown", (e) => {
 const applyTheme = () => {
   const t = (S.prefs && S.prefs.theme) || "system";
   document.documentElement.dataset.theme = t;
-  applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme);
+  applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme, S.prefs && S.prefs.sysAccent);
   reportColors();
 };
 

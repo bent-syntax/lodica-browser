@@ -1128,6 +1128,27 @@
       if (pen) k.lineTo(px(xs[i]), py(y)); else { k.moveTo(px(xs[i]), py(y)); pen = true; }
     }
     k.stroke();
+    // where the line crosses y = 0 (x intercepts, found by bisection) and x = 0
+    const pts = [];
+    for (let i = 0; i < xs.length - 1 && pts.length < 4; i++) {
+      let a = xs[i], b = xs[i + 1], fa = ys[i], fb = ys[i + 1];
+      if (!isFinite(fa) || !isFinite(fb)) continue;
+      if (fa === 0) { pts.push([a, 0]); continue; }
+      if (fa * fb > 0) continue;
+      if (Math.abs(fa) > 1e6 || Math.abs(fb) > 1e6) continue;
+      for (let n = 0; n < 40; n++) { const m = (a + b) / 2, fm = g.f(m); if (!isFinite(fm)) break; if (fa * fm <= 0) { b = m; fb = fm; } else { a = m; fa = fm; } }
+      pts.push([(a + b) / 2, 0]);
+    }
+    const y0 = g.f(0);
+    if (isFinite(y0)) pts.push([0, y0]);
+    k.fillStyle = "#fff"; k.font = "10px system-ui,sans-serif";
+    const fm = (n) => String(Number(n.toPrecision(3)));
+    for (const [x, y] of pts) {
+      if (y < lo || y > hi) continue;
+      k.beginPath(); k.arc(px(x), py(y), 3, 0, 7); k.fill();
+      const t = "(" + fm(x) + ", " + fm(y) + ")";
+      k.fillText(t, Math.min(Math.max(px(x) + 5, 2), W - k.measureText(t).width - 2), Math.min(Math.max(py(y) - 5, 22), H - 14));
+    }
     return c;
   }
 

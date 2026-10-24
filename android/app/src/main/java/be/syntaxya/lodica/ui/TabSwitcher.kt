@@ -244,6 +244,9 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (t.url == TabManager.HOME) Kite(16.dp, tail = false)
+            else if (!t.locked) SiteIcon(t.host)
+            Spacer(Modifier.width(8.dp))
             Text(
                 when {
                     t.locked -> "Locked"
@@ -271,6 +274,26 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
             }
         }
     }
+}
+
+private val tabIcons = HashMap<String, androidx.compose.ui.graphics.ImageBitmap>()
+
+/** The site's favicon, fetched once per host; a letter until it arrives or when the site has none. */
+@Composable
+private fun SiteIcon(host: String) {
+    val h = host.removePrefix("www.")
+    val icon by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(tabIcons[h], h) {
+        if (value == null && h.isNotEmpty()) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching {
+                val c = java.net.URL("https://$h/favicon.ico").openConnection() as java.net.HttpURLConnection
+                c.connectTimeout = 4000; c.readTimeout = 4000
+                c.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap()
+            }.getOrNull()
+        }?.also { tabIcons[h] = it }
+    }
+    val ic = icon
+    if (ic != null) Image(ic, null, Modifier.size(16.dp))
+    else Text(h.firstOrNull()?.uppercase() ?: "•", color = Amber, fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
 }
 
 @Composable

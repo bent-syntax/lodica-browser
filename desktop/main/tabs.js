@@ -9,6 +9,7 @@ const history = require("./history");
 const errorpage = require("./errorpage");
 
 const HOME = "lodica://search/search.html";
+const LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(__dirname, "..", "ui", "logo.png")).toString("base64");
 const PRELOAD = path.join(__dirname, "..", "preload", "content.js");
 const IDLE_MS = 10 * 60 * 1000;
 const MAX_CLOSED = 10;
@@ -139,7 +140,7 @@ function wire(t, wc) {
   };
   adopt(wc, wc);
   wc.on("focus", () => focusPane(t));
-  wc.on("page-favicon-updated", (_, favicons) => { t.icons = Array.isArray(favicons) ? favicons.slice(0, 8) : []; });
+  wc.on("page-favicon-updated", (_, favicons) => { t.icons = Array.isArray(favicons) ? favicons.slice(0, 8) : []; pushCount(); });
   wc.on("page-title-updated", (_, title) => {
     t.title = title;
     if (!t.private) history.title(t.url, title);
@@ -476,7 +477,7 @@ function autoArchive(days) {
 function listing() {
   const byRecent = (a, b) => b.lastUsed - a.lastUsed;
   return {
-    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: (t.icons && t.icons[0]) || null })),
+    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: (t.url || "").startsWith("lodica://search/") ? LOGO : (t.icons && t.icons[0]) || null })),
     archived: list.filter(t => t.archived).sort(byRecent).map(info),
     closed: closed.map(c => ({ title: c.title || c.url, url: c.url })),
   };
