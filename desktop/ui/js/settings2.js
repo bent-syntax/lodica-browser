@@ -179,36 +179,42 @@ function openSupport() {
   return sheet({ title: "Contact support", key: "support", tall: true }, async (b, L) => {
     const draw = (st) => {
       b.textContent = "";
-      const ta = h("textarea", { class: "field", rows: "4", maxlength: "4000", placeholder: st.open ? "Reply" : "Describe a bug or something you'd like added" });
-      const err = h("div", { class: "empty", text: "" });
+      const ta = h("textarea", { class: "field sup-ta", rows: "3", maxlength: "4000", placeholder: st.open ? "Write a reply..." : "What went wrong, or what would you like added?" });
+      const err = h("div", { class: "sup-err", text: "" });
+      const wrap = h("div", { class: "sup" });
+      if (!st.open) wrap.append(h("div", { class: "sup-intro" },
+        h("div", { class: "sup-h", text: "How can we help?" }),
+        h("div", { class: "t2", text: "Report a bug or ask for a feature. You get a notification when it is sent and when there is news." })));
       if (st.open) {
         const steps = ["Sent", "Reviewing", "Asking", "Fixing", "Confirming", "Done"];
         const at = { new: 0, seen: 1, "needs-info": 2, fixing: 3, "awaiting-confirm": 4, done: 5, closed: 5 }[st.status] ?? 0;
-        b.append(h("div", { class: "bar-meter" }, h("i", { style: "width:" + Math.round(100 * (at + 1) / steps.length) + "%" })),
-          h("div", { class: "t2", text: steps.map((x, i) => (i === at ? "[" + x + "]" : x)).join(" > ") }));
-        for (const m of st.messages) b.append(h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t2", text: m.fromUser ? "You" : "Support" }), h("div", { class: "t1", text: m.text + (m.images ? " [" + m.images + " image" + (m.images > 1 ? "s" : "") + "]" : "") }))));
-        if (st.status === "needs-info") b.append(h("div", { class: "empty", text: "Support needs more information. Reply below." }));
-        if (st.status === "fixing") b.append(h("div", { class: "empty", text: "A fix is being built and tested." }));
-        if (st.status === "awaiting-confirm") b.append(h("div", { class: "empty", text: "Is it fixed or working now?" }));
-        if (st.status === "done") b.append(h("div", { class: "empty", text: "Fixed. Update the browser to get it." }));
+        wrap.append(h("div", { class: "sup-steps" }, steps.map((x, i) => h("span", { class: "sup-step" + (i < at ? " past" : i === at ? " now" : ""), text: x }))));
+        const log = h("div", { class: "sup-log" });
+        for (const m of st.messages) log.append(h("div", { class: "sup-msg" + (m.fromUser ? " me" : "") },
+          h("div", { class: "sup-who", text: m.fromUser ? "You" : "Support" }),
+          h("div", { class: "sup-txt", text: m.text + (m.images ? " [" + m.images + " image" + (m.images > 1 ? "s" : "") + "]" : "") })));
+        wrap.append(log);
+        const note = { "needs-info": "Support needs more information. Reply below.", fixing: "A fix is being built and tested.", "awaiting-confirm": "Is it fixed or working now?", done: "Fixed. Update the browser to get it." }[st.status];
+        if (note) wrap.append(h("div", { class: "sup-note", text: note }));
       }
       const pics = [];
-      const file = h("input", { type: "file", accept: "image/*", multiple: "" });
-      const addBtn = h("button", { class: "btn", text: "Add image", act: () => file.click() });
+      const file = h("input", { type: "file", accept: "image/*", multiple: "", hidden: "" });
+      const addBtn = h("button", { class: "btn sup-ghost", text: "Add image", act: () => file.click() });
       file.onchange = async () => {
         for (const f of file.files) if (pics.length < 3) { const d = await shrink(f); if (d) pics.push(d); }
         file.value = ""; addBtn.textContent = pics.length ? "Images: " + pics.length + "/3" : "Add image";
       };
-      if (st.open && st.status === "awaiting-confirm") b.append(
+      if (st.open && st.status === "awaiting-confirm") wrap.append(h("div", { class: "sup-row" },
         h("button", { class: "btn", text: "Yes, fixed", act: async () => draw(await inv("support.send", "Yes, it is fixed.", { resolved: true })) }),
-        h("button", { class: "btn", text: "No", act: () => { ta.value = "No, it is still not fixed: "; ta.focus(); } }));
+        h("button", { class: "btn sup-ghost", text: "No", act: () => { ta.value = "No, it is still not fixed: "; ta.focus(); } })));
       const btn = h("button", { class: "btn", text: "Send", act: async () => {
         const text = ta.value.trim(); if (!text) return;
         btn.disabled = true; btn.textContent = "Sending...";
         const r = await inv("support.send", text, { images: pics });
         if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
       } });
-      b.append(ta, addBtn, btn, err);
+      wrap.append(ta, h("div", { class: "sup-row" }, addBtn, file, btn), err);
+      b.append(wrap);
     };
     draw((await inv("support.open")) || { messages: [] });
   });
