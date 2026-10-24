@@ -350,7 +350,7 @@ function wire(m) {
   m.prefs.events.on("change", key => {
     ui.push("prefs", m.prefs.p);
     tabs.refresh();
-    if (key === "vertTabs" || key === "vertWidth" || key === "vertCollapsed") { ui.fit(); tabs.fit(); }
+    if (key === "vertTabs" || key === "barBottom" || key === "vertWidth" || key === "vertCollapsed") { ui.fit(); tabs.fit(); }
     if (key === "userAgent") for (const t of tabs.all()) { const wc = tabs.wcOf(t); if (wc) m.commands.applyAgent(t, wc); }
   });
 

@@ -181,6 +181,7 @@ function secStart() {
 function secLayout() {
   return [secHead("Layout", "layout"),
     setToggle("vertTabs", "Vertical tabs", "Move the tab strip to a side panel. Shortcut: " + (comboLabel("toggleVertical") || "none")),
+    setToggle("barBottom", "Toolbar at bottom", "Put the address bar under the page instead of under the tabs."),
     secHead("Transparency", "transparency"),
     setSlider("Window opacity", S.prefs.uiAlpha || 100, 30, 100, (v) => setPref("uiAlpha", v)),
     setToggle("uiBlur", "Blur behind window", "Frosted-glass look. Works on Windows, macOS and compositors that blur behind windows. Restart Lodica to apply transparency changes.")];

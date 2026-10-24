@@ -53,6 +53,16 @@ body.vert.fold .mail::before{content:"@";font-size:14px}
 #grip{position:fixed;top:0;right:0;bottom:0;width:5px;cursor:col-resize}
 #grip:hover,#grip.on{background:var(--amber-bg)}
 .hidden{display:none!important}
+/* page 1: tab strip above the toolbar; the toolbar owns back/forward/reload */
+body.bt #back,body.bt #fwd,body.bt #rel{display:none}
+body.bt:not(.vert){padding:0 8px;gap:8px;align-items:flex-end;background:var(--bg)}
+body.bt:not(.vert) #list{align-items:flex-end;height:100%;padding-top:6px}
+body.bt:not(.vert) .t{height:30px;background:transparent;border-radius:12px 12px 0 0;padding:0 6px 0 10px}
+body.bt:not(.vert) .t:hover{background:var(--hover)}
+body.bt:not(.vert) .t.cur{background:var(--raised);box-shadow:none}
+body.bt:not(.vert) .add{height:30px;border-radius:12px}
+body.bt .t .fv,body.bt .t .fl{border-radius:4px}
+body.bt .t .x{border-radius:999px}
 </style>
 </head>
 <body>
