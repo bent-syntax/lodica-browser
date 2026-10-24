@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## Unreleased
+- Desktop: redesign pass. Buttons and chips on amber or coral fills use black or white text for contrast. Dim behind sheets and dialogs has no blur. Toggles are larger. Delete (×) buttons are 28 px with a pointer cursor. Search page has visible focus rings. Motion respects the system reduced-motion setting. Removed the Fill button glow and the search card hover lift.
+- Android: floating chips, toasts and the tab switcher share one shadow depth.
+
 ## 1.11.11 (versionCode 77)
 - Android: Fixes: date and file inputs work, Reader no longer repeats the title and works after upgrades, Inbox retry, archived rows, landscape keyboard, false crash screen, shared searches use a public link, image search viewer has a close button and Open image link, spell-check language label, alias reuse on sign-up forms, and other small fixes.
 

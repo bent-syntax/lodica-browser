@@ -195,7 +195,7 @@ fun TabSwitcher() {
             enter = slideInVertically(tween(220)) { it } + fadeIn(tween(200)),
             exit = slideOutVertically(tween(180)) { it } + fadeOut(tween(160)),
         ) {
-            Surface(shape = RoundedCornerShape(14.dp), color = GraphiteHigh, contentColor = Mist, shadowElevation = 6.dp) {
+            Surface(shape = RoundedCornerShape(14.dp), color = GraphiteHigh, contentColor = Mist, shadowElevation = 4.dp) {
                 Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Tab closed", fontSize = 14.sp)
                     Spacer(Modifier.width(24.dp))

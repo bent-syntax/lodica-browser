@@ -60,7 +60,7 @@ body.home #tabs { display: none; }
 .skel { height: 74px; border-radius: 12px; margin: 12px 0; background: linear-gradient(90deg, var(--raised) 0, var(--high) 50%, var(--raised) 100%); background-size: 200% 100%; animation: sh 1.2s infinite linear; }
 @keyframes sh { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 #viewer { position: fixed; inset: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
-#viewer .x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--bg); color: inherit; font-size: 22px; cursor: pointer; }
+#viewer .x { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: var(--bg); color: inherit; font-size: 22px; cursor: pointer; }
 #viewer img { max-width: 100%; max-height: 72vh; border-radius: 8px; }
 #viewer .cap { margin-top: 12px; text-align: center; font-size: 14px; }
 #viewer .cap a { color: var(--link); display: block; margin-top: 6px; }
@@ -80,7 +80,7 @@ html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -
 #top a span.n { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 #top a { position: relative; }
-#top a .rm { display: none; cursor: pointer; position: absolute; top: -4px; right: 8px; width: 20px; height: 20px; border-radius: 10px; background: var(--raised); color: var(--sub); place-items: center; font-size: 13px; line-height: 1; box-shadow: 0 1px 4px #0006; }
+#top a .rm { display: none; cursor: pointer; position: absolute; top: -4px; right: 8px; width: 28px; height: 28px; border-radius: 14px; background: var(--raised); color: var(--sub); place-items: center; font-size: 13px; line-height: 1;  }
 #top a .rm:hover { background: var(--coral); color: var(--bg); }
 #top a.add .fav { background: var(--raised); border: 0; color: var(--amber); font-size: 24px; transition: background .15s; }
 #top a.add:hover .fav { background: var(--amber); color: var(--bg); }
@@ -104,7 +104,7 @@ html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -
 #ai-follow[hidden] { display: none; }
 #ai-q { flex: 1; min-width: 0; background: var(--high); color: inherit; border: 0; border-radius: 12px; padding: 10px 12px; font: inherit; font-size: 15px; outline: none; }
 #ai-q:focus { box-shadow: 0 0 0 2px var(--amber); }
-#ai-send { background: var(--amber); color: #111; border: 0; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 600; }
+#ai-send { background: var(--amber); color: var(--bg); border: 0; border-radius: 12px; padding: 0 16px; font: inherit; font-weight: 600; }
 #ai-follow :disabled { opacity: .5; }
 
 body.home header { background: transparent; }
@@ -120,9 +120,8 @@ body.home #fw { max-width: 640px; margin: 0 auto; }
 .ai-gen { background: var(--high); color: var(--amber); border: 0; border-radius: 10px; padding: 10px 16px; font: inherit; cursor: pointer; }
 
 /* redesign */
-header { backdrop-filter: blur(12px); }
-#f { height: 52px; border-radius: 26px; padding: 0 8px 0 20px; box-shadow: 0 2px 14px rgba(0,0,0,.18); transition: box-shadow .2s, border-color .2s; }
-#f:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--amber) 20%, transparent), 0 6px 24px rgba(0,0,0,.25); }
+#f { height: 52px; border-radius: 26px; padding: 0 8px 0 20px; transition: box-shadow .18s cubic-bezier(.2,.8,.2,1), border-color .18s; }
+#f:focus-within { box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 20%, transparent); }
 #q { height: 50px; font-size: 17px; }
 body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #tabs a { border-radius: 8px 8px 0 0; transition: color .15s; }
@@ -131,20 +130,20 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 .r h3 { font-size: 18px; }
 .r h3:hover { text-decoration: underline; }
 .r img { width: 84px; height: 84px; border-radius: 14px; }
-.box, #ai, .ans { border-radius: 20px; padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,.14); }
-.chips a { border-radius: 999px; padding: 8px 16px; transition: background .15s, transform .15s; }
-.chips a:hover { background: var(--high); transform: translateY(-1px); }
+.box, #ai, .ans { border-radius: 20px; padding: 16px; }
+.chips a { border-radius: 999px; padding: 8px 16px; transition: background .15s; }
+.chips a:hover { background: var(--high); }
 .grid { gap: 12px; }
-.grid a { border-radius: 14px; transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
-.grid a:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.3); }
-#sg { border-radius: 20px; padding: 8px; box-shadow: 0 14px 40px rgba(0,0,0,.35); }
+.grid a { border-radius: 14px; transition: background .18s; }
+.grid a:hover { background: var(--high); }
+#sg { border-radius: 20px; padding: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.22); }
 #sg a { border-radius: 14px; }
 #top { gap: 18px; margin-top: 36px; }
-#top a { border-radius: 16px; padding: 8px 0; transition: background .15s, transform .15s; }
-#top a:hover { background: color-mix(in srgb, var(--raised) 70%, transparent); transform: translateY(-2px); }
-#top a .fav { width: 56px; height: 56px; border-radius: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.2); }
+#top a { border-radius: 16px; padding: 8px 0; transition: background .15s; }
+#top a:hover { background: var(--raised); }
+#top a .fav { width: 56px; height: 56px; border-radius: 18px; }
 #pages a { transition: background .15s; }
-#viewer img { border-radius: 16px; box-shadow: 0 16px 50px rgba(0,0,0,.5); }
+#viewer img { border-radius: 16px;  }
 
 #plan { max-width: 640px; margin: 28px auto 0; padding: 14px 18px; border-radius: 16px; background: var(--card, rgba(127,127,127,.12)); text-align: left; }
 #plan:empty { display: none; }
@@ -154,3 +153,9 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #plan .pe { display: flex; gap: 10px; font-size: 14px; padding: 2px 0; }
 #plan .pe b { min-width: 52px; font-weight: 600; }
 body:not(.home) #plan { display: none; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+#top a:focus-within .rm { display: grid; }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+#f button, #topbar button, .chips a, #pages a { cursor: pointer; }
+#topbar button { min-height: 30px; }

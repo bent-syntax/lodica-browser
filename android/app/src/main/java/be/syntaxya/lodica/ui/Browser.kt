@@ -376,7 +376,7 @@ private fun MailBanner(m: Mail) {
         shape = RoundedCornerShape(18.dp),
         color = GraphiteRaised,
         contentColor = Mist,
-        shadowElevation = 6.dp,
+        shadowElevation = 4.dp,
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).swipeAway { Relay.incoming = null },
     ) {
         Row(Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
