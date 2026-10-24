@@ -9,7 +9,27 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check tag, versions and patch notes
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          fail=0
+          gradle=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/app/build.gradle.kts | head -1)
+          pkg=$(node -p 'require("./desktop/package.json").version')
+          lock=$(node -p 'require("./desktop/package-lock.json").version')
+          for pair in "android/app/build.gradle.kts=$gradle" "desktop/package.json=$pkg" "desktop/package-lock.json=$lock"; do
+            if [ "${pair#*=}" != "$v" ]; then echo "::error::${pair%%=*} has version '${pair#*=}', tag is '$v'"; fail=1; fi
+          done
+          for f in desktop/PATCH_NOTES.md android/PATCH_NOTES.md; do
+            n=$(awk -v v="$v" '$0 == "## " v {on=1; next} /^## / {on=0} on' "$f" | grep -c '[^[:space:]]' || true)
+            if [ "$n" -eq 0 ]; then echo "::error::$f has no non-empty '## $v' section"; fail=1; fi
+          done
+          exit $fail
   android:
+    needs: verify
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -39,13 +59,14 @@ jobs:
       - name: Name the APK
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/release/*.apk "out/lodica-${GITHUB_REF_NAME}.apk"
+          cp android/app/build/outputs/apk/release/*.apk "out/Lodica-${GITHUB_REF_NAME#v}.apk"
       - uses: actions/upload-artifact@v5
         with:
           name: android
           path: out/*.apk
 
   desktop:
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +106,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [android, desktop]
+    needs: [verify, android, desktop]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -97,7 +118,6 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           awk -v v="$v" '$0 == "## " v {on=1; next} /^## / {on=0} on' desktop/PATCH_NOTES.md > notes.md
-          [ -s notes.md ] || echo "Lodica Browser ${GITHUB_REF_NAME}" > notes.md
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
