@@ -178,6 +178,7 @@ async function reply(req, res, id, ip, h) {
   if (!text) return h.sendText(req, res, 400, 'text required');
   if (t.messages.length >= MAX_MSGS) return h.sendText(req, res, 429, 'conversation is full');
   if (limited(ip)) return h.sendText(req, res, 429, 'too many messages, try again later');
+  if (!t.link && typeof b.link === 'string' && LINK_RE.test(b.link)) t.link = b.link;   // older tickets get the email on the next message
   const images = saveImages(t, b.images);
   const m = { from: 'user', text, at: Date.now() };
   if (images.length) m.images = images;

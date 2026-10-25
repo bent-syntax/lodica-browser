@@ -29,12 +29,12 @@ function apply(t, notifyTeam, onClick) {
 
 async function send(text, images = [], resolved = false, onClick) {
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
-  const id = state.status === "closed" ? "" : state.id;
+  const id = state.status === "closed" || state.status === "done" ? "" : state.id;
   if (!state.link) return { error: "Link your email first." };
   const body = { text };
   if (images.length) body.images = images;
   if (resolved && id) body.resolved = true;
-  if (!id && state.link) body.link = state.link;
+  body.link = state.link;
   if (!id) Object.assign(body, { name: require("./room").state.name, app: "desktop", version: require("../package.json").lodicaVersion || require("electron").app.getVersion(), platform: process.platform + " " + os.release() });
   try {
     const [st, resp] = await relay.request("POST", id ? "/api/support/" + id : "/api/support", 15000, body);
@@ -55,7 +55,7 @@ async function refresh(notifyTeam, onClick) {
   } catch {}
 }
 
-const get = () => ({ messages: state.messages, status: state.status, open: state.messages.length > 0 && state.status !== "closed", email: state.link ? state.email : "" });
+const get = () => ({ messages: state.messages, status: state.status, open: state.messages.length > 0 && state.status !== "closed" && state.status !== "done", email: state.link ? state.email : "" });
 
 // Linking an email: the desk mails a code, the code gives a link token. Then mail from that address counts as a
 // request, and requests from here also get updates by email.

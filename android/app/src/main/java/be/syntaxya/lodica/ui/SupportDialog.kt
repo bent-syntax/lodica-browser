@@ -108,7 +108,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { withContext(Dispatchers.IO) { Support.open(ctx) } }
-    val open = Support.messages.isNotEmpty() && Support.status != "closed"
+    val open = Support.messages.isNotEmpty() && Support.status != "closed" && Support.status != "done"
     // a new request needs a linked email, so answers can always reach the user
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
     val canWrite = linked.isNotEmpty()
@@ -123,6 +123,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
         },
         text = {
             Column {
+                if (linked.isNotEmpty()) Text("Answers go to $linked", Modifier.padding(bottom = 8.dp), fontSize = 12.sp, color = Amber)
                 Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
                     if (open) {
                         val steps = listOf("Sent", "Reviewing", "Asking", "Fixing", "Confirming", "Done")

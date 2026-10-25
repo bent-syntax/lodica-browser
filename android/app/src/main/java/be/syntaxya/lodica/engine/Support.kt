@@ -60,14 +60,14 @@ object Support {
     fun send(ctx: Context, text: String, images: List<Uri> = emptyList(), resolved: Boolean = false): String? {
         Relay.init(ctx)
         if (!Relay.available) return "No relay is set up. Pair this browser with your server first."
-        val id = ticketId(ctx)?.takeIf { status != "closed" }
+        val id = ticketId(ctx)?.takeIf { status != "closed" && status != "done" }
         if (prefs(ctx).getString("link", null) == null) return "Link your email first."
         val body = JSONObject().put("text", text)
         if (images.isNotEmpty()) body.put("images", org.json.JSONArray(images.mapNotNull { encode(ctx, it) }))
         if (resolved && id != null) body.put("resolved", true)
+        prefs(ctx).getString("link", null)?.let { body.put("link", it) }   // every message, so the desk can mail the answer
         val path = if (id == null) {
             val v = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""
-            prefs(ctx).getString("link", null)?.let { body.put("link", it) }
             body.put("name", Room.name(ctx)).put("app", "android").put("version", v)
                 .put("platform", "Android " + android.os.Build.VERSION.RELEASE + " " + android.os.Build.MODEL)
             "/api/support"
