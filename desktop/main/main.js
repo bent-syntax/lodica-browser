@@ -240,6 +240,8 @@ function onView(t, wc) {
   swipeNav(wc);
   M.commands.applyAgent(t, wc);
   M.helper.syncScheme(wc);
+  // A cross-process navigation can drop the emulated scheme, so sites showed dark with "Dark pages" off.
+  wc.on("did-start-navigation", (e) => { if (e.isMainFrame && !e.isSameDocument && !wc.isDestroyed()) M.helper.syncScheme(wc); });
   // Sites flagged desktopInput need the desktop UA from the first request, even in a mobile-site tab.
   wc.on("did-start-navigation", (e) => {
     if (!e.isMainFrame || e.isSameDocument || wc.isDestroyed()) return;
