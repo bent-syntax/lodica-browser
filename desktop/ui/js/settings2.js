@@ -186,6 +186,14 @@ function openSupport() {
       const ta = h("textarea", { class: "field sup-ta", rows: "3", maxlength: "4000", placeholder: st.open ? "Write a reply..." : "What went wrong, or what would you like added?" });
       const err = h("div", { class: "sup-err", text: "" });
       const wrap = h("div", { class: "sup" });
+      // contact needs a linked email first, so answers can always reach the user
+      if (!st.email && !st.open) {
+        wrap.append(h("div", { class: "sup-intro" },
+          h("div", { class: "sup-h", text: "How can we help?" }),
+          h("div", { class: "t2", text: "Link your email first. Then you can report a bug or ask for a feature." })), linkBox(st));
+        b.append(wrap);
+        return;
+      }
       if (!st.open) wrap.append(h("div", { class: "sup-intro" },
         h("div", { class: "sup-h", text: "How can we help?" }),
         h("div", { class: "t2", text: "Report a bug or ask for a feature. You get a notification when it is sent and when there is news." })));
@@ -246,7 +254,7 @@ function openSupport() {
           draw(r);
         }
       } });
-      box.append(h("div", { class: "t2", text: "Link your email to get updates by mail and to send requests to lodica@syntaxya.be. We send a code to check it is yours." }),
+      box.append(h("div", { class: "t2", text: "We send a code to your email to check it is yours. You get updates by mail, and you can also mail lodica@syntaxya.be from it." }),
         em, code, h("div", { class: "sup-row" }, go), lerr);
       return box;
     };

@@ -30,6 +30,7 @@ function apply(t, notifyTeam, onClick) {
 async function send(text, images = [], resolved = false, onClick) {
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
   const id = state.status === "closed" ? "" : state.id;
+  if (!id && !state.link) return { error: "Link your email first." };
   const body = { text };
   if (images.length) body.images = images;
   if (resolved && id) body.resolved = true;

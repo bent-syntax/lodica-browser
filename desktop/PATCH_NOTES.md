@@ -1,3 +1,6 @@
+## 1.13.13
+- Changed: Contact support now asks you to link your email before you send a new request
+
 ## 1.13.12
 - Added: Link your email in Contact support to get updates by mail and to send requests by email
 

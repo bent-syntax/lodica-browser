@@ -51,7 +51,7 @@ import kotlinx.coroutines.withContext
 
 /** Email updates: link an address with a code mailed to it. Then mail to support from it also works. */
 @Composable
-private fun LinkEmail() {
+private fun LinkEmail(onLinked: (String) -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
@@ -66,11 +66,11 @@ private fun LinkEmail() {
             Text("Linked to $linked. You get updates by email, and you can mail lodica@syntaxya.be from this address.", fontSize = 12.sp, color = Muted)
             TextButton(enabled = !busy, onClick = {
                 busy = true
-                scope.launch { withContext(Dispatchers.IO) { Support.unlink(ctx) }; busy = false; linked = ""; sent = false; code = "" }
+                scope.launch { withContext(Dispatchers.IO) { Support.unlink(ctx) }; busy = false; linked = ""; sent = false; code = ""; onLinked("") }
             }) { Text("Unlink") }
             return@Column
         }
-        Text("Link your email to get updates by mail and to send requests to lodica@syntaxya.be. We send a code to check it is yours.", fontSize = 12.sp, color = Muted)
+        Text("We send a code to your email to check it is yours. You get updates by mail, and you can also mail lodica@syntaxya.be from it.", fontSize = 12.sp, color = Muted)
         OutlinedTextField(
             value = email, onValueChange = { email = it.take(120) }, enabled = !sent, singleLine = true,
             label = { Text("Email") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -88,7 +88,7 @@ private fun LinkEmail() {
                 busy = false
                 when {
                     err != null -> note = err
-                    sent -> linked = Support.linkedEmail(ctx)
+                    sent -> { linked = Support.linkedEmail(ctx); onLinked(linked) }
                     else -> { sent = true; note = "Code sent. Check your mail." }
                 }
             }
@@ -109,6 +109,9 @@ internal fun SupportDialog(onClose: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) { withContext(Dispatchers.IO) { Support.open(ctx) } }
     val open = Support.messages.isNotEmpty() && Support.status != "closed"
+    // a new request needs a linked email, so answers can always reach the user
+    var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
+    val canWrite = open || linked.isNotEmpty()
     AlertDialog(
         onDismissRequest = onClose,
         title = {
@@ -140,15 +143,16 @@ internal fun SupportDialog(onClose: () -> Unit) {
                         if (Support.status == "fixing") Text("A fix is being built and tested.", fontSize = 12.sp, color = Muted)
                         if (Support.status == "awaiting-confirm") Text("Is it fixed or working now?", fontSize = 12.sp, color = Amber)
                         if (Support.status == "done") Text("Fixed. Update the browser to get it.", fontSize = 12.sp, color = Amber)
-                    } else Text("Describe a bug or something you'd like added. You'll get a notification when it's sent, and again when there's news.", fontSize = 12.sp, color = Muted)
-                    LinkEmail()
+                    } else if (canWrite) Text("Describe a bug or something you'd like added. You'll get a notification when it's sent, and again when there's news.", fontSize = 12.sp, color = Muted)
+                    else Text("Link your email first. Then you can report a bug or ask for a feature.", fontSize = 12.sp, color = Muted)
+                    LinkEmail { linked = it }
                 }
-                OutlinedTextField(
+                if (canWrite) OutlinedTextField(
                     value = text, onValueChange = { text = it },
                     label = { Text(if (open) "Reply" else "Your message") },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp), minLines = 3,
                 )
-                Row {
+                if (canWrite) Row {
                     TextButton(enabled = pics.size < 3 && !busy, onClick = { pick.launch("image/*") }) { Text(if (pics.isEmpty()) "Add image" else "Images: ${pics.size}/3") }
                     if (pics.isNotEmpty()) TextButton(onClick = { pics = emptyList() }) { Text("Clear") }
                 }
@@ -167,7 +171,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
             }
         },
         confirmButton = {
-            DlgPrimary(enabled = text.isNotBlank() && !busy, onClick = {
+            DlgPrimary(enabled = canWrite && text.isNotBlank() && !busy, onClick = {
                 busy = true; error = null
                 scope.launch {
                     val err = withContext(Dispatchers.IO) { Support.send(ctx, text.trim(), pics) }

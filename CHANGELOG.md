@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.13 (versionCode 114)
+- Changed: Contact support now asks you to link your email before you send a new request
+
 ## 1.13.12 (versionCode 113)
 - Added: Link your email in Contact support to get updates by mail and to send requests by email
 

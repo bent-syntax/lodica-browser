@@ -144,6 +144,8 @@ async function create(req, res, ip, h) {
   const b = await body(req, h);
   const text = clean(b && b.text, TEXT_MAX);
   if (!text) return h.sendText(req, res, 400, 'text required');
+  // with a desk, a new request needs a linked email so answers can reach the user
+  if (DESK_URL && !(typeof b.link === 'string' && LINK_RE.test(b.link))) return h.sendText(req, res, 403, 'Link your email first.');
   if (limited(ip)) return h.sendText(req, res, 429, 'too many messages, try again later');
   if (tickets.size >= MAX_TICKETS) sweep();
   if (tickets.size >= MAX_TICKETS) return h.sendText(req, res, 503, 'support is full');
