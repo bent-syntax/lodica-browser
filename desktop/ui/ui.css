@@ -7,7 +7,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outlin
 input,textarea,select{font:inherit;color:var(--mist);background:var(--bg);border:1px solid var(--high);border-radius:12px;outline:none;padding:10px 12px;user-select:text}
 input:focus,textarea:focus,select:focus{border-color:var(--amber)}
 input::placeholder,textarea::placeholder{color:var(--muted)}
-.ico{width:24px;height:24px;fill:currentColor;flex:none;display:block}
+.ico{width:24px;height:24px;fill:none;flex:none;display:block}
 .amber{color:var(--amber)}.coral{color:var(--coral)}.muted{color:var(--muted)}
 .hidden{display:none!important}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--high);border-radius:4px}

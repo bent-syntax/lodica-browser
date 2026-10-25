@@ -23,19 +23,28 @@ function renderBar() {
 
 function mainBar() {
   const t = S.tab, off = !!t.trusted, n = t.blocked || 0;
-  const shield = h("button", { class: "ib shield" + (off ? " muted" : " amber"),
-    title: off ? "Protection off for this site" : "Protection on. Tap to trust this site", act: toggleShield },
-    ico(off ? "shieldOff" : "shield"), !off && n > 0 ? h("span", { class: "n", text: cap(n, "99+") }) : null);
+  const nav = [
+    h("button", { class: "ib", title: "Back (Alt+Left)", act: () => inv("back") }, ico("back")),
+    h("button", { class: "ib", title: "Forward (Alt+Right)", act: () => inv("forward") }, ico("forward")),
+    h("button", { class: "ib", title: t.loading ? "Stop" : "Reload (F5)", act: (e) => inv(t.loading ? "stop" : "reload", e && e.shiftKey) }, ico(t.loading ? "close" : "reload"))];
+  nav[0].disabled = !t.canBack; nav[1].disabled = !t.canForward;
+  const shield = h("button", { class: "shd" + (off ? " off" : ""), title: off ? "Protection off for this site" : "Protection on. Click to trust this site", act: (e) => { e.stopPropagation(); toggleShield(); } },
+    ico(off ? "shieldOff" : "shield"), !off && n > 0 ? h("span", { text: cap(n, "99+") }) : null);
   if (t.home || t.locked) shield.disabled = true;
-  const lead = t.home ? ico("search", "muted") : t.https === false ? ico("warning", "amber") : ico("lock", "muted");
+  const lead = t.home ? ico("search", "muted") : t.https === false ? ico("warning", "amber") : ico("lock", "ok");
   const txt = t.locked ? "" : (t.origin || t.display || "");
+  const rd = h("button", { class: "pib", title: "Reader", act: (e) => { e.stopPropagation(); openReader(); } }, ico("reader"));
+  if (t.home || t.locked) rd.disabled = true;
   const pill = h("div", { class: "pill", act: () => enterEdit() },
-    lead,
+    h("button", { class: "pib lead", title: "Site info", act: (e) => { e.stopPropagation(); if (t.home || t.locked) enterEdit(); else openSiteInfo(); } }, lead),
     t.private ? h("span", { class: "tag", text: "Private" }) : null,
     h("span", { class: "txt" + (txt ? "" : " muted"), text: txt || placeholder() }),
-    t.routed ? h("button", { class: "ib amber", title: "Routed through VPS", act: () => toast("Routed through VPS") }, ico("vpn")) : null);
+    t.routed ? h("button", { class: "pib amber", title: "Routed through VPS", act: (e) => { e.stopPropagation(); toast("Routed through VPS"); } }, ico("vpn")) : null,
+    shield, rd);
   const tc = h("span", { class: "tc" + (t.private ? " priv" : ""), text: cap(S.tabs.count || 0, ":D") });
-  return [shield, pill,
+  return [h("div", { class: "navg" }, nav), pill,
+    S.prefs.ai ? h("button", { class: "ib tile", title: "Ask AI", act: () => openAiChat() }, ico("ai")) : null,
+    ib("download", "Downloads", () => openDownloads()),
     h("button", { class: "ib", title: "Tabs", act: () => openSwitcher() }, tc),
     ib("more", "Menu", () => openMenu())];
 }

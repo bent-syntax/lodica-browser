@@ -126,3 +126,35 @@ function placeCtx(box, x, y) {
     box.style.top = Math.max(8, Math.min(y, H - 58 - r.height - 8)) + "px";
   });
 }
+
+// Site info popover under the lock: protection stats, per-site switches, clear data.
+function openSiteInfo() {
+  const t = S.tab, host = t.host || hostOf(t.display || "") || "";
+  return openLayer({ key: "siteinfo", cls: "popL" }, (L) => {
+    const stat = (icon, val, label, cls) => h("div", { class: "stat" + (cls ? " " + cls : "") }, ico(icon), h("b", { text: val }), h("span", { text: label }));
+    const savedB = h("b", { text: "…" });
+    const saved = h("div", { class: "stat acc" }, ico("speed"), savedB, h("span", { text: "Saved" }));
+    inv("meter.list").then((m) => {
+      const x = ((m && m.hosts) || []).find((r) => r.host === host);
+      savedB.textContent = fmtBytes(x ? (x.saved || 0) : 0);
+    }).catch(() => { savedB.textContent = "0 B"; });
+    const sw = (icon, label, on, fn) => h("button", { class: "srow", act: () => { L.close(); fn(); } },
+      ico(icon), h("span", { text: label }), toggleEl(on));
+    return h("div", { class: "pop" },
+      h("div", { class: "pop-head" },
+        h("div", { class: "pop-fav" }, h("span", { text: (host || "?")[0].toUpperCase() })),
+        h("div", { class: "main" }, h("div", { class: "t1", text: host }),
+          h("div", { class: "t2" }, ico(t.https === false ? "warning" : "lock"),
+            t.https === false ? "Not secure" : t.routed ? "Secure · through your VPS" : "Secure")),
+        ib("close", "Close", () => L.close())),
+      h("div", { class: "stats" }, stat("shield", String(t.blocked || 0), "Blocked"), saved),
+      sw("lite", "Lite mode", !!t.lite, () => inv("lite.toggle")),
+      sw("compat", "Compatibility mode", !!t.compat, () => inv("compat.toggle")),
+      h("div", { class: "pop-foot" },
+        h("button", { class: "clr", act: async () => {
+          L.close();
+          if (await confirmDialog({ title: "Clear site data?", message: "Cookies, cache and storage for all sites. You will be logged out everywhere.", ok: "Clear", danger: true })) { await inv("privacy.clearSiteData"); toast("Site data cleared"); }
+        } }, ico("delete"), "Clear all site data"),
+        h("button", { class: "chip", act: () => { L.close(); openVideoQuality(); } }, ico("hd"), "Quality")));
+  });
+}

@@ -3,24 +3,20 @@
 
 // [id, label, group]: the sidebar shows one heading per group, then its pages. Same pages and order as Android.
 const SET_TABS = [
-  ["search", "Search", "Browsing"], ["sites", "Sites & domains", "Browsing"], ["ai", "AI answers", "Browsing"],
-  ["theme", "Theme", "Look & tabs"], ["start", "Start page", "Look & tabs"], ["tabs", "Tabs", "Look & tabs"],
-  ["privacy", "Privacy & history", "Privacy & security"], ["security", "Security & blocking", "Privacy & security"],
-  ["data", "Data, apps & extensions", "Data & controls"], ["keys", "Keybinds & controls", "Data & controls"],
-  ["server", "Server & mail", "Account"], ["identity", "Identity & passwords", "Account"],
-  ["about", "Updates & About", "About"]];
+  ["general", "General", ""], ["privacy", "Privacy", ""], ["passwords", "Passwords", ""], ["server", "Your VPS", ""], ["ai", "Ask AI", ""],
+  ["search", "Search", ""], ["theme", "Appearance", ""], ["downloads", "Downloads", ""], ["data", "Data use", ""], ["about", "Updates & About", ""]];
 // Section ids that other code passes to openSettings() -> the page that holds them.
-const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", ai: "ai", theme: "theme", appearance: "theme", pages: "theme",
-  background: "start", shortcuts: "start", planner: "start", start: "start", tabs: "tabs", pctabs: "tabs", layout: "tabs", privacy: "privacy", https: "security", blocking: "security",
-  security: "security", vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", keys: "keys", keybinds: "keys",
-  identity: "identity", auth: "identity", authenticator: "identity", about: "about", updates: "about" };
+const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "general", dns: "general", ai: "ai", theme: "theme", appearance: "theme", pages: "theme",
+  background: "general", shortcuts: "general", planner: "general", start: "general", tabs: "general", pctabs: "general", layout: "general", privacy: "privacy", https: "privacy", blocking: "privacy",
+  security: "privacy", vps: "server", server: "server", mail: "server", data: "data", apps: "general", extensions: "general", keys: "general", keybinds: "general",
+  identity: "passwords", auth: "passwords", authenticator: "passwords", passwords: "passwords", downloads: "downloads", about: "about", updates: "about" };
 
-const SET_ICONS = { search: "search", sites: "globe", ai: "settings", theme: "palette", start: "home", tabs: "tabs", privacy: "shield", security: "shield",
-  data: "settings", keys: "key", server: "settings", identity: "key", about: "reader" };
+const SET_ICONS = { general: "settings", privacy: "shield", passwords: "key", server: "vpn", ai: "ai", search: "search", theme: "palette",
+  downloads: "download", data: "data", about: "reader" };
 function setTabBar() {
   const out = []; let last = "";
   for (const [id, label, group] of SET_TABS) {
-    if (group !== last) { out.push(h("div", { class: "sp-group", text: group })); last = group; }
+    if (group && group !== last) { out.push(h("div", { class: "sp-group", text: group })); last = group; }
     out.push(h("button", { class: "sp-tab" + (SET.tab === id ? " sel" : ""), role: "tab", "aria-selected": SET.tab === id ? "true" : "false",
       act: () => { SET.tab = id; SET.cancelCapture && SET.cancelCapture(); renderSettings(); if (SET.L) SET.L.body.scrollTop = 0; } },
       ico(SET_ICONS[id] || "settings"), h("span", { text: label })));
@@ -53,17 +49,14 @@ function setFindList(q) {
 }
 function setTabBody(tab) {
   switch (tab) {
-    case "sites": return [secBrowsing(), secDns()];
+    case "general": return [secBrowsing(), secDns(), secStart(), secLayout(), secTabs(), secPcTabs(), secEmojis(), secKeys(), secApps(), secExtensions()];
+    case "passwords": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
+    case "downloads": return [secHead("Downloads", "downloads"), setRow("Open downloads", "Files saved from the web", ico("chevron", "chev"), () => openDownloads())];
     case "ai": return secAi();
     case "theme": return [secTheme(), secDarkPages()];
-    case "start": return secStart();
-    case "tabs": return [secLayout(), secTabs(), secPcTabs(), secEmojis()];
-    case "privacy": return secPrivacy();
-    case "security": return [secHttps(), secBlocking(), secSpell()];
-    case "data": return [secData(), secApps(), secExtensions()];
-    case "keys": return secKeys();
+    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSpell()];
+    case "data": return secData();
     case "server": return secServer();
-    case "identity": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
     case "about": return secAbout();
     default: return [secSearch(), secSuggest()];
   }
@@ -188,6 +181,7 @@ function secStart() {
 function secLayout() {
   return [secHead("Layout", "layout"),
     setToggle("vertTabs", "Vertical tabs", "Move the tab strip to a side panel. Shortcut: " + (comboLabel("toggleVertical") || "none")),
+    setToggle("barBottom", "Toolbar at bottom", "Put the address bar under the page instead of under the tabs."),
     secHead("Transparency", "transparency"),
     setSlider("Window opacity", S.prefs.uiAlpha || 100, 30, 100, (v) => setPref("uiAlpha", v)),
     setToggle("uiBlur", "Blur behind window", "Frosted-glass look. Works on Windows, macOS and compositors that blur behind windows. Restart Lodica to apply transparency changes.")];

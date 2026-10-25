@@ -157,3 +157,74 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 #bar{background:var(--raised);height:64px;border-top:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
 .pill{height:44px;padding:0 6px}
 .toast{border:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
+
+/* Redesign pass: type scale 26/20/15/13/12, pill buttons, amber settings nav selection. */
+.sp-head h2{font-size:26px;font-weight:600}
+.sp-title{font-size:20px}
+.sh-head h2,.dialog h3{font-size:20px;font-weight:600}
+.btn{border-radius:var(--r-pill);padding:10px 18px;min-height:40px}
+.btn.fill,.btn.fill.danger{padding:10px 20px}
+.sp-tab{min-height:44px;border-radius:12px;font-size:15px}
+.sp-tab.sel{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.set-card{border-radius:var(--r-l)}
+.set-row .t2,.set-note{font-size:13px}
+
+/* ---- page 1: toolbar row under the tab strip ---- */
+#bar{height:58px;padding:0 10px;gap:6px;background:var(--raised);border-top:0;box-shadow:none}
+.navg{display:flex;gap:2px;flex:none}
+.navg .ib,.ib{width:40px;height:40px;border-radius:12px}
+.ib .ico{width:20px;height:20px}
+.ib.tile{background:var(--amber-bg);color:var(--amber)}
+.ib.tile:hover{background:var(--hover2)}
+.pill{height:40px;padding:0 6px 0 4px;gap:6px;border-radius:999px;background:var(--bg)}
+.pill .pib{width:32px;height:32px;margin:0;border-radius:999px;display:flex;align-items:center;justify-content:center;flex:none;color:var(--muted)}
+.pill .pib:hover{background:var(--hover)}
+.pill .pib[disabled]{opacity:.35;pointer-events:none}
+.pill .pib .ico{width:18px;height:18px}
+.pill .pib.amber{color:var(--amber)}
+.pill .ico.ok{color:#86EFAC}
+.pill .ico.amber{color:var(--amber)}
+.pill .txt{font-size:14px}
+.pill .txt.muted{color:var(--muted)}
+.pill .shd{height:28px;min-width:28px;padding:0 10px;border-radius:999px;display:flex;align-items:center;gap:4px;flex:none;background:var(--amber-bg);color:var(--amber);font-size:12px;font-weight:600}
+.pill .shd .ico{width:16px;height:16px}
+.pill .shd.off{background:transparent;color:var(--muted)}
+.pill .shd[disabled]{opacity:.35;pointer-events:none}
+
+/* top-mode dock */
+body.bt #dock{top:var(--dock-y,36px);bottom:auto;left:var(--side,0)}
+body.bt #loadline{position:absolute;left:0;right:0;bottom:0}
+body.bt #banner{bottom:auto;top:calc(var(--dock-y,36px) + 64px);left:var(--side,0)}
+body.bt.ov #banner{bottom:auto;top:calc(var(--dock-y,36px) + 70px)}
+body.bt #banner>.toast{top:6px}
+body.bt .layer.above{top:calc(var(--dock-y,36px) + 58px);bottom:0}
+body.bt .layer.above>.dim{top:0}
+body.bt .layer.screenL{bottom:0;top:calc(var(--dock-y,36px) + 58px);left:var(--side,0)}
+body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20px}
+
+/* ---- page 4: site info popover ---- */
+.layer.popL>.dim{background:transparent}
+.pop{position:absolute;right:12px;top:calc(var(--dock-y,36px) + 62px);width:340px;max-width:calc(100% - 24px);background:var(--raised);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+body:not(.bt) .pop{top:auto;bottom:66px}
+.pop-head{display:flex;align-items:center;gap:12px}
+.pop-fav{width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--amber)}
+.pop-head .main{flex:1;min-width:0}
+.pop-head .t1{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop-head .t2{font-size:12px;color:#86EFAC;display:flex;align-items:center;gap:4px}
+.pop-head .t2 .ico{width:14px;height:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--bg);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.stat .ico{width:18px;height:18px;color:var(--muted)}
+.stat b{font-size:20px;font-weight:600}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.acc .ico,.stat.acc b{color:var(--amber)}
+.srow{display:flex;align-items:center;gap:12px;height:44px;padding:0 4px;font-size:13px;text-align:left;border-radius:12px}
+.srow:hover{background:var(--hover)}
+.srow span{flex:1}
+.srow .ico{width:20px;height:20px;color:var(--muted)}
+.pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid var(--high)}
+.pop-foot .clr{display:flex;align-items:center;gap:6px;color:var(--coral);font-size:13px;font-weight:600;height:36px;padding:0 8px;border-radius:12px}
+.pop-foot .clr:hover{background:var(--hover)}
+.pop-foot .clr .ico{width:18px;height:18px}
+.pop-foot .chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;background:var(--bg);font-size:12px}
+.pop-foot .chip .ico{width:16px;height:16px}

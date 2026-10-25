@@ -57,9 +57,13 @@ function size() {
 function pageBounds() {
   const { width, height } = size();
   const left = sideWidth();
-  if (left) return { x: left, y: 0, width: Math.max(0, width - left), height: Math.max(0, height - BAR) };
-  return { x: 0, y: TOP, width, height: Math.max(0, height - BAR - TOP) };
+  const bt = barTop();
+  if (left) return { x: left, y: bt ? BAR : 0, width: Math.max(0, width - left), height: Math.max(0, height - BAR) };
+  return { x: 0, y: bt ? TOP + BAR : TOP, width, height: Math.max(0, height - BAR - TOP) };
 }
+
+/** True when the toolbar sits under the tab strip (default); false = classic bottom bar. */
+function barTop() { return !require("./prefs").p.barBottom; }
 
 /** Width of the vertical tab panel; 0 when the strip is horizontal. */
 function sideWidth() {
@@ -73,7 +77,9 @@ function fit() {
   const { width, height } = size();
   const left = sideWidth();
   top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - BAR) } : { x: 0, y: 0, width, height: TOP });
-  view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height } : { x: 0, y: Math.max(0, height - BAR), width, height: BAR });
+  const bt = barTop();
+  view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
+    : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - BAR), width: Math.max(0, width - (bt ? left : 0)), height: BAR });
 }
 
 function layout(m) {
@@ -120,4 +126,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, handle, push, layout, fit, pageBounds, sideWidth, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, handle, push, layout, fit, pageBounds, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
