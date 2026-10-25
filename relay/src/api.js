@@ -14,6 +14,7 @@ const updates = require('./updates');
 const chat = require('./chat');
 const support = require('./support');
 const chatfile = require('./chatfile');
+const notebook = require('./notebook');
 const enroll = require('./enroll');
 const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
 
@@ -517,6 +518,12 @@ async function route(req, res) {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
     if (!authed(req, res)) return;
     return m === 'GET' ? themeGet(req, res) : themePut(req, res);
+  }
+  if (p === '/api/notebook') {
+    if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? notebook.get(req, res, h) : notebook.put(req, res, h);
   }
   if (p === '/api/pair') {
     if (m !== 'POST') return not('POST');

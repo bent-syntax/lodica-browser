@@ -402,6 +402,8 @@ function init(deps) {
   on("room.remove", r => room.removeChat(str(r)));
   on("room.discover", () => room.discover());
   on("room.users", () => room.users());
+  on("notebook.get", () => require("./notebook").get());
+  on("notebook.put", (text, base) => require("./notebook").put(str(text), base));
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 

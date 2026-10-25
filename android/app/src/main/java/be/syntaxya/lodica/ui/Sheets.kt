@@ -163,6 +163,7 @@ fun MenuSheet() {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()
                     })
                     add(MenuItem("chat", Icons.Outlined.Forum, "Server chat") { Ui.go(Screen.Room) })
+                    add(MenuItem("notebook", Icons.Outlined.EditNote, "Notebook") { Ui.go(Screen.Notebook) })
                     add(MenuItem("inbox", Icons.Outlined.Inbox, "Inbox") { Ui.go(Screen.Inbox) })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy

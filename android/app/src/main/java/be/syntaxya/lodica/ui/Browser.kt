@@ -119,6 +119,7 @@ fun LodicaRoot() {
         Overlay(Ui.screen == Screen.Inbox) { InboxScreen() }
         Overlay(Ui.screen == Screen.Chats) { ChatsScreen() }
         Overlay(Ui.screen == Screen.Room) { RoomScreen() }
+        Overlay(Ui.screen == Screen.Notebook) { NotebookScreen() }
         PromptDialogs()
         if (Ui.menuOpen) MenuSheet()
         TabManager.contextMenu?.let { ContextMenuSheet(it) }

@@ -210,5 +210,8 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - Without a relay the start page searches DuckDuckGo.
 - Search widget: hint text and shape (pill, rounded, square) are set in Settings > Appearance; colours follow the theme.
 
+## Notebook
+- Menu > Notebook (needs the relay): one text note shared with every linked device. Saves after you stop typing and checks for changes every 10 seconds. If two devices edit at once, the newer text stays and the other edit is added under it.
+
 ## Extensions (1.2.0)
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.

@@ -71,6 +71,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `src/search.js` | Search backend. |
 | `src/support.js` | Support tickets: `POST /api/support`, `GET` and `POST /api/support/<id>`. |
 | `src/chat.js`, `src/chatfile.js` | Chat rooms and files. |
+| `src/notebook.js` | The shared notebook text (`/api/notebook`). |
 | `src/enroll.js`, `src/fcm.js` | Device enrollment and push messages. |
 | `src/updates.js` | Update checks. |
 | `src/gate-page.html`, `src/tabs-page.js`, `src/mime.js`, `src/edge.js` | Gate page, tab page, MIME helper, edge handling. |
