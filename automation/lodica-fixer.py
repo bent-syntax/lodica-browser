@@ -21,6 +21,7 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -185,10 +186,14 @@ def push_env():
     return env
 
 
-def claude(model, prompt, cwd, tools=None, edit=False, timeout=900, effort="medium", budget=None):
+def claude(model, prompt, cwd, tools=None, edit=False, timeout=900, effort="medium", budget=None, sid=None, resume=False):
     # lean call: no skills, no MCP servers, no user plugins/hooks, no saved session, low effort where the job is small
     cmd = [CLAUDE, "-p", "--model", model, "--effort", effort, "--disable-slash-commands", "--strict-mcp-config",
-           "--setting-sources", "project", "--no-session-persistence", "--exclude-dynamic-system-prompt-sections"]
+           "--setting-sources", "project", "--exclude-dynamic-system-prompt-sections"]
+    if sid:  # one chat per task: triage, fix and retry share it, so the code already read is not read again
+        cmd += ["--resume", sid] if resume else ["--session-id", sid]
+    else:
+        cmd += ["--no-session-persistence"]
     if budget:
         cmd += ["--max-budget-usd", str(budget)]
     if edit:
@@ -196,6 +201,8 @@ def claude(model, prompt, cwd, tools=None, edit=False, timeout=900, effort="medi
     if tools:
         cmd += ["--allowedTools", tools]
     code, out = run(cmd, cwd=cwd, inp=prompt, timeout=timeout)
+    if resume and code != 0 and "No conversation found" in out:  # session gone: start a fresh chat
+        return claude(model, prompt, cwd, tools, edit, timeout, effort, budget)
     return code, out
 
 
@@ -230,6 +237,9 @@ def triage(task, wt):
     return res
 
 
+SESS = {}  # task id -> chat id of its triage, resumed by the fix attempts
+
+
 def triage_ask(task, wt):
     prompt = ("You triage one task in the Lodica browser repository (android/ Kotlin, desktop/ Electron, relay/ node). " + RULES +
               "\n\nBUG_REPORT_JSON: " + bug_block(task) +
@@ -237,7 +247,10 @@ def triage_ask(task, wt):
               '{"kind":"bug"|"feature","difficulty":"easy"|"hard","files":["repo relative paths likely to change"],"summary":"one sentence"}. '
               '"bug" means something existing works wrong; "feature" means new or changed behaviour that does not exist yet. '
               '"easy" means a small change in one or two files. Anything unclear or wide is "hard".')
-    code, out = claude(HAIKU, prompt, wt, tools="Read,Grep,Glob", timeout=300, effort="low", budget=0.25)
+    sid = str(uuid.uuid4())
+    code, out = claude(HAIKU, prompt, wt, tools="Read,Grep,Glob", timeout=300, effort="low", budget=0.25, sid=sid)
+    if code == 0:
+        SESS[task.get("id")] = sid
     m = re.search(r"\{.*\}", out, re.S)
     try:
         j = json.loads(m.group(0))
@@ -264,7 +277,8 @@ def attempt_fix(task, wt, model, files, hint="", kind="bug"):
               "\n\n" + (FEATURE if feat else "Make the smallest correct change. ") + "Do not bump versions, do not edit changelogs or patch notes, "
               "do not commit (the runner commits). Keep Android and desktop behaviour in step when the task applies to both. "
               "If you cannot do it safely, change nothing. Finish with one line saying what you changed.")
-    code, out = claude(model, prompt, wt, tools=FIX_TOOLS, edit=True, timeout=3600 if feat else 1800,
+    sid = SESS.get(task.get("id"))
+    code, out = claude(model, prompt, wt, tools=FIX_TOOLS, edit=True, sid=sid, resume=bool(sid), timeout=3600 if feat else 1800,
                        effort="medium" if feat or model == SONNET else "low", budget=6 if feat else 2)
     log("fix attempt with %s exit %s: %s" % (model, code, one(out.strip().splitlines()[-1] if out.strip() else "", 160)))
     return code == 0
