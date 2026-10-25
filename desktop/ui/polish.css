@@ -228,3 +228,21 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .pop-foot .clr .ico{width:18px;height:18px}
 .pop-foot .chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;background:var(--bg);font-size:12px}
 .pop-foot .chip .ico{width:16px;height:16px}
+
+/* ---- pages 7-9, 13-15: dialogs, segmented switcher, theme cards, chat bubbles ---- */
+.dialog{padding:24px;border-radius:20px;border:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
+.dialog h3{margin-bottom:8px}
+.dialog p{font-size:13px;line-height:1.5}
+.dialog .field{height:44px;border-radius:999px;padding:0 16px;background:var(--bg)}
+.dialog .btns{gap:8px;margin-top:16px}
+.seg{border-radius:999px;padding:4px;background:var(--bg)}
+.seg button{border-radius:999px;min-height:32px;padding:6px 16px}
+.seg button.sel{background:var(--raised);color:var(--amber);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--amber) 40%,transparent)}
+.swatches .theme-sw{border-radius:20px;border:2px solid color-mix(in srgb,var(--high) 70%,transparent);padding:10px;width:104px}
+.swatches .theme-sw.sel{border-color:var(--amber)}
+.swatches .bg-sw{width:40px;height:40px}
+.thumb.locked{background:var(--raised);border-radius:20px}
+.chat-item{border-radius:12px}
+.chat-item.on{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.chat-q{background:var(--high);padding:10px 16px;border-radius:20px 20px 4px 20px;font-size:15px}
+.chat-a{font-size:15px;line-height:1.6}
