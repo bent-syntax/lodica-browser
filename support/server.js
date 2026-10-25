@@ -30,7 +30,7 @@ const envFile = loadEnv();
 const user = process.env.SUPPORT_USER, pass = process.env.SUPPORT_PASS;
 if (!user || !pass) { console.error('SUPPORT_USER and SUPPORT_PASS are not set. Run install.sh first.'); process.exit(1); }
 const flag = (v, d) => (v === undefined || v === '' ? d : /^(1|true|yes)$/i.test(v));
-const transport = nodemailer.createTransport({ host: process.env.SMTP_HOST || 'smtp.gmail.com', port: Number(process.env.SMTP_PORT || 465), secure: flag(process.env.SMTP_SECURE, true), auth: { user, pass } });
+const transport = nodemailer.createTransport({ host: process.env.SMTP_HOST || 'syntaxya.be', port: Number(process.env.SMTP_PORT || 465), secure: flag(process.env.SMTP_SECURE, true), auth: { user, pass } });
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const fileOrEnv = (name) => { if (process.env[name]) return process.env[name].trim(); const f = process.env[name + '_FILE']; try { return f ? fs.readFileSync(f, 'utf8').trim() : ''; } catch { return ''; } };
 
@@ -113,7 +113,7 @@ let busy = false;
 async function poll() {
   if (busy) return; busy = true;
   const db = app.db(); db.mail = db.mail || { lastUid: 0, ids: [] };
-  const c = new ImapFlow({ host: process.env.IMAP_HOST || 'imap.gmail.com', port: Number(process.env.IMAP_PORT || 993), secure: flag(process.env.IMAP_SECURE, true), auth: { user, pass }, logger: false, connectionTimeout: 20000, greetingTimeout: 20000, socketTimeout: 45000 });
+  const c = new ImapFlow({ host: process.env.IMAP_HOST || 'syntaxya.be', port: Number(process.env.IMAP_PORT || 993), secure: flag(process.env.IMAP_SECURE, true), auth: { user, pass }, logger: false, connectionTimeout: 20000, greetingTimeout: 20000, socketTimeout: 45000 });
   c.on('error', (e) => log('mailbox connection problem:', e.message));   // without this a timeout would stop the whole program
   try {
     await c.connect(); const lock = await c.getMailboxLock('INBOX');
@@ -140,7 +140,7 @@ async function poll() {
       db.mail.lastUid = Math.max(db.mail.lastUid, top); app.save();
     } finally { lock.release(); }
     await c.logout();
-  } catch (e) { log('mailbox check failed:', e.message); try { c.close(); } catch { /* gone */ } }
+  } catch (e) { log('mailbox check failed:', e.message, e.responseText || ''); try { c.close(); } catch { /* gone */ } }
   busy = false;
 }
 setInterval(poll, 30000); setTimeout(poll, 3000);

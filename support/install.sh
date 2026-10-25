@@ -33,7 +33,7 @@ chown -R "$RUN_USER" /var/lib/lodica-support
 if [ -z "$KEEP" ]; then
   PASS="${SUPPORT_PASS:-}"
   if [ -z "$PASS" ]; then
-    echo "  Mailbox password (an app password for Gmail). Nothing shows while you type."
+    echo "  Mailbox password of lodica@syntaxya.be. Nothing shows while you type."
     read -r -s -p "  Password: " PASS </dev/tty; echo
   fi
   PASS="${PASS// /}"
