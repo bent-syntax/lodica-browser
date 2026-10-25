@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.8
+- Fixed: Notebook Can't reach the server error even when the server is connected
+
 ## 1.13.7
 - Added: There should be a notebook that is synced with your linked devices
 - Added: You should be able to have multiple different notes in your notebook
