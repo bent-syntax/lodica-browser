@@ -2,6 +2,15 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.2 (versionCode 103)
+- Android: new tab page has the Lodica tile, a pill search field with Ask AI, and rounded shortcut tiles.
+- Android: the menu is a sheet with back, forward, reload and share on top and a grid of icon tiles.
+- Android: settings rows, dialogs and filter chips use the shared shapes and type sizes, controls have 12 dp corners.
+- Desktop: tabs sit in one row above a single toolbar with back, forward, reload, a pill address bar with lock, shield and reader icons, and an Ask AI tile.
+- Desktop: clicking the lock opens a site info popover. A setting can move the toolbar to the bottom.
+- Desktop: new outline icon set (24 grid, round caps).
+- Desktop: settings sections renamed to General, Privacy, Passwords, Your VPS, Ask AI, Search, Appearance, Downloads and Data use, with a clearer type scale and pill buttons.
+
 ## 1.13.1 (versionCode 102)
 - Menu is now a popover with a row of back, forward and reload buttons and a three-column grid of icon tiles.
 - List rows show their icon in a rounded tile, and settings rows are taller.
