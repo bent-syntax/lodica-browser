@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.18 (versionCode 119)
+- Added: Smartschool planner widget
+
 ## 1.13.17 (versionCode 118)
 - Added: Follow-up LOD-1002 can you make it so you can configure the position of the smartschool planner so
 

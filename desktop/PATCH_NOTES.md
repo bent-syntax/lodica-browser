@@ -1,3 +1,7 @@
+## 1.13.18
+
+- Added: Smartschool planner widget
+
 ## 1.13.17
 
 - Added: Follow-up LOD-1002 can you make it so you can configure the position of the smartschool planner so
