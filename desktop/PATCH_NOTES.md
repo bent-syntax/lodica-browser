@@ -1,3 +1,7 @@
+## 1.13.16
+
+- Added: LOD-1002 can you make it so you can configure the position of the smartschool planner so
+
 ## 1.13.15
 
 - Fixed: The search engine gives outdated websites and an outdated vibe
