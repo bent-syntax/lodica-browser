@@ -95,6 +95,16 @@ object TabManager {
     // ---- tab lifecycle -------------------------------------------------------------------
 
     fun open(url: String, private: Boolean = false, select: Boolean = true, parent: Tab? = null): Tab {
+        // A blank tab is already open: move it to the end instead of opening another.
+        if (url == HOME && select) {
+            val blank = tabs.firstOrNull { it.private == private && it.url == HOME }
+            if (blank != null) {
+                if (tabs.last() !== blank) { tabs.remove(blank); tabs.add(blank) }
+                select(blank)
+                save()
+                return blank
+            }
+        }
         val tab = Tab(private = private, url = url, desktop = parent?.desktop ?: Prefs.desktopDefault)
         val at = tabs.size
         // A new private tab shares cookies with the others, so it waits behind the same lock.

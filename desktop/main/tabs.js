@@ -361,6 +361,15 @@ function select(id) {
 function create(o = {}) {
   // A first private tab has nothing to protect, so it opens unlocked.
   if (o.private && !list.some(x => x.private && !x.archived)) locked = false;
+  // A blank tab is already open: move it to the end instead of opening another.
+  if (!o.url && !o.background) {
+    const blank = list.find(x => !x.archived && !!x.private === !!o.private && x.url === HOME);
+    if (blank) {
+      list = list.filter(x => x !== blank);
+      list.push(blank);
+      return select(blank.id);
+    }
+  }
   const t = make({ url: o.url || HOME, private: !!o.private });
   list.push(t); // new tabs always open rightmost
   if (o.background) {
