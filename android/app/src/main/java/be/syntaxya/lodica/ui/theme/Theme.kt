@@ -180,5 +180,5 @@ fun LodicaTheme(content: @Composable () -> Unit) {
             ctl.isAppearanceLightNavigationBars = !p.dark
         }
     }
-    MaterialTheme(colorScheme = scheme(p), typography = Typography(), content = content)
+    MaterialTheme(colorScheme = scheme(p), typography = LodicaTypography, shapes = LodicaShapes, content = content)
 }

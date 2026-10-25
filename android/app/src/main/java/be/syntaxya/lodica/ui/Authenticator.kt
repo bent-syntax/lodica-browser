@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -158,15 +160,15 @@ fun AuthenticatorSection() {
                 }
             },
             confirmButton = {
-                TextButton(
+                DlgPrimary(
                     enabled = found != null && picked.isNotEmpty(),
                     onClick = {
                         found?.filter { it.id in picked }?.forEach { Vault.totpAdd(it).accept({ rev++ }, { }) }
                         close()
                     },
-                ) { Text("Import ${picked.size}", color = Amber) }
+                ) { Text("Import ${picked.size}") }
             },
-            dismissButton = { TextButton(onClick = close) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = close) { Text("Cancel") } },
         )
     }
 
@@ -187,14 +189,14 @@ fun AuthenticatorSection() {
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     val h = site.trim().lowercase().removePrefix("www.")
                     if (h.isNotEmpty()) Prefs.setTotpSkip(h, false)
                     Vault.totpSetHost(e.id, h).accept({ rev++ }, { })
                     editing = null
-                }) { Text("Save", color = Amber) }
+                }) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { editing = null }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { editing = null }) { Text("Cancel") } },
         )
     }
 
@@ -226,12 +228,12 @@ fun AuthenticatorSection() {
                 }
             },
             confirmButton = {
-                TextButton(
+                DlgPrimary(
                     enabled = parsed != null,
                     onClick = { parsed?.let { Prefs.setTotpSkip(it.host, false); Vault.totpAdd(it).accept({ rev++ }, { }) }; adding = false },
-                ) { Text("Add", color = Amber) }
+                ) { Text("Add") }
             },
-            dismissButton = { TextButton(onClick = { adding = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { adding = false }) { Text("Cancel") } },
         )
     }
 }

@@ -1,5 +1,8 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgDanger
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.text.format.DateUtils
 import be.syntaxya.lodica.ui.theme.customPalette
 import be.syntaxya.lodica.engine.Emojis
@@ -484,7 +487,7 @@ fun SettingsScreen() {
                             Text(text.replace(Regex("(?m)^#+ "), "").replace("**", ""), fontSize = 13.sp)
                         }
                     },
-                    confirmButton = { TextButton(onClick = { notes = false }) { Text("Close") } },
+                    confirmButton = { DlgPrimary(onClick = { notes = false }) { Text("Close") } },
                 )
             }
             val upd = Updater.state
@@ -507,7 +510,7 @@ fun SettingsScreen() {
             if (older) {
                 AlertDialog(
                     onDismissRequest = { older = false },
-                    confirmButton = { TextButton(onClick = { older = false }) { Text("Close") } },
+                    confirmButton = { DlgPrimary(onClick = { older = false }) { Text("Close") } },
                     title = { Text("Older versions") },
                     text = {
                         val list = Updater.versions
@@ -552,7 +555,7 @@ fun SettingsScreen() {
                     Text("Enter this code on your other device within 10 minutes. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
                 }
             },
-            confirmButton = { TextButton(onClick = { codeShown = null }) { Text("Done", color = Amber) } },
+            confirmButton = { DlgPrimary(onClick = { codeShown = null }) { Text("Done") } },
         )
     }
     if (enterCode) {
@@ -575,14 +578,14 @@ fun SettingsScreen() {
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     enterCode = false
                     PcTabs.redeemCode(codeText) { ok ->
                         Toast.makeText(ctx, if (ok) "Linked" else "Code not valid or expired", Toast.LENGTH_SHORT).show()
                     }
-                }) { Text("Link", color = Amber) }
+                }) { Text("Link") }
             },
-            dismissButton = { TextButton(onClick = { enterCode = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { enterCode = false }) { Text("Cancel") } },
         )
     }
     if (pairing) {
@@ -605,13 +608,13 @@ fun SettingsScreen() {
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     val ok = PcTabs.pair(pairText)
                     pairing = false
                     Toast.makeText(ctx, if (ok) "Linked" else "Not a valid tabs link", Toast.LENGTH_SHORT).show()
-                }) { Text("Link", color = Amber) }
+                }) { Text("Link") }
             },
-            dismissButton = { TextButton(onClick = { pairing = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { pairing = false }) { Text("Cancel") } },
         )
     }
 }
@@ -666,9 +669,9 @@ private fun EmojiKeyboardSection() {
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     val q = idea.trim()
-                    if (q.isEmpty()) return@TextButton
+                    if (q.isEmpty()) return@DlgPrimary
                     gen = false; busy = true
                     Ai.drawEmoji(q) { r ->
                         scope.launch {
@@ -679,9 +682,9 @@ private fun EmojiKeyboardSection() {
                             }.onFailure { Toast.makeText(ctx, it.message ?: "Generation failed", Toast.LENGTH_SHORT).show() }
                         }
                     }
-                }) { Text("Generate", color = Amber) }
+                }) { Text("Generate") }
             },
-            dismissButton = { TextButton(onClick = { gen = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { gen = false }) { Text("Cancel") } },
         )
     }
     Emojis.list.toList().forEach { e ->
@@ -721,8 +724,8 @@ private fun AiSection() {
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { Ai.setKey(draft); keyDialog = false }) { Text("Save", color = Amber) } },
-            dismissButton = { if (Ai.hasKey) TextButton(onClick = { Ai.setKey(""); keyDialog = false }) { Text("Remove", color = Coral) } else TextButton(onClick = { keyDialog = false }) { Text("Cancel", color = Muted) } },
+            confirmButton = { DlgPrimary(onClick = { Ai.setKey(draft); keyDialog = false }) { Text("Save") } },
+            dismissButton = { if (Ai.hasKey) DlgSecondary(onClick = { Ai.setKey(""); keyDialog = false }) { Text("Remove") } else DlgSecondary(onClick = { keyDialog = false }) { Text("Cancel") } },
         )
     }
     SwitchRow("Always ask AI", "Off: search shows a button and only asks the AI when you tap it", Prefs.aiAlways) { Prefs.updateAiAlways(it) }
@@ -766,7 +769,7 @@ private fun AiSection() {
                         "7. Tap Status here and allow Lodica to run commands in Termux.",
                 )
             },
-            confirmButton = { TextButton(onClick = { steps = false }) { Text("OK", color = Amber) } },
+            confirmButton = { DlgPrimary(onClick = { steps = false }) { Text("OK") } },
         )
     }
     if (memory) {
@@ -788,8 +791,8 @@ private fun AiSection() {
                     )
                 }
             },
-            confirmButton = { TextButton(onClick = { Memory.set(draft); memory = false }) { Text("Save", color = Amber) } },
-            dismissButton = { TextButton(onClick = { Memory.clear(); memory = false }) { Text("Clear all", color = Coral) } },
+            confirmButton = { DlgPrimary(onClick = { Memory.set(draft); memory = false }) { Text("Save") } },
+            dismissButton = { DlgDanger(onClick = { Memory.clear(); memory = false }) { Text("Clear all") } },
         )
     }
 }
@@ -813,8 +816,8 @@ private fun ExtensionsSection() {
             onDismissRequest = { ex.answer(false) },
             title = { Text("Add ${p.name}?") },
             text = { Text(if (p.permissions.isEmpty()) "It asks for no special permissions." else "It can: " + p.permissions.joinToString(", ")) },
-            confirmButton = { TextButton({ ex.answer(true) }) { Text("Add", color = Amber) } },
-            dismissButton = { TextButton({ ex.answer(false) }) { Text("Cancel", color = Muted) } },
+            confirmButton = { DlgPrimary({ ex.answer(true) }) { Text("Add") } },
+            dismissButton = { DlgSecondary({ ex.answer(false) }) { Text("Cancel") } },
         )
     }
     ex.popup?.let { s ->
@@ -847,8 +850,8 @@ private fun ExtensionsSection() {
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
             title = { Text("Remove ${i.name}?") },
             text = { Text("The extension and its data are deleted.") },
-            confirmButton = { TextButton({ ex.remove(ctx, i); confirmRemove = null }) { Text("Remove", color = Amber) } },
-            dismissButton = { TextButton({ confirmRemove = null }) { Text("Cancel", color = Muted) } },
+            confirmButton = { DlgPrimary({ ex.remove(ctx, i); confirmRemove = null }) { Text("Remove") } },
+            dismissButton = { DlgSecondary({ confirmRemove = null }) { Text("Cancel") } },
         )
     }
     InfoRow("Installed", if (ex.installed.isEmpty()) "No extensions yet" else "${ex.installed.size}")
@@ -898,7 +901,7 @@ private fun SilentInstallSection() {
                         "Or turn off Play Store > Play Protect > Scan apps with Play Protect.",
                 )
             },
-            confirmButton = { TextButton(onClick = { steps = false }) { Text("OK", color = Amber) } },
+            confirmButton = { DlgPrimary(onClick = { steps = false }) { Text("OK") } },
         )
     }
 }
@@ -941,8 +944,8 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
         textContentColor = Muted,
         title = { Text(c.title) },
         text = { Text(c.body) },
-        confirmButton = { TextButton(onClick = { c.run(); dismiss() }) { Text(c.action, color = Coral) } },
-        dismissButton = { TextButton(onClick = dismiss) { Text("Cancel", color = Muted) } },
+        confirmButton = { DlgDanger(onClick = { c.run(); dismiss() }) { Text(c.action) } },
+        dismissButton = { DlgSecondary(onClick = dismiss) { Text("Cancel") } },
     )
 }
 
@@ -950,7 +953,7 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
 internal fun TopBar(title: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = Mist) }
-        Text(title, color = Mist, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+        Text(title, color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -1106,7 +1109,7 @@ internal fun rowIcon(title: String): ImageVector {
 
 @Composable
 private fun RowTile(icon: ImageVector, tint: androidx.compose.ui.graphics.Color = Muted) {
-    Box(Modifier.size(36.dp).clip(RoundedCornerShape(14.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(GraphiteHigh), contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
@@ -1114,7 +1117,7 @@ private fun RowTile(icon: ImageVector, tint: androidx.compose.ui.graphics.Color 
 @Composable
 internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable { onChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowTile(rowIcon(title))
@@ -1127,7 +1130,7 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
         Switch(
             checked, onChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Graphite, checkedTrackColor = Amber,
+                checkedThumbColor = OnAmber, checkedTrackColor = Amber,
                 uncheckedThumbColor = Muted, uncheckedTrackColor = GraphiteHigh, uncheckedBorderColor = GraphiteHigh,
             ),
         )
@@ -1136,7 +1139,7 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
+    val shape = RoundedCornerShape(12.dp)
     Text(
         label, color = Mist, fontSize = 13.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -1179,7 +1182,7 @@ private fun FilterField(value: String, hint: String, onChange: (String) -> Unit)
             if (value.isNotEmpty()) IconButton(onClick = { onChange("") }) { Icon(Icons.Rounded.Close, "Clear", tint = Muted) }
         },
         singleLine = true,
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(50),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -1766,12 +1769,12 @@ private fun DnsSection() {
                 }
             },
             confirmButton = {
-                TextButton(
+                DlgPrimary(
                     onClick = { Prefs.updateDnsServer(draft); server = false },
                     enabled = draft.isBlank() || draft.trim().startsWith("https://"),
-                ) { Text("Save", color = Amber) }
+                ) { Text("Save") }
             },
-            dismissButton = { TextButton(onClick = { server = false }) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { server = false }) { Text("Cancel") } },
         )
     }
 }

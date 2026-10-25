@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -96,7 +98,7 @@ fun RoomScreen() {
     if (adding) NewChatDialog { adding = false }
     if (emojis) AlertDialog(
         onDismissRequest = { emojis = false },
-        confirmButton = { TextButton({ emojis = false }) { Text("Close", color = Amber) } },
+        confirmButton = { DlgPrimary({ emojis = false }) { Text("Close") } },
         title = { Text("Server emojis") },
         text = {
             if (Emojis.list.isEmpty()) Text("No server emojis yet. Sync them in Settings.", color = Muted)
@@ -229,15 +231,15 @@ private fun NewChatDialog(onDone: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(
+            DlgPrimary(
                 enabled = target.isNotBlank(),
                 onClick = {
                     val r = if (isGroup) Room.group(target) else Room.dm(ctx, target)
                     Room.addChat(ctx, r); Room.select(r); onDone()
                 },
-            ) { Text("Open", color = Amber) }
+            ) { Text("Open") }
         },
-        dismissButton = { TextButton(onDone) { Text("Cancel", color = Muted) } },
+        dismissButton = { DlgSecondary(onDone) { Text("Cancel") } },
     )
 }
 

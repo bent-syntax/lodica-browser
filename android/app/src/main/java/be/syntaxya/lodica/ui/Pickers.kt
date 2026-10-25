@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.Manifest
 import android.content.pm.PackageManager
 import android.content.Context
@@ -213,9 +215,9 @@ private fun RemindAtDialog() {
         DatePickerDialog(
             onDismissRequest = close,
             confirmButton = {
-                TextButton(onClick = { day = state.selectedDateMillis ?: today }) { Text("Next", color = Amber) }
+                DlgPrimary(onClick = { day = state.selectedDateMillis ?: today }) { Text("Next") }
             },
-            dismissButton = { TextButton(onClick = close) { Text("Cancel", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = close) { Text("Cancel") } },
             colors = DatePickerDefaults.colors(containerColor = GraphiteRaised),
         ) { DatePicker(state) }
     } else {
@@ -225,7 +227,7 @@ private fun RemindAtDialog() {
             onDismissRequest = close,
             containerColor = GraphiteRaised,
             confirmButton = {
-                TextButton(onClick = {
+                DlgPrimary(onClick = {
                     val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { timeInMillis = picked }
                     val at = Calendar.getInstance().apply {
                         clear()
@@ -237,9 +239,9 @@ private fun RemindAtDialog() {
                         close()
                         if (tab != null) remind(ctx, tab.url, tab.title, at)
                     }
-                }) { Text("Set", color = Amber) }
+                }) { Text("Set") }
             },
-            dismissButton = { TextButton(onClick = { day = null }) { Text("Back", color = Muted) } },
+            dismissButton = { DlgSecondary(onClick = { day = null }) { Text("Back") } },
             text = { TimePicker(state) },
         )
     }

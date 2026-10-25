@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.DlgSecondary
+import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -89,7 +91,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(enabled = text.isNotBlank() && !busy, onClick = {
+            DlgPrimary(enabled = text.isNotBlank() && !busy, onClick = {
                 busy = true; error = null
                 scope.launch {
                     val err = withContext(Dispatchers.IO) { Support.send(ctx, text.trim(), pics) }
@@ -98,6 +100,6 @@ internal fun SupportDialog(onClose: () -> Unit) {
                 }
             }) { Text(if (busy) "Sending…" else "Send") }
         },
-        dismissButton = { TextButton(onClick = onClose) { Text("Close") } },
+        dismissButton = { DlgSecondary(onClick = onClose) { Text("Close") } },
     )
 }
