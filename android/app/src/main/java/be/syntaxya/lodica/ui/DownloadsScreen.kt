@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -87,6 +88,13 @@ fun DownloadsScreen() {
                             )
                             else -> Text("Failed · " + DateUtils.getRelativeTimeSpanString(d.at), color = Coral, fontSize = 11.sp)
                         }
+                    }
+                    if (d.status == Dl.ACTIVE && d.total > 0) Text(
+                        "${(d.received * 100 / d.total).coerceIn(0L, 100L)}%", color = Amber, fontSize = 13.sp,
+                        modifier = Modifier.padding(end = 16.dp),
+                    )
+                    if (d.status == Dl.DONE) IconButton(onClick = { Downloads.open(ctx, d) }) {
+                        Icon(Icons.Rounded.FolderOpen, "Open", tint = Muted, modifier = Modifier.size(20.dp))
                     }
                     if (d.status != Dl.ACTIVE) IconButton(onClick = { Downloads.remove(ctx, d) }) {
                         Icon(Icons.Rounded.Close, "Remove from list", tint = Muted, modifier = Modifier.size(18.dp))

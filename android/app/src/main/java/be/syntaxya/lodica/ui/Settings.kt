@@ -545,11 +545,12 @@ fun SettingsScreen() {
         AlertDialog(
             onDismissRequest = { codeShown = null },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            icon = { IconTile(Icons.Rounded.Smartphone, 48) },
             title = { Text("Link code") },
             text = {
                 Column {
-                    Text(c, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace)
-                    Text("Enter this code on your other device within 10 minutes. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text(c, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace, letterSpacing = 4.sp)
+                    Text("Expires in 10 minutes. Enter this code on your other device. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
                 }
             },
             confirmButton = { DlgPrimary(onClick = { codeShown = null }) { Text("Done") } },
