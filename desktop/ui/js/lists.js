@@ -82,7 +82,9 @@ async function openPasswords() {
     const load = async () => {
       const rows = (await inv("vault.list")) || [];
       clear(b);
-      if (!rows.length) { b.append(h("div", { class: "empty", text: "No saved passwords" })); return; }
+      const foot = () => { if (typeof openAuthenticator === "function") b.append(h("button", { class: "row totp-foot", act: () => openAuthenticator() }, ico("key"),
+        h("div", { class: "main" }, h("div", { class: "t1", text: "Authenticator codes" }), h("div", { class: "t2", text: "One-time codes for sites with two-step sign-in" })), ico("chevron", "chev"))); };
+      if (!rows.length) { b.append(h("div", { class: "empty", text: "No saved passwords" })); foot(); return; }
       for (const r of rows) b.append(h("div", { class: "row" }, ico("key"),
         h("div", { class: "main" }, h("div", { class: "t1", text: hostOf(r.origin) || r.origin }), h("div", { class: "t2", text: r.user || "" })),
         ib("copy", "Copy password", async () => { await inv("vault.copy", r.origin, r.user); toast("Password copied"); }),
@@ -90,6 +92,7 @@ async function openPasswords() {
           if (!(await confirmDialog({ title: "Delete password?", message: (r.user || "") + " · " + r.origin, ok: "Delete", danger: true }))) return;
           await inv("vault.delete", r.origin, r.user); load();
         })));
+      foot();
     };
     load();
   });
