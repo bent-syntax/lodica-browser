@@ -5,7 +5,10 @@
 set -euo pipefail
 [ "$(id -u)" -eq 0 ] || { echo "Run with sudo: sudo bash support/install.sh"; exit 1; }
 HERE="$(cd "$(dirname "$0")" && pwd)"
-RUN_USER="${SUDO_USER:-root}"
+RUN_USER="${SUDO_USER:-}"
+# from a root shell: run as the owner of this checkout, so the desk finds their tasks login
+[ -n "$RUN_USER" ] && [ "$RUN_USER" != root ] || RUN_USER="$(stat -c %U "$HERE")"
+RUN_HOME="$(getent passwd "$RUN_USER" | cut -d: -f6)"
 ENVF=/etc/lodica-support.env
 SECRET_FILE=/etc/lodica-relay/desk-secret
 say() { printf '\n  \033[1m%s\033[0m\n' "$*"; }
@@ -59,6 +62,9 @@ if [ -z "$KEEP" ]; then
   fi
   unset PASS NOTIFY SECRET
 fi
+# 47610 belongs to hearth-support; older env files still name it
+sed -i 's/^SUPPORT_PORT=47610$/SUPPORT_PORT=47611/' "$ENVF"
+chown "$RUN_USER" "$ENVF"
 
 # the desk reads the relay admin token (group lodica-relay) to send answers to the apps
 if getent group lodica-relay >/dev/null; then usermod -aG lodica-relay "$RUN_USER" || true; fi
@@ -74,6 +80,7 @@ Wants=network-online.target
 User=$RUN_USER
 WorkingDirectory=/opt/lodica-support
 EnvironmentFile=$ENVF
+Environment=LODICA_TASKS_CONFIG=$RUN_HOME/.lodica-tasks.json
 ExecStart=$(command -v node) /opt/lodica-support/server.js
 Restart=always
 RestartSec=5
@@ -87,7 +94,7 @@ EOF
 # the relay hands in-app tickets to the desk on this address
 if [ -f /etc/systemd/system/lodica-relay.service ]; then
   mkdir -p /etc/systemd/system/lodica-relay.service.d
-  printf '[Service]\nEnvironment=LODICA_DESK_URL=http://127.0.0.1:47610\n' > /etc/systemd/system/lodica-relay.service.d/desk.conf
+  printf '[Service]\nEnvironment=LODICA_DESK_URL=http://127.0.0.1:47611\n' > /etc/systemd/system/lodica-relay.service.d/desk.conf
 fi
 systemctl daemon-reload
 systemctl enable --now lodica-support >/dev/null 2>&1 || true

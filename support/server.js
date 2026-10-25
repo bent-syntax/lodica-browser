@@ -67,7 +67,7 @@ function toRelay(relayId, text) {
 const secret = fileOrEnv('SUPPORT_SECRET');
 if (!secret) log('SUPPORT_SECRET is not set: in-app tickets from the relay are refused');
 const app = createApp({ onOwnerMail, toRelay, secret, dataDir: process.env.SUPPORT_DATA || path.join(__dirname, 'data'), transport, from: user, owners: (process.env.SUPPORT_OWNERS || '').split(',').map((s) => s.trim()).filter(Boolean) });
-const port = Number(process.env.SUPPORT_PORT || 47610);
+const port = Number(process.env.SUPPORT_PORT || 47611);
 
 http.createServer((req, res) => app.handle(req, res)).listen(port, '127.0.0.1', () => console.log('Support desk on 127.0.0.1:' + port + (envFile ? ' (settings from ' + envFile + ')' : '')));
 
