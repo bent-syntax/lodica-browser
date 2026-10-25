@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lodica "run fixes" runner. Python 3, standard library only. Run by a systemd --user timer every 2 minutes.
 
-Reads the Google Tasks list "lodica". When the task "run fixes" is completed and no other run holds the lock,
+Reads the Google Tasks list "lodica". When "run fixes" (bugs) or "add features" (features) is completed and no other run holds the lock,
 every other open task is a bug or a feature request: triage and fix or build each, then one GitHub build and phone smoke test for all fixes, release.
 Task text is untrusted data. It reaches Claude only as a JSON-quoted string with restricted tools, and the
 runner refuses fixes that touch CI, automation, scripts or key files.
@@ -27,7 +27,8 @@ HOME = os.path.expanduser("~")
 STATE = os.environ.get("FIXER_STATE", os.path.join(HOME, ".local/state/lodica-fixer"))
 REPO = os.environ.get("LODICA_REPO", "/home/shared/lodica-browser-public")
 LIST_TITLE = "lodica"
-TRIGGER = "run fixes"
+# trigger task title -> kind of task it handles; completing a trigger starts a run
+TRIGGERS = {"run fixes": "bug", "add features": "feature"}
 STATUS = "Runner: "  # title prefix of the status task the runner keeps at the top of the list
 PKG = "be.syntaxya.lodica"
 NORD = os.environ.get("NORD", "/usr/local/bin/nord")
@@ -378,14 +379,14 @@ def open_bugs(tk, seen):
     """open tasks not tried yet in this run; re-read each time so tasks added during the run are picked up"""
     out = []
     for t in tk.tasks():
-        if t["id"] in seen or is_status(t) or one(t.get("title")).lower() == TRIGGER:
+        if t["id"] in seen or is_status(t) or one(t.get("title")).lower() in TRIGGERS:
             continue
         if t.get("status") == "needsAction" and one(t.get("title")):
             out.append(t)
     return out
 
 
-def process(tk, st):
+def process(tk, st, kinds):
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     branch = "support/run-" + stamp
     wt = os.path.join(STATE, "work", "run-" + stamp)
@@ -395,7 +396,7 @@ def process(tk, st):
         return "could not create worktree: " + one(o, 200)
     log("worktree", wt, "branch", branch)
     done = []  # (task, short sha, bullet)
-    seen = set()
+    seen, skipped = set(), set()
     while True:
         try:
             queue = open_bugs(tk, seen)
@@ -415,6 +416,10 @@ def process(tk, st):
             step("triage")
             kind, diff, files, summary = triage(t, wt)
             log("triage:", kind, diff, files, summary)
+            if kind not in kinds:
+                skipped.add(t["id"])
+                log("skipped, no '%s' run requested" % kind)
+                continue
             feat = kind == "feature"
             verb, label = ("building", "Added") if feat else ("fixing", "Fixed")
             models = [HAIKU if diff == "easy" and not feat else SONNET, SONNET]
@@ -452,10 +457,10 @@ def process(tk, st):
         except Exception as e:  # one bug must never stop the others
             log("error on bug", title, repr(e)[:200])
             git("reset", "--hard", "-q", "HEAD", cwd=wt)
-    bugs = seen
+    bugs = seen - skipped
     if not bugs:
         git("worktree", "remove", "--force", wt)
-        return "no open bugs"
+        return "no open tasks"
     if not done:
         return "nothing fixed or added"
     touched = git("diff", "--name-only", "main", "HEAD", cwd=wt)[1].split()
@@ -514,47 +519,53 @@ def main():
         tk = Tasks()
         if not tk.find_list():
             if DRY:
-                print("List '%s' not found. A normal run creates it with a '%s' task." % (LIST_TITLE, TRIGGER))
+                print("List '%s' not found. A normal run creates it with the tasks %s." % (LIST_TITLE, ", ".join("'%s'" % n for n in TRIGGERS)))
                 return 0
             tk.create_list()
             log("created list '%s'" % LIST_TITLE)
         items = tk.tasks()
-        if not DRY and not any(one(t.get("title")).lower() == TRIGGER for t in items):
-            items.append(tk.add(TRIGGER, "Check this task to start fixing the open tasks in this list."))
-            log("created trigger task '%s'" % TRIGGER)
+        for name, kind in TRIGGERS.items():
+            if not DRY and not any(one(t.get("title")).lower() == name for t in items):
+                items.append(tk.add(name, "Check this task to start on the open %s tasks in this list." % kind))
+                log("created trigger task '%s'" % name)
     except (OSError, ValueError, KeyError, urllib.error.URLError) as e:
         log("Google Tasks not reachable:", type(e).__name__, str(e)[:120])
         return 1
-    trig = next((t for t in items if one(t.get("title")).lower() == TRIGGER), None)
-    bugs = [t for t in items if t is not trig and not is_status(t) and t.get("status") == "needsAction" and one(t.get("title"))]
+    trigs = [t for t in items if one(t.get("title")).lower() in TRIGGERS]
+    fired = [t for t in trigs if t.get("status") == "completed"]
+    kinds = {TRIGGERS[one(t.get("title")).lower()] for t in fired}
+    bugs = [t for t in items if t not in trigs and not is_status(t) and t.get("status") == "needsAction" and one(t.get("title"))]
     if DRY:
         print("Google Tasks access ok. List '%s': %d tasks." % (LIST_TITLE, len(items)))
-        print("Trigger task '%s': %s" % (TRIGGER, (trig or {}).get("status", "missing")))
-        print("Would treat %d open task(s) as bugs%s:" % (len(bugs), "" if trig and trig.get("status") == "completed" else " (only once the trigger is completed)"))
+        for name in TRIGGERS:
+            print("Trigger task '%s': %s" % (name, next((t.get("status") for t in trigs if one(t.get("title")).lower() == name), "missing")))
+        print("%d open task(s)%s:" % (len(bugs), "" if fired else " (handled only once a trigger is completed)"))
         for t in bugs:
             print("  -", one(t.get("title"), 100))
         print("Per task: triage bug/feature (%s, read only) -> fix (%s easy bug / %s hard bug or feature) in a worktree off main, one commit each ->" % (HAIKU, HAIKU, SONNET))
         print("  quick checks -> retry once with %s. After all bugs: one scripts/ci-build.sh support/run-<timestamp> ->" % SONNET)
-        print("  nord smoke test -> version bump, notes, merge to main, push main, tag -> mark tasks done. Finally '%s' goes back to needsAction." % TRIGGER)
+        print("  nord smoke test -> version bump, notes, merge to main, push main, tag -> mark tasks done. Finally the trigger goes back to needsAction.")
+        print("  'run fixes' handles bugs, 'add features' handles features; tasks of the other kind are skipped.")
         return 0
-    if not trig or trig.get("status") != "completed":
+    if not fired:
         return 0  # nothing requested
     result = "nothing to do"
     st = Status(tk, items)
     try:
-        log("run fixes: %d bug(s)" % len(bugs))
+        log("run %s: %d open task(s)" % ("+".join(sorted(kinds)), len(bugs)))
         st.set("starting, %d task(s)" % len(bugs))
-        result = process(tk, st)
+        result = process(tk, st, kinds)
     except Exception as e:
         result = "runner error: " + repr(e)[:200]
     finally:
         log("result:", result)
         st.set("done %s, %s" % (datetime.datetime.now().strftime("%d/%m %H:%M"), result), done=True)
-        try:  # always re-arm the trigger so it does not loop
-            tk.patch(trig["id"], {"status": "needsAction", "completed": None,
-                                  "notes": "%s: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), one(result, 500))})
-        except Exception as e:
-            log("could not reset trigger:", repr(e)[:150])
+        for trig in fired:
+            try:  # always re-arm the trigger so it does not loop
+                tk.patch(trig["id"], {"status": "needsAction", "completed": None,
+                                      "notes": "%s: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), one(result, 500))})
+            except Exception as e:
+                log("could not reset trigger:", repr(e)[:150])
     return 0
 
 

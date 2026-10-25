@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs the "run fixes" runner as a systemd --user timer (every 2 minutes).   bash automation/install-user.sh
+# Installs the "run fixes" / "add features" runner as a systemd --user timer (every 2 minutes).   bash automation/install-user.sh
 # It writes the two unit files and reloads systemd. It does NOT enable or start anything:
 # the last line tells you the command for that.
 #   --dry-run   only list what would be done

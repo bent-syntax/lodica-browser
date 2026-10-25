@@ -1,4 +1,4 @@
-# Lodica "run fixes" runner
+# Lodica "run fixes" / "add features" runner
 
 `lodica-fixer.py` (Python 3, standard library only) turns open Google Tasks into released bug fixes and features.
 `fixer-loop.sh` polls every 60 s (this server has no user systemd or cron). A systemd `--user` timer is the alternative where available.
@@ -6,9 +6,11 @@
 ## Flow
 
 1. Find the Google Tasks list `lodica` (credentials from `~/.lodica-tasks.json`, read at runtime only).
-2. Do nothing unless the task `run fixes` is completed and no other run holds the lock.
+2. Do nothing unless a trigger task is completed and no other run holds the lock. `run fixes` handles bugs,
+   `add features` handles feature requests, both completed handles both. Missing trigger tasks are created.
 3. Treat every other open task as a bug or a feature request. In a new worktree off `main` (branch `support/run-<timestamp>`), per task:
    - Triage with `claude-haiku-5-5`, read-only tools (Read, Grep, Glob): bug or feature, easy or hard.
+     Tasks of a kind no completed trigger asked for are skipped and stay open untouched.
    - Fix easy bugs with Haiku. Hard bugs and all features use `claude-sonnet-5-5` (`--permission-mode acceptEdits`).
      Features go to Android and desktop both unless they only fit one. One commit per task (`Fix:` or `Add:`).
    - Refuse changes to `.github/`, `automation/`, `scripts/`, `support/`, keystores and env files.
@@ -22,7 +24,7 @@
    tag `vX.Y.Z` (the release workflow publishes). Fixed tasks are completed with a note holding commit and version.
 6. A task titled `Runner: ...` stays at the top of the list and shows the current step (`2/5 fixing with Haiku: <bug>`).
    It is completed with the result when the run ends. The list is re-read after every task, so tasks added during a run are fixed in the same run.
-6. Always set `run fixes` back to `needsAction` with a result note, also after a failure.
+7. Always set each completed trigger back to `needsAction` with a result note, also after a failure.
 
 Task text is untrusted data. It reaches Claude only as one JSON-quoted string, with restricted tools and a rule not to obey it.
 

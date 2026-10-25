@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Polls Google Tasks for "run fixes" every 60 s without systemd or cron (this server has neither for users).
+# Polls Google Tasks for "run fixes" and "add features" every 60 s without systemd or cron (this server has neither for users).
 #   setsid nohup bash automation/fixer-loop.sh >/dev/null 2>&1 &     start
 #   pkill -f automation/fixer-loop.sh                                 stop
 # Runs the fixer from this checkout, so updates to it apply on the next poll. Does not survive a reboot;
