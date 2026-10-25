@@ -112,7 +112,8 @@ function openNotebook() {
     const pull = async () => {
       if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); return; }
       const [notes, n] = await Promise.all([inv("notebook.list"), inv("notebook.get", L.id)]);
-      if (!notes || !n) { L.status.textContent = "Can't reach the server"; return; }
+      if (!notes) { L.status.textContent = "Can't reach the server"; return; }
+      if (!n) { if (!L.busy && !L.dirty) reload(); return; }
       if (L.busy || L.dirty) return;
       L.notes = notes;
       if (n.rev !== L.rev && L.ta.value === L.sent) { L.ta.value = n.text; adopt(n); }
