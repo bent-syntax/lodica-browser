@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -114,7 +115,8 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sites" />
         </receiver>
         <service android:name=".engine.ChatService" android:exported="false" android:foregroundServiceType="remoteMessaging" />
-        <service android:name=".engine.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <service android:name=".engine.ScreenShare" android:exported="false" android:foregroundServiceType="mediaProjection" />
+        <service android:name=".engine.PlaybackService"android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".engine.EmojiKeyboardService"
             android:exported="true"

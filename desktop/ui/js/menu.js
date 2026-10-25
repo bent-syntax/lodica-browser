@@ -47,6 +47,7 @@ function openMenu() {
       cell("key", "Passwords", () => openPasswords()),
       cell("chat", "Server chat", () => openRoom(), "", !S.relayAvail),
       cell("edit", "Notebook", () => openNotebook(), "", !S.relayAvail),
+      cell("phone", "Phone screen", () => openPhoneScreen(), "", !S.relayAvail),
       cell("ai", "AI chat", () => openAiChat(), "", !(S.prefs.ai && S.ai && S.ai.connected)),
       cell("settings", "Settings", () => openSettings()),
     ];

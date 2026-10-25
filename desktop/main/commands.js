@@ -407,6 +407,8 @@ function init(deps) {
   on("notebook.create", () => require("./notebook").create());
   on("notebook.remove", (id) => require("./notebook").remove(str(id)));
   on("notebook.put", (id, text, base) => require("./notebook").put(str(id), str(text), base));
+  on("screen.frame", (after) => require("./screen").frame(after));
+  on("screen.stop", () => require("./screen").stop());
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 

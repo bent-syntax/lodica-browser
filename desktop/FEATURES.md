@@ -204,6 +204,7 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 81. The two dark-mode settings are merged into one.
 82. Search works with no relay (falls back to DuckDuckGo).
 83. Notebook (menu > Notebook): several text notes kept on the relay (`/api/notebook`) and shared with every linked device. Switch between notes with the chips, add one with the plus chip, delete the open one with the bin button. Saves after you stop typing and checks for changes every 10 seconds. If two devices edit at once, the newer text stays and the other edit is added under it.
+84. Phone screen (menu > Phone screen): shows the screen of a linked Android phone live in the browser, for example to play a phone game on the computer. Start it on the phone in Settings > Server, chat & mail > Share phone screen and confirm the system dialog each time. Frames go through the relay (`/api/screen`, newest frame only, nothing stored). Stop from the phone notification or the Stop sharing chip.
 
 ## Extensions (1.2.0)
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.

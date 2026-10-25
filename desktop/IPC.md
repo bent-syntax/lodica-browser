@@ -24,6 +24,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `shield.toggle` (trust/untrust current host); `lite.toggle`; `compat.toggle`; `desktop.toggle`
 - `share(url?, raw?)` (copies URL without `?query`, toast "Link copied"; `raw` keeps it intact); `copyLink(url)` (same stripping); `copy(text)`; `openExternal(url)`
 - `email.fill` (helper.fill on current tab; also the top view's "Use dummy mail" button); `reader` -> {title,text}|null
+- `screen.frame(after)` -> `{seq, img}` (img is a JPEG data URL) once a frame newer than `after` exists, `{idle: true}` when the phone is not sharing its screen, or null (waits up to 20 s); `screen.stop` -> true when the share was stopped on the relay
 - `notebook.list` -> `[{id, title, at}]` or null; `notebook.get(id)` -> `{id, text, rev, at}` or null; `notebook.put(id, text, base)` -> `{id, text, rev, at, conflict?}`, `{gone: true}` when the note was deleted elsewhere, or null (shared notebook, `base` is the revision the edit started from); `notebook.create` -> new note or null; `notebook.remove(id)` -> remaining `[{id, title, at}]` or null
 - `room.start` -> state; `room.stop`; `room.send(text)` -> error or null; `room.name(name)` -> name; push `room` (same-server chat)
 - `relay.state` -> state; `relay.refresh`; `relay.delete(id)` -> bool; `relay.forget(address)` -> bool

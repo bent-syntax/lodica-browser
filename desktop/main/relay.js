@@ -74,6 +74,16 @@ async function requestRaw(method, url, timeout = 60000, body, onProgress) {
   } finally { clearTimeout(t); }
 }
 
+/** GET that also returns the X-Frame-Seq header. Resolves to [status, Buffer, seq]. */
+async function requestRawSeq(method, url, timeout = 30000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const r = await fetch(API + url, { method, headers: { Authorization: "Bearer " + TOKEN }, signal: ctl.signal });
+    return [r.status, Buffer.from(await r.arrayBuffer()), r.headers.get("x-frame-seq")];
+  } finally { clearTimeout(t); }
+}
+
 /** Streams a file from disk to the relay. The timer restarts on every chunk, so only a stalled upload times out. */
 async function uploadFile(url, filePath, size, onProgress) {
   const fs = require("fs");
@@ -368,7 +378,7 @@ function unlink() {
 module.exports = {
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
-  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, uploadFile, downloadTo, fetchMail, refresh, deleteMail,
+  link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, requestRawSeq, uploadFile, downloadTo, fetchMail, refresh, deleteMail,
   forget, siteOf, newAlias, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };
