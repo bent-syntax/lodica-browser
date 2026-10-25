@@ -490,9 +490,7 @@ private fun StartPage(modifier: Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         if (TabManager.current?.private == true) IncognitoMark(72.dp)
-        else Box(Modifier.size(72.dp).clip(RoundedCornerShape(20.dp)).background(Amber), contentAlignment = Alignment.Center) {
-            Text("L", color = OnAmber, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
-        }
+        else Kite(72.dp, tail = false)
         Spacer(Modifier.height(28.dp))
         OutlinedTextField(
             q, { q = it },
