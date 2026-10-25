@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.9 (versionCode 110)
+- Fixed: Notebook Can't reach the server
+
 ## 1.13.8 (versionCode 109)
 - Fixed: Notebook Can't reach the server error even when the server is connected
 

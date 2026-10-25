@@ -1,3 +1,7 @@
+## 1.13.9
+
+- Fixed: Notebook Can't reach the server
+
 ## 1.13.8
 
 - Fixed: Notebook Can't reach the server error even when the server is connected
