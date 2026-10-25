@@ -74,7 +74,7 @@ fun PlannerCard(modifier: Modifier = Modifier) {
         }
         if (note == null && rows.size > 2) Box(
             Modifier.fillMaxWidth().padding(top = 6.dp).draggable(
-                Orientation.Vertical,
+                orientation = Orientation.Vertical,
                 state = rememberDraggableState { d ->
                     drag += d
                     val step = with(density) { ROW_H.toPx() }
