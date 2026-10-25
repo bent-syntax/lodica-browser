@@ -20,7 +20,8 @@ function applyTheme(t) {
   try { localStorage.setItem("lodica.theme", JSON.stringify(t)); } catch (e) {}
 }
 
-document.querySelector(".brand").href = "search.html" + (params.get("th") ? "?th=" + encodeURIComponent(params.get("th")) : "");
+// The logo goes to the app's own start page (about:blank), not this extension page.
+document.querySelector(".brand").href = "about:blank";
 
 function el(tag, attrs, ...kids) {
   const e = document.createElement(tag);
