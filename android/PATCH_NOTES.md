@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.12
+- Added: Link your email in Contact support to get updates by mail and to send requests to lodica@syntaxya.be
+
 ## 1.13.11
 - Added: You need to be able to access the screen of the linked phone in the browser so you can play for example minecraft pocked edition from you phone but you can see it in the desktop browser
 - Fixed: The tabs on my friends phone aren't visible but you can see the page in the tabs menu
