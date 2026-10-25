@@ -28,6 +28,7 @@ STATE = os.environ.get("FIXER_STATE", os.path.join(HOME, ".local/state/lodica-fi
 REPO = os.environ.get("LODICA_REPO", "/home/shared/lodica-browser-public")
 LIST_TITLE = "lodica"
 TRIGGER = "run fixes"
+STATUS = "Runner: "  # title prefix of the status task the runner keeps at the top of the list
 PKG = "be.syntaxya.lodica"
 NORD = os.environ.get("NORD", "/usr/local/bin/nord")
 CLAUDE = os.environ.get("CLAUDE", "claude")
@@ -116,6 +117,39 @@ class Tasks:
 
     def patch(self, tid, body):
         return self.call("PATCH", API + "/lists/%s/tasks/%s" % (self.list_id, tid), body)
+
+    def to_top(self, tid):
+        return self.call("POST", API + "/lists/%s/tasks/%s/move" % (self.list_id, tid), {})
+
+
+class Status:
+    """one task at the top of the list that shows the step the runner is on"""
+    def __init__(self, tk, items):
+        self.tk, self.id = tk, next((t["id"] for t in items if is_status(t)), None)
+
+    def set(self, text, done=False):
+        title = one(STATUS + text, 250)
+        body = {"title": title, "status": "completed" if done else "needsAction"}
+        if done:
+            body["completed"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        else:
+            body["completed"] = None
+        try:
+            if self.id:
+                self.tk.patch(self.id, body)
+            else:
+                self.id = self.tk.add(title, "Shows what the fixer is doing. Do not edit; it is not a bug.")["id"]
+                if done:
+                    self.tk.patch(self.id, body)
+            if not done:
+                self.tk.to_top(self.id)
+        except Exception as e:  # status is cosmetic, never stop the run for it
+            log("status update failed:", repr(e)[:150])
+        log("status:", text)
+
+
+def is_status(t):
+    return one(t.get("title")).startswith(STATUS.strip())
 
 
 # ---------- helpers ----------
@@ -249,16 +283,19 @@ def phone_test(apk):
     return None
 
 
-def verify(wt, files, branch):
+def verify(wt, files, branch, step=lambda w: None):
     """None when fine, else a failure text"""
+    step("checking")
     bad = quick_checks(wt, files)
     if bad:
         return bad
     if any(f.startswith("android/") for f in files):
+        step("building APK on GitHub")
         c, o = run([os.path.join(wt, "scripts/ci-build.sh"), branch], cwd=wt, timeout=7200)
         if c:
             return "CI build failed: " + o[-800:]
         apk = o.strip().splitlines()[-1]
+        step("testing on the phone")
         bad = phone_test(apk)
         if bad:
             return "phone test failed: " + bad
@@ -329,7 +366,18 @@ def finish_release(ver, env):
 
 
 # ---------- main flow ----------
-def process(tk, bugs):
+def open_bugs(tk, seen):
+    """open tasks not tried yet in this run; re-read each time so tasks added during the run are picked up"""
+    out = []
+    for t in tk.tasks():
+        if t["id"] in seen or is_status(t) or one(t.get("title")).lower() == TRIGGER:
+            continue
+        if t.get("status") == "needsAction" and one(t.get("title")):
+            out.append(t)
+    return out
+
+
+def process(tk, st):
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     branch = "support/run-" + stamp
     wt = os.path.join(STATE, "work", "run-" + stamp)
@@ -339,17 +387,32 @@ def process(tk, bugs):
         return "could not create worktree: " + one(o, 200)
     log("worktree", wt, "branch", branch)
     done = []  # (task, short sha, bullet)
-    for t in bugs:
+    seen = set()
+    while True:
+        try:
+            queue = open_bugs(tk, seen)
+        except Exception as e:
+            log("could not re-read tasks:", repr(e)[:150])
+            queue = []
+        if not queue:
+            break
+        t = queue[0]
+        seen.add(t["id"])
         title = one(t.get("title"), 100)
+        n = len(seen)
+        tot = n + len(queue) - 1
+        step = lambda what: st.set("%d/%d %s: %s" % (n, tot, what, one(title, 60)))
         log("bug:", title)
         try:
+            step("triage")
             diff, files, summary = triage(t, wt)
             log("triage:", diff, files, summary)
             models = [HAIKU if diff == "easy" else SONNET, SONNET]
             hint, ok, why = "", False, ""
-            for n, model in enumerate(models):
-                if n == 1 and models[0] == SONNET and not hint:
+            for k, model in enumerate(models):
+                if k == 1 and models[0] == SONNET and not hint:
                     break  # the first attempt already used Sonnet and left no failure to learn from
+                step("fixing with " + ("Haiku" if model == HAIKU else "Sonnet") + (" (retry)" if k else ""))
                 if not attempt_fix(t, wt, model, files, hint):
                     why = "claude did not finish"
                     hint = why
@@ -360,7 +423,7 @@ def process(tk, bugs):
                 if not ch:
                     why = "no change was made"
                     break
-                why = check_changes(ch) or verify_commit(wt, ch, branch, title)
+                why = check_changes(ch) or verify_commit(wt, ch, branch, title, step)
                 if not why:
                     ok = True
                     break
@@ -379,8 +442,13 @@ def process(tk, bugs):
         except Exception as e:  # one bug must never stop the others
             log("error on bug", title, repr(e)[:200])
             git("reset", "--hard", "-q", "HEAD", cwd=wt)
+    bugs = seen
+    if not bugs:
+        git("worktree", "remove", "--force", wt)
+        return "no open bugs"
     if not done:
         return "no bug fixed"
+    st.set("releasing %d fix(es)" % len(done))
     env = push_env()
     if env is None:
         return "no GitHub token available, branch %s kept" % branch
@@ -403,13 +471,13 @@ def process(tk, bugs):
     return "released v%s (%s): fixed %d of %d" % (ver, head, len(done), len(bugs))
 
 
-def verify_commit(wt, changed, branch, title):
+def verify_commit(wt, changed, branch, title, step=lambda w: None):
     """verify the working tree change, then commit it. Returns a failure text or None."""
     git("add", "-A", cwd=wt)
     c, o = git("commit", "-q", "-m", "Fix: %s\n\n%s" % (title, TRAILER), cwd=wt, ident=True)
     if c:
         return "commit failed: " + one(o, 200)
-    bad = verify(wt, changed, branch)
+    bad = verify(wt, changed, branch, step)
     if bad:
         git("reset", "--hard", "-q", "HEAD~1", cwd=wt)  # drop the failed commit
         return bad
@@ -439,7 +507,7 @@ def main():
         log("Google Tasks not reachable:", type(e).__name__, str(e)[:120])
         return 1
     trig = next((t for t in items if one(t.get("title")).lower() == TRIGGER), None)
-    bugs = [t for t in items if t is not trig and t.get("status") == "needsAction" and one(t.get("title"))]
+    bugs = [t for t in items if t is not trig and not is_status(t) and t.get("status") == "needsAction" and one(t.get("title"))]
     if DRY:
         print("Google Tasks access ok. List '%s': %d tasks." % (LIST_TITLE, len(items)))
         print("Trigger task '%s': %s" % (TRIGGER, (trig or {}).get("status", "missing")))
@@ -453,13 +521,16 @@ def main():
     if not trig or trig.get("status") != "completed":
         return 0  # nothing requested
     result = "nothing to do"
+    st = Status(tk, items)
     try:
         log("run fixes: %d bug(s)" % len(bugs))
-        result = process(tk, bugs) if bugs else "no open bugs"
+        st.set("starting, %d task(s)" % len(bugs))
+        result = process(tk, st)
     except Exception as e:
         result = "runner error: " + repr(e)[:200]
     finally:
         log("result:", result)
+        st.set("done %s, %s" % (datetime.datetime.now().strftime("%d/%m %H:%M"), result), done=True)
         try:  # always re-arm the trigger so it does not loop
             tk.patch(trig["id"], {"status": "needsAction", "completed": None,
                                   "notes": "%s: %s" % (datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), one(result, 500))})

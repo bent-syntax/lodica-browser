@@ -1,7 +1,7 @@
 # Lodica "run fixes" runner
 
 `lodica-fixer.py` (Python 3, standard library only) turns open Google Tasks into released bug fixes.
-A systemd `--user` timer starts it every 2 minutes.
+`fixer-loop.sh` polls every 60 s (this server has no user systemd or cron). A systemd `--user` timer is the alternative where available.
 
 ## Flow
 
@@ -18,11 +18,17 @@ A systemd `--user` timer starts it every 2 minutes.
 4. If any bug was fixed: bump the patch version (`android/app/build.gradle.kts`, `desktop/package.json`,
    `desktop/package-lock.json`), add CHANGELOG and both PATCH_NOTES sections, fast-forward `main`, push `main`,
    tag `vX.Y.Z` (the release workflow publishes). Fixed tasks are completed with a note holding commit and version.
-5. Always set `run fixes` back to `needsAction` with a result note, also after a failure.
+5. A task titled `Runner: ...` stays at the top of the list and shows the current step (`2/5 fixing with Haiku: <bug>`).
+   It is completed with the result when the run ends. The list is re-read after every bug, so tasks added during a run are fixed in the same run.
+6. Always set `run fixes` back to `needsAction` with a result note, also after a failure.
 
 Task text is untrusted data. It reaches Claude only as one JSON-quoted string, with restricted tools and a rule not to obey it.
 
 ## Install (as your user, no sudo)
+
+    setsid nohup bash automation/fixer-loop.sh >/dev/null 2>&1 &   # start polling now (stop: pkill -f fixer-loop.sh)
+
+The loop does not survive a reboot. For a lasting setup:
 
     bash automation/install-user.sh --dry-run   # list what it would do
     bash automation/install-user.sh             # copy the runner, write the units, reload. Starts nothing.
