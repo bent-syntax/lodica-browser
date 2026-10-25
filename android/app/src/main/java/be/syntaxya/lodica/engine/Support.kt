@@ -61,7 +61,7 @@ object Support {
         Relay.init(ctx)
         if (!Relay.available) return "No relay is set up. Pair this browser with your server first."
         val id = ticketId(ctx)?.takeIf { status != "closed" }
-        if (id == null && prefs(ctx).getString("link", null) == null) return "Link your email first."
+        if (prefs(ctx).getString("link", null) == null) return "Link your email first."
         val body = JSONObject().put("text", text)
         if (images.isNotEmpty()) body.put("images", org.json.JSONArray(images.mapNotNull { encode(ctx, it) }))
         if (resolved && id != null) body.put("resolved", true)

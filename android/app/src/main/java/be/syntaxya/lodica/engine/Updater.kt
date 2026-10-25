@@ -97,6 +97,24 @@ object Updater {
 
     private fun dir(ctx: Context) = File(ctx.cacheDir, "updates").apply { mkdirs() }
 
+    /** API blocked or rate limited: read the tag from the public releases/latest redirect instead. */
+    private fun viaRedirect(cur: String): UpdateState? = runCatching {
+        val c = URL("https://github.com/bent-syntax/lodica-browser/releases/latest").openConnection() as HttpURLConnection
+        val tag = try {
+            c.connectTimeout = 15_000; c.readTimeout = 15_000; c.useCaches = false; c.instanceFollowRedirects = false
+            c.setRequestProperty("User-Agent", "Lodica-updater")
+            if (c.responseCode !in 300..399) return@runCatching null
+            c.getHeaderField("Location")?.substringAfterLast("/tag/", "")?.substringBefore('?').orEmpty()
+        } finally { c.disconnect() }
+        val ver = tag.removePrefix("v")
+        if (ver.isEmpty()) return@runCatching null
+        if (cmp(ver, cur) <= 0) return@runCatching UpdateState.Latest(cur)
+        val name = "Lodica-$ver.apk"
+        val base = "https://github.com/bent-syntax/lodica-browser/releases/download/$tag/"
+        val sha = runCatching { Regex("[0-9a-fA-F]{64}").find(get(base + name + ".sha256").second)?.value?.lowercase() }.getOrNull()
+        UpdateState.Available(UpdateInfo(ver, "v$ver", "", name, 0L, sha, true, base + name))
+    }.getOrNull()
+
     fun check(ctx: Context) {
         if (state is UpdateState.Checking || state is UpdateState.Downloading) return
         state = UpdateState.Checking
@@ -125,7 +143,7 @@ object Updater {
                         }
                     }
                     404 -> UpdateState.Failed("No release published yet")
-                    else -> UpdateState.Failed("Update check failed ($code)")
+                    else -> viaRedirect(cur) ?: UpdateState.Failed("Update check failed ($code)")
                 }
             }.getOrElse { Log.w(TAG, "check failed", it); UpdateState.Failed("Could not reach GitHub") }
         }

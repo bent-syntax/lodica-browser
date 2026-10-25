@@ -1,3 +1,7 @@
+## 1.13.14
+- Fixed: Contact support now needs a linked email for every message, including replies
+- Fixed: Update check no longer fails with 403 when GitHub blocks the API
+
 ## 1.13.13
 - Changed: Contact support now asks you to link your email before you send a new request
 

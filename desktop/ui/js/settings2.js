@@ -187,7 +187,7 @@ function openSupport() {
       const err = h("div", { class: "sup-err", text: "" });
       const wrap = h("div", { class: "sup" });
       // contact needs a linked email first, so answers can always reach the user
-      if (!st.email && !st.open) {
+      if (!st.email) {
         wrap.append(h("div", { class: "sup-intro" },
           h("div", { class: "sup-h", text: "How can we help?" }),
           h("div", { class: "t2", text: "Link your email first. Then you can report a bug or ask for a feature." })), linkBox(st));

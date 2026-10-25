@@ -118,6 +118,10 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           awk -v v="$v" '$0 == "## " v {on=1; next} /^## / {on=0} on' desktop/PATCH_NOTES.md > notes.md
+      - name: Checksum for the APK
+        run: |
+          cd artifacts
+          for f in Lodica-*.apk; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; done
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}

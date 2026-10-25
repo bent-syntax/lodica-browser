@@ -111,7 +111,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
     val open = Support.messages.isNotEmpty() && Support.status != "closed"
     // a new request needs a linked email, so answers can always reach the user
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
-    val canWrite = open || linked.isNotEmpty()
+    val canWrite = linked.isNotEmpty()
     AlertDialog(
         onDismissRequest = onClose,
         title = {
