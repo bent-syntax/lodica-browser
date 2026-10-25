@@ -3,7 +3,6 @@
 - Android: new tab page has the Lodica tile, a pill search field with Ask AI, and rounded shortcut tiles.
 - Android: the menu is a sheet with back, forward, reload and share on top and a grid of icon tiles.
 - Android: settings rows, dialogs and filter chips use the shared shapes and type sizes, controls have 12 dp corners.
-- Android: filter chips are pills, cards have 20 dp corners, history and download rows use icon tiles, the passwords lock has an amber tile, Ask AI has a pill input with an amber send button, support chat uses amber and surface bubbles.
 - Desktop: tabs sit in one row above a single toolbar with back, forward, reload, a pill address bar with lock, shield and reader icons, and an Ask AI tile.
 - Desktop: clicking the lock opens a site info popover. A setting can move the toolbar to the bottom.
 - Desktop: new outline icon set (24 grid, round caps).
