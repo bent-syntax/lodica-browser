@@ -164,6 +164,8 @@ private fun BrowserScreen() {
     // A file (PDF, document, local file) hides the bar by itself; a new page brings it back. Long-press toggles it by hand.
     LaunchedEffect(tab?.url) { Ui.barHidden = tab?.url?.let(::isFileUrl) == true }
     LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.barHidden = false }
+    // Opening the bar on a blank tab (e.g. from the widget) must not show text left over from an earlier edit.
+    LaunchedEffect(Ui.editing) { if (Ui.editing && TabManager.current?.url == TabManager.HOME) query = TextFieldValue() }
     LaunchedEffect(Ui.barHidden, Ui.barHeight) { Ui.barOffset = if (Ui.barHidden) Ui.barHeight else 0f }
     // Bottom toolbar slides with the page: tell Gecko how much of the viewport the bar still covers.
     LaunchedEffect(Unit) {
