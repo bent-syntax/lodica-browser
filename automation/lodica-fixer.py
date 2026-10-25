@@ -12,6 +12,7 @@ Secrets (~/.lodica-tasks.json, GitHub token) are read at runtime and never print
 """
 import datetime
 import fcntl
+import glob
 import json
 import os
 import re
@@ -267,7 +268,8 @@ def quick_checks(wt, files):
             if c:
                 return "node --check %s failed: %s" % (f, o[-300:])
     if any(f.startswith("relay/") for f in files):
-        c, o = run(["node", "--test", "test/"], cwd=os.path.join(wt, "relay"), timeout=300)
+        tests = sorted(glob.glob(os.path.join(wt, "relay", "test", "*.test.js")))
+        c, o = run(["node", "--test"] + tests, cwd=os.path.join(wt, "relay"), timeout=300)
         if c:
             return "relay tests failed: " + o[-500:]
     return None
