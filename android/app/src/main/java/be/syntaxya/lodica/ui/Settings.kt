@@ -167,7 +167,7 @@ fun SettingsScreen() {
         if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
         else {
             TopBar(if (find.isBlank()) "" else "Find") { if (find.isNotBlank()) find = "" else Ui.screen = Screen.Browser }
-            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
             FilterField(find, "Find a setting") { find = it }
         }
         if (find.isNotBlank()) {
@@ -401,6 +401,8 @@ fun SettingsScreen() {
                     }
                 }
                 6 -> {
+                    StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
+                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
                     Section("History & site data")
             LinkRow("History") { Ui.go(Screen.History) }
             LinkRow("Clear history", Coral) {
@@ -432,15 +434,9 @@ fun SettingsScreen() {
                 10 -> {
                     Section("Server, chat & mail")
                     if (!Relay.available) {
-                        Text(
-                            "No server linked", color = Muted, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        )
+                        StatusCard(Icons.Rounded.Cloud, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
                     } else {
-                        Text(
-                            "Linked to lodica.${Relay.DOMAIN} (${if (Relay.up) "reachable" else "not reachable right now"})", color = Muted, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        )
+                        StatusCard(Icons.Rounded.Cloud, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
                         LinkRow("Server chat") { Ui.go(Screen.Room) }
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
@@ -943,11 +939,32 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Muted,
+        icon = { IconTile(Icons.Rounded.Delete, 48, Coral) },
         title = { Text(c.title) },
         text = { Text(c.body) },
         confirmButton = { DlgDanger(onClick = { c.run(); dismiss() }) { Text(c.action) } },
         dismissButton = { DlgSecondary(onClick = dismiss) { Text("Cancel") } },
     )
+}
+
+@Composable
+private fun StatusCard(icon: ImageVector, title: String, sub: String, ok: Boolean? = null) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
+            .border(1.dp, GraphiteHigh, RoundedCornerShape(20.dp)).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconTile(icon, 48, Amber)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (ok != null) Box(Modifier.padding(end = 8.dp).size(8.dp).clip(RoundedCornerShape(50))
+                    .background(if (ok) androidx.compose.ui.graphics.Color(0xFF22C55E) else Coral))
+                Text(sub, color = Muted, fontSize = 13.sp)
+            }
+        }
+    }
 }
 
 @Composable
