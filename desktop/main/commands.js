@@ -516,6 +516,7 @@ function init(deps) {
     } catch { return []; }
   };
   on("emojis.list", listEmojis);
+  require("./emojipicker").setSource(listEmojis);
   on("emojis.copy", async name => {
     const { nativeImage } = require("electron");
     const list = await listEmojis();

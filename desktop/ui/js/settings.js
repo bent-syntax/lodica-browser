@@ -161,6 +161,7 @@ function enterCodeBtn() {
 
 function secEmojis() {
   const out = [secHead("Server emojis", "emojis"), setRow("Server emojis", "Custom emojis stored on your Lodica server. Click one to copy it as an image", null)];
+  out.push(setToggle("emojiPicker", "Emoji picker shortcut", "Press Ctrl+Alt+E in any program to pick a server emoji, then paste it"));
   if (!S.relayAvail) return out.concat(setRow("No server linked", "Set up a relay first", null));
   out.push(h("div", { class: "chips" }, btn("Load server emojis", async () => {
     SET.emojis = (await inv("emojis.list")) || [];

@@ -32,6 +32,7 @@ const DEFAULTS = {
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, shareHistory: false, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, plannerIcs: "", bgHistory: [], noDummy: [], totpSkip: [],
+  emojiPicker: true,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,
   theme: "system", vertTabs: false, barBottom: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,

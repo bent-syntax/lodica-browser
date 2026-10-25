@@ -379,6 +379,7 @@ app.whenReady().then(() => {
   m.ui.initDivider(dividerView);
   M = m;
   wire(m);
+  require("./emojipicker").init(m.prefs);
   try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
   uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));
   dividerView.webContents.loadFile(path.join(ROOT, "ui", "divider.html")).catch(e => console.error("divider load", e.message));
