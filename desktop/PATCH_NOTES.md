@@ -1,3 +1,10 @@
+## 1.13.3
+- Android: the menu sheet has New tab, Private and Reader tiles on top and outline icon rows below, with More for the rest.
+- Android: the address bar is a full pill with a muted path after the host and an amber tracker count on the shield.
+- Android: settings, dialogs, pickers, downloads, history, passwords and the Ask AI chat use the new cards, chips and icon tiles.
+- Desktop: dialogs, theme cards, the segmented switcher, chat bubbles and search result cards follow the redesign.
+- Desktop: settings has hero cards and a version footer. The chat shows memory and usage, and reader, support and toasts are polished.
+
 ## 1.13.2
 - Desktop: tabs sit in one row above a single toolbar with back, forward, reload, a pill address bar with lock, shield and reader icons, and an Ask AI tile.
 - Desktop: clicking the lock opens a site info popover. A setting can move the toolbar to the bottom.

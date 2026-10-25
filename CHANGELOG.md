@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.3 (versionCode 104)
+- Android: the menu sheet has New tab, Private and Reader tiles on top and outline icon rows below, with More for the rest.
+- Android: the address bar is a full pill with a muted path after the host and an amber tracker count on the shield.
+- Android: settings, dialogs, pickers, downloads, history, passwords and the Ask AI chat use the new cards, chips and icon tiles.
+- Desktop: dialogs, theme cards, the segmented switcher, chat bubbles and search result cards follow the redesign.
+- Desktop: settings has hero cards and a version footer. The chat shows memory and usage, and reader, support and toasts are polished.
+
 ## 1.13.2 (versionCode 103)
 - Android: new tab page has the Lodica tile, a pill search field with Ask AI, and rounded shortcut tiles.
 - Android: the menu is a sheet with back, forward, reload and share on top and a grid of icon tiles.
