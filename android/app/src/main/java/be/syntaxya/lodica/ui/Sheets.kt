@@ -98,14 +98,14 @@ fun MenuSheet() {
     val tab = TabManager.current
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun close() { Ui.menuOpen = false }
-    val navTile = Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(GraphiteHigh)
+    val navTile = Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)).background(GraphiteHigh)
 
     ModalBottomSheet(
         onDismissRequest = { close() },
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Row(
@@ -233,12 +233,12 @@ private class MenuItem(
 @Composable
 private fun MenuCell(m: MenuItem, modifier: Modifier, pinned: Boolean = false, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
+        modifier.clip(RoundedCornerShape(12.dp)).combinedClickable(onLongClick = onLong, onClick = onClick).padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val active = m.tint != Mist
         Box(
-            Modifier.size(52.dp).clip(RoundedCornerShape(14.dp))
+            Modifier.size(52.dp).clip(RoundedCornerShape(12.dp))
                 .background(if (active) m.tint.copy(alpha = 0.16f) else GraphiteHigh),
             contentAlignment = Alignment.Center,
         ) { Icon(m.icon, null, tint = m.tint, modifier = Modifier.size(24.dp)) }
@@ -262,7 +262,7 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Text(
