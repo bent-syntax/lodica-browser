@@ -82,7 +82,7 @@ function openNotebook() {
       await settle();
       if (L.dirty) { L.status.textContent = "Can't reach the server. Will try again."; return; }
       const n = await inv("notebook.get", id);
-      if (!n) { L.status.textContent = "Can't reach the server"; return; }
+      if (!n) { await reload(); return; }
       show(n);
       L.status.textContent = "Synced with your linked devices";
       L.ta.focus();

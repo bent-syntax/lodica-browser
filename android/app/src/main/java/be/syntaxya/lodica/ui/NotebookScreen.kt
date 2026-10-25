@@ -147,7 +147,7 @@ fun NotebookScreen() {
                     scope.launch {
                         if (!save()) return@launch
                         val f = withContext(Dispatchers.IO) { Notebook.get(n.id) }
-                        if (f != null) show(f) else status = "Can't reach the server"
+                        if (f != null) show(f) else reload()
                     }
                 }
             }
