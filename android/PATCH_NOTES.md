@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.15
+- Fixed: The search engine gives outdated websites and an outdated vibe
+
 ## 1.13.14
 - Fixed: Contact support now needs a linked email for every message, including replies
 - Fixed: Update check no longer fails with 403 when GitHub blocks the API

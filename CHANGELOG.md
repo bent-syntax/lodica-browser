@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.15 (versionCode 116)
+- Fixed: The search engine gives outdated websites and an outdated vibe
+
 ## 1.13.14 (versionCode 115)
 - Fixed: Contact support now needs a linked email for every message, including replies
 - Fixed: Update check no longer fails with 403 when GitHub blocks the API
