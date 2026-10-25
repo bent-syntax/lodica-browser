@@ -273,6 +273,7 @@ async function onMessage(tab, frame, m) {
     case "icons": {
       const ok = (Array.isArray(m.list) ? m.list : []).filter(u => typeof u === "string" && (/^https?:\/\//i.test(u) || u.startsWith("data:image/")));
       tab.icons = [...new Set(ok)].slice(0, 12);
+      ui.push("tab", deps.tabs.info(tab));
       break;
     }
     case "data": if (!tab.private && m.host) meter.used(m.host, Number(m.used) || 0); break;

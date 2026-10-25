@@ -474,10 +474,15 @@ function autoArchive(days) {
   return old.length;
 }
 
+// No icon reported yet: guess the site's /favicon.ico so every http(s) tab shows one.
+function fallbackIcon(u) {
+  try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin + "/favicon.ico" : null; } catch { return null; }
+}
+
 function listing() {
   const byRecent = (a, b) => b.lastUsed - a.lastUsed;
   return {
-    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: (t.url || "").startsWith("lodica://search/") ? LOGO : (t.icons && t.icons[0]) || null })),
+    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: (t.url || "").startsWith("lodica://search/") ? LOGO : (t.icons && t.icons[0]) || fallbackIcon(t.url) })),
     archived: list.filter(t => t.archived).sort(byRecent).map(info),
     closed: closed.map(c => ({ title: c.title || c.url, url: c.url })),
   };
