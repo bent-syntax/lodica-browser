@@ -116,7 +116,7 @@
         </receiver>
         <service android:name=".engine.ChatService" android:exported="false" android:foregroundServiceType="remoteMessaging" />
         <service android:name=".engine.ScreenShare" android:exported="false" android:foregroundServiceType="mediaProjection" />
-        <service android:name=".engine.PlaybackService"android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <service android:name=".engine.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <service
             android:name=".engine.EmojiKeyboardService"
             android:exported="true"
