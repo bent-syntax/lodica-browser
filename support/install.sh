@@ -62,8 +62,8 @@ if [ -z "$KEEP" ]; then
   fi
   unset PASS NOTIFY SECRET
 fi
-# 47610 belongs to hearth-support; older env files still name it
-sed -i 's/^SUPPORT_PORT=47610$/SUPPORT_PORT=47611/' "$ENVF"
+# 47610 is hearth-support's; older env files still name it or its neighbour
+sed -i 's/^SUPPORT_PORT=4761[01]$/SUPPORT_PORT=12159/' "$ENVF"
 chown "$RUN_USER" "$ENVF"
 
 # the desk reads the relay admin token (group lodica-relay) to send answers to the apps
@@ -94,7 +94,7 @@ EOF
 # the relay hands in-app tickets to the desk on this address
 if [ -f /etc/systemd/system/lodica-relay.service ]; then
   mkdir -p /etc/systemd/system/lodica-relay.service.d
-  printf '[Service]\nEnvironment=LODICA_DESK_URL=http://127.0.0.1:47611\n' > /etc/systemd/system/lodica-relay.service.d/desk.conf
+  printf '[Service]\nEnvironment=LODICA_DESK_URL=http://127.0.0.1:12159\n' > /etc/systemd/system/lodica-relay.service.d/desk.conf
 fi
 systemctl daemon-reload
 systemctl enable --now lodica-support >/dev/null 2>&1 || true
