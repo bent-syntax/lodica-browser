@@ -401,7 +401,8 @@ object TabManager {
         ) {
             url ?: return
             // A restore briefly reports about:blank; don't let it clobber the saved URL.
-            if (url == "about:blank" && tab.url != "about:blank") return
+            // A tap on a link to about:blank (the search page logo) has a user gesture and must go home.
+            if (url == "about:blank" && tab.url != "about:blank" && !hasUserGesture) return
             if (url.substringBefore('#') != tab.url.substringBefore('#')) { tab.manifest = null; tab.icons = emptyList() }
             val from = tab.navStart?.let { Uri.parse(it).host.orEmpty().removePrefix("www.") }.orEmpty()
             val to = Uri.parse(url).host.orEmpty().removePrefix("www.")
