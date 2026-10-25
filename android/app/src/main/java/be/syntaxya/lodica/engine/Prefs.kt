@@ -58,6 +58,10 @@ object Prefs {
     var plannerIcs by mutableStateOf(""); private set
     /** Show the newest Notebook notes on the start page. */
     var startNotes by mutableStateOf(true); private set
+    /** Planner: yellow tasks and red tests, time zone ("" is Brussels, "local" is the device) and a subject per time slot, one "Mon 08:30-09:20 Maths" per line. */
+    var plannerColors by mutableStateOf(true); private set
+    var plannerTz by mutableStateOf(""); private set
+    var plannerSlots by mutableStateOf(""); private set
     private val PLACES = listOf("left", "right", "below")
     /** Where the planner and the notes sit on the start page: "left", "right" or "below" the search bar. They never share a place. */
     var plannerPos by mutableStateOf("below"); private set
@@ -142,6 +146,9 @@ object Prefs {
         aiAlways = sp.getBoolean("aiAlways", false)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
+        plannerColors = sp.getBoolean("plannerColors", true)
+        plannerTz = sp.getString("plannerTz", "") ?: ""
+        plannerSlots = sp.getString("plannerSlots", "") ?: ""
         plannerPos = sp.getString("plannerPos", "below")?.takeIf { it in PLACES } ?: "below"
         notesPos = sp.getString("notesPos", "left")?.takeIf { it in PLACES } ?: "left"
         if (notesPos == plannerPos) notesPos = PLACES.first { it != plannerPos }
@@ -258,6 +265,9 @@ object Prefs {
         sp.edit().putString("plannerPos", plannerPos).putString("notesPos", notesPos).apply(); Helper.push()
     }
     fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
+    fun updatePlannerColors(v: Boolean) { plannerColors = v; sp.edit().putBoolean("plannerColors", v).apply(); Helper.push() }
+    fun updatePlannerTz(v: String) { plannerTz = v.trim().take(64); sp.edit().putString("plannerTz", plannerTz).apply(); Helper.push() }
+    fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateDnsRules(v: String) { dnsRules = v.trim(); sp.edit().putString("dnsRules", dnsRules).apply(); Helper.push() }

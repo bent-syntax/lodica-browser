@@ -177,6 +177,13 @@ function secStart() {
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",
         on: { change: (e) => { S.prefs.plannerIcs = e.target.value.trim(); inv("prefs.set", "plannerIcs", S.prefs.plannerIcs); } } })),
+    setToggle("plannerColors", "Colour tasks and tests", "Show Huistaak and Meebrengen events in yellow and Toets events in red."),
+    setRow("Planner time zone", "Used for the clock marker and the lesson times. Empty is Brussels, \"local\" is this device.",
+      h("input", { class: "set-input", type: "text", value: S.prefs.plannerTz || "", placeholder: "Europe/Brussels",
+        on: { change: (e) => { S.prefs.plannerTz = e.target.value.trim().slice(0, 64); inv("prefs.set", "plannerTz", S.prefs.plannerTz); } } })),
+    setRow("Subject per time slot", "One per line, like \"Mon 08:30-09:20 Maths\". Without a day it counts every day. It replaces the lessons in that slot. Tasks and tests stay.",
+      h("textarea", { class: "field set-input", rows: "4", value: S.prefs.plannerSlots || "", placeholder: "Mon 08:30-09:20 Maths",
+        on: { change: (e) => { S.prefs.plannerSlots = e.target.value.slice(0, 4000); inv("prefs.set", "plannerSlots", S.prefs.plannerSlots); } } })),
     setPlace("plannerPos", "Planner position", "Where the planner sits on the start page.", "below"),
     setPlace("notesPos", "Notes position", "Where the notes sit on the start page. The planner and the notes can't share a place.", "left"));
   return out;

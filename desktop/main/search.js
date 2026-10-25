@@ -59,12 +59,13 @@ async function handle(msg) {
 async function planner() {
   const url = String(prefs.p.plannerIcs || "").trim().replace(/^webcal:\/\//i, "https://");
   if (!/^https:\/\/[^\s]+$/.test(url)) return { url: "" };
+  const opts = { colors: prefs.p.plannerColors !== false, tz: String(prefs.p.plannerTz || "").slice(0, 64), slots: String(prefs.p.plannerSlots || "").slice(0, 4000) };
   try {
     const r = await net.fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) return { url, text: null };
-    return { url, text: (await r.text()).slice(0, 2e6) };
+    if (!r.ok) return { url, text: null, opts };
+    return { url, text: (await r.text()).slice(0, 2e6), opts };
   } catch {
-    return { url, text: null };
+    return { url, text: null, opts };
   }
 }
 

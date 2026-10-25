@@ -94,6 +94,7 @@ object Helper {
                 .put("ai", Ai.connected)
                 .put("aiAlways", Prefs.aiAlways)
                 .put("planner", Prefs.plannerIcs)
+                .put("plannerOpts", JSONObject().put("colors", Prefs.plannerColors).put("tz", Prefs.plannerTz).put("slots", Prefs.plannerSlots))
                 .put("notes", Prefs.startNotes && Relay.available)
                 .put("pos", JSONObject().put("plan", Prefs.plannerPos).put("notes", Prefs.notesPos))
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.

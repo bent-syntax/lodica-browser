@@ -155,6 +155,18 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #plan .pe, #notes .pe { display: flex; gap: 10px; font-size: 14px; padding: 2px 0; }
 #plan .pe b { min-width: 52px; font-weight: 600; }
 body:not(.home) #plan, body:not(.home) #notes { display: none; }
+#plan, #notes { position: relative; overflow: auto; scrollbar-width: none; -ms-overflow-style: none; }
+#plan::-webkit-scrollbar, #notes::-webkit-scrollbar { display: none; }
+#plan .pe span, #notes .pe span { flex: 1; min-width: 0; }
+#plan .pe em { font-style: normal; font-size: 12px; color: var(--sub); align-self: center; }
+#plan .pe.task { background: rgba(245,158,11,.18); border-radius: 12px; padding: 4px 8px; margin: 0 -8px; }
+#plan .pe.test { background: rgba(244,63,94,.18); border-radius: 12px; padding: 4px 8px; margin: 0 -8px; }
+#plan .pe.task b { color: #F59E0B; }
+#plan .pe.test b { color: #F43F5E; }
+#plan .pn { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 12px; color: #F43F5E; }
+#plan .pn b { min-width: 52px; font-weight: 600; }
+#plan .pn i { flex: 1; height: 2px; border-radius: 1px; background: #F43F5E; }
+.grip { position: sticky; bottom: -10px; float: right; clear: both; width: 20px; height: 20px; margin: 0 -14px -10px 0; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--sub) 50%, var(--sub) 58%, transparent 58%, transparent 74%, var(--sub) 74%, var(--sub) 82%, transparent 82%); border-radius: 0 0 12px 0; opacity: .6; }
 /* Side placement (Settings): beside the search bar on wide screens, under it on narrow ones. */
 @media (min-width: 1100px) {
   #plan[data-pos="left"], #notes[data-pos="left"], #plan[data-pos="right"], #notes[data-pos="right"] { position: fixed; top: 24vh; width: 280px; max-height: 60vh; overflow: auto; margin: 0; }

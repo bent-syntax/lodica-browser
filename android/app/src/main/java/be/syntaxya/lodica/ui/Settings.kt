@@ -292,6 +292,14 @@ fun SettingsScreen() {
                     PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
                     Section("Smartschool planner")
                     PlannerSetting()
+                    SwitchRow("Colour tasks and tests", "Huistaak and Meebrengen in yellow, Toets in red", Prefs.plannerColors) { Prefs.updatePlannerColors(it) }
+                    PlannerTextSetting(
+                        "Time zone for the planner. Empty is Brussels, \"local\" is this device.", "Europe/Brussels", true, Prefs.plannerTz,
+                    ) { Prefs.updatePlannerTz(it) }
+                    PlannerTextSetting(
+                        "Subject per time slot, one per line like \"Mon 08:30-09:20 Maths\". Without a day it counts every day. It replaces the lessons in that slot, tasks and tests stay.",
+                        "Mon 08:30-09:20 Maths", false, Prefs.plannerSlots,
+                    ) { Prefs.updatePlannerSlots(it) }
                     PlacePicker("Planner position", Prefs.plannerPos) { Prefs.updatePlannerPos(it) }
                 }
                 5 -> {
@@ -1494,6 +1502,9 @@ private val SettingsIndex = listOf(
     SettingsEntry("Show notes on start page", 4, "notebook notes widget"),
     SettingsEntry("Smartschool planner", 4,"ics calendar agenda schedule"),
     SettingsEntry("Notes position", 4, "notebook widget left right under search bar"),
+    SettingsEntry("Colour tasks and tests", 4, "planner huistaak meebrengen toets yellow red"),
+    SettingsEntry("Planner time zone", 4, "brussels local clock now marker"),
+    SettingsEntry("Subject per time slot", 4, "planner lesson hour subject schedule"),
     SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
@@ -1858,5 +1869,22 @@ private fun PlannerSetting() {
             ),
         )
         TextButton(onClick = { Prefs.updatePlannerIcs(draft) }) { Text("Save", color = Amber) }
+    }
+}
+
+@Composable
+private fun PlannerTextSetting(hint: String, example: String, single: Boolean, value: String, save: (String) -> Unit) {
+    var draft by remember { mutableStateOf(value) }
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+        Text(hint, color = Muted, fontSize = 13.sp)
+        OutlinedTextField(
+            draft, { draft = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = single, minLines = if (single) 1 else 3,
+            placeholder = { Text(example, color = Muted) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+            ),
+        )
+        TextButton(onClick = { save(draft) }) { Text("Save", color = Amber) }
     }
 }

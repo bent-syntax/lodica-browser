@@ -51,7 +51,7 @@ function places(p) {
   if (notes === plan) notes = ok.find((x) => x !== plan);
   return { plan, notes };
 }
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", notes: false, pos: places() };
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", plannerOpts: { colors: true, tz: "", slots: "" }, notes: false, pos: places() };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -169,7 +169,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, notes: cfg.notes, pos: cfg.pos };
+    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
@@ -256,6 +256,7 @@ function connect() {
         fallback: /^https:\/\/[^\s]*%s/.test(String(msg.fallback || "")) ? String(msg.fallback) : "",
         notes: !!msg.notes,
         planner: /^https:\/\/[^\s]+$/.test(String(msg.planner || "")) ? String(msg.planner) : "",
+        plannerOpts: { colors: !msg.plannerOpts || msg.plannerOpts.colors !== false, tz: String(msg.plannerOpts && msg.plannerOpts.tz || "").slice(0, 64), slots: String(msg.plannerOpts && msg.plannerOpts.slots || "").slice(0, 4000) },
         pos: places(msg.pos),
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
       };

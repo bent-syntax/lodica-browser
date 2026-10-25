@@ -383,8 +383,7 @@ function icsDate(v, params) {
   if (!m) return null;
   const n = m.slice(1, 7).map((x) => parseInt(x || "0", 10));
   const allDay = m[4] == null || /VALUE=DATE(?!-)/.test(params);
-  const d = m[7] ? new Date(Date.UTC(n[0], n[1] - 1, n[2], n[3], n[4], n[5])) : new Date(n[0], n[1] - 1, n[2], n[3], n[4], n[5]);
-  return { d, allDay };
+  return { y: n[0], mo: n[1], d: n[2], h: n[3], mi: n[4], z: !!m[7] && !allDay, allDay };
 }
 function parseIcs(text) {
   const lines = String(text).replace(/\r?\n[ \t]/g, "").split(/\r?\n/);
@@ -401,34 +400,126 @@ function parseIcs(text) {
     const i = line.indexOf(":");
     if (i < 0) continue;
     const [name, ...ps] = line.slice(0, i).split(";");
-    const val = line.slice(i + 1).replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1");
-    if (name === "DTSTART") { const r = icsDate(val, ps.join(";")); if (r) { cur.start = r.d; cur.allDay = r.allDay; } }
-    else if (name === "DTEND") { const r = icsDate(val, ps.join(";")); if (r) cur.end = r.d; }
+    const raw = line.slice(i + 1);
+    const val = raw.replace(/\\n/gi, " ").replace(/\\([,;\\])/g, "$1");
+    if (name === "DTSTART") { const r = icsDate(val, ps.join(";")); if (r) { cur.start = r; cur.allDay = r.allDay; } }
+    else if (name === "DTEND") { const r = icsDate(val, ps.join(";")); if (r) cur.end = r; }
     else if (name === "SUMMARY") cur.title = val;
     else if (name === "LOCATION") cur.where = val;
+    else if (name === "DESCRIPTION") cur.desc = raw.replace(/\\n/gi, "\n").replace(/\\([,;\\])/g, "$1");
   }
   return out;
 }
-function drawPlanner(text, url) {
+// Day number and minute of the day of a moment in the planner time zone (Settings, default Brussels).
+function plannerZone(tz) {
+  tz = String(tz || "").trim();
+  if (!tz) return "Europe/Brussels";
+  if (tz.toLowerCase() === "local") return undefined;
+  try { new Intl.DateTimeFormat("en-GB", { timeZone: tz }); return tz; } catch { return "Europe/Brussels"; }
+}
+function zoned(date, zone) {
+  const p = new Intl.DateTimeFormat("en-GB", { timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric" }).formatToParts(date);
+  const g = (t) => parseInt(p.find((x) => x.type === t).value, 10);
+  return { day: Date.UTC(g("year"), g("month") - 1, g("day")) / 864e5, min: g("hour") * 60 + g("minute") };
+}
+function wall(r, zone) {
+  if (r.z) return zoned(new Date(Date.UTC(r.y, r.mo - 1, r.d, r.h, r.mi)), zone);
+  return { day: Date.UTC(r.y, r.mo - 1, r.d) / 864e5, min: r.allDay ? 0 : r.h * 60 + r.mi };
+}
+// Subject per time slot (Settings): one rule per line, "Mon 08:30-09:20 Maths". Without a day it applies every day.
+function slotRules(text) {
+  const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+  const out = [];
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const m = /^\s*(?:(sun|mon|tue|wed|thu|fri|sat)\w*\s+)?(\d{1,2}):(\d\d)\s*-\s*(\d{1,2}):(\d\d)\s+(.+?)\s*$/i.exec(line);
+    if (m) out.push({ wd: m[1] ? days.indexOf(m[1].toLowerCase()) : -1, from: +m[2] * 60 + +m[3], to: +m[4] * 60 + +m[5], subject: m[6].slice(0, 60) });
+  }
+  return out;
+}
+const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+let plannerData = null;
+function drawPlanner(text, url, opts) {
+  plannerData = { text, url, opts };
   const box = $("plan");
   if (!url) {
     box.replaceChildren(el("h3", null, "Smartschool planner"), el("p", { class: "none" }, "No planner added yet. Add your Smartschool ICS link in Settings, Start page."));
+    resizable(box, "plan");
     return;
   }
-  const from = new Date(); from.setHours(0, 0, 0, 0);
-  const to = new Date(from.getTime() + 7 * 864e5);
-  const evs = parseIcs(text || "").filter((e) => (e.end || e.start) >= from && e.start < to).sort((a, b) => a.start - b.start).slice(0, 14);
-  const day = (d) => d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+  opts = opts || {};
+  const zone = plannerZone(opts.tz);
+  const now = zoned(new Date(), zone);
+  const rules = slotRules(opts.slots);
+  const kindOf = (t) => (/^(huistaak|meebrengen):\s/i.test(t) ? "task" : /^toets:\s/i.test(t) ? "test" : "lesson");
+  let evs = parseIcs(text || "").map((e) => {
+    const s = wall(e.start, zone), f = e.end ? wall(e.end, zone) : s;
+    const sub = /Vakken:[ \t]*([^\n]+)/i.exec(e.desc || "");
+    return { day: s.day, min: s.min, endDay: f.day, end: f.min, allDay: e.allDay, title: e.title || "Untitled", where: e.where, subject: sub ? sub[1].trim() : "", kind: kindOf(e.title || "") };
+  }).filter((e) => (e.allDay ? e.endDay - 1 : e.endDay) >= now.day && e.day < now.day + 7).map((e) => Object.assign(e, { day: Math.max(e.day, now.day) }));
+  // A subject set for a time slot replaces the normal lessons in that slot. Tasks and tests always stay.
+  for (let d = now.day; d < now.day + 7; d++) {
+    for (const r of rules) {
+      if (r.wd >= 0 && r.wd !== (d + 4) % 7) continue;
+      evs = evs.filter((e) => !(e.kind === "lesson" && !e.allDay && e.day === d && e.min < r.to && e.end > r.from));
+      evs.push({ day: d, min: r.from, endDay: d, end: r.to, title: r.subject, kind: "lesson", slot: true });
+    }
+  }
+  const prio = (e) => (e.kind === "lesson" ? 1 : 0);
+  evs.sort((a, b) => a.day - b.day || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || a.min - b.min || prio(a) - prio(b));
+  evs = evs.slice(0, 14);
+  const label = (d) => new Date(d * 864e5).toLocaleDateString(undefined, { timeZone: "UTC", weekday: "long", day: "numeric", month: "short" });
   const kids = [el("h3", null, "Smartschool planner")];
   if (!evs.length) kids.push(el("p", { class: "none" }, text == null ? "Planner could not be loaded." : "Nothing planned in the next 7 days."));
-  let last = "";
+  let last = -1, marked = false;
+  const mark = () => { marked = true; kids.push(el("div", { class: "pn" }, el("b", null, hhmm(now.min)), el("i"))); };
   for (const e of evs) {
-    const dl = day(e.start);
-    if (dl !== last) { kids.push(el("div", { class: "pd" }, dl)); last = dl; }
-    const t = e.allDay ? "All day" : e.start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-    kids.push(el("div", { class: "pe" }, el("b", null, t), el("span", null, (e.title || "Untitled") + (e.where ? " (" + e.where + ")" : ""))));
+    if (e.day !== last) {
+      if (last === now.day && !marked) mark();
+      if (e.day > now.day && !marked) { kids.push(el("div", { class: "pd" }, label(now.day))); mark(); }
+      kids.push(el("div", { class: "pd" }, label(e.day)));
+      last = e.day;
+    }
+    if (e.day === now.day && !marked && !e.allDay && e.min > now.min) mark();
+    const main = e.kind === "lesson" && e.subject ? e.subject : e.title;
+    const more = e.kind !== "lesson" && e.subject ? " · " + e.subject : "";
+    const cls = "pe" + (opts.colors !== false && e.kind !== "lesson" ? " " + e.kind : "");
+    kids.push(el("div", { class: cls }, el("b", null, e.allDay ? "All day" : hhmm(e.min)), el("span", null, main + more), e.where ? el("em", null, e.where) : null));
+  }
+  if (!marked) {
+    if (last < now.day) kids.push(el("div", { class: "pd" }, label(now.day)));
+    if (last <= now.day) mark();
   }
   box.replaceChildren(...kids);
+  resizable(box, "plan");
+}
+// The marker moves on its own while the start page stays open.
+setInterval(() => { if (plannerData && document.body.classList.contains("home")) drawPlanner(plannerData.text, plannerData.url, plannerData.opts); }, 60000);
+// Drag the corner grip to resize a start page widget; the size is kept per widget.
+function resizable(box, key) {
+  const apply = (w, h) => {
+    box.style.maxWidth = "none"; box.style.maxHeight = "none";
+    box.style.width = Math.min(w, innerWidth - 32) + "px"; box.style.height = h + "px";
+  };
+  try {
+    const s = JSON.parse(localStorage.getItem("size." + key));
+    if (s && s.w >= 160 && s.h >= 80) apply(s.w, s.h);
+  } catch (e) { /* no saved size */ }
+  const g = el("div", { class: "grip", title: "Drag to resize" });
+  g.addEventListener("pointerdown", (ev) => {
+    ev.preventDefault();
+    g.setPointerCapture(ev.pointerId);
+    const x0 = ev.clientX, y0 = ev.clientY, w0 = box.offsetWidth, h0 = box.offsetHeight;
+    const k = box.dataset.pos === "right" ? -1 : box.dataset.pos === "below" ? 2 : 1;
+    const move = (e) => apply(Math.max(160, w0 + k * (e.clientX - x0)), Math.max(80, h0 + e.clientY - y0));
+    const up = () => {
+      g.removeEventListener("pointermove", move);
+      g.removeEventListener("pointerup", up);
+      try { localStorage.setItem("size." + key, JSON.stringify({ w: box.offsetWidth, h: box.offsetHeight })); } catch (e) { /* storage full */ }
+    };
+    g.addEventListener("pointermove", move);
+    g.addEventListener("pointerup", up);
+  });
+  box.append(g);
 }
 // Planner and notes sit left, right or below the search bar (Settings). Side places need a wide screen.
 function place(id, where, fallback) {
@@ -440,7 +531,7 @@ async function planner() {
   const url = st && st.planner || "";
   let text = null;
   if (url) text = await fetch(url).then((r) => (r.ok ? r.text() : null)).catch(() => null);
-  drawPlanner(text, url);
+  drawPlanner(text, url, st && st.plannerOpts);
 }
 
 // Newest Notebook notes on the start page, read through the app. Hidden when the Settings toggle is off or no server is linked.
@@ -454,6 +545,7 @@ async function notes() {
   if (!items || !items.length) kids.push(el("p", { class: "none" }, "No notes yet. Open Notebook from the menu to add one."));
   else for (const n of items) kids.push(el("div", { class: "pe nt" }, el("b", null, n.title), n.more ? el("span", null, n.more) : null));
   box.replaceChildren(...kids);
+  resizable(box, "notes");
 }
 
 run();
