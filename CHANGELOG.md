@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.6 (versionCode 107)
+- Fixed: When you go to an ip adress it should always use http unless the ip it self redirects you to https
+- Fixed: Every website should have there corresponding site icon on the tab
+- Fixed: On the start page of lodica it should say (logo)odica on mobile
+- Fixed: When dark mode is of some pages still load with dark mode like chores.vpswb.store that is a page tha
+- Fixed: When I want to search something via the widget it should open a new empty tab with no link already i
+- Fixed: When it auto fills in a password and I want to use a different one it keeps auto pasting the saved o
+- Fixed: When you add a new tab and there is still a new tab open it shouldn't open a new one but just move t
+- Fixed: When you click on the logo in the search engine screen you load on a blank page
+
 ## 1.13.5 (versionCode 106)
 - Fixed: When you long press on a shortcut it should give you to option to remove that shortcut
 - Fixed: There should not be an edit shortcut button there should be a plus to add shortcuts
