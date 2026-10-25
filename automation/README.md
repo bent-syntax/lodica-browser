@@ -48,3 +48,7 @@ Without lingering the timer only runs while you are logged in: `sudo loginctl en
 - GitHub token: `/etc/lodica-push/github.env`, used inside the process, never printed.
 - Env: `LODICA_REPO` (checkout holding `main`), `CI_REPO` (private build repo, default `bent-syntax/lodica-support-ci`).
 - `scripts/ci-build.sh` needs the workflow `.github/workflows/support-build.yml` in `CI_REPO`.
+
+## Usage
+
+Each `claude -p` call runs lean: no skills, no MCP servers, only project settings, no saved session, `--effort low` for triage and easy fixes, a per-call `--max-budget-usd` cap (triage 0.25, bug 2, feature 6). Triage answers are cached in `~/.local/state/lodica-fixer/triage.json` per task id and text, so a task skipped by one trigger is not triaged again.
