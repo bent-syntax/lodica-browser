@@ -29,8 +29,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import be.syntaxya.lodica.engine.MathSolver
 import be.syntaxya.lodica.engine.Note
 import be.syntaxya.lodica.engine.NoteInfo
 import be.syntaxya.lodica.engine.Notebook
@@ -56,6 +59,7 @@ fun NotebookScreen() {
     var notes by remember { mutableStateOf(emptyList<NoteInfo>()) }
     var id by remember { mutableStateOf<String?>(null) }
     var text by remember { mutableStateOf("") }
+    var sel by remember { mutableStateOf(TextRange.Zero) }
     var rev by remember { mutableStateOf(0) }
     var sent by remember { mutableStateOf("") }
     var loaded by remember { mutableStateOf(false) }
@@ -63,7 +67,7 @@ fun NotebookScreen() {
     var confirmDelete by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun show(n: Note) { id = n.id; text = n.text; rev = n.rev; sent = n.text; loaded = true; status = SYNCED }
+    fun show(n: Note) { id = n.id; text = n.text; sel = TextRange.Zero; rev = n.rev; sent = n.text; loaded = true; status = SYNCED }
 
     // Loads the list and shows the wanted note, else the current one, else the first.
     suspend fun reload(want: String? = null) {
@@ -148,8 +152,24 @@ fun NotebookScreen() {
                 }
             }) { Icon(Icons.Rounded.Add, "New note", tint = Amber) }
         }
+        // Selecting math shows its answer above the note, with a button that writes it after the selection.
+        val from = sel.start.coerceIn(0, text.length); val to = sel.end.coerceIn(0, text.length)
+        val answer = if (from == to) null else MathSolver.answer(text.substring(minOf(from, to), maxOf(from, to)))
+        if (answer != null) {
+            val add = (if (answer.contains("=")) "\n" else " = ") + answer
+            val end = maxOf(from, to)
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text((if (answer.contains("=")) "" else "= ") + answer, color = Amber, fontSize = 15.sp, modifier = Modifier.weight(1f))
+                Chip("Insert", false) {
+                    if (text.length + add.length > NOTE_MAX) return@Chip
+                    text = text.substring(0, end) + add + text.substring(end)
+                    sel = TextRange(end + add.length)
+                }
+            }
+        }
         OutlinedTextField(
-            text, { if (loaded && it.length <= NOTE_MAX) text = it },
+            TextFieldValue(text, TextRange(from, to)),
+            { if (loaded && it.text.length <= NOTE_MAX) { text = it.text; sel = it.selection } },
             Modifier.fillMaxWidth().weight(1f).padding(12.dp),
             enabled = loaded,
             shape = RoundedCornerShape(12.dp),

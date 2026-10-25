@@ -9,6 +9,21 @@ function openNotebook() {
     L.status = h("div", { class: "empty", style: "padding:6px 12px", text: "Loading..." });
     L.ta = h("textarea", { class: "field", placeholder: "Write here. Every linked device shows the same notes.", maxlength: "100000", disabled: true, style: "flex:1;min-height:240px;margin:0 12px 12px;border-radius:12px;resize:none;font-size:15px" });
     L.chips = h("div", { class: "chips", style: "padding:0 12px 8px;overflow-x:auto;flex-wrap:nowrap;flex-shrink:0" });
+    // Selecting math shows its answer above the note, with a button that writes it after the selection.
+    L.ans = h("div", { class: "empty", style: "display:none;align-items:center;gap:8px;padding:0 12px 8px;color:var(--accent,#F59E0B);font-size:15px" });
+    const showAnswer = () => {
+      const a = L.ta.selectionStart === L.ta.selectionEnd ? null : mathAnswer(L.ta.value.slice(L.ta.selectionStart, L.ta.selectionEnd));
+      if (a == null) { L.ans.style.display = "none"; return; }
+      const end = L.ta.selectionEnd, add = (a.includes("=") ? "\n" : " = ") + a;
+      L.ans.replaceChildren(h("span", { style: "flex:1", text: (a.includes("=") ? "" : "= ") + a }),
+        h("button", { class: "chip", text: "Insert", act: () => {
+          if (L.ta.value.length + add.length > 100000) return;
+          L.ta.focus(); L.ta.setSelectionRange(end, end);
+          if (!document.execCommand("insertText", false, add)) { L.ta.setRangeText(add, end, end, "end"); L.ta.dispatchEvent(new Event("input")); }
+          L.ans.style.display = "none";
+        } }));
+      L.ans.style.display = "flex";
+    };
     const adopt = (n) => { L.rev = n.rev; L.sent = n.text; };
     const label = (n) => {
       const t = n.id === L.id ? firstLine(L.ta.value) : n.title;
@@ -91,6 +106,9 @@ function openNotebook() {
       if (n) show(n);
     };
     L.ta.addEventListener("input", () => { L.dirty = true; L.status.textContent = "Saving..."; drawChips(); clearTimeout(L.timer); L.timer = setTimeout(save, 800); });
+    L.ta.addEventListener("select", showAnswer);
+    L.ta.addEventListener("keyup", showAnswer);
+    L.ta.addEventListener("mouseup", () => setTimeout(showAnswer));
     const pull = async () => {
       if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); return; }
       const [notes, n] = await Promise.all([inv("notebook.list"), inv("notebook.get", L.id)]);
@@ -107,7 +125,7 @@ function openNotebook() {
     return h("div", { class: "spage" },
       h("div", { class: "sp-main", style: "display:flex;flex-direction:column;height:100%" },
         h("div", { class: "sp-head" }, h("h2", { text: "Notebook" }), ib("delete", "Delete note", del), ib("close", "Close notebook", () => L.close())),
-        L.status, L.chips, L.ta));
+        L.status, L.chips, L.ans, L.ta));
   });
   const L = NB.L;
   L.reload();
