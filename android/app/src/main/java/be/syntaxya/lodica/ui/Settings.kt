@@ -1157,7 +1157,7 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 }
 
 @Composable
-private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(50)
     Text(
         label, color = if (selected) Amber else Mist, fontSize = 13.sp,

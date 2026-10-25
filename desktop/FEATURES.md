@@ -203,7 +203,7 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 80. Dummy mail button: only on sign-up pages; can be hidden for a single site.
 81. The two dark-mode settings are merged into one.
 82. Search works with no relay (falls back to DuckDuckGo).
-83. Notebook (menu > Notebook): one text note kept on the relay (`/api/notebook`) and shared with every linked device. Saves after you stop typing and checks for changes every 10 seconds. If two devices edit at once, the newer text stays and the other edit is added under it.
+83. Notebook (menu > Notebook): several text notes kept on the relay (`/api/notebook`) and shared with every linked device. Switch between notes with the chips, add one with the plus chip, delete the open one with the bin button. Saves after you stop typing and checks for changes every 10 seconds. If two devices edit at once, the newer text stays and the other edit is added under it.
 
 ## Extensions (1.2.0)
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.

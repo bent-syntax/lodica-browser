@@ -520,9 +520,11 @@ async function route(req, res) {
     return m === 'GET' ? themeGet(req, res) : themePut(req, res);
   }
   if (p === '/api/notebook') {
-    if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');
+    if (m !== 'GET' && m !== 'PUT' && m !== 'POST' && m !== 'DELETE') return not('GET, HEAD, PUT, POST, DELETE');
     if (!authed(req, res)) return;
     const h = { sendJson, sendText, readBody };
+    if (m === 'POST') return notebook.create(req, res, h);
+    if (m === 'DELETE') return notebook.remove(req, res, h);
     return m === 'GET' ? notebook.get(req, res, h) : notebook.put(req, res, h);
   }
   if (p === '/api/pair') {

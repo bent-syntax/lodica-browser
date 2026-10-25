@@ -11,9 +11,10 @@ const h = {
   sendText: (req, res, s, t) => send(req, res, s, t),
   readBody: (req) => new Promise((ok) => { const c = []; req.on('data', (d) => c.push(d)); req.on('end', () => ok(Buffer.concat(c))); }),
 };
-const server = http.createServer((req, res) => (req.method === 'PUT' ? notebook.put(req, res, h) : notebook.get(req, res, h)));
-const call = (port, method, body) => new Promise((ok, bad) => {
-  const r = http.request({ port, method, path: '/api/notebook' }, (res) => {
+const routes = { GET: notebook.get, PUT: notebook.put, POST: notebook.create, DELETE: notebook.remove };
+const server = http.createServer((req, res) => routes[req.method](req, res, h));
+const call = (port, method, body, q = '') => new Promise((ok, bad) => {
+  const r = http.request({ port, method, path: '/api/notebook' + q }, (res) => {
     let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => ok({ status: res.statusCode, json: d.startsWith('{') ? JSON.parse(d) : d }));
   });
   r.on('error', bad); r.end(body === undefined ? undefined : JSON.stringify(body));
@@ -23,7 +24,7 @@ test('notebook', async () => {
   await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
   const port = server.address().port;
   try {
-    assert.deepStrictEqual((await call(port, 'GET')).json, { text: '', rev: 0, at: 0 });
+    assert.deepStrictEqual((await call(port, 'GET')).json, { notes: [{ id: '1', title: '', at: 0 }], text: '', rev: 0, at: 0 });
     const a = await call(port, 'PUT', { text: 'one', base: 0 });
     assert.strictEqual(a.status, 200); assert.strictEqual(a.json.rev, 1);
     const stale = await call(port, 'PUT', { text: 'two', base: 0 });
@@ -32,5 +33,16 @@ test('notebook', async () => {
     assert.strictEqual((await call(port, 'PUT', { text: 5 })).status, 400);
     notebook.reset();
     assert.strictEqual((await call(port, 'GET')).json.text, 'two'); // persisted
+    // several notes
+    const n = (await call(port, 'POST')).json;
+    assert.strictEqual(n.text, '');
+    assert.strictEqual((await call(port, 'PUT', { text: '\nShopping\nmilk', base: 0 }, '?id=' + n.id)).json.rev, 1);
+    const l = (await call(port, 'GET')).json;
+    assert.deepStrictEqual(l.notes.map((x) => x.title), ['two', 'Shopping']);
+    assert.strictEqual(l.text, 'two'); // first note stays in the old fields
+    assert.strictEqual((await call(port, 'GET', undefined, '?id=' + n.id)).json.text, '\nShopping\nmilk');
+    assert.strictEqual((await call(port, 'GET', undefined, '?id=zz')).status, 404);
+    assert.strictEqual((await call(port, 'DELETE', undefined, '?id=1')).json.notes.length, 1);
+    assert.strictEqual((await call(port, 'DELETE', undefined, '?id=' + n.id)).json.notes[0].title, '');
   } finally { server.close(); }
 });
