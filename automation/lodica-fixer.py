@@ -497,8 +497,10 @@ def process(tk, st, kinds):
     if bad:
         return bad
     head = git("rev-parse", "--short", "HEAD")[1].strip()
-    for t, sha, _ in done:
-        tk.patch(t["id"], {"status": "completed", "notes": "Done in %s, released as v%s." % (sha, ver)})
+    for t, sha, label in done:
+        # the support desk reads this line: "Added in" mails the person "added", anything else "fixed"
+        verb = "Added" if label.startswith("Add") else "Fixed"
+        tk.patch(t["id"], {"status": "completed", "notes": "%s in %s, released as v%s." % (verb, sha, ver)})
     git("worktree", "remove", "--force", wt)
     return "released v%s (%s): fixed %d of %d" % (ver, head, len(done), len(bugs))
 

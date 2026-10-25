@@ -461,6 +461,9 @@ function init(deps) {
   });
 
   on("support.open", () => support.open());
+  on("support.linkStart", (email) => support.linkStart(str(email).slice(0, 120).trim()));
+  on("support.linkVerify", (email, code) => support.linkVerify(str(email).slice(0, 120).trim(), str(code).slice(0, 12).trim()));
+  on("support.unlink", () => support.unlink());
   on("support.send", (text, o) => support.send(str(text).slice(0, 4000).trim(), o && Array.isArray(o.images) ? o.images.filter(x => typeof x === "string").slice(0, 3) : [], !!(o && o.resolved)));
   on("update.status", () => updater.status());
   on("notes.get", () => { try { return require("fs").readFileSync(require("path").join(app.getAppPath(), "PATCH_NOTES.md"), "utf8"); } catch { return ""; } });

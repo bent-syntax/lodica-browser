@@ -93,4 +93,38 @@ function reply(t, text, replyTo) {
     text: `Lodica Support wrote:\n\n${text}\n\nNot solved yet? Reply to this email. Your request number is ${t.id}.\n`,
   };
 }
-module.exports = { loginCode, confirmation, notifyOwner, followUpOwner, reply, esc, CAT };
+
+/** The six-digit code that links an email address to Lodica support. */
+function linkCode(code) {
+  const pretty = code.replace(/(\d{3})(\d{3})/, '$1 $2');
+  return {
+    subject: `Link your email to Lodica support: ${pretty}`,
+    html: layout({ title: 'Link your email', preheader: `Your code is ${pretty}`, body: `<p style="margin:0 0 12px;">Type this code in Lodica (Settings > Support) to link this email address:</p>
+      <div style="text-align:center;margin:18px 0;"><span style="display:inline-block;font:600 34px 'SFMono-Regular',Consolas,monospace;letter-spacing:.2em;background:#FAF8F4;border:1px solid #E6E1D8;border-radius:14px;padding:14px 22px;color:#8A5A00;">${esc(pretty)}</span></div>
+      <p style="margin:0 0 12px;">After that you can email your bugs and ideas to this address, and you get an email when we answer, add or fix them.</p>
+      <p style="margin:0;color:#8A857B;font-size:13px;">The code works for 10 minutes. If you did not ask for it, you can ignore this email.</p>` }),
+    text: `Your code to link this email to Lodica support: ${pretty}\n\nType it in Lodica (Settings > Support). It works for 10 minutes. If you did not ask for it, ignore this email.\n`,
+  };
+}
+
+/** To someone who mailed support from an address that is not linked yet. */
+function linkFirst() {
+  return {
+    subject: 'Link your email in Lodica first',
+    html: layout({ title: 'We got your email', preheader: 'Link your email in Lodica so we can take your request.', body: `
+      <p style="margin:0 0 12px;">Thank you for writing to Lodica support. Before we can take requests by email, please link this address in the app:</p>
+      <ol style="margin:0 0 12px;padding-left:20px;"><li>Open Lodica and go to Settings > Support.</li><li>Tap <b>Link email</b> and type this email address.</li><li>Type the code we send you.</li></ol>
+      <p style="margin:0;">Then send your email again. You can also write to us in the app right away.</p>` }),
+    text: `Thank you for writing to Lodica support.\n\nBefore we can take requests by email, please link this address in the app:\n1. Open Lodica, Settings > Support.\n2. Tap "Link email" and type this email address.\n3. Type the code we send you.\n\nThen send your email again. You can also write to us in the app right away.\n`,
+  };
+}
+
+/** To a linked sender whose email could not become a request. */
+function notTaken(why) {
+  return {
+    subject: 'We could not take your email',
+    html: layout({ title: 'We could not take your email', preheader: why, body: `<p style="margin:0 0 12px;">${esc(why)}</p><p style="margin:0;color:#8A857B;font-size:13px;">Please send it again, or write to us in Lodica (Settings > Support).</p>` }),
+    text: `We could not take your email: ${why}\n\nPlease send it again, or write to us in Lodica (Settings > Support).\n`,
+  };
+}
+module.exports = { loginCode, linkCode, linkFirst, notTaken, confirmation, notifyOwner, followUpOwner, reply, esc, CAT };

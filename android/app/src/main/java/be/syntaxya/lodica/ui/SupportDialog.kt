@@ -49,6 +49,54 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Email updates: link an address with a code mailed to it. Then mail to support from it also works. */
+@Composable
+private fun LinkEmail() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
+    var email by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    var sent by remember { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp)) {
+        Text("Email updates", fontSize = 13.sp, color = Mist)
+        if (linked.isNotEmpty()) {
+            Text("Linked to $linked. You get updates by email, and you can mail lodica@syntaxya.be from this address.", fontSize = 12.sp, color = Muted)
+            TextButton(enabled = !busy, onClick = {
+                busy = true
+                scope.launch { withContext(Dispatchers.IO) { Support.unlink(ctx) }; busy = false; linked = ""; sent = false; code = "" }
+            }) { Text("Unlink") }
+            return@Column
+        }
+        Text("Link your email to get updates by mail and to send requests to lodica@syntaxya.be. We send a code to check it is yours.", fontSize = 12.sp, color = Muted)
+        OutlinedTextField(
+            value = email, onValueChange = { email = it.take(120) }, enabled = !sent, singleLine = true,
+            label = { Text("Email") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Email),
+        )
+        if (sent) OutlinedTextField(
+            value = code, onValueChange = { code = it.filter(Char::isDigit).take(6) }, singleLine = true,
+            label = { Text("6-digit code") }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+        )
+        TextButton(enabled = !busy && email.isNotBlank() && (!sent || code.length == 6), onClick = {
+            busy = true; note = null
+            scope.launch {
+                val err = withContext(Dispatchers.IO) { if (sent) Support.linkVerify(ctx, email, code) else Support.linkStart(ctx, email) }
+                busy = false
+                when {
+                    err != null -> note = err
+                    sent -> linked = Support.linkedEmail(ctx)
+                    else -> { sent = true; note = "Code sent. Check your mail." }
+                }
+            }
+        }) { Text(if (sent) "Link" else "Send code") }
+        note?.let { Text(it, fontSize = 12.sp, color = Muted) }
+    }
+}
+
 /** Contact support: write what is wrong or missing, and read the team's answers and questions. */
 @Composable
 internal fun SupportDialog(onClose: () -> Unit) {
@@ -93,6 +141,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
                         if (Support.status == "awaiting-confirm") Text("Is it fixed or working now?", fontSize = 12.sp, color = Amber)
                         if (Support.status == "done") Text("Fixed. Update the browser to get it.", fontSize = 12.sp, color = Amber)
                     } else Text("Describe a bug or something you'd like added. You'll get a notification when it's sent, and again when there's news.", fontSize = 12.sp, color = Muted)
+                    LinkEmail()
                 }
                 OutlinedTextField(
                     value = text, onValueChange = { text = it },

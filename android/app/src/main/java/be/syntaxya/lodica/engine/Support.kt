@@ -23,6 +23,39 @@ object Support {
 
     fun ticketId(ctx: Context): String? = prefs(ctx).getString("ticket", null)
 
+    /** The email linked to support, or "" when none. Linked: mail from it counts as a request, and updates also go there. */
+    fun linkedEmail(ctx: Context): String = prefs(ctx).run { if (getString("link", null) != null) getString("email", "") ?: "" else "" }
+
+    private fun linkCall(ctx: Context, step: String, body: JSONObject): Pair<JSONObject?, String?> {
+        Relay.init(ctx)
+        if (!Relay.available) return null to "No relay is set up. Pair this browser with your server first."
+        val (code, resp) = try {
+            Relay.request("POST", "/api/support/link/$step", body.toString().toByteArray(), "application/json", readTimeoutMs = 25_000)
+        } catch (e: java.io.IOException) {
+            return null to "Can't reach the server. Try again later."
+        }
+        val j = runCatching { JSONObject(resp) }.getOrNull()
+        return if (code == 200) (j ?: JSONObject()) to null else null to (j?.optString("error")?.ifBlank { null } ?: resp.ifBlank { "Support refused it ($code)" })
+    }
+
+    /** Asks support to mail a code to [email]. Returns an error message, or null when the code is on its way. */
+    fun linkStart(ctx: Context, email: String): String? = linkCall(ctx, "start", JSONObject().put("email", email.trim())).second
+
+    /** Checks the mailed [code] and stores the link. Returns an error message, or null on success. */
+    fun linkVerify(ctx: Context, email: String, code: String): String? {
+        val (j, err) = linkCall(ctx, "verify", JSONObject().put("email", email.trim()).put("code", code.trim()))
+        if (err != null) return err
+        val link = j!!.optString("link")
+        if (!Regex("^[0-9a-f]{64}$").matches(link)) return "Support sent an odd answer. Try again."
+        prefs(ctx).edit().putString("link", link).putString("email", j.optString("email").ifBlank { email.trim() }).apply()
+        return null
+    }
+
+    fun unlink(ctx: Context) {
+        prefs(ctx).getString("link", null)?.let { runCatching { linkCall(ctx, "remove", JSONObject().put("link", it)) } }
+        prefs(ctx).edit().remove("link").remove("email").apply()
+    }
+
     /** Sends [text] as a new ticket, or as a reply when a ticket is open. Returns an error message, or null on success. */
     fun send(ctx: Context, text: String, images: List<Uri> = emptyList(), resolved: Boolean = false): String? {
         Relay.init(ctx)
@@ -33,6 +66,7 @@ object Support {
         if (resolved && id != null) body.put("resolved", true)
         val path = if (id == null) {
             val v = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""
+            prefs(ctx).getString("link", null)?.let { body.put("link", it) }
             body.put("name", Room.name(ctx)).put("app", "android").put("version", v)
                 .put("platform", "Android " + android.os.Build.VERSION.RELEASE + " " + android.os.Build.MODEL)
             "/api/support"

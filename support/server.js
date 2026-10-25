@@ -10,6 +10,23 @@ const nodemailer = require('nodemailer');
 const { createApp } = require('./app');
 const { createTasks } = require('./tasks');
 
+// settings may also come from an env file (KEY=value lines); what is already in the environment wins
+function loadEnv() {
+  const os = require('os');
+  const files = process.env.SUPPORT_ENV_FILE ? [process.env.SUPPORT_ENV_FILE] : ['/etc/lodica-support.env', path.join(os.homedir(), '.lodica-support.env'), path.join(__dirname, '.env')];
+  for (const f of files) {
+    let raw; try { raw = fs.readFileSync(f, 'utf8'); } catch { continue; }
+    for (const line of raw.split(/\r?\n/)) {
+      const m = /^\s*(?:export\s+)?([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i.exec(line); if (!m) continue;
+      const v = m[2].replace(/^(['"])(.*)\1$/, '$2');
+      if (process.env[m[1]] === undefined) process.env[m[1]] = v;
+    }
+    return f;
+  }
+  return '';
+}
+const envFile = loadEnv();
+
 const user = process.env.SUPPORT_USER, pass = process.env.SUPPORT_PASS;
 if (!user || !pass) { console.error('SUPPORT_USER and SUPPORT_PASS are not set. Run install.sh first.'); process.exit(1); }
 const flag = (v, d) => (v === undefined || v === '' ? d : /^(1|true|yes)$/i.test(v));
@@ -17,15 +34,18 @@ const transport = nodemailer.createTransport({ host: process.env.SMTP_HOST || 's
 const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
 const fileOrEnv = (name) => { if (process.env[name]) return process.env[name].trim(); const f = process.env[name + '_FILE']; try { return f ? fs.readFileSync(f, 'utf8').trim() : ''; } catch { return ''; } };
 
-// every new ticket and follow-up: (a) phone notification via the owner's local server, (b) a Google Task in the list "lodica"
+// every new ticket and follow-up: (a) phone notification via the owner's local server, (b) a Google Task in the list "lodica suggestions".
+// Ticking a suggestion off copies it to the work list "lodica" (the fixer works from there) and tells the person it is on the list.
 const notifyUrl = process.env.SUPPORT_NOTIFY_URL || 'http://127.0.0.1:47601/support/incoming', notifyToken = process.env.SUPPORT_NOTIFY_TOKEN || '';
-const tasks = createTasks({ listTitle: process.env.SUPPORT_TASKS_LIST || 'lodica' });
+const useTasks = process.env.SUPPORT_TASKS !== '0';
+const tasks = createTasks({ listTitle: process.env.SUPPORT_SUGGESTIONS_LIST || 'lodica suggestions' });
+const work = createTasks({ listTitle: process.env.SUPPORT_TASKS_LIST || 'lodica' });
 async function onOwnerMail(m) {
   if (notifyToken) {
     const r = await fetch(notifyUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + notifyToken }, body: JSON.stringify({ kind: m.kind, id: m.id, title: m.title, category: m.category, from: m.from, text: m.text }), signal: AbortSignal.timeout(10000) }).catch((e) => ({ ok: false, status: e.message }));
     if (!r.ok) log('could not notify about', m.id, r.status);
   }
-  if (process.env.SUPPORT_TASKS !== '0') {
+  if (useTasks) {
     // ticket text is untrusted data: it only becomes plain task text
     try { await tasks.addTask((m.kind === 'new' ? '' : 'Follow-up ') + m.id + ' ' + String(m.title || '').slice(0, 120), 'From: ' + m.from + '\nType: ' + m.category + '\n\n' + String(m.text || '').slice(0, 4000)); }
     catch (e) { log('could not add Google Task for', m.id, e.message); }
@@ -49,12 +69,46 @@ if (!secret) log('SUPPORT_SECRET is not set: in-app tickets from the relay are r
 const app = createApp({ onOwnerMail, toRelay, secret, dataDir: process.env.SUPPORT_DATA || path.join(__dirname, 'data'), transport, from: user, owners: (process.env.SUPPORT_OWNERS || '').split(',').map((s) => s.trim()).filter(Boolean) });
 const port = Number(process.env.SUPPORT_PORT || 47610);
 
-http.createServer((req, res) => app.handle(req, res)).listen(port, '127.0.0.1', () => console.log('Support desk on 127.0.0.1:' + port));
+http.createServer((req, res) => app.handle(req, res)).listen(port, '127.0.0.1', () => console.log('Support desk on 127.0.0.1:' + port + (envFile ? ' (settings from ' + envFile + ')' : '')));
+
+// the two Google Tasks lists: ticked suggestions move to the work list; a ticked work task tells the person it is added or fixed
+const LOD = /\bLOD-\d{4,}\b/i;
+let syncing = false;
+async function syncTasks() {
+  if (!useTasks || syncing) return; syncing = true;
+  const db = app.db();
+  db.taskSync = db.taskSync || { since: Date.now(), promoted: {} };   // older ticked tasks never send mail
+  const since = db.taskSync.since, promoted = db.taskSync.promoted;
+  try {
+    for (const s of await tasks.listTasks()) {
+      if (s.status !== 'completed' || promoted[s.id] || s.deleted) continue;
+      await work.addTask(s.title || '', s.notes || '');
+      promoted[s.id] = Date.now(); app.save();
+      const id = (LOD.exec(s.title || '') || [])[0];
+      if (id) { const r = await app.notify(id.toUpperCase(), 'listed'); if (!r.error) log('on the work list:', id); }
+    }
+    const keys = Object.keys(promoted); if (keys.length > 2000) { for (const k of keys.sort((a, b) => promoted[a] - promoted[b]).slice(0, keys.length - 2000)) delete promoted[k]; app.save(); }
+    for (const w of await work.listTasks()) {
+      if (w.status !== 'completed' || w.deleted) continue;
+      const id = ((LOD.exec(w.title || '') || [])[0] || '').toUpperCase(), t = id && db.tickets[id];
+      if (!t || (t.auto && (t.auto.done || t.auto.fixed))) continue;
+      const done = Date.parse(w.completed || '') || 0;
+      if (done < since || done < t.createdAt) continue;
+      const line = (/^(Added|Fixed|Done) in .*$/m.exec(w.notes || '') || [''])[0];
+      const event = /^Added/.test(line) || (!line && t.category === 'idea') ? 'added' : 'fixed';
+      const r = await app.notify(id, event, line); if (!r.error) log('told the person', id, 'is', event);
+    }
+  } catch (e) { log('Google Tasks sync failed:', e.message); }
+  syncing = false;
+}
+setInterval(syncTasks, 60000); setTimeout(syncTasks, 10000);
 
 // answers come back as emails: look at the mailbox now and then.
 // Messages are followed by number (UID), not by "unread": reading a mail in Gmail must never make us miss it.
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
+// out-of-office answers, mailing lists and bounces never get an answer
+const isAuto = (h) => { const a = String(h.get('auto-submitted') || '').toLowerCase(); return (a && a !== 'no') || h.has('list-id') || /^(bulk|list|junk)$/i.test(String(h.get('precedence') || '')); };
 let busy = false;
 async function poll() {
   if (busy) return; busy = true;
@@ -75,7 +129,7 @@ async function poll() {
             if (!db.mail.ids.includes(mid) && !m.headers.get('x-lodica-mail')) {
               const arH = m.headers.get('authentication-results'), auth = arH ? (typeof arH === 'string' ? arH : JSON.stringify(arH)) : '';
               // a mail that Gmail did not receive from outside (we answered from the mailbox itself) has no such header; anything from outside always has one, and must pass
-              const r = await app.inbound({ from: (m.from && m.from.value[0] && m.from.value[0].address) || '', to: (m.to ? m.to.value : []).map((x) => x.address).concat(m.headers.get('delivered-to') ? [String(m.headers.get('delivered-to'))] : []), subject: m.subject || '', text: m.text || '', authOk: !arH || (/(dkim|spf)=pass/i.test(auth) && !/dkim=fail/i.test(auth)) });
+              const r = await app.inbound({ from: (m.from && m.from.value[0] && m.from.value[0].address) || '', to: (m.to ? m.to.value : []).map((x) => x.address).concat(m.headers.get('delivered-to') ? [String(m.headers.get('delivered-to'))] : []), subject: m.subject || '', text: m.text || '', auto: isAuto(m.headers), authOk: !arH || (/(dkim|spf)=pass/i.test(auth) && !/dkim=fail/i.test(auth)) });
               if (r.handled) log('handled a', r.kind, 'from the mailbox:', m.subject); else if (r.why) log('ignored a mail:', r.why, '-', m.subject);
               if (r.handled || !r.why) db.mail.ids = [...db.mail.ids, mid].slice(-500);
             }

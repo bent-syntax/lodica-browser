@@ -5,8 +5,8 @@ const relay = require("./relay");
 const store = require("./store");
 const os = require("os");
 
-const state = { id: store.load("supportTicket", "") || "", seen: store.load("supportSeen", 0) || 0, status: "", messages: [] };
-const persist = () => { store.save("supportTicket", () => state.id); store.save("supportSeen", () => state.seen); };
+const state = { id: store.load("supportTicket", "") || "", seen: store.load("supportSeen", 0) || 0, status: "", messages: [], link: store.load("supportLink", "") || "", email: store.load("supportEmail", "") || "" };
+const persist = () => { store.save("supportTicket", () => state.id); store.save("supportSeen", () => state.seen); store.save("supportLink", () => state.link); store.save("supportEmail", () => state.email); };
 
 function notify(title, body, onClick) {
   // In-app toast always, since system notifications can be missing or muted (e.g. on Linux).
@@ -33,6 +33,7 @@ async function send(text, images = [], resolved = false, onClick) {
   const body = { text };
   if (images.length) body.images = images;
   if (resolved && id) body.resolved = true;
+  if (!id && state.link) body.link = state.link;
   if (!id) Object.assign(body, { name: require("./room").state.name, app: "desktop", version: require("../package.json").lodicaVersion || require("electron").app.getVersion(), platform: process.platform + " " + os.release() });
   try {
     const [st, resp] = await relay.request("POST", id ? "/api/support/" + id : "/api/support", 15000, body);
@@ -53,8 +54,32 @@ async function refresh(notifyTeam, onClick) {
   } catch {}
 }
 
-const get = () => ({ messages: state.messages, status: state.status, open: state.messages.length > 0 && state.status !== "closed" });
+const get = () => ({ messages: state.messages, status: state.status, open: state.messages.length > 0 && state.status !== "closed", email: state.link ? state.email : "" });
+
+// Linking an email: the desk mails a code, the code gives a link token. Then mail from that address counts as a
+// request, and requests from here also get updates by email.
+async function linkCall(step, body) {
+  if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
+  try {
+    const [st, resp] = await relay.request("POST", "/api/support/link/" + step, 25000, body);
+    let j = {}; try { j = JSON.parse(resp); } catch {}
+    return st === 200 ? j : { error: j.error || resp || "Support refused it (" + st + ")" };
+  } catch { return { error: "Can't reach the server. Try again later." }; }
+}
+const linkStart = (email) => linkCall("start", { email });
+async function linkVerify(email, code) {
+  const r = await linkCall("verify", { email, code });
+  if (r.error) return r;
+  if (!/^[0-9a-f]{64}$/.test(r.link || "")) return { error: "Support sent an odd answer. Try again." };
+  state.link = r.link; state.email = r.email || email; persist();
+  return get();
+}
+async function unlink() {
+  if (state.link) await linkCall("remove", { link: state.link });
+  state.link = ""; state.email = ""; persist();
+  return get();
+}
 async function open() { await refresh(false); return get(); }
 function watch(onClick) { setTimeout(() => refresh(true, onClick), 20000); setInterval(() => { if (state.status !== "closed") refresh(true, onClick); }, 30 * 1000); }
 
-module.exports = { send, open, watch };
+module.exports = { send, open, watch, linkStart, linkVerify, unlink };

@@ -1,7 +1,7 @@
 'use strict';
 /* Google Tasks helper. Credentials (client_id, client_secret, refresh_token) are read at runtime from
    ~/.lodica-tasks.json (or LODICA_TASKS_CONFIG). Never logged, never stored in the repo.
-   Adds a task to the list titled "lodica"; creates the list when it is missing. */
+   Adds tasks to one list (by title, created when missing) and reads them back. */
 const fs = require('fs'), os = require('os'), path = require('path');
 const API = 'https://tasks.googleapis.com/tasks/v1', TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const cfgPath = () => process.env.LODICA_TASKS_CONFIG || path.join(os.homedir(), '.lodica-tasks.json');
@@ -35,6 +35,17 @@ function createTasks({ listTitle = 'lodica', fetchFn = fetch, config } = {}) {
     const id = await list();
     return call('POST', API + '/lists/' + id + '/tasks', { title: String(title).slice(0, 1000), notes: String(notes || '').slice(0, 8000) });
   }
-  return { addTask, list };
+  /** Every task in the list, completed and hidden ones too. */
+  async function listTasks() {
+    const id = await list(), out = [];
+    let page = '';
+    do {
+      const j = await call('GET', API + '/lists/' + id + '/tasks?maxResults=100&showCompleted=true&showHidden=true' + page);
+      out.push(...(j.items || []));
+      page = j.nextPageToken ? '&pageToken=' + encodeURIComponent(j.nextPageToken) : '';
+    } while (page);
+    return out;
+  }
+  return { addTask, list, listTasks };
 }
 module.exports = { createTasks };

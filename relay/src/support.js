@@ -108,15 +108,32 @@ function limited(ip) {
 // Fire and forget: the app never waits on the desk, and a failure only logs. The shared secret is read from a file outside the repo.
 const DESK_URL = process.env.LODICA_DESK_URL || '';
 const DESK_SECRET_PATH = process.env.LODICA_DESK_SECRET_PATH || '/etc/lodica-relay/desk-secret';
+const deskSecret = () => { try { return fs.readFileSync(DESK_SECRET_PATH, 'utf8').trim(); } catch { return ''; } };
 function forward(t, text) {
   if (!DESK_URL) return;
-  let secret = '';
-  try { secret = fs.readFileSync(DESK_SECRET_PATH, 'utf8').trim(); } catch { /* not configured */ }
+  const secret = deskSecret();
   if (!secret) return;
-  const payload = JSON.stringify({ relayId: t.id, text, name: t.name, app: t.app, version: t.version, platform: t.platform });
+  const payload = JSON.stringify({ relayId: t.id, text, name: t.name, app: t.app, version: t.version, platform: t.platform, link: t.link || undefined });
   fetch(DESK_URL.replace(/\/$/, '') + '/relay/ticket', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + secret }, body: payload, signal: AbortSignal.timeout(10000),
   }).then((r) => { if (!r.ok) console.error('support desk refused ticket:', r.status); }).catch((e) => console.error('support desk unreachable:', e.message));
+}
+
+const LINK_RE = /^[0-9a-f]{64}$/;
+// "Link my email": start sends a code to the address, verify turns the code into a link token, remove forgets it. The desk does the work.
+async function link(req, res, step, ip, h) {
+  if (!DESK_URL) return h.sendText(req, res, 503, 'email linking is not set up');
+  const secret = deskSecret();
+  if (!secret) return h.sendText(req, res, 503, 'email linking is not set up');
+  const b = await body(req, h);
+  if (!b) return h.sendText(req, res, 400, 'bad request');
+  if (step !== 'remove' && limited(ip)) return h.sendText(req, res, 429, 'too many tries, try again later');
+  const payload = step === 'remove' ? { link: clean(b.link, 64) } : { email: clean(b.email, 254), code: clean(b.code, 12), ip };
+  try {
+    const r = await fetch(DESK_URL.replace(/\/$/, '') + '/relay/link/' + step, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + secret }, body: JSON.stringify(payload), signal: AbortSignal.timeout(20000) });
+    const j = await r.json().catch(() => ({}));
+    h.sendJson(req, res, r.status, j);
+  } catch { h.sendText(req, res, 502, 'support is not reachable right now'); }
 }
 
 async function body(req, h) {
@@ -135,6 +152,7 @@ async function create(req, res, ip, h) {
     name: clean(b.name, NAME_MAX), app: clean(b.app, 20), version: clean(b.version, 20), platform: clean(b.platform, 40),
     messages: [],
   };
+  if (typeof b.link === 'string' && LINK_RE.test(b.link)) t.link = b.link;   // a linked email (see link below); never shown back
   const images = saveImages(t, b.images);
   t.messages.push(images.length ? { from: 'user', text, at: Date.now(), images } : { from: 'user', text, at: Date.now() });
   tickets.set(t.id, t);
@@ -222,4 +240,4 @@ async function adminPost(req, res, id, h) {
   h.sendJson(req, res, 200, view(t));
 }
 
-module.exports = { load, create, get, reply, push, image, adminList, adminPost, sweep };
+module.exports = { load, create, link, get, reply, push, image, adminList, adminPost, sweep };

@@ -218,7 +218,37 @@ function openSupport() {
         if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
       } });
       wrap.append(ta, h("div", { class: "sup-row" }, addBtn, file, btn), err);
+      wrap.append(linkBox(st));
       b.append(wrap);
+    };
+    // Email updates: link an address with a code sent to it. Then mail to support from it also works.
+    const linkBox = (st) => {
+      const box = h("div", { class: "sup-intro" }, h("div", { class: "sup-h", text: "Email updates" }));
+      const lerr = h("div", { class: "sup-err", text: "" });
+      if (st.email) {
+        box.append(h("div", { class: "t2", text: "Linked to " + st.email + ". You get updates by email, and you can mail lodica@syntaxya.be from this address." }),
+          h("div", { class: "sup-row" }, h("button", { class: "btn sup-ghost", text: "Unlink", act: async () => draw(await inv("support.unlink")) })));
+        return box;
+      }
+      const em = h("input", { class: "field", type: "email", maxlength: "120", placeholder: "you@example.com" });
+      const code = h("input", { class: "field", inputmode: "numeric", maxlength: "6", placeholder: "6-digit code", hidden: "" });
+      const go = h("button", { class: "btn", text: "Send code", act: async () => {
+        lerr.textContent = ""; go.disabled = true;
+        if (code.hidden) {
+          const r = await inv("support.linkStart", em.value);
+          go.disabled = false;
+          if (r && r.error) { lerr.textContent = r.error; return; }
+          code.hidden = false; em.disabled = true; go.textContent = "Link"; lerr.textContent = "Code sent. Check your mail."; code.focus();
+        } else {
+          const r = await inv("support.linkVerify", em.value, code.value);
+          go.disabled = false;
+          if (r && r.error) { lerr.textContent = r.error; return; }
+          draw(r);
+        }
+      } });
+      box.append(h("div", { class: "t2", text: "Link your email to get updates by mail and to send requests to lodica@syntaxya.be. We send a code to check it is yours." }),
+        em, code, h("div", { class: "sup-row" }, go), lerr);
+      return box;
     };
     draw((await inv("support.open")) || { messages: [] });
   });

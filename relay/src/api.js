@@ -435,6 +435,11 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return support.create(req, res, clientIp(req), { sendJson, sendText, readBody });
   }
+  if ((r = /^\/api\/support\/link\/(start|verify|remove)$/.exec(p))) {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return support.link(req, res, r[1], clientIp(req), { sendJson, sendText, readBody });
+  }
   if (p === '/api/support/admin') {
     if (m !== 'GET') return not('GET, HEAD');
     return support.adminList(req, res, url, { sendJson, sendText, readBody });
