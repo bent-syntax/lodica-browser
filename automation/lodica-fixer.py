@@ -294,7 +294,10 @@ def verify(wt, files, branch, step=lambda w: None):
         c, o = run([os.path.join(wt, "scripts/ci-build.sh"), branch], cwd=wt, timeout=7200)
         if c:
             return "CI build failed: " + o[-800:]
-        apk = o.strip().splitlines()[-1]
+        # run() merges stderr, so ci-build's log lines can land after the path it prints
+        apk = next((l.strip() for l in reversed(o.splitlines()) if l.strip().endswith(".apk")), "")
+        if not os.path.isfile(apk):
+            return "CI build gave no APK path: " + o[-300:]
         step("testing on the phone")
         bad = phone_test(apk)
         if bad:
