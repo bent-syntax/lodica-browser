@@ -91,7 +91,11 @@ function secExtensions() {
 }
 // 9. Privacy
 function secPrivacy() {
-  return [secHead("Privacy"),
+  const n = (S.tab && S.tab.blocked) || 0, on = !!S.prefs.httpsOnly;
+  return [h("div", { class: "set-hero" + (on ? " on" : "") }, h("span", { class: "hero-ico" }, ico("shield")),
+      h("div", { class: "main" }, h("div", { class: "t1", text: on ? "Protection is on" : "Protection is partly off" }),
+        h("div", { class: "t2", text: n + " blocked on this page" + (on ? ". HTTPS-only is active" : ". HTTPS-only is off") }))),
+    secHead("Privacy"),
     setRow("History", null, ico("chevron", "chev"), () => openHistory()),
     setRow("Passwords", null, ico("chevron", "chev"), () => openPasswords()),
     setRow("Clear history", null, null, async () => {

@@ -35,6 +35,12 @@ function chatRender() {
         chatRender();
       })));
   }
+  if (CHAT.usage === undefined) { CHAT.usage = null; inv("ai.usage").then((u) => { CHAT.usage = u || {}; chatRender(); }); }
+  const u = CHAT.usage, n = (x) => fmtNum((x || {}).r);
+  L.side.append(h("div", { class: "chat-panel" },
+    h("div", { class: "cp-h", text: "Memory and usage" }),
+    h("button", { class: "cp-row", act: () => openAiMemory() }, ico("ai"), h("span", { text: "Memory" }), ico("chevron", "chev")),
+    u ? h("div", { class: "cp-use" }, h("span", { text: "Requests today" }), h("b", { text: n(u.today) }), h("span", { text: "Last 30 days" }), h("b", { text: n(u.month) })) : null));
   clear(L.thread);
   const c = CHAT.chats.find((x) => x.id === CHAT.cur);
   if (!c) { L.thread.append(h("div", { class: "empty", text: "Ask anything. Chats are saved here and on your linked phone." })); return; }

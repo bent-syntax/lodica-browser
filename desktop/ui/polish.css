@@ -228,3 +228,50 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .pop-foot .clr .ico{width:18px;height:18px}
 .pop-foot .chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;background:var(--bg);font-size:12px}
 .pop-foot .chip .ico{width:16px;height:16px}
+
+/* ---- pages 7-9, 13-15: dialogs, segmented switcher, theme cards, chat bubbles ---- */
+.dialog{padding:24px;border-radius:20px;border:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
+.dialog h3{margin-bottom:8px}
+.dialog p{font-size:13px;line-height:1.5}
+.dialog .field{height:44px;border-radius:999px;padding:0 16px;background:var(--bg)}
+.dialog .btns{gap:8px;margin-top:16px}
+.seg{border-radius:999px;padding:4px;background:var(--bg)}
+.seg button{border-radius:999px;min-height:32px;padding:6px 16px}
+.seg button.sel{background:var(--raised);color:var(--amber);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--amber) 40%,transparent)}
+.swatches .theme-sw{border-radius:20px;border:2px solid color-mix(in srgb,var(--high) 70%,transparent);padding:10px;width:104px}
+.swatches .theme-sw.sel{border-color:var(--amber)}
+.swatches .bg-sw{width:40px;height:40px}
+.thumb.locked{background:var(--raised);border-radius:20px}
+.chat-item{border-radius:12px}
+.chat-item.on{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
+.chat-q{background:var(--high);padding:10px 16px;border-radius:20px 20px 4px 20px;font-size:15px}
+.chat-a{font-size:15px;line-height:1.6}
+
+/* ---- pages 5-7, 13, 14, 16 ---- */
+.set-hero{display:flex;align-items:center;gap:16px;padding:20px;margin-bottom:16px;border-radius:20px;background:var(--raised);border:1px solid color-mix(in srgb,var(--coral) 40%,transparent)}
+.set-hero.on{background:color-mix(in srgb,var(--amber) 10%,var(--raised));border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
+.set-hero .hero-ico{flex:none;width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--coral-bg);color:var(--coral)}
+.set-hero.on .hero-ico{background:var(--amber-bg);color:var(--amber)}
+.set-hero .hero-ico .ico{width:24px;height:24px}
+.set-hero .main{flex:1;min-width:0}
+.set-hero .t1{font-size:20px;font-weight:600}
+.set-hero .t2{font-size:13px;color:var(--muted);margin-top:2px}
+.sp-ver{margin-top:auto;padding:12px 12px 0;font-size:12px;color:var(--muted)}
+.sp-findbox .sp-find{border-radius:999px}
+.chat-panel{margin-top:auto;padding:12px;border-radius:20px;background:var(--bg);display:flex;flex-direction:column;gap:8px}
+.cp-h{font-size:12px;color:var(--muted);font-weight:600}
+.cp-row{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 8px;border-radius:12px;font-size:13px;text-align:left}
+.cp-row span{flex:1}
+.cp-row:hover{background:var(--hover)}
+.cp-use{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:12px;color:var(--muted)}
+.cp-use b{color:var(--amber);font-size:15px}
+.totp-foot{margin-top:8px;border-top:1px solid var(--high);border-radius:12px}
+.sup-msg{border-radius:20px 20px 20px 4px;padding:10px 16px}
+.sup-msg.me{border-radius:20px 20px 4px 20px}
+.sup-step{padding:6px 12px}
+.sup-ta{border-radius:20px;padding:12px 16px;background:var(--bg)}
+.prose h1{font-size:26px;font-weight:600;line-height:1.25}
+.prose h2{font-size:20px;font-weight:600}
+.prose p{font-size:15px;line-height:1.7}
+.toast{border-radius:999px;box-shadow:var(--shadow)}
+.toast .act{background:var(--amber-bg);border-radius:999px;padding:8px 16px}

@@ -10,7 +10,8 @@ function openSettings(section) {
       on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } });
     L.findEl = find;
     L.side = h("nav", { class: "sp-side" }, h("div", { class: "sp-title", text: "Settings" }),
-      h("div", { class: "sp-findbox" }, ico("search"), find, h("kbd", { text: "/" })), L.nav);
+      h("div", { class: "sp-findbox" }, ico("search"), find, h("kbd", { text: "/" })), L.nav,
+      h("div", { class: "sp-ver", text: S.version ? "Lodica " + S.version : "Lodica" }));
     L.body = h("div", { class: "sp-body" });
     return h("div", { class: "spage" }, L.side,
       h("div", { class: "sp-main" },
@@ -49,7 +50,7 @@ function cardify(pane) {
   pane.replaceChildren();
   let card = null;
   for (const k of kids) {
-    if (k.classList.contains("set-sec")) { pane.append(k); card = null; continue; }
+    if (k.classList.contains("set-sec") || k.classList.contains("set-hero")) { pane.append(k); card = null; continue; }
     if (!card) { card = h("div", { class: "set-card" }); pane.append(card); }
     card.append(k);
   }
@@ -132,7 +133,9 @@ function secVps() {
     S.relayAvail = !!(r && r.domain); S.relay = Object.assign({}, S.relay, { available: S.relayAvail, domain: r && r.domain });
     refreshSettings();
   };
-  const out = [secHead("VPS")];
+  const out = [h("div", { class: "set-hero relay" + (S.relayAvail ? " on" : "") }, h("span", { class: "hero-ico" }, ico("vpn")),
+      h("div", { class: "main" }, h("div", { class: "t1", text: S.relayAvail ? "Server connected" : "No server linked" }),
+        h("div", { class: "t2", text: S.relayAvail ? "lodica." + ((S.relay && S.relay.domain) || "") : "Link your own relay for private routing and hidden email" }))), secHead("VPS")];
   if (S.relayAvail) {
     const d = S.relay && S.relay.domain;
     out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
