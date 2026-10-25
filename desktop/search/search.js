@@ -119,7 +119,7 @@ async function showSg() {
   box.hidden = false;
 }
 // Start-page shortcuts: the user's own sites first, then (unless switched off) the most visited ones.
-let quick = [], auto = true, adding = false;
+let quick = [], hidden = [], auto = true, adding = false;
 function saveQuick() { return ask1({ type: "quick", list: quick }); }
 function topSites() {
   Promise.all([ask1({ type: "state" }), ask1({ type: "top" })]).then(([st, items]) => {
@@ -127,14 +127,16 @@ function topSites() {
     engine = (st && st.engine) || "";
     if (st && st.base) BASE = st.base;
     quick = st && Array.isArray(st.quick) ? st.quick : [];
+    hidden = st && Array.isArray(st.hidden) ? st.hidden : [];
     auto = !st || st.auto !== false;
     drawTop(auto && Array.isArray(items) ? items : []);
   });
 }
+function hostOf(url) { try { return new URL(url).hostname; } catch { return ""; } }
 function drawTop(items) {
   const have = new Set(quick.map((it) => safe(it.url)));
   const tiles = quick.map((it, i) => tile(it, i)).concat(
-    items.filter((it) => !have.has(safe(it.url))).slice(0, Math.max(0, 8 - quick.length)).map((it) => tile(it, -1)));
+    items.filter((it) => !have.has(safe(it.url)) && !hidden.includes(hostOf(it.url))).slice(0, Math.max(0, 8 - quick.length)).map((it) => tile(it, -1)));
   if (quick.length < 24) tiles.push(adding ? addForm(items) : addTile(items));
   $("top").replaceChildren(...tiles.filter(Boolean));
 }
@@ -169,15 +171,15 @@ function tile(it, idx) {
   if (!u) return null;
   const host = new URL(u).hostname;
   const a = el("a", { href: u }, favicon(host), el("span", { class: "n" }, (it.title || host).slice(0, 24)));
-  if (idx >= 0) {
-    const x = el("span", { class: "rm", title: "Remove" }, "×");
-    x.addEventListener("click", (e) => {
-      e.preventDefault(); e.stopPropagation();
+  const x = el("span", { class: "rm", title: "Remove" }, "×");
+  x.addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (idx >= 0) {
       quick = quick.filter((_, j) => j !== idx);
       saveQuick().then(topSites);
-    });
-    a.append(x);
-  }
+    } else ask1({ type: "hide", host }).then(topSites);
+  });
+  a.append(x);
   return a;
 }
 function wireSg() {

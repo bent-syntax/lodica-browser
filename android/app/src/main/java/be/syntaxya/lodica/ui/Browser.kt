@@ -476,7 +476,8 @@ private fun StartPage(modifier: Modifier) {
     val mine = Prefs.quickList()
     val seen = mine.map { runCatching { android.net.Uri.parse(it.first).host.orEmpty() }.getOrDefault("") }.toSet()
     val priv = TabManager.current?.private == true
-    val auto = if (Prefs.quickAuto && !priv) top.filter { !it.title.contains("Forbidden") && !it.title.startsWith("Problem loading") && !it.title.startsWith("Server not found") }.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in seen }.take(maxOf(0, 8 - mine.size)) else emptyList()
+    val hidden = Prefs.quickHidden.lines().toSet()
+    val auto = if (Prefs.quickAuto && !priv) top.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in hidden }.filter { !it.title.contains("Forbidden") && !it.title.startsWith("Problem loading") && !it.title.startsWith("Server not found") }.filter { runCatching { android.net.Uri.parse(it.url).host.orEmpty() }.getOrDefault("") !in seen }.take(maxOf(0, 8 - mine.size)) else emptyList()
     val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, runCatching { android.net.Uri.parse(it.url).host.orEmpty().removePrefix("www.") }.getOrDefault("").ifBlank { it.title }, false) }
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<Shortcut?>(null) }
@@ -519,7 +520,7 @@ private fun StartPage(modifier: Modifier) {
         cells.chunked(4).forEach { row ->
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
                 row.forEach { s ->
-                    if (s != null) SiteTile(s.url, s.title, { TabManager.load(s.url) }, if (s.mine) ({ removing = s }) else null)
+                    if (s != null) SiteTile(s.url, s.title, { TabManager.load(s.url) }, { removing = s })
                     else Column(
                         Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -568,7 +569,7 @@ private fun StartPage(modifier: Modifier) {
             onDismissRequest = { removing = null },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
             title = { Text("Remove ${r.title.ifBlank { r.url }}?") },
-            confirmButton = { DlgPrimary(onClick = { Prefs.updateQuick(Prefs.quickList().filter { it.first != r.url }); removing = null }) { Text("Remove") } },
+            confirmButton = { DlgPrimary(onClick = { if (r.mine) Prefs.updateQuick(Prefs.quickList().filter { it.first != r.url }) else Prefs.hideQuickHost(runCatching { android.net.Uri.parse(r.url).host.orEmpty() }.getOrDefault("")); removing = null }) { Text("Remove") } },
             dismissButton = { DlgSecondary(onClick = { removing = null }) { Text("Cancel") } },
         )
     }

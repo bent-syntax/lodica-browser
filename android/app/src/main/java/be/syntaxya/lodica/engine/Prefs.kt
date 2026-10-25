@@ -59,6 +59,8 @@ object Prefs {
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
+    /** Hosts of auto shortcuts the user removed, one per line. */
+    var quickHidden by mutableStateOf(""); private set
     /** Own DNS-over-HTTPS server; blank keeps the built-in one. */
     var dnsServer by mutableStateOf(""); private set
     var autoArchiveDays by mutableStateOf(14); private set
@@ -135,6 +137,7 @@ object Prefs {
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
+        quickHidden = sp.getString("quickHidden", "") ?: ""
         dnsServer = sp.getString("dnsServer", "") ?: ""
         autoArchiveDays = sp.getInt("autoArchiveDays", 14)
         desktopDefault = sp.getBoolean("desktopDefault", false)
@@ -227,6 +230,7 @@ object Prefs {
         sp.edit().putString("quickSites", quickSites).apply()
         appCtx?.let { refreshWidgets(it) }
     }
+    fun hideQuickHost(h: String) { quickHidden = (quickHidden.lines() + h).filter { it.isNotBlank() }.distinct().joinToString("\n"); sp.edit().putString("quickHidden", quickHidden).apply() }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
     fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
