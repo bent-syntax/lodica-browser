@@ -17,3 +17,16 @@ search:
     - json
 ui:
   static_use_hash: true
+# Favour engines with large, current indexes over small or stale ones.
+engines:
+  - name: brave
+    disabled: false
+    weight: 1.5
+  - name: bing
+    disabled: false
+    weight: 1.3
+  - name: google
+    disabled: false
+    weight: 1.3
+  - name: duckduckgo
+    disabled: false
