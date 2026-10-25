@@ -436,7 +436,13 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
         update = { v ->
             Ui.gecko = v
             // A hidden SurfaceView loses its surface and can come back blank, so only texture views are hidden.
-            v.visibility = if (covered && !Prefs.fastRender) android.view.View.INVISIBLE else android.view.View.VISIBLE
+            val hide = covered && !Prefs.fastRender
+            val reveal = !hide && v.visibility != android.view.View.VISIBLE
+            v.visibility = if (hide) android.view.View.INVISIBLE else android.view.View.VISIBLE
+            // Some GPUs leave the texture view blank after it was hidden; wake the compositor again.
+            if (reveal && v.session === session && session != null && TabManager.current?.locked != true) {
+                session.setActive(true); session.setFocused(true)
+            }
             if (v.session !== session) {
                 if (v.session != null) v.releaseSession()
                 if (session != null) {
