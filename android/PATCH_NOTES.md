@@ -1,6 +1,6 @@
 # Patch notes
 ## 1.13.12
-- Added: Link your email in Contact support to get updates by mail and to send requests to lodica@syntaxya.be
+- Added: Link your email in Contact support to get updates by mail and to send requests by email
 
 ## 1.13.11
 - Added: You need to be able to access the screen of the linked phone in the browser so you can play for example minecraft pocked edition from you phone but you can see it in the desktop browser
@@ -8,7 +8,7 @@
 - Fixed: Notebook Can't reach the server error even when the server is connected
 
 ## 1.13.10
-- Fixed: On some sites when dark mode is turned off still have dark mode enabled for example beermap.be or ch
+- Fixed: Some sites stayed dark after turning dark mode off
 - Added: The server emojis should be visible in every app or program as long as your connected to the server 
 - Added: Notities in the browser that sync with your linked devices and you can type equations and functions 
 - Fixed: Notebook Can't reach the server error even when the server is connected
