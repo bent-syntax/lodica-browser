@@ -130,7 +130,7 @@ function setupHome() {
   $("edit").addEventListener("click", (e) => {
     e.preventDefault();
     editing = !editing;
-    $("edit").textContent = editing ? "Done" : "Edit shortcuts";
+    $("edit").textContent = editing ? "Done" : "+";
     $("addsite").hidden = $("autorow").hidden = !editing;
     topSites();
   });
