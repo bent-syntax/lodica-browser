@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.4
+- Desktop: the toolbar under the tabs shows fully again instead of being pushed down behind the page.
+
 ## 1.13.3
 - Android: the menu sheet has New tab, Private and Reader tiles on top and outline icon rows below, with More for the rest.
 - Android: the address bar is a full pill with a muted path after the host and an amber tracker count on the shield.

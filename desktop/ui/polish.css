@@ -192,7 +192,8 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 .pill .shd[disabled]{opacity:.35;pointer-events:none}
 
 /* top-mode dock */
-body.bt #dock{top:var(--dock-y,36px);bottom:auto;left:var(--side,0)}
+body.bt #dock{top:0;bottom:auto;left:0}
+body.bt.ov #dock{top:var(--dock-y,36px);left:var(--side,0)} /* overlay view covers the window; bar view is already placed under the tabs */
 body.bt #loadline{position:absolute;left:0;right:0;bottom:0}
 body.bt #banner{bottom:auto;top:calc(var(--dock-y,36px) + 64px);left:var(--side,0)}
 body.bt.ov #banner{bottom:auto;top:calc(var(--dock-y,36px) + 70px)}
