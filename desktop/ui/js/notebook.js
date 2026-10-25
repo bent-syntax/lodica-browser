@@ -68,7 +68,7 @@ function openNotebook() {
       if (!notes) { L.status.textContent = "Can't reach the server"; return; }
       L.notes = notes;
       const id = [want, L.id, notes[0] && notes[0].id].find((x) => x && notes.some((n) => n.id === x));
-      if (id === L.id && !want) { drawChips(); return; }
+      if (id === L.id && !want) { drawChips(); L.status.textContent = "Synced with your linked devices"; return; }
       const n = await inv("notebook.get", id);
       if (!n) { L.status.textContent = "Can't reach the server"; return; }
       show(n);
@@ -116,7 +116,7 @@ function openNotebook() {
     L.ta.addEventListener("keyup", showAnswer);
     L.ta.addEventListener("mouseup", () => setTimeout(showAnswer));
     const pull = async () => {
-      if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); return; }
+      if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); else if (!L.busy) save(); return; }
       const [notes, n] = await Promise.all([inv("notebook.list"), inv("notebook.get", L.id)]);
       if (!notes) { L.status.textContent = "Can't reach the server"; return; }
       if (!n) { if (!L.busy && !L.dirty) reload(); return; }
