@@ -252,7 +252,7 @@
     clearTick = setInterval(() => {
       for (const el of clearedList) {
         if (!el.isConnected) clearedList.delete(el);
-        else if (el.value && cleared.has(el) && document.activeElement !== el) el.value = "";
+        else if (el.value && cleared.has(el)) el.value = "";
       }
       if (!clearedList.size) { clearInterval(clearTick); clearTick = 0; }
     }, 300);
