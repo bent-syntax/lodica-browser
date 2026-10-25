@@ -1,4 +1,4 @@
-# Lodica "run fixes" / "add features" runner
+# Lodica "run fixes" / "add features" / "run both" runner
 
 `lodica-fixer.py` (Python 3, standard library only) turns open Google Tasks into released bug fixes and features.
 `fixer-loop.sh` polls every 60 s (this server has no user systemd or cron). A systemd `--user` timer is the alternative where available.
@@ -7,7 +7,8 @@
 
 1. Find the Google Tasks list `lodica` (credentials from `~/.lodica-tasks.json`, read at runtime only).
 2. Do nothing unless a trigger task is completed and no other run holds the lock. `run fixes` handles bugs,
-   `add features` handles feature requests, both completed handles both. Missing trigger tasks are created.
+   `add features` handles feature requests, `run both` handles both. Missing trigger tasks are created.
+   First step of every run: `adb devices` must list a connected phone. If not, nothing runs, the status task says so, and the support desk mails the owners (`POST /owner/alert`; needs the desk restarted, and the owner address in `SUPPORT_OWNERS`). The fixer reads only `SUPPORT_SECRET` from `/etc/lodica-support.env` (or the env var).
 3. Treat every other open task as a bug or a feature request. In a new worktree off `main` (branch `support/run-<timestamp>`), per task:
    - Triage with `claude-haiku-5-5`, read-only tools (Read, Grep, Glob): bug or feature, easy or hard.
      Tasks of a kind no completed trigger asked for are skipped and stay open untouched.

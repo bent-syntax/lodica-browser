@@ -128,6 +128,13 @@ function createApp({ dataDir, transport, from, owners = [], toRelay = async () =
       : `Good news: ${event === 'added' ? `what you asked for in "${t.title}" is now added to Lodica.` : `what you told us about "${t.title}" is fixed.`}${note ? `\n\nWhat we did: ${note}` : ''}\n\nUpdate Lodica to the newest version to get it. If something is still wrong, just reply to this email.`;
     await addSupportMessage(t, text); return { code: 200, body: { ok: true } };
   }
+  /** The fixer tells the owners something needs them (e.g. no phone connected). Plain mail, no ticket. */
+  async function alertOwner(subject, text) {
+    subject = String(subject || '').replace(/\s+/g, ' ').trim().slice(0, 120); text = String(text || '').trim().slice(0, 2000);
+    if (!subject || !text) return { code: 400, error: 'subject and text needed' };
+    const ok = await send({ subject: '[Lodica fixer] ' + subject, text, html: '<p style="font-family:sans-serif;white-space:pre-wrap">' + mail.esc(text) + '</p>' }, ownerTo);
+    return ok ? { code: 200, body: { ok: true } } : { code: 502, error: 'mail not sent (queued for retry)' };
+  }
   const nextId = () => { let id; do { id = 'LOD-' + String(++db.seq).padStart(4, '0'); } while (db.tickets[id]); return id; };
   /** A ticket or message from the in-app support (via the relay). { relayId, kind: 'new'|'message', text, name, app, version, platform } */
   async function fromRelay(b) {
@@ -207,6 +214,10 @@ function createApp({ dataDir, transport, from, owners = [], toRelay = async () =
       if (req.method === 'POST' && parts[0] === 'owner' && parts[1] === 'notify') {   // a request was put on the list / is done → the person gets a message
         if (!trusted()) return send(401, { error: 'not allowed' });
         const b = await readJson(req); return out(await notify(b.id, b.event, b.note));
+      }
+      if (req.method === 'POST' && parts[0] === 'owner' && parts[1] === 'alert') {   // the fixer needs the owner (e.g. no phone connected)
+        if (!trusted()) return send(401, { error: 'not allowed' });
+        const b = await readJson(req); return out(await alertOwner(b.subject, b.text));
       }
       const token = String(req.headers.authorization || '').replace(/^Bearer /, ''), email = who(token);
       if (!email) return send(401, { error: 'Please sign in again.' });

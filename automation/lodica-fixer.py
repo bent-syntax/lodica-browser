@@ -30,7 +30,7 @@ STATE = os.environ.get("FIXER_STATE", os.path.join(HOME, ".local/state/lodica-fi
 REPO = os.environ.get("LODICA_REPO", "/home/shared/lodica-browser-public")
 LIST_TITLE = "lodica"
 # trigger task title -> kind of task it handles; completing a trigger starts a run
-TRIGGERS = {"run fixes": "bug", "add features": "feature"}
+TRIGGERS = {"run fixes": "bug", "add features": "feature", "run both": "both"}
 STATUS = "Runner: "  # title prefix of the status task the runner keeps at the top of the list
 PKG = "be.syntaxya.lodica"
 NORD = os.environ.get("NORD", "/usr/local/bin/nord")
@@ -518,6 +518,31 @@ def verify_commit(wt, changed, branch, subject, step=lambda w: None):
     return None
 
 
+def adb_phones():
+    """Serials of devices that adb lists as connected and ready (first step of every run)."""
+    try:
+        out = subprocess.run(["adb", "devices"], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return [l.split()[0] for l in out.splitlines()[1:] if len(l.split()) == 2 and l.split()[1] == "device"]
+
+
+def alert_owner(subject, text):
+    """Mail the owners through the support desk. Needs SUPPORT_SECRET (env, or the line in SUPPORT_ENV)."""
+    try:
+        secret = os.environ.get("SUPPORT_SECRET", "")
+        if not secret:  # take only this one line, nothing else from the desk's env file
+            with open(os.environ.get("SUPPORT_ENV", "/etc/lodica-support.env")) as f:
+                secret = next((l.split("=", 1)[1].strip().strip("'\"") for l in f if l.startswith("SUPPORT_SECRET=")), "")
+        url = os.environ.get("SUPPORT_URL", "http://127.0.0.1:12159") + "/owner/alert"
+        req = urllib.request.Request(url, json.dumps({"subject": subject, "text": text}).encode(),
+                                     {"Content-Type": "application/json", "Authorization": "Bearer " + secret})
+        urllib.request.urlopen(req, timeout=20).read()
+        log("owner alert sent:", subject)
+    except Exception as e:
+        log("owner alert failed:", repr(e)[:150])
+
+
 def main():
     lock = open(os.path.join(STATE, "lock"), "w")
     try:
@@ -543,7 +568,10 @@ def main():
         return 1
     trigs = [t for t in items if one(t.get("title")).lower() in TRIGGERS]
     fired = [t for t in trigs if t.get("status") == "completed"]
-    kinds = {TRIGGERS[one(t.get("title")).lower()] for t in fired}
+    kinds = set()
+    for t in fired:
+        k = TRIGGERS[one(t.get("title")).lower()]
+        kinds |= {"bug", "feature"} if k == "both" else {k}
     bugs = [t for t in items if t not in trigs and not is_status(t) and t.get("status") == "needsAction" and one(t.get("title"))]
     if DRY:
         print("Google Tasks access ok. List '%s': %d tasks." % (LIST_TITLE, len(items)))
@@ -555,7 +583,8 @@ def main():
         print("Per task: triage bug/feature (%s, read only) -> fix (%s easy bug / %s hard bug or feature) in a worktree off main, one commit each ->" % (HAIKU, HAIKU, SONNET))
         print("  quick checks -> retry once with %s. After all bugs: one scripts/ci-build.sh support/run-<timestamp> ->" % SONNET)
         print("  nord smoke test -> version bump, notes, merge to main, push main, tag -> mark tasks done. Finally the trigger goes back to needsAction.")
-        print("  'run fixes' handles bugs, 'add features' handles features; tasks of the other kind are skipped.")
+        print("  'run fixes' handles bugs, 'add features' handles features, 'run both' handles both; tasks of the other kind are skipped.")
+        print("  First step of every run: a phone must be connected over adb, else nothing runs and the owners get a mail.")
         return 0
     if not fired:
         return 0  # nothing requested
@@ -563,8 +592,13 @@ def main():
     st = Status(tk, items)
     try:
         log("run %s: %d open task(s)" % ("+".join(sorted(kinds)), len(bugs)))
-        st.set("starting, %d task(s)" % len(bugs))
-        result = process(tk, st, kinds)
+        phones = adb_phones()
+        if not phones:
+            result = "no phone connected over adb, nothing was run"
+            alert_owner("No phone connected", "%s\n\nA run was asked for (%s) but adb lists no connected phone. Connect a phone (or start the emulator) and check the trigger task again." % (result, ", ".join(one(t.get("title")) for t in fired)))
+        else:
+            st.set("starting, %d task(s), phone %s" % (len(bugs), phones[0]))
+            result = process(tk, st, kinds)
     except Exception as e:
         result = "runner error: " + repr(e)[:200]
     finally:
