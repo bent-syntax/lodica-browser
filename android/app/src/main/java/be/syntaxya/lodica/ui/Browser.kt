@@ -554,7 +554,7 @@ private fun StartPage(modifier: Modifier) {
             },
             confirmButton = {
                 DlgPrimary(onClick = {
-                    val u = url.trim().let { if (it.isEmpty() || Regex("^[a-z][a-z0-9+.-]*:", RegexOption.IGNORE_CASE).containsMatchIn(it)) it else "https://$it" }
+                    val u = url.trim().let { if (it.isEmpty() || Regex("^[a-z][a-z0-9+.-]*:", RegexOption.IGNORE_CASE).containsMatchIn(it)) it else (if (Prefs.isBareIp(it.substringBefore('/'))) "http://" else "https://") + it }
                     if (u.isNotEmpty()) Prefs.updateQuick(Prefs.quickList() + (u to name.trim().ifEmpty { android.net.Uri.parse(u).host.orEmpty().removePrefix("www.") }))
                     adding = false
                 }) { Text("Add") }

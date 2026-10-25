@@ -226,7 +226,7 @@ function secPcTabs() {
     btn("Open page on phone", async () => {
       const v = await textDialog({ title: "Open on phone", message: "Address to open on the linked phone.", placeholder: "https://…", ok: "Send" });
       if (v == null || !v.trim()) return;
-      const u = /^https?:\/\//i.test(v.trim()) ? v.trim() : "https://" + v.trim();
+      const u = /^https?:\/\//i.test(v.trim()) ? v.trim() : (/^((\d{1,3}\.){3}\d{1,3}|\[[0-9a-f:]+\])(:\d+)?([/?#]|$)/i.test(v.trim()) ? "http://" : "https://") + v.trim();
       toast((await inv("pctabs.control", "open", u)) ? "Sent to phone" : "Could not send");
     }),
     btn("Show phone tab", async () => {

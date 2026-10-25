@@ -153,7 +153,7 @@ function addForm(items) {
   const save = () => {
     const v = url.value.trim();
     if (!v) { done(); return; }
-    const full = /^https?:\/\//i.test(v) ? v : "https://" + v;
+    const full = /^https?:\/\//i.test(v) ? v : (/^((\d{1,3}\.){3}\d{1,3}|\[[0-9a-f:]+\])(:\d+)?([/?#]|$)/i.test(v) ? "http://" : "https://") + v;
     if (!safe(full)) { url.classList.add("bad"); return; }
     quick = quick.concat({ url: full, title: name.value.trim().slice(0, 40) });
     adding = false;
