@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.7 (versionCode 108)
+- Added: There should be a notebook that is synced with your linked devices
+- Added: You should be able to have multiple different notes in your notebook
+- Added: When you select any thing math related in the notebook is should use the already implemented math so
+
 ## 1.13.6 (versionCode 107)
 - Fixed: When you go to an ip adress it should always use http unless the ip it self redirects you to https
 - Fixed: Every website should have there corresponding site icon on the tab
