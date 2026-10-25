@@ -5,4 +5,5 @@
     <string name="widget_search">Lodica search bar</string>
     <string name="widget_shortcuts">Lodica shortcuts</string>
     <string name="widget_sites">Lodica quick sites</string>
+    <string name="widget_planner">Lodica Smartschool planner</string>
 </resources>

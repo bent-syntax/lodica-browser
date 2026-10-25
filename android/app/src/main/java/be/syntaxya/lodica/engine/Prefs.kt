@@ -62,6 +62,9 @@ object Prefs {
     var plannerColors by mutableStateOf(true); private set
     var plannerTz by mutableStateOf(""); private set
     var plannerSlots by mutableStateOf(""); private set
+    /** Planner widget: "full" lists lessons, tasks and tests; "tasks" only tasks and tests. Backdrop opacity 0..1 (0 is see-through). */
+    var plannerWidgetMode by mutableStateOf("full"); private set
+    var plannerWidgetAlpha by mutableStateOf(0.85f); private set
     private val PLACES = listOf("left", "right", "below")
     /** Where the planner and the notes sit on the start page: "left", "right" or "below" the search bar. They never share a place. */
     var plannerPos by mutableStateOf("below"); private set
@@ -149,6 +152,8 @@ object Prefs {
         plannerColors = sp.getBoolean("plannerColors", true)
         plannerTz = sp.getString("plannerTz", "") ?: ""
         plannerSlots = sp.getString("plannerSlots", "") ?: ""
+        plannerWidgetMode = if (sp.getString("plannerWidgetMode", "full") == "tasks") "tasks" else "full"
+        plannerWidgetAlpha = sp.getFloat("plannerWidgetAlpha", 0.85f).coerceIn(0f, 1f)
         plannerPos = sp.getString("plannerPos", "below")?.takeIf { it in PLACES } ?: "below"
         notesPos = sp.getString("notesPos", "left")?.takeIf { it in PLACES } ?: "left"
         if (notesPos == plannerPos) notesPos = PLACES.first { it != plannerPos }
@@ -205,6 +210,7 @@ object Prefs {
         be.syntaxya.lodica.ui.SearchWidget.refresh(c)
         be.syntaxya.lodica.ui.ShortcutsWidget.refresh(c)
         be.syntaxya.lodica.ui.SitesWidget.refresh(c)
+        be.syntaxya.lodica.ui.PlannerWidget.refresh(c)
     }
     fun updateTheme(v: String) { theme = v; sp.edit().putString("theme", v).apply(); Helper.push(); appCtx?.let { refreshWidgets(it) } }
     fun updateWidget(text: String, shape: String) {
@@ -264,7 +270,9 @@ object Prefs {
         notesPos = v
         sp.edit().putString("plannerPos", plannerPos).putString("notesPos", notesPos).apply(); Helper.push()
     }
-    fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
+    fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.reload(it) } }
+    fun updatePlannerWidgetMode(v: String) { plannerWidgetMode = if (v == "tasks") "tasks" else "full"; sp.edit().putString("plannerWidgetMode", plannerWidgetMode).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
+    fun updatePlannerWidgetAlpha(v: Float) { plannerWidgetAlpha = v.coerceIn(0f, 1f); sp.edit().putFloat("plannerWidgetAlpha", plannerWidgetAlpha).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updatePlannerColors(v: Boolean) { plannerColors = v; sp.edit().putBoolean("plannerColors", v).apply(); Helper.push() }
     fun updatePlannerTz(v: String) { plannerTz = v.trim().take(64); sp.edit().putString("plannerTz", plannerTz).apply(); Helper.push() }
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }

@@ -301,6 +301,7 @@ fun SettingsScreen() {
                         "Mon 08:30-09:20 Maths", false, Prefs.plannerSlots,
                     ) { Prefs.updatePlannerSlots(it) }
                     PlacePicker("Planner position", Prefs.plannerPos) { Prefs.updatePlannerPos(it) }
+                    PlannerWidgetSetting()
                 }
                 5 -> {
             Section("Tabs")
@@ -1505,6 +1506,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Colour tasks and tests", 4, "planner huistaak meebrengen toets yellow red"),
     SettingsEntry("Planner time zone", 4, "brussels local clock now marker"),
     SettingsEntry("Subject per time slot", 4, "planner lesson hour subject schedule"),
+    SettingsEntry("Planner widget", 4, "smartschool home screen lock screen transparent transparency full tasks tests"),
     SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
@@ -1869,6 +1871,25 @@ private fun PlannerSetting() {
             ),
         )
         TextButton(onClick = { Prefs.updatePlannerIcs(draft) }) { Text("Save", color = Amber) }
+    }
+}
+
+/** Home and lock screen planner widget: what it lists and how see-through its backdrop is. */
+@Composable
+private fun PlannerWidgetSetting() {
+    Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Text("Planner widget for the home screen and lock screen. Add it from the widget list.", color = Muted, fontSize = 13.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("full" to "Full planner", "tasks" to "Tasks and tests only").forEach { (k, l) ->
+                val on = Prefs.plannerWidgetMode == k
+                TextButton(onClick = { Prefs.updatePlannerWidgetMode(k) }) { Text(if (on) "• $l" else l, color = if (on) Amber else Muted) }
+            }
+        }
+        Text("Widget transparency", color = Muted, fontSize = 13.sp)
+        Slider(
+            1f - Prefs.plannerWidgetAlpha, { Prefs.updatePlannerWidgetAlpha(1f - it) }, valueRange = 0f..1f,
+            colors = SliderDefaults.colors(thumbColor = Amber, activeTrackColor = Amber, inactiveTrackColor = GraphiteHigh),
+        )
     }
 }
 

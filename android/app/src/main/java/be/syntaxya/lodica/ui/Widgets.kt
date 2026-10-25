@@ -32,14 +32,14 @@ internal fun kiteBitmap(p: be.syntaxya.lodica.ui.theme.Palette): Bitmap {
 private val SLOTS = intArrayOf(R.id.s0, R.id.s1, R.id.s2, R.id.s3)
 
 /** Draws the rounded backdrop at the widget's real pixel size so corners stay round at any size. */
-internal fun roundedBackground(ctx: Context, m: AppWidgetManager, id: Int): Bitmap {
+internal fun roundedBackground(ctx: Context, m: AppWidgetManager, id: Int, alpha: Float = 1f): Bitmap {
     val d = ctx.resources.displayMetrics.density
     val o = m.getAppWidgetOptions(id)
     val w = ((o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: 250) * d).toInt().coerceIn(64, 2048)
     val h = ((o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT).takeIf { it > 0 } ?: 56) * d).toInt().coerceIn(32, 512)
     val radius = when (Prefs.widgetShape) { "square" -> 8f * d; "rounded" -> 28f * d; else -> h / 2f }.coerceAtMost(h / 2f)
     val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-    Canvas(bmp).drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ThemeState.palette.raised.toInt() })
+    Canvas(bmp).drawRoundRect(RectF(0f, 0f, w.toFloat(), h.toFloat()), radius, radius, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ThemeState.palette.raised.toInt(); this.alpha = (alpha.coerceIn(0f, 1f) * 255).toInt() })
     return bmp
 }
 

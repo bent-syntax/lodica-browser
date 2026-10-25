@@ -114,6 +114,12 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_sites" />
         </receiver>
+        <receiver android:name=".ui.PlannerWidget" android:exported="false" android:label="@string/widget_planner">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_planner" />
+        </receiver>
         <service android:name=".engine.ChatService" android:exported="false" android:foregroundServiceType="remoteMessaging" />
         <service android:name=".engine.ScreenShare" android:exported="false" android:foregroundServiceType="mediaProjection" />
         <service android:name=".engine.PlaybackService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
