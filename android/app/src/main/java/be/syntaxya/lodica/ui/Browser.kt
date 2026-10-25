@@ -490,7 +490,10 @@ private fun StartPage(modifier: Modifier) {
         verticalArrangement = Arrangement.Center,
     ) {
         if (TabManager.current?.private == true) IncognitoMark(72.dp)
-        else Kite(72.dp, tail = false)
+        else Row(verticalAlignment = Alignment.CenterVertically) {
+            Kite(72.dp, tail = false)
+            Text("odica", color = Mist, fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
+        }
         Spacer(Modifier.height(28.dp))
         OutlinedTextField(
             q, { q = it },
