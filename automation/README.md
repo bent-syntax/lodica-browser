@@ -11,14 +11,15 @@
    - Triage with `claude-haiku-5-5`, read-only tools (Read, Grep, Glob).
    - Fix with Haiku when easy, `claude-sonnet-5-5` when hard (`--permission-mode acceptEdits`). One commit per bug.
    - Refuse changes to `.github/`, `automation/`, `scripts/`, `support/`, keystores and env files.
-   - Check with `node --check` and the relay tests. For Android changes run `scripts/ci-build.sh <branch>`
-     (GitHub Actions build, prints the APK path), install on the phone with `/usr/local/bin/nord`, smoke test.
-     Only `be.syntaxya.lodica` is touched.
+   - Check with `node --check` and the relay tests.
    - On failure retry once with Sonnet. If it still fails the task stays open with a note.
-4. If any bug was fixed: bump the patch version (`android/app/build.gradle.kts`, `desktop/package.json`,
+4. After all bugs, if any fix touched `android/`: run `scripts/ci-build.sh <branch>` once (GitHub Actions build,
+   prints the APK path), install on the phone with `/usr/local/bin/nord`, smoke test. Only `be.syntaxya.lodica`
+   is touched. If the build or test fails nothing is released: the fixed tasks stay open with a note and the branch is kept.
+5. If any bug was fixed and the build passed: bump the patch version (`android/app/build.gradle.kts`, `desktop/package.json`,
    `desktop/package-lock.json`), add CHANGELOG and both PATCH_NOTES sections, fast-forward `main`, push `main`,
    tag `vX.Y.Z` (the release workflow publishes). Fixed tasks are completed with a note holding commit and version.
-5. A task titled `Runner: ...` stays at the top of the list and shows the current step (`2/5 fixing with Haiku: <bug>`).
+6. A task titled `Runner: ...` stays at the top of the list and shows the current step (`2/5 fixing with Haiku: <bug>`).
    It is completed with the result when the run ends. The list is re-read after every bug, so tasks added during a run are fixed in the same run.
 6. Always set `run fixes` back to `needsAction` with a result note, also after a failure.
 

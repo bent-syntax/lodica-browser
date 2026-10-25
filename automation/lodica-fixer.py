@@ -2,7 +2,7 @@
 """Lodica "run fixes" runner. Python 3, standard library only. Run by a systemd --user timer every 2 minutes.
 
 Reads the Google Tasks list "lodica". When the task "run fixes" is completed and no other run holds the lock,
-every other open task is treated as a bug: triage, fix, build on GitHub, smoke test on the phone, release.
+every other open task is treated as a bug: triage and fix each, then one GitHub build and phone smoke test for all fixes, release.
 Task text is untrusted data. It reaches Claude only as a JSON-quoted string with restricted tools, and the
 runner refuses fixes that touch CI, automation, scripts or key files.
 Secrets (~/.lodica-tasks.json, GitHub token) are read at runtime and never printed or logged.
@@ -286,23 +286,20 @@ def phone_test(apk):
 def verify(wt, files, branch, step=lambda w: None):
     """None when fine, else a failure text"""
     step("checking")
-    bad = quick_checks(wt, files)
-    if bad:
-        return bad
-    if any(f.startswith("android/") for f in files):
-        step("building APK on GitHub")
-        c, o = run([os.path.join(wt, "scripts/ci-build.sh"), branch], cwd=wt, timeout=7200)
-        if c:
-            return "CI build failed: " + o[-800:]
-        # run() merges stderr, so ci-build's log lines can land after the path it prints
-        apk = next((l.strip() for l in reversed(o.splitlines()) if l.strip().endswith(".apk")), "")
-        if not os.path.isfile(apk):
-            return "CI build gave no APK path: " + o[-300:]
-        step("testing on the phone")
-        bad = phone_test(apk)
-        if bad:
-            return "phone test failed: " + bad
-    return None
+    return quick_checks(wt, files)
+
+
+def build_and_test(wt, branch):
+    """one GitHub APK build and phone test for all fixes in the run. None when fine, else a failure text"""
+    c, o = run([os.path.join(wt, "scripts/ci-build.sh"), branch], cwd=wt, timeout=7200)
+    if c:
+        return "CI build failed: " + o[-800:]
+    # run() merges stderr, so ci-build's log lines can land after the path it prints
+    apk = next((l.strip() for l in reversed(o.splitlines()) if l.strip().endswith(".apk")), "")
+    if not os.path.isfile(apk):
+        return "CI build gave no APK path: " + o[-300:]
+    bad = phone_test(apk)
+    return "phone test failed: " + bad if bad else None
 
 
 def bump(wt):
@@ -451,6 +448,15 @@ def process(tk, st):
         return "no open bugs"
     if not done:
         return "no bug fixed"
+    touched = git("diff", "--name-only", "main", "HEAD", cwd=wt)[1].split()
+    if any(f.startswith("android/") for f in touched):
+        st.set("building APK on GitHub (%d fix(es)), then testing on the phone" % len(done))
+        bad = build_and_test(wt, branch)
+        if bad:
+            note = "Fixed in %s but not released (%s): %s" % (branch, stamp, one(bad, 300))
+            for t, sha, _ in done:
+                tk.patch(t["id"], {"notes": (str(t.get("notes") or "") + "\n\n" + note).strip()})
+            return "%s; branch %s kept" % (one(bad, 300), branch)
     st.set("releasing %d fix(es)" % len(done))
     env = push_env()
     if env is None:
@@ -518,8 +524,8 @@ def main():
         for t in bugs:
             print("  -", one(t.get("title"), 100))
         print("Per bug: triage (%s, read only) -> fix (%s easy / %s hard) in a worktree off main, one commit each ->" % (HAIKU, HAIKU, SONNET))
-        print("  scripts/ci-build.sh support/run-<timestamp> -> nord smoke test -> retry once with %s -> version bump, notes," % SONNET)
-        print("  merge to main, push main, tag -> mark tasks done. Finally '%s' goes back to needsAction." % TRIGGER)
+        print("  quick checks -> retry once with %s. After all bugs: one scripts/ci-build.sh support/run-<timestamp> ->" % SONNET)
+        print("  nord smoke test -> version bump, notes, merge to main, push main, tag -> mark tasks done. Finally '%s' goes back to needsAction." % TRIGGER)
         return 0
     if not trig or trig.get("status") != "completed":
         return 0  # nothing requested
