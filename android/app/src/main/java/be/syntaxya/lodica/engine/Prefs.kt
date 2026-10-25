@@ -77,7 +77,7 @@ object Prefs {
     /** The user-made theme, or null until one is saved. Used when [theme] is "custom". */
     var customTheme by mutableStateOf<CustomTheme?>(null); private set
     /** Menu items pinned to the quick menu (keys from MenuSheet). */
-    var menuPins by mutableStateOf(setOf("new", "private", "find", "desktop", "downloads", "history", "settings")); private set
+    var menuPins by mutableStateOf(setOf("find", "downloads", "history", "passwords", "settings")); private set
     var noDummy by mutableStateOf<Set<String>>(emptySet()); private set
     /** Sites where the user chose not to auto-fill an authenticator code. */
     var totpSkip by mutableStateOf<Set<String>>(emptySet()); private set

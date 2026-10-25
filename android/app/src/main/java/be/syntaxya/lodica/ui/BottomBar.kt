@@ -73,6 +73,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -175,7 +176,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         Row(
             Modifier.weight(1f).height(40.dp)
                 .graphicsLayer { translationX = drag; alpha = 1f - (kotlin.math.abs(drag) / (threshold * 3)).coerceAtMost(0.5f) }
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(50))
                 .background(Graphite)
                 .pointerInput(tab, Prefs.gestureSwipeTabs) {
                     if (!Prefs.gestureSwipeTabs) return@pointerInput
@@ -216,14 +217,20 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             }
             Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
+            val label = when {
+                locked -> "Private tab locked"
+                home -> "Search or type URL"
+                else -> Prefs.searchQuery(tab!!.url)
+                    ?: Prefs.ownNameFor(tab.host)
+                    ?: (if (Prefs.showRedirectOrigin && tab.origin.isNotEmpty()) tab.origin else null)
+                    ?: tab.host.ifBlank { tab.url }
+            }
+            val path = if (home || locked || tab == null || tab.host.isBlank() || label != tab.host) ""
+                else tab.url.substringAfter("://").substringAfter(tab.host, "").substringBefore('?').substringBefore('#').trimEnd('/')
             Text(
-                when {
-                    locked -> "Private tab locked"
-                    home -> "Search or type URL"
-                    else -> Prefs.searchQuery(tab!!.url)
-                        ?: Prefs.ownNameFor(tab.host)
-                        ?: (if (Prefs.showRedirectOrigin && tab.origin.isNotEmpty()) tab.origin else null)
-                        ?: tab.host.ifBlank { tab.url }
+                androidx.compose.ui.text.buildAnnotatedString {
+                    append(label)
+                    if (path.length > 1) withStyle(androidx.compose.ui.text.SpanStyle(color = Muted)) { append(path) }
                 },
                 color = if (home || locked) Muted else Mist,
                 fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -273,8 +280,9 @@ private fun Shield(tab: Tab?) {
         if (n > 0 && !trusted) {
             Text(
                 if (n > 99) "99+" else "$n",
-                color = OnAmber, fontSize = 8.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.align(Alignment.Center).padding(top = 1.dp),
+                color = OnAmber, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 2.dp)
+                    .background(Amber, RoundedCornerShape(50)).padding(horizontal = 4.dp),
             )
         }
     }

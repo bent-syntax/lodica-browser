@@ -3,6 +3,7 @@ package be.syntaxya.lodica.ui
 import be.syntaxya.lodica.ui.theme.DlgDanger
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
+import be.syntaxya.lodica.ui.theme.IconTile
 import android.text.format.DateUtils
 import be.syntaxya.lodica.ui.theme.customPalette
 import be.syntaxya.lodica.engine.Emojis
@@ -166,7 +167,7 @@ fun SettingsScreen() {
         if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
         else {
             TopBar(if (find.isBlank()) "" else "Find") { if (find.isNotBlank()) find = "" else Ui.screen = Screen.Browser }
-            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
             FilterField(find, "Find a setting") { find = it }
         }
         if (find.isNotBlank()) {
@@ -187,7 +188,7 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(homeScroll).padding(bottom = 32.dp)) {
                 SettingsGroups.forEach { (group, pages) ->
                     Section(group)
-                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(18.dp))) {
+                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(20.dp))) {
                         pages.forEachIndexed { n, i ->
                             if (n > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
                             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = i }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -200,7 +201,7 @@ fun SettingsScreen() {
                     }
                 }
                 Section("Danger zone")
-                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(18.dp))) {
+                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(20.dp))) {
                     LinkRow("Clear history", Coral) {
                         confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
                     }
@@ -400,6 +401,8 @@ fun SettingsScreen() {
                     }
                 }
                 6 -> {
+                    StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
+                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
                     Section("History & site data")
             LinkRow("History") { Ui.go(Screen.History) }
             LinkRow("Clear history", Coral) {
@@ -431,15 +434,9 @@ fun SettingsScreen() {
                 10 -> {
                     Section("Server, chat & mail")
                     if (!Relay.available) {
-                        Text(
-                            "No server linked", color = Muted, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        )
+                        StatusCard(Icons.Rounded.Cloud, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
                     } else {
-                        Text(
-                            "Linked to lodica.${Relay.DOMAIN} (${if (Relay.up) "reachable" else "not reachable right now"})", color = Muted, fontSize = 13.sp,
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                        )
+                        StatusCard(Icons.Rounded.Cloud, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
                         LinkRow("Server chat") { Ui.go(Screen.Room) }
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
@@ -548,11 +545,12 @@ fun SettingsScreen() {
         AlertDialog(
             onDismissRequest = { codeShown = null },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            icon = { IconTile(Icons.Rounded.Smartphone, 48) },
             title = { Text("Link code") },
             text = {
                 Column {
-                    Text(c, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace)
-                    Text("Enter this code on your other device within 10 minutes. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                    Text(c, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace, letterSpacing = 4.sp)
+                    Text("Expires in 10 minutes. Enter this code on your other device. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
                 }
             },
             confirmButton = { DlgPrimary(onClick = { codeShown = null }) { Text("Done") } },
@@ -942,11 +940,32 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Muted,
+        icon = { IconTile(Icons.Rounded.Delete, 48, Coral) },
         title = { Text(c.title) },
         text = { Text(c.body) },
         confirmButton = { DlgDanger(onClick = { c.run(); dismiss() }) { Text(c.action) } },
         dismissButton = { DlgSecondary(onClick = dismiss) { Text("Cancel") } },
     )
+}
+
+@Composable
+private fun StatusCard(icon: ImageVector, title: String, sub: String, ok: Boolean? = null) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
+            .border(1.dp, GraphiteHigh, RoundedCornerShape(20.dp)).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconTile(icon, 48, Amber)
+        Spacer(Modifier.width(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (ok != null) Box(Modifier.padding(end = 8.dp).size(8.dp).clip(RoundedCornerShape(50))
+                    .background(if (ok) androidx.compose.ui.graphics.Color(0xFF22C55E) else Coral))
+                Text(sub, color = Muted, fontSize = 13.sp)
+            }
+        }
+    }
 }
 
 @Composable
@@ -1139,13 +1158,13 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(50)
     Text(
-        label, color = Mist, fontSize = 13.sp,
+        label, color = if (selected) Amber else Mist, fontSize = 13.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         modifier = Modifier.heightIn(min = 44.dp).wrapContentHeight(Alignment.CenterVertically).clip(shape)
-            .background(if (selected) GraphiteHigh else GraphiteRaised)
-            .border(1.dp, if (selected) Amber else GraphiteHigh, shape)
+            .background(if (selected) Amber.copy(alpha = 0.16f) else GraphiteRaised)
+            .border(1.dp, if (selected) Amber.copy(alpha = 0.5f) else GraphiteHigh, shape)
             .clickable(onClick = onClick).padding(horizontal = 14.dp),
     )
 }
@@ -1228,9 +1247,11 @@ fun HistoryScreen() {
                 Row(
                     Modifier.fillMaxWidth().animateItem()
                         .clickable { TabManager.load(v.url); Ui.screen = Screen.Browser }
-                        .padding(start = 20.dp, top = 6.dp, bottom = 6.dp),
+                        .padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconTile(Icons.Rounded.Language, 40)
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
@@ -1296,15 +1317,12 @@ fun PasswordsScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(Icons.Rounded.Lock, null, tint = Amber, modifier = Modifier.size(48.dp))
-                Spacer(Modifier.height(12.dp))
-                Text("Passwords are locked", color = Mist, fontSize = 16.sp)
+                IconTile(Icons.Rounded.Lock, 80, Amber)
+                Spacer(Modifier.height(16.dp))
+                Text("Passwords are locked", color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 error?.let { Text(it, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
                 Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = { unlock() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
-                ) { Text("Unlock") }
+                DlgPrimary(onClick = { unlock() }, modifier = Modifier.fillMaxWidth()) { Text("Unlock") }
             }
             return@Column
         }

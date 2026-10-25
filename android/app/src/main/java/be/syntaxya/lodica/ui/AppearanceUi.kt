@@ -112,8 +112,8 @@ internal fun ThemePreview(p: Palette = ThemeState.palette) {
     val bg = anim(p.bg); val raised = anim(p.raised); val high = anim(p.high)
     val accent = anim(p.accent); val accent2 = anim(p.accent2); val text = anim(p.text); val muted = anim(p.muted)
     Column(
-        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .border(1.dp, GraphiteHigh, RoundedCornerShape(14.dp)).background(bg),
+        Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .border(1.dp, GraphiteHigh, RoundedCornerShape(20.dp)).background(bg),
     ) {
         Row(Modifier.fillMaxWidth().background(raised).padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Lodica", "Mail", "Docs").forEachIndexed { i, t ->
@@ -134,7 +134,7 @@ internal fun ThemePreview(p: Palette = ThemeState.palette) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
                 "Search the web", color = muted, fontSize = 12.sp,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(raised).padding(horizontal = 14.dp, vertical = 9.dp),
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(raised).padding(horizontal = 14.dp, vertical = 9.dp),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 repeat(4) { i -> Box(Modifier.size(30.dp).clip(RoundedCornerShape(9.dp)).background(if (i == 0) accent else raised)) }
@@ -174,12 +174,12 @@ internal fun BackgroundTypes(onNone: () -> Unit, onGradient: () -> Unit, onColou
 internal fun StartPreview() {
     Box(
         Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().aspectRatio(1.8f)
-            .clip(RoundedCornerShape(14.dp)).border(1.dp, GraphiteHigh, RoundedCornerShape(14.dp)),
+            .clip(RoundedCornerShape(20.dp)).border(1.dp, GraphiteHigh, RoundedCornerShape(14.dp)),
     ) {
         StartBackdrop(Modifier.fillMaxWidth().fillMaxHeight())
         Text(
             "Search the web", color = Mist, fontSize = 12.sp,
-            modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(18.dp)).background(Color.Black.copy(alpha = 0.35f))
+            modifier = Modifier.align(Alignment.Center).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.35f))
                 .padding(horizontal = 22.dp, vertical = 9.dp),
         )
     }

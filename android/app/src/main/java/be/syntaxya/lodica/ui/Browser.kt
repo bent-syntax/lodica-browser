@@ -378,7 +378,7 @@ private fun MailBanner(m: Mail) {
     val link = remember(m.id) { Relay.confirmLink(m) }
     val site = Relay.siteOf(m.to) ?: m.to.substringBefore('@')
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         color = GraphiteRaised,
         contentColor = Mist,
         shadowElevation = 4.dp,
