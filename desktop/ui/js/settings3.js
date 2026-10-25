@@ -176,8 +176,26 @@ function secStart() {
     secHead("Smartschool planner", "planner"),
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",
-        on: { change: (e) => { S.prefs.plannerIcs = e.target.value.trim(); inv("prefs.set", "plannerIcs", S.prefs.plannerIcs); } } })));
+        on: { change: (e) => { S.prefs.plannerIcs = e.target.value.trim(); inv("prefs.set", "plannerIcs", S.prefs.plannerIcs); } } })),
+    setPlace("plannerPos", "Planner position", "Where the planner sits on the start page.", "below"),
+    setPlace("notesPos", "Notes position", "Where the notes sit on the start page. The planner and the notes can't share a place.", "left"));
   return out;
+}
+// Start page place of the planner or the notes. Picking the place the other one has moves the other to a free place.
+function setPlace(key, title, sub, def) {
+  const places = [{ key: "left", label: "Left" }, { key: "right", label: "Right" }, { key: "below", label: "Under the search bar" }];
+  const other = key === "plannerPos" ? "notesPos" : "plannerPos", odef = key === "plannerPos" ? "left" : "below";
+  const cur = S.prefs[key] || def;
+  const sel = h("select", { on: { change: (e) => {
+    const v = e.target.value;
+    S.prefs[key] = v; inv("prefs.set", key, v);
+    if ((S.prefs[other] || odef) === v) {
+      const free = places.map((p) => p.key).find((p) => p !== v && p !== (S.prefs[other] || odef) && p !== cur) || places.map((p) => p.key).find((p) => p !== v);
+      S.prefs[other] = free; inv("prefs.set", other, free);
+    }
+    refreshSettings();
+  } } }, places.map((o) => h("option", { value: o.key, text: o.label, selected: o.key === cur })));
+  return setRow(title, sub, sel);
 }
 function secLayout() {
   return [secHead("Layout", "layout"),

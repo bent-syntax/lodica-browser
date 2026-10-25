@@ -58,6 +58,10 @@ object Prefs {
     var plannerIcs by mutableStateOf(""); private set
     /** Show the newest Notebook notes on the start page. */
     var startNotes by mutableStateOf(true); private set
+    private val PLACES = listOf("left", "right", "below")
+    /** Where the planner and the notes sit on the start page: "left", "right" or "below" the search bar. They never share a place. */
+    var plannerPos by mutableStateOf("below"); private set
+    var notesPos by mutableStateOf("left"); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
@@ -138,6 +142,9 @@ object Prefs {
         aiAlways = sp.getBoolean("aiAlways", false)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
+        plannerPos = sp.getString("plannerPos", "below")?.takeIf { it in PLACES } ?: "below"
+        notesPos = sp.getString("notesPos", "left")?.takeIf { it in PLACES } ?: "left"
+        if (notesPos == plannerPos) notesPos = PLACES.first { it != plannerPos }
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
         quickHidden = sp.getString("quickHidden", "") ?: ""
@@ -236,6 +243,20 @@ object Prefs {
     fun hideQuickHost(h: String) { quickHidden = (quickHidden.lines() + h).filter { it.isNotBlank() }.distinct().joinToString("\n"); sp.edit().putString("quickHidden", quickHidden).apply() }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
     fun updateStartNotes(v: Boolean) { startNotes = v; sp.edit().putBoolean("startNotes", v).apply(); Helper.push() }
+    /** Moves the planner; if the notes held that place they take the one the planner left. */
+    fun updatePlannerPos(v: String) {
+        if (v !in PLACES) return
+        if (notesPos == v) notesPos = plannerPos
+        plannerPos = v
+        sp.edit().putString("plannerPos", plannerPos).putString("notesPos", notesPos).apply(); Helper.push()
+    }
+    /** Moves the notes; if the planner held that place it takes the one the notes left. */
+    fun updateNotesPos(v: String) {
+        if (v !in PLACES) return
+        if (plannerPos == v) plannerPos = notesPos
+        notesPos = v
+        sp.edit().putString("plannerPos", plannerPos).putString("notesPos", notesPos).apply(); Helper.push()
+    }
     fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }

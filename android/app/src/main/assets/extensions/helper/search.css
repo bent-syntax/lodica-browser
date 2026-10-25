@@ -122,3 +122,9 @@ img.broken { visibility: hidden; }
 #plan .pe, #notes .pe { display: flex; gap: 10px; font-size: 14px; padding: 2px 0; }
 #plan .pe b { min-width: 52px; font-weight: 600; }
 body:not(.home) #plan, body:not(.home) #notes { display: none; }
+/* Side placement (Settings): beside the search bar on wide screens, under it on a phone. */
+@media (min-width: 900px) {
+  #plan[data-pos="left"], #notes[data-pos="left"], #plan[data-pos="right"], #notes[data-pos="right"] { position: fixed; top: 24vh; width: 260px; max-height: 60vh; overflow: auto; margin: 0; }
+  #plan[data-pos="left"], #notes[data-pos="left"] { left: 24px; }
+  #plan[data-pos="right"], #notes[data-pos="right"] { right: 24px; }
+}

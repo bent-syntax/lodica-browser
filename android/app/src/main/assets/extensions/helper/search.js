@@ -430,8 +430,13 @@ function drawPlanner(text, url) {
   }
   box.replaceChildren(...kids);
 }
+// Planner and notes sit left, right or below the search bar (Settings). Side places need a wide screen.
+function place(id, where, fallback) {
+  $(id).dataset.pos = where || fallback;
+}
 async function planner() {
   const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+  place("plan", st && st.pos && st.pos.plan, "below");
   const url = st && st.planner || "";
   let text = null;
   if (url) text = await fetch(url).then((r) => (r.ok ? r.text() : null)).catch(() => null);
@@ -442,6 +447,7 @@ async function planner() {
 async function notes() {
   const box = $("notes");
   const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+  place("notes", st && st.pos && st.pos.notes, "left");
   if (!st || !st.notes) { box.replaceChildren(); return; }
   const items = await browser.runtime.sendMessage({ type: "notes" }).catch(() => []);
   const kids = [el("h3", null, "Notes")];

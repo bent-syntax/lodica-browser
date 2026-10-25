@@ -1024,7 +1024,26 @@ const lodicaMain = () => {
   // --- Math answer: select an equation and the result shows above it ---
 
   // lodica:math:start
-  function calc(src) {
+  // A number as text: a fraction ("1/2", "-7/3") when it is one with a denominator up to 1000, else rounded to [prec] digits.
+  function mathFrac(n, prec) {
+    const dec = String(Number(n.toPrecision(prec || 12)));
+    if (!isFinite(n) || Number.isInteger(Number(dec)) || Math.abs(n) >= 1e9) return dec;
+    const x = Math.abs(n);
+    let h0 = 0, h1 = 1, k0 = 1, k1 = 0, y = x;
+    for (let i = 0; i < 24; i++) {
+      const a = Math.floor(y);
+      [h0, h1] = [h1, a * h1 + h0];
+      [k0, k1] = [k1, a * k1 + k0];
+      if (k1 > 1000) return dec;
+      if (Math.abs(x - h1 / k1) < 1e-9 * Math.max(1, x)) return k1 === 1 ? dec : (n < 0 ? "-" : "") + h1 + "/" + k1;
+      const f = y - a;
+      if (f < 1e-12) break;
+      y = 1 / f;
+    }
+    return dec;
+  }
+
+  function calc(src, raw) {
     let s = String(src).trim().replace(/\s*=\s*\??\s*$/, "");
     if (!s || s.length > 200 || !/\d/.test(s)) return null;
     s = s.replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/[−–—]/g, "-").replace(/ /g, " ");
@@ -1082,8 +1101,9 @@ const lodicaMain = () => {
     let v;
     try { v = expr(); if (i !== tk.length) return null; } catch (e) { return null; }
     if (!ops || typeof v !== "number" || !isFinite(v)) return null;
+    if (raw) return v;
     if (Math.abs(v) >= 1e15 || (v !== 0 && Math.abs(v) < 1e-9)) return v.toExponential(6).replace(/\.?0+e/, "e");
-    return String(Number(v.toPrecision(12)));
+    return mathFrac(v, 12);
   }
 
   // "3x - 24 = -6" -> "x = 6"; one letter unknown, degree 1 or 2
@@ -1101,15 +1121,15 @@ const lodicaMain = () => {
       .replace(/(?<=[\d)])\s*(?=\u0001)/g, "*").replace(/(?<=\u0001)\s*(?=[\d(])/g, "*").replace(/\u0001\s*(?=\u0001)/g, "\u0001*")
       .replace(/\u0001/g, "(" + x + ")").replace(/\0/g, "").replace(/(?<=[\d)])\s*(?=\()/g, "*");
     const f = (x) => {
-      const a = calc("(" + side(l, x) + ")-(" + side(r, x) + ")");
-      return a == null ? NaN : Number(a);
+      const a = calc("(" + side(l, x) + ")-(" + side(r, x) + ")", true);
+      return a == null ? NaN : a;
     };
     const f0 = f(0), f1 = f(1), f2 = f(2), f3 = f(3);
     if (![f0, f1, f2, f3].every(isFinite)) return null;
     const A = (f2 - 2 * f1 + f0) / 2, B = f1 - f0 - A, C = f0;
     const tol = 1e-7 * (1 + Math.abs(f0) + Math.abs(f1) + Math.abs(f2));
     if (Math.abs(A * 9 + B * 3 + C - f3) > tol) return null;
-    const fmt = (n) => String(Number(n.toPrecision(10)));
+    const fmt = (n) => mathFrac(n, 10);
     const eps = 1e-9;
     if (Math.abs(A) < eps) {
       if (Math.abs(B) < eps) return null;

@@ -35,7 +35,7 @@ function openKeyboard() {
 }
 
 // Actions the renderer UI performs itself (it owns the sheets and the address field).
-const UI_ACTIONS = new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads"]);
+const UI_ACTIONS = new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads", "notebook"]);
 
 /** Run a keybindable action by id. UI-side actions are forwarded to the bar view. */
 function runKey(id) {

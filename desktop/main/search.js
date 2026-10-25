@@ -26,9 +26,18 @@ function engineQuery() {
   return relay.available ? "" : prefs.ENGINES[prefs.p.searchFallback].query;
 }
 
+/** Where the planner and the notes sit on the start page: left, right or below the search bar. They never share a place. */
+function positions() {
+  const ok = (v) => v === "left" || v === "right" || v === "below";
+  const plan = ok(prefs.p.plannerPos) ? prefs.p.plannerPos : "below";
+  let notes = ok(prefs.p.notesPos) ? prefs.p.notesPos : "left";
+  if (notes === plan) notes = ["left", "right", "below"].find((x) => x !== plan);
+  return { plan, notes };
+}
+
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
-  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, pos: positions() };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "hide") {
     const h = String(msg.host || "").slice(0, 253);

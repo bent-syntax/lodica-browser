@@ -14,13 +14,20 @@ function openNotebook() {
     // A function of x ("y = x^2", "sin(x)") shows its graph instead.
     L.graph = h("canvas", { width: "320", height: "160", style: "display:none;margin:0 12px 8px;border-radius:12px;background:var(--raised);width:calc(100% - 24px);max-width:320px;flex-shrink:0" });
     const showAnswer = () => {
-      const sel = L.ta.selectionStart === L.ta.selectionEnd ? "" : L.ta.value.slice(L.ta.selectionStart, L.ta.selectionEnd);
+      // With a selection the selected text is used; with only a caret, the line the caret is on.
+      const v = L.ta.value;
+      let from = L.ta.selectionStart, end = L.ta.selectionEnd;
+      if (from === end) {
+        from = v.lastIndexOf("\n", from - 1) + 1;
+        end = v.indexOf("\n", end); if (end < 0) end = v.length;
+      }
+      const sel = v.slice(from, end).trim();
       const f = sel ? mathGraph(sel) : null;
       L.graph.style.display = f ? "block" : "none";
       if (f) drawGraph(L.graph, f);
       const a = !sel || f ? null : mathAnswer(sel);
       if (a == null) { L.ans.style.display = "none"; return; }
-      const end = L.ta.selectionEnd, add = (a.includes("=") ? "\n" : " = ") + a;
+      const add = (a.includes("=") ? "\n" : " = ") + a;
       L.ans.replaceChildren(h("span", { style: "flex:1", text: (a.includes("=") ? "" : "= ") + a }),
         h("button", { class: "chip", text: "Insert", act: () => {
           if (L.ta.value.length + add.length > 100000) return;
@@ -114,6 +121,8 @@ function openNotebook() {
     L.ta.addEventListener("input", () => { L.dirty = true; L.status.textContent = "Saving..."; drawChips(); clearTimeout(L.timer); L.timer = setTimeout(save, 800); });
     L.ta.addEventListener("select", showAnswer);
     L.ta.addEventListener("keyup", showAnswer);
+    L.ta.addEventListener("input", showAnswer);
+    L.ta.addEventListener("click", showAnswer);
     L.ta.addEventListener("mouseup", () => setTimeout(showAnswer));
     const pull = async () => {
       if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); else if (!L.busy) save(); return; }

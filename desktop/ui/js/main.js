@@ -19,6 +19,7 @@ function runShortcut(name) {
     case "settings": openSettings(); break;
     case "history": openHistory(); break;
     case "downloads": openDownloads(); break;
+    case "notebook": if (S.relayAvail) openNotebook(); break;
   }
 }
 
@@ -84,7 +85,7 @@ function subscribe() {
 
 // Keys while the UI view has focus (page-focused keys arrive as "shortcut" events from main).
 // The combo -> action map comes from main (rebindable) and is refreshed when prefs change.
-const KEYS = { map: {}, ui: new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads"]) };
+const KEYS = { map: {}, ui: new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads", "notebook"]) };
 const loadKeys = () => inv("keys.list").then((r) => { if (r && r.map) KEYS.map = r.map; }).catch(() => {});
 loadKeys();
 

@@ -289,8 +289,10 @@ fun SettingsScreen() {
                     StartBackgroundSettings()
                     Section("Notes")
                     SwitchRow("Show notes", "Show your newest Notebook notes on the start page", Prefs.startNotes) { Prefs.updateStartNotes(it) }
+                    PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
                     Section("Smartschool planner")
                     PlannerSetting()
+                    PlacePicker("Planner position", Prefs.plannerPos) { Prefs.updatePlannerPos(it) }
                 }
                 5 -> {
             Section("Tabs")
@@ -942,6 +944,36 @@ private fun QualityPicker() {
     }
 }
 
+private val PLACE_LABELS = listOf("left" to "Left", "right" to "Right", "below" to "Under the search bar")
+
+// Where a start page widget sits. Picking the other widget's place swaps the two, so they never share one.
+@Composable
+private fun PlacePicker(title: String, current: String, onPick: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Row(
+            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, color = Mist, fontSize = 15.sp)
+                Text("Side places need a wide screen. On a phone they show under the search bar", color = Muted, fontSize = 13.sp)
+            }
+            Text(PLACE_LABELS.first { it.first == current }.second, color = Muted, fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
+        }
+        Box(Modifier.align(Alignment.TopEnd)) {
+            DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                PLACE_LABELS.forEach { (id, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label, color = if (id == current) Amber else Mist) },
+                        onClick = { onPick(id); open = false },
+                    )
+                }
+            }
+        }
+    }
+}
+
 internal class Confirm(val title: String, val body: String, val action: String = "Clear", val run: () -> Unit)
 
 @Composable
@@ -1461,6 +1493,8 @@ private val SettingsIndex = listOf(
     SettingsEntry("Start page background", 4, "wallpaper image"),
     SettingsEntry("Show notes on start page", 4, "notebook notes widget"),
     SettingsEntry("Smartschool planner", 4,"ics calendar agenda schedule"),
+    SettingsEntry("Notes position", 4, "notebook widget left right under search bar"),
+    SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),

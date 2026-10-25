@@ -95,6 +95,7 @@ object Helper {
                 .put("aiAlways", Prefs.aiAlways)
                 .put("planner", Prefs.plannerIcs)
                 .put("notes", Prefs.startNotes && Relay.available)
+                .put("pos", JSONObject().put("plan", Prefs.plannerPos).put("notes", Prefs.notesPos))
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
                 .put("fallback", Prefs.searchFallback.query)

@@ -43,7 +43,15 @@ const DIRECT_HOSTS = [
 ];
 const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i;
 
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", notes: false };
+// Planner and notes places on the start page: left, right or below the search bar. They never share one.
+function places(p) {
+  const ok = ["left", "right", "below"];
+  const plan = p && ok.includes(p.plan) ? p.plan : "below";
+  let notes = p && ok.includes(p.notes) ? p.notes : "left";
+  if (notes === plan) notes = ok.find((x) => x !== plan);
+  return { plan, notes };
+}
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", notes: false, pos: places() };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -161,7 +169,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, notes: cfg.notes };
+    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
@@ -248,6 +256,7 @@ function connect() {
         fallback: /^https:\/\/[^\s]*%s/.test(String(msg.fallback || "")) ? String(msg.fallback) : "",
         notes: !!msg.notes,
         planner: /^https:\/\/[^\s]+$/.test(String(msg.planner || "")) ? String(msg.planner) : "",
+        pos: places(msg.pos),
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.

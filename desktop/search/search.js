@@ -130,8 +130,14 @@ function topSites() {
     quick = st && Array.isArray(st.quick) ? st.quick : [];
     hidden = st && Array.isArray(st.hidden) ? st.hidden : [];
     auto = !st || st.auto !== false;
+    placeWidgets(st && st.pos);
     drawTop(auto && Array.isArray(items) ? items : []);
   });
+}
+// Planner and notes: left, right or below the search bar (Settings). Main already keeps them apart.
+function placeWidgets(pos) {
+  $("plan").dataset.pos = (pos && pos.plan) || "below";
+  $("notes").dataset.pos = (pos && pos.notes) || "left";
 }
 function hostOf(url) { try { return new URL(url).hostname; } catch { return ""; } }
 function drawTop(items) {
