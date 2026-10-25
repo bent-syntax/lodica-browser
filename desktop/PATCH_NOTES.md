@@ -1,3 +1,10 @@
+## 1.13.10
+
+- Fixed: On some sites when dark mode is turned off still have dark mode enabled for example beermap.be or ch
+- Added: The server emojis should be visible in every app or program as long as your connected to the server 
+- Added: Notities in the browser that sync with your linked devices and you can type equations and functions 
+- Fixed: Notebook Can't reach the server error even when the server is connected
+
 ## 1.13.9
 
 - Fixed: Notebook Can't reach the server
