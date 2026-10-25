@@ -48,6 +48,7 @@ import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
+import be.syntaxya.lodica.ui.theme.OnAmber
 
 /** AI chats: a list, and one thread with an input. The same chats appear on linked devices. */
 @Composable
@@ -98,8 +99,8 @@ fun ChatsScreen() {
                     val mine = m.role == "user"
                     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
                         androidx.compose.foundation.text.selection.SelectionContainer(
-                            Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp))
-                                .background(if (mine) GraphiteHigh else GraphiteRaised),
+                            (if (mine) Modifier.fillMaxWidth(0.88f) else Modifier.fillMaxWidth()).clip(RoundedCornerShape(20.dp))
+                                .background(if (mine) GraphiteRaised else Graphite),
                         ) {
                             Text(m.text, color = Mist, fontSize = 14.sp, modifier = Modifier.padding(12.dp))
                         }
@@ -109,15 +110,18 @@ fun ChatsScreen() {
             }
             Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
-                    text, { text = it }, Modifier.weight(1f), maxLines = 4,
+                    text, { text = it }, Modifier.weight(1f), maxLines = 4, shape = RoundedCornerShape(50),
                     placeholder = { Text("Ask something", color = Muted) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
                         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                        unfocusedContainerColor = GraphiteRaised, focusedContainerColor = GraphiteRaised,
                     ),
                 )
                 IconButton(
+                    modifier = Modifier.padding(start = 8.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(if (!busy && text.isNotBlank()) Amber else GraphiteHigh),
                     enabled = !busy && text.isNotBlank(),
                     onClick = {
                         if (!Ai.connected) { Toast.makeText(ctx, "Add an API key in Settings first", Toast.LENGTH_SHORT).show(); return@IconButton }
@@ -127,7 +131,7 @@ fun ChatsScreen() {
                             if (err != null) Toast.makeText(ctx, err, Toast.LENGTH_LONG).show()
                         }
                     },
-                ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (!busy && text.isNotBlank()) Amber else Muted) }
+                ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (!busy && text.isNotBlank()) OnAmber else Muted) }
             }
         }
     }

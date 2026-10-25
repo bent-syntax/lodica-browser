@@ -5,7 +5,21 @@ import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChatBubbleOutline
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import be.syntaxya.lodica.ui.theme.GraphiteHigh
+import be.syntaxya.lodica.ui.theme.IconTile
+import be.syntaxya.lodica.ui.theme.Mist
+import be.syntaxya.lodica.ui.theme.OnAmber
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -49,7 +63,13 @@ internal fun SupportDialog(onClose: () -> Unit) {
     val open = Support.messages.isNotEmpty() && Support.status != "closed"
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text("Contact support") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconTile(Icons.Rounded.ChatBubbleOutline, 40, Amber)
+                Spacer(Modifier.width(12.dp))
+                Text("Contact support")
+            }
+        },
         text = {
             Column {
                 Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
@@ -59,7 +79,14 @@ internal fun SupportDialog(onClose: () -> Unit) {
                         LinearProgressIndicator(progress = { (at + 1f) / steps.size }, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
                         Text(steps.mapIndexed { i, x -> if (i == at) "[$x]" else x }.joinToString(" > "), Modifier.padding(bottom = 8.dp), fontSize = 11.sp, color = Muted)
                         Support.messages.forEach { m ->
-                            Text((if (m.fromUser) "You: " else "Support: ") + m.text + (if (m.images > 0) " [${m.images} image${if (m.images > 1) "s" else ""}]" else ""), Modifier.padding(bottom = 6.dp), fontSize = 13.sp)
+                            Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = if (m.fromUser) Alignment.CenterEnd else Alignment.CenterStart) {
+                                Text(
+                                    m.text + (if (m.images > 0) " [${m.images} image${if (m.images > 1) "s" else ""}]" else ""),
+                                    color = if (m.fromUser) OnAmber else Mist, fontSize = 13.sp,
+                                    modifier = Modifier.widthIn(max = 240.dp).clip(RoundedCornerShape(20.dp))
+                                        .background(if (m.fromUser) Amber else GraphiteHigh).padding(horizontal = 16.dp, vertical = 12.dp),
+                                )
+                            }
                         }
                         if (Support.status == "needs-info") Text("Support needs more information. Reply below.", fontSize = 12.sp, color = Amber)
                         if (Support.status == "fixing") Text("A fix is being built and tested.", fontSize = 12.sp, color = Muted)

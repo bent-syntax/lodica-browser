@@ -2,7 +2,13 @@ package be.syntaxya.lodica.ui
 
 import android.text.format.DateUtils
 import android.text.format.Formatter
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.rounded.InsertDriveFile
+import be.syntaxya.lodica.ui.theme.GraphiteRaised
+import be.syntaxya.lodica.ui.theme.IconTile
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -48,17 +54,19 @@ fun DownloadsScreen() {
                 Text("Clear list", color = Coral)
             }
         }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
             if (items.isEmpty()) item {
                 Text("Nothing downloaded yet", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(32.dp))
             }
             items(items, key = { it.id }) { d ->
                 Row(
-                    Modifier.fillMaxWidth()
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
                         .clickable(enabled = d.status == Dl.DONE) { Downloads.open(ctx, d) }
-                        .padding(start = 20.dp, top = 8.dp, bottom = 8.dp),
+                        .padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconTile(Icons.Rounded.InsertDriveFile, 44, if (d.status == Dl.ACTIVE) Amber else null)
+                    androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(d.name, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         when (d.status) {

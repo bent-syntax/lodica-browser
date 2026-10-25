@@ -95,7 +95,7 @@ fun PreviewSheet(url: String) {
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         Box(Modifier.fillMaxSize().background(Graphite.copy(alpha = 0.6f)).systemBarsPadding().padding(12.dp)) {
-            Column(Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)).background(GraphiteRaised)) {
+            Column(Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)) {
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Rounded.Visibility, null, tint = Amber, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(10.dp))

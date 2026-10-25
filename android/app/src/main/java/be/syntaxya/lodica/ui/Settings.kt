@@ -3,6 +3,7 @@ package be.syntaxya.lodica.ui
 import be.syntaxya.lodica.ui.theme.DlgDanger
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
+import be.syntaxya.lodica.ui.theme.IconTile
 import android.text.format.DateUtils
 import be.syntaxya.lodica.ui.theme.customPalette
 import be.syntaxya.lodica.engine.Emojis
@@ -187,7 +188,7 @@ fun SettingsScreen() {
             Column(Modifier.fillMaxSize().verticalScroll(homeScroll).padding(bottom = 32.dp)) {
                 SettingsGroups.forEach { (group, pages) ->
                     Section(group)
-                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(18.dp))) {
+                    Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).border(1.dp, GraphiteHigh, RoundedCornerShape(20.dp))) {
                         pages.forEachIndexed { n, i ->
                             if (n > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
                             Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { tab = i }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -200,7 +201,7 @@ fun SettingsScreen() {
                     }
                 }
                 Section("Danger zone")
-                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(18.dp))) {
+                Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(20.dp))) {
                     LinkRow("Clear history", Coral) {
                         confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
                     }
@@ -1139,13 +1140,13 @@ internal fun SwitchRow(title: String, sub: String, checked: Boolean, onChange: (
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(50)
     Text(
-        label, color = Mist, fontSize = 13.sp,
+        label, color = if (selected) Amber else Mist, fontSize = 13.sp,
         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         modifier = Modifier.heightIn(min = 44.dp).wrapContentHeight(Alignment.CenterVertically).clip(shape)
-            .background(if (selected) GraphiteHigh else GraphiteRaised)
-            .border(1.dp, if (selected) Amber else GraphiteHigh, shape)
+            .background(if (selected) Amber.copy(alpha = 0.16f) else GraphiteRaised)
+            .border(1.dp, if (selected) Amber.copy(alpha = 0.5f) else GraphiteHigh, shape)
             .clickable(onClick = onClick).padding(horizontal = 14.dp),
     )
 }
@@ -1228,9 +1229,11 @@ fun HistoryScreen() {
                 Row(
                     Modifier.fillMaxWidth().animateItem()
                         .clickable { TabManager.load(v.url); Ui.screen = Screen.Browser }
-                        .padding(start = 20.dp, top = 6.dp, bottom = 6.dp),
+                        .padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    IconTile(Icons.Rounded.Language, 40)
+                    Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
@@ -1296,15 +1299,12 @@ fun PasswordsScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(Icons.Rounded.Lock, null, tint = Amber, modifier = Modifier.size(48.dp))
-                Spacer(Modifier.height(12.dp))
-                Text("Passwords are locked", color = Mist, fontSize = 16.sp)
+                IconTile(Icons.Rounded.Lock, 80, Amber)
+                Spacer(Modifier.height(16.dp))
+                Text("Passwords are locked", color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 error?.let { Text(it, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
                 Spacer(Modifier.height(20.dp))
-                Button(
-                    onClick = { unlock() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
-                ) { Text("Unlock") }
+                DlgPrimary(onClick = { unlock() }, modifier = Modifier.fillMaxWidth()) { Text("Unlock") }
             }
             return@Column
         }
