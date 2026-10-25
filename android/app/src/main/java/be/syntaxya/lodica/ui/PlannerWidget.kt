@@ -40,8 +40,8 @@ class PlannerWidget : AppWidgetProvider() {
         private const val LESSON = 0
         private const val TASK = 1
         private const val TEST = 2
-        private const val ROWS = 6
-        private val ROW_IDS = intArrayOf(R.id.p0, R.id.p1, R.id.p2, R.id.p3, R.id.p4, R.id.p5)
+        private const val ROWS = 12
+        private val ROW_IDS = intArrayOf(R.id.p0, R.id.p1, R.id.p2, R.id.p3, R.id.p4, R.id.p5, R.id.p6, R.id.p7, R.id.p8, R.id.p9, R.id.p10, R.id.p11)
 
         @Volatile private var text: String? = null
         @Volatile private var failed = false
@@ -160,7 +160,7 @@ class PlannerWidget : AppWidgetProvider() {
         private fun hhmm(m: Int) = "%02d:%02d".format(Locale.ROOT, m / 60, m % 60)
 
         /** The rows to show: day, time and subject; in tasks mode only tasks and tests. */
-        private fun rows(zone: ZoneId): List<Pair<String, Int>> {
+        private fun rows(zone: ZoneId, tasksOnly: Boolean = Prefs.plannerWidgetMode == "tasks"): List<Pair<String, Int>> {
             val src = text ?: return emptyList()
             val now = ZonedDateTime.now(zone)
             val nowDay = now.toLocalDate().toEpochDay()
@@ -173,7 +173,7 @@ class PlannerWidget : AppWidgetProvider() {
                     evs.add(Ev(d, r.from, r.to, d, false, r.subject, "", LESSON))
                 }
             }
-            if (Prefs.plannerWidgetMode == "tasks") evs = evs.filter { it.kind != LESSON }.toMutableList()
+            if (tasksOnly) evs = evs.filter { it.kind != LESSON }.toMutableList()
             evs.sortWith(compareBy<Ev>({ it.day }, { if (it.allDay) 0 else 1 }, { it.min }, { if (it.kind == LESSON) 1 else 0 }))
             return evs.map { e ->
                 val day = if (e.day == nowDay) "Today" else java.time.LocalDate.ofEpochDay(e.day).dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())
@@ -184,6 +184,29 @@ class PlannerWidget : AppWidgetProvider() {
             }
         }
 
+        /** Rows for the start page planner: lessons, tasks and tests of the next 7 days. */
+        fun plan(): List<Pair<String, Int>> = if (Prefs.plannerIcs.isBlank()) emptyList() else rows(zoneOf(Prefs.plannerTz), false)
+
+        /** What to show instead of rows, or null when there are rows. */
+        fun note(): String? = when {
+            Prefs.plannerIcs.isBlank() -> "Add your Smartschool link in Settings, Start page"
+            text == null && failed -> "Planner could not be loaded"
+            text == null -> "Loading the planner"
+            plan().isEmpty() -> "Nothing planned in the next 7 days"
+            else -> null
+        }
+
+        /** Downloads the ICS when it is stale (blocking, call off the main thread). */
+        fun fetch() {
+            val url = Prefs.plannerIcs
+            if (url.startsWith("https://") || url.startsWith("http://")) {
+                if (text != null && System.currentTimeMillis() - fetchedAt < STALE) return
+                val got = runCatching { download(url) }.getOrNull()
+                if (got != null) { text = got; failed = false } else failed = true
+            } else { text = null; failed = false }
+            fetchedAt = System.currentTimeMillis()
+        }
+
         private fun build(ctx: Context, m: AppWidgetManager, id: Int): RemoteViews {
             val p = ThemeState.palette
             val rv = RemoteViews(ctx.packageName, R.layout.widget_planner)
@@ -192,7 +215,7 @@ class PlannerWidget : AppWidgetProvider() {
             rv.setTextColor(R.id.p_title, p.text.toInt())
             val d = ctx.resources.displayMetrics.density
             val h = m.getAppWidgetOptions(id).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT).takeIf { it > 0 } ?: 110
-            val fit = ((h - 44) / 20).coerceIn(1, ROWS)
+            val fit = ((h - 44) / 27).coerceIn(1, ROWS)
             val list = if (Prefs.plannerIcs.isBlank()) emptyList() else rows(zoneOf(Prefs.plannerTz))
             val note = when {
                 Prefs.plannerIcs.isBlank() -> "Add your Smartschool link in Settings, Start page"
@@ -209,7 +232,8 @@ class PlannerWidget : AppWidgetProvider() {
                 }
                 rv.setViewVisibility(ROW_IDS[i], android.view.View.VISIBLE)
                 rv.setTextViewText(ROW_IDS[i], row.first)
-                rv.setTextColor(ROW_IDS[i], when (row.second) { 1 -> 0xFFF59E0B.toInt(); 2 -> 0xFFF43F5E.toInt(); else -> if (note != null) p.muted.toInt() else p.text.toInt() })
+                rv.setInt(ROW_IDS[i], "setBackgroundResource", when (row.second) { 1 -> R.drawable.planner_task; 2 -> R.drawable.planner_test; else -> R.drawable.planner_row })
+                rv.setTextColor(ROW_IDS[i], if (note != null) p.muted.toInt() else p.text.toInt())
             }
             val intent = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(R.id.widget_planner, PendingIntent.getActivity(ctx, 300, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))

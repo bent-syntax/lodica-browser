@@ -53,7 +53,8 @@ function warm() {
     if (proc === me) proc = null;
     finish({ error: 'Claude Code stopped. Is it installed and signed in?' });
   });
-  proc.on('error', () => {});
+  proc.on('error', () => { if (proc === me) proc = null; finish({ error: 'Claude Code could not start. Is it installed?' }); });
+  proc.stdin.on('error', () => {});
 }
 
 function finish(r) {

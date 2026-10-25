@@ -1,14 +1,21 @@
+## 1.13.19
+
+- Added: Planner on the start page, with a box around every subject and a grip to show more lessons
+- Changed: Planner widget shows up to 12 lessons when resized, tasks and tests get a coloured box
+- Fixed: Claude in the browser extension timing out
+- Fixed: Patch notes and update mails now use plain wording
+
 ## 1.13.18
 
 - Added: Smartschool planner widget
 
 ## 1.13.17
 
-- Added: Follow-up LOD-1002 can you make it so you can configure the position of the smartschool planner so
+- Added: Choose where the Smartschool planner sits on the start page
 
 ## 1.13.16
 
-- Added: LOD-1002 can you make it so you can configure the position of the smartschool planner so
+- Added: Choose where the Smartschool planner sits
 
 ## 1.13.15
 
@@ -26,16 +33,16 @@
 
 ## 1.13.11
 
-- Added: You need to be able to access the screen of the linked phone in the browser so you can play for example minecraft pocked edition from you phone but you can see it in the desktop browser
-- Fixed: The tabs on my friends phone aren't visible but you can see the page in the tabs menu
-- Fixed: Notebook Can't reach the server error even when the server is connected
+- Added: View and control a linked phone screen from the desktop browser
+- Fixed: Tabs missing from the tabs menu on some phones
+- Fixed: Notebook showed "Can't reach the server" while connected
 
 ## 1.13.10
 
 - Fixed: Some sites stayed dark after turning dark mode off
 - Added: The server emojis should be visible in every app or program as long as your connected to the server 
 - Added: Notities in the browser that sync with your linked devices and you can type equations and functions 
-- Fixed: Notebook Can't reach the server error even when the server is connected
+- Fixed: Notebook showed "Can't reach the server" while connected
 
 ## 1.13.9
 
@@ -43,7 +50,7 @@
 
 ## 1.13.8
 
-- Fixed: Notebook Can't reach the server error even when the server is connected
+- Fixed: Notebook showed "Can't reach the server" while connected
 
 ## 1.13.7
 

@@ -381,8 +381,22 @@ def bump(wt):
     return new_v, new_c
 
 
+def tidy(b):
+    """patch-note line from a bug title: no ticket ids, no 'follow-up', no cut-off words, sentence case"""
+    m = re.match(r"\s*(Added|Fixed|Changed|Fix|Add)\s*:\s*(.*)", b, re.S)
+    verb, text = ("Fixed" if m and m.group(1).startswith("Fix") else "Added" if m else "Changed"), (m.group(2) if m else b)
+    text = re.sub(r"\b(follow[- ]?up)\b:?", "", text, flags=re.I)
+    text = re.sub(r"\bLOD-\d+\b:?", "", text)
+    text = " ".join(text.split()).strip(" .:-")
+    if len(text) > 90:
+        text = text[:90].rsplit(" ", 1)[0].rstrip(" ,;:-")
+    text = re.sub(r"\s+(so|and|or|to|the|a|an|that|but|because|with|for|in|on|of)$", "", text, flags=re.I)
+    text = re.sub(r"^(can|could) you (please )?(make it so (that )?|add |fix )?", "", text, flags=re.I)
+    return "%s: %s%s" % (verb, text[:1].upper(), text[1:])
+
+
 def notes_files(wt, ver, code, bullets):
-    body = "\n".join("- " + b for b in bullets) + "\n"
+    body = "\n".join("- " + b for b in map(tidy, bullets)) + "\n"
     c = os.path.join(wt, "CHANGELOG.md")
     s = open(c).read()
     i = s.index("\n## ") + 1
@@ -542,6 +556,7 @@ def process(tk, st, kinds):
         # the support desk reads this line: "Added in" mails the person "added", anything else "fixed"
         verb = "Added" if label.startswith("Add") else "Fixed"
         tk.patch(t["id"], {"status": "completed", "notes": "%s in %s, released as v%s." % (verb, sha, ver)})
+        tell_person(one(t.get("title")), verb.lower() if verb == "Added" else "fixed", tidy(label)[len(verb) + 2:] + ". Released as v%s." % ver)
     git("worktree", "remove", "--force", wt)
     return "released v%s (%s): fixed %d of %d" % (ver, head, len(done), len(bugs))
 
@@ -568,20 +583,36 @@ def adb_phones():
     return [l.split()[0] for l in out.splitlines()[1:] if len(l.split()) == 2 and l.split()[1] == "device"]
 
 
+def desk(path, body):
+    """POST to the support desk with the owner secret (env, or the one SUPPORT_SECRET line of SUPPORT_ENV). Raises on failure."""
+    secret = os.environ.get("SUPPORT_SECRET", "")
+    if not secret:  # take only this one line, nothing else from the desk's env file
+        with open(os.environ.get("SUPPORT_ENV", "/etc/lodica-support.env")) as f:
+            secret = next((l.split("=", 1)[1].strip().strip("'\"") for l in f if l.startswith("SUPPORT_SECRET=")), "")
+    req = urllib.request.Request(os.environ.get("SUPPORT_URL", "http://127.0.0.1:12159") + path, json.dumps(body).encode(),
+                                 {"Content-Type": "application/json", "Authorization": "Bearer " + secret})
+    return urllib.request.urlopen(req, timeout=20).read()
+
+
 def alert_owner(subject, text):
-    """Mail the owners through the support desk. Needs SUPPORT_SECRET (env, or the line in SUPPORT_ENV)."""
+    """Mail the owners through the support desk."""
     try:
-        secret = os.environ.get("SUPPORT_SECRET", "")
-        if not secret:  # take only this one line, nothing else from the desk's env file
-            with open(os.environ.get("SUPPORT_ENV", "/etc/lodica-support.env")) as f:
-                secret = next((l.split("=", 1)[1].strip().strip("'\"") for l in f if l.startswith("SUPPORT_SECRET=")), "")
-        url = os.environ.get("SUPPORT_URL", "http://127.0.0.1:12159") + "/owner/alert"
-        req = urllib.request.Request(url, json.dumps({"subject": subject, "text": text}).encode(),
-                                     {"Content-Type": "application/json", "Authorization": "Bearer " + secret})
-        urllib.request.urlopen(req, timeout=20).read()
+        desk("/owner/alert", {"subject": subject, "text": text})
         log("owner alert sent:", subject)
     except Exception as e:
         log("owner alert failed:", repr(e)[:150])
+
+
+def tell_person(title, event, note):
+    """Tell whoever sent the request (LOD-nnnn in the task title) that it is fixed or added. The desk mails once per step."""
+    m = re.search(r"LOD-\d+", title or "")
+    if not m or DRY:
+        return
+    try:
+        desk("/owner/notify", {"id": m.group(0), "event": event, "note": note})
+        log("told the person", m.group(0), "is", event)
+    except Exception as e:
+        log("could not tell the person", m.group(0), repr(e)[:150])
 
 
 def main():

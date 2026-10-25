@@ -46,7 +46,7 @@ function setKey(k) {
 function sdk() {
   if (!client) {
     const Anthropic = require("@anthropic-ai/sdk");
-    client = new (Anthropic.default || Anthropic)({ apiKey: key });
+    client = new (Anthropic.default || Anthropic)({ apiKey: key, timeout: 60000, maxRetries: 1 });
   }
   return client;
 }

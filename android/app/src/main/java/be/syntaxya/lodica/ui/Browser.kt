@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
@@ -490,11 +492,12 @@ private fun StartPage(modifier: Modifier) {
     val tiles = mine.map { Shortcut(it.first, it.second, true) } + auto.map { Shortcut(it.url, runCatching { android.net.Uri.parse(it.url).host.orEmpty().removePrefix("www.") }.getOrDefault("").ifBlank { it.title }, false) }
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<Shortcut?>(null) }
-    Box(modifier.background(Graphite)) {
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.background(Graphite)) {
+    val full = maxHeight
     StartBackdrop(Modifier.fillMaxSize())
     var q by remember { mutableStateOf("") }
     Column(
-        Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 72.dp),
+        Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).heightIn(min = full).padding(start = 24.dp, end = 24.dp, bottom = 72.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -544,6 +547,10 @@ private fun StartPage(modifier: Modifier) {
                 }
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
+        }
+        if (!priv) {
+            Spacer(Modifier.height(20.dp))
+            PlannerCard(Modifier.fillMaxWidth())
         }
     }
     }

@@ -28,7 +28,7 @@ function createApp({ dataDir, transport, from, owners = [], toRelay = async () =
   // ── mail ──
   async function send(m, to) {
     const msg = { from: `Lodica Support <${from}>`, to, subject: m.subject, html: m.html, text: m.text, replyTo: m.replyTo, headers: { 'X-Lodica-Mail': '1' } };
-    try { await transport.sendMail(msg); return true; } catch (e) { db.outbox.push({ msg, at: now(), tries: 1, last: String(e.message).slice(0, 120) }); save(); return false; }
+    try { await transport.sendMail(msg); return true; } catch (e) { console.error('mail to', to, 'failed, queued:', String(e.message).slice(0, 160)); db.outbox.push({ msg, at: now(), tries: 1, last: String(e.message).slice(0, 120) }); save(); return false; }
   }
   async function flushOutbox() {
     const left = [];
