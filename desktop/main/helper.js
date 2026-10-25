@@ -152,10 +152,19 @@ function pageState(tab) {
 /** Per-site override for a hostname (exact or parent domain), or null. Used by the preload at document start. */
 function overrideFor(host) { return prefs.siteOverride(host); }
 
+/** With "Dark pages" off, pages see a light scheme even when the system is dark (nativeTheme follows the system). */
+function syncScheme(wc) {
+  try {
+    if (!wc.debugger.isAttached()) wc.debugger.attach("1.3");
+    wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages ? "" : "light" }] }).catch(() => {});
+  } catch { /* debugger busy or view gone */ }
+}
+
 function pushPage() {
   if (!deps) return;
   for (const t of deps.tabs.all()) {
     const wc = t.view?.webContents;
+    if (wc && !wc.isDestroyed()) syncScheme(wc);
     if (wc && !wc.isDestroyed()) try { wc.send("page", pageState(t)); } catch { /* not loaded */ }
   }
 }
@@ -303,4 +312,4 @@ function init(d) {
   prefs.events.on("change", pushPage);
 }
 
-module.exports = { init, overrideFor, fill, reader, pageState, pushPage, forgetTab, password, username, ADDRESS, BIRTHDAY };
+module.exports = { init, overrideFor, fill, reader, pageState, pushPage, syncScheme, forgetTab, password, username, ADDRESS, BIRTHDAY };

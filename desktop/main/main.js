@@ -239,6 +239,7 @@ function onView(t, wc) {
   wc.on("before-input-event", shortcut);
   swipeNav(wc);
   M.commands.applyAgent(t, wc);
+  M.helper.syncScheme(wc);
   // Sites flagged desktopInput need the desktop UA from the first request, even in a mobile-site tab.
   wc.on("did-start-navigation", (e) => {
     if (!e.isMainFrame || e.isSameDocument || wc.isDestroyed()) return;
