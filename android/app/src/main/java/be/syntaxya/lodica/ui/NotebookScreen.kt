@@ -1,11 +1,14 @@
 package be.syntaxya.lodica.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -29,6 +32,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
@@ -43,6 +51,7 @@ import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
+import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -154,7 +163,11 @@ fun NotebookScreen() {
         }
         // Selecting math shows its answer above the note, with a button that writes it after the selection.
         val from = sel.start.coerceIn(0, text.length); val to = sel.end.coerceIn(0, text.length)
-        val answer = if (from == to) null else MathSolver.answer(text.substring(minOf(from, to), maxOf(from, to)))
+        val picked = if (from == to) "" else text.substring(minOf(from, to), maxOf(from, to))
+        // A function of x ("y = x^2", "sin(x)") shows its graph instead.
+        val curve = if (picked.isEmpty()) null else MathSolver.graph(picked)
+        if (curve != null) Graph(curve, Modifier.fillMaxWidth().height(160.dp).padding(start = 12.dp, end = 12.dp, bottom = 8.dp))
+        val answer = if (curve != null || picked.isEmpty()) null else MathSolver.answer(picked)
         if (answer != null) {
             val add = (if (answer.contains("=")) "\n" else " = ") + answer
             val end = maxOf(from, to)
@@ -203,5 +216,38 @@ fun NotebookScreen() {
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = Muted) } },
         )
+    }
+}
+
+/** Graph of [f] for x in -10..10: axes and the curve, y range fitted to the curve. Same as drawGraph in desktop/ui/js/mathsolve.js. */
+@Composable
+private fun Graph(f: (Double) -> Double, modifier: Modifier = Modifier) {
+    Canvas(modifier.background(GraphiteRaised, RoundedCornerShape(12.dp))) {
+        val w = size.width; val h = size.height
+        val lo = -10.0; val hi = 10.0
+        val n = w.toInt().coerceAtLeast(1)
+        val ys = DoubleArray(n + 1) { f(lo + (hi - lo) * it / n) }
+        var ymin = Double.POSITIVE_INFINITY; var ymax = Double.NEGATIVE_INFINITY
+        for (y in ys) if (y.isFinite() && abs(y) < 1e6) { ymin = minOf(ymin, y); ymax = maxOf(ymax, y) }
+        if (!ymin.isFinite()) { ymin = -10.0; ymax = 10.0 }
+        if (ymax - ymin < 1e-6) { ymin -= 1; ymax += 1 }
+        val pad = (ymax - ymin) * 0.1
+        ymin = maxOf(ymin - pad, -50.0); ymax = minOf(ymax + pad, 50.0)
+        if (ymax <= ymin) { ymin = -10.0; ymax = 10.0 }
+        val span = ymax - ymin
+        val px = { x: Double -> ((x - lo) / (hi - lo) * w).toFloat() }
+        val py = { y: Double -> (h - (y - ymin) / span * h).toFloat() }
+        val stroke = Stroke(1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+        if (ymin < 0 && ymax > 0) drawLine(Muted, Offset(0f, py(0.0)), Offset(w, py(0.0)), stroke.width, StrokeCap.Round)
+        drawLine(Muted, Offset(px(0.0), 0f), Offset(px(0.0), h), stroke.width, StrokeCap.Round)
+        val path = Path()
+        var pen = false
+        ys.forEachIndexed { i, y ->
+            if (!y.isFinite() || y < ymin - span || y > ymax + span) { pen = false; return@forEachIndexed }
+            val x = i.toFloat() * w / n
+            if (pen) path.lineTo(x, py(y)) else path.moveTo(x, py(y))
+            pen = true
+        }
+        drawPath(path, Amber, style = stroke)
     }
 }

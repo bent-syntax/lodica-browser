@@ -286,6 +286,8 @@ fun SettingsScreen() {
                 4 -> {
                     Section("Start page background")
                     StartBackgroundSettings()
+                    Section("Notes")
+                    SwitchRow("Show notes", "Show your newest Notebook notes on the start page", Prefs.startNotes) { Prefs.updateStartNotes(it) }
                     Section("Smartschool planner")
                     PlannerSetting()
                 }
@@ -1448,7 +1450,8 @@ private val SettingsIndex = listOf(
     SettingsEntry("Search widget", 3, "home screen"),
     SettingsEntry("Dark pages", 3, "force dark websites"),
     SettingsEntry("Start page background", 4, "wallpaper image"),
-    SettingsEntry("Smartschool planner", 4, "ics calendar agenda schedule"),
+    SettingsEntry("Show notes on start page", 4, "notebook notes widget"),
+    SettingsEntry("Smartschool planner", 4,"ics calendar agenda schedule"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),

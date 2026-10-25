@@ -36,6 +36,7 @@ async function handle(msg) {
     return true;
   }
   if (msg.type === "planner") return planner();
+  if (msg.type === "notes") return notes();
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);
   if (msg.type === "ask") return ask(msg);
@@ -56,6 +57,21 @@ async function planner() {
   } catch {
     return { url, text: null };
   }
+}
+
+// Notes widget on the start page: the newest notes of the shared notebook, first line as title.
+async function notes() {
+  if (prefs.p.startNotes === false || !relay.available) return { off: true };
+  const nb = require("./notebook");
+  const list = await nb.list();
+  if (!list) return { items: null };
+  const items = [];
+  for (const n of list.slice(0, 5)) {
+    const full = await nb.get(n.id);
+    const lines = String(full ? full.text : "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    items.push({ title: (lines[0] || "Empty note").slice(0, 80), more: (lines[1] || "").slice(0, 120) });
+  }
+  return { items };
 }
 
 // Own shortcuts for the start page: up to 24 http(s) sites, each with an optional short name.

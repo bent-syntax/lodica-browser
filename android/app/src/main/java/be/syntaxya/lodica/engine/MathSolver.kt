@@ -121,4 +121,78 @@ object MathSolver {
         val q = sqrt(d); val x1 = (-b - q) / (2 * a); val x2 = (-b + q) / (2 * a)
         return "$v = " + num(minOf(x1, x2), 10) + " or " + num(maxOf(x1, x2), 10)
     }
+
+    private val graphFns: Map<String, (Double) -> Double> = mapOf(
+        "sin" to { v -> kotlin.math.sin(v) }, "cos" to { v -> kotlin.math.cos(v) }, "tan" to { v -> kotlin.math.tan(v) },
+        "ln" to { v -> kotlin.math.ln(v) }, "log" to { v -> kotlin.math.log10(v) }, "exp" to { v -> kotlin.math.exp(v) },
+        "abs" to { v -> abs(v) }, "sqrt" to { v -> sqrt(v) },
+    )
+
+    /** Function of x for "y = x^2", "f(x) = sin(x)" or a bare expression in x, or null. Port of mathGraph in desktop/ui/js/mathsolve.js. Keep in step. */
+    fun graph(src: String): ((Double) -> Double)? {
+        var s = src.trim().lowercase().replace(Regex("[−–—]"), "-").replace(Regex("[×·⋅]"), "*").replace("÷", "/").replace("**", "^").replace("π", "pi")
+        if (s.isEmpty() || s.length > 120) return null
+        s = s.replace(Regex("^(?:y|f\\s*\\(\\s*x\\s*\\))\\s*=\\s*"), "")
+        if (!Regex("^[\\d\\s.+\\-*/^()a-z]+$").matches(s)) return null
+        val t = Regex("\\d+\\.?\\d*|\\.\\d+|[a-z]+|[+\\-*/^()]").findAll(s).map { it.value }.toList()
+        if (t.joinToString("") != s.replace(Regex("\\s+"), "") || "x" !in t) return null
+        // 2x, 2(x+1), x(x+1) and )( read as a product
+        val isVal = Regex("^[\\d.]|^[a-z]+$|^\\)$")
+        val startsVal = Regex("^[\\d.]|^[a-z]+$|^\\($")
+        val tk = ArrayList<String>()
+        for (x in t) {
+            val p = tk.lastOrNull()
+            if (p != null && isVal.containsMatchIn(p) && p !in graphFns && startsVal.containsMatchIn(x)) tk.add("*")
+            tk.add(x)
+        }
+        var i = 0
+        fun peek() = tk.getOrNull(i)
+        lateinit var expr: () -> ((Double) -> Double)
+        lateinit var unary: () -> ((Double) -> Double)
+        fun atom(): (Double) -> Double {
+            val w = tk.getOrNull(i++) ?: throw Bad()
+            if (w == "(") { val f = expr(); if (tk.getOrNull(i++) != ")") throw Bad(); return f }
+            if (w[0].isDigit() || w[0] == '.') { val n = w.toDoubleOrNull() ?: throw Bad(); return { n } }
+            if (w == "x") return { v -> v }
+            if (w == "pi") return { Math.PI }
+            if (w == "e") return { Math.E }
+            val g = graphFns[w] ?: throw Bad()
+            val a = atom()
+            return { v -> g(a(v)) }
+        }
+        unary = unary@{
+            if (peek() == "-") {
+                i++
+                val a = unary()
+                val neg: (Double) -> Double = { v -> -a(v) }
+                return@unary neg
+            }
+            if (peek() == "+") { i++; return@unary unary() }
+            val b = atom()
+            if (peek() == "^") {
+                i++
+                val e = unary()
+                val pw: (Double) -> Double = { v -> b(v).pow(e(v)) }
+                return@unary pw
+            }
+            b
+        }
+        fun term(): (Double) -> Double {
+            var f = unary()
+            while (peek() == "*" || peek() == "/") {
+                val o = tk[i++]; val a = f; val b = unary()
+                f = if (o == "*") fun(v: Double) = a(v) * b(v) else fun(v: Double) = a(v) / b(v)
+            }
+            return f
+        }
+        expr = {
+            var f = term()
+            while (peek() == "+" || peek() == "-") {
+                val o = tk[i++]; val a = f; val b = term()
+                f = if (o == "+") fun(v: Double) = a(v) + b(v) else fun(v: Double) = a(v) - b(v)
+            }
+            f
+        }
+        return try { val f = expr(); if (i == tk.size) f else null } catch (e: Bad) { null }
+    }
 }

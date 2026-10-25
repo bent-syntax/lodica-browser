@@ -172,6 +172,7 @@ function secStart() {
   }
   out.push(secHead("Shortcuts", "shortcuts"),
     setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
+    setToggle("startNotes", "Show notes", "Show your newest notes from the shared Notebook on the start page."),
     secHead("Smartschool planner", "planner"),
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",

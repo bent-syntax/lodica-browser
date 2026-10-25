@@ -102,3 +102,90 @@ const mathAnswer = (() => {
 
   return (text) => solve(text) || calc(text);
 })();
+
+// Function graph for the notebook: "y = x^2", "f(x) = sin(x)" or a bare expression in x. Returns a function of x or null. Keep in step with MathSolver.graph in the Android app.
+const mathGraph = (() => {
+  const FN = { sin: Math.sin, cos: Math.cos, tan: Math.tan, ln: Math.log, log: Math.log10, exp: Math.exp, abs: Math.abs, sqrt: Math.sqrt };
+  const isFn = (w) => Object.prototype.hasOwnProperty.call(FN, w);
+  return (src) => {
+    let s = String(src).trim().toLowerCase().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^").replace(/π/g, "pi");
+    if (!s || s.length > 120) return null;
+    s = s.replace(/^(?:y|f\s*\(\s*x\s*\))\s*=\s*/, "");
+    if (!/^[\d\s.+\-*/^()a-z]+$/.test(s)) return null;
+    const t = s.match(/\d+\.?\d*|\.\d+|[a-z]+|[+\-*/^()]/g);
+    if (!t || t.join("") !== s.replace(/\s+/g, "") || !t.includes("x")) return null;
+    // 2x, 2(x+1), x(x+1) and )( read as a product
+    const tk = [];
+    for (const x of t) {
+      const p = tk[tk.length - 1];
+      if (p !== undefined && /^[\d.]|^[a-z]+$|^\)$/.test(p) && !isFn(p) && /^[\d.]|^[a-z]+$|^\($/.test(x)) tk.push("*");
+      tk.push(x);
+    }
+    let i = 0;
+    const peek = () => tk[i];
+    const expr = () => {
+      let f = term();
+      while (peek() === "+" || peek() === "-") { const o = tk[i++], a = f, b = term(); f = o === "+" ? (x) => a(x) + b(x) : (x) => a(x) - b(x); }
+      return f;
+    };
+    const term = () => {
+      let f = unary();
+      while (peek() === "*" || peek() === "/") { const o = tk[i++], a = f, b = unary(); f = o === "*" ? (x) => a(x) * b(x) : (x) => a(x) / b(x); }
+      return f;
+    };
+    const unary = () => {
+      if (peek() === "-") { i++; const a = unary(); return (x) => -a(x); }
+      if (peek() === "+") { i++; return unary(); }
+      const b = atom();
+      if (peek() === "^") { i++; const e = unary(); return (x) => Math.pow(b(x), e(x)); }
+      return b;
+    };
+    const atom = () => {
+      const w = tk[i++];
+      if (w === undefined) throw 0;
+      if (w === "(") { const f = expr(); if (tk[i++] !== ")") throw 0; return f; }
+      if (/^[\d.]/.test(w)) { const n = parseFloat(w); return () => n; }
+      if (w === "x") return (x) => x;
+      if (w === "pi") return () => Math.PI;
+      if (w === "e") return () => Math.E;
+      if (isFn(w)) { const g = FN[w], a = atom(); return (x) => g(a(x)); }
+      throw 0;
+    };
+    try { const f = expr(); return i === tk.length ? f : null; } catch (e) { return null; }
+  };
+})();
+
+/** Draws f on canvas [cv] for x in -10..10: axes and the curve, y range fitted to the curve. */
+function drawGraph(cv, f) {
+  const w = cv.width, hh = cv.height, c = cv.getContext("2d");
+  const css = getComputedStyle(cv);
+  const muted = css.getPropertyValue("--muted").trim() || "#9CA3AF", amber = css.getPropertyValue("--amber").trim() || "#F59E0B";
+  const lo = -10, hi = 10;
+  let ymin = Infinity, ymax = -Infinity;
+  const ys = [];
+  for (let px = 0; px <= w; px++) {
+    const y = f(lo + (hi - lo) * px / w);
+    ys.push(y);
+    if (isFinite(y) && Math.abs(y) < 1e6) { ymin = Math.min(ymin, y); ymax = Math.max(ymax, y); }
+  }
+  if (!isFinite(ymin)) { ymin = -10; ymax = 10; }
+  if (ymax - ymin < 1e-6) { ymin -= 1; ymax += 1; }
+  const pad = (ymax - ymin) * 0.1;
+  ymin = Math.max(ymin - pad, -50); ymax = Math.min(ymax + pad, 50);
+  if (ymax <= ymin) { ymin = -10; ymax = 10; }
+  const X = (x) => (x - lo) / (hi - lo) * w, Y = (y) => hh - (y - ymin) / (ymax - ymin) * hh;
+  c.clearRect(0, 0, w, hh);
+  c.lineWidth = 1.8; c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = muted;
+  c.beginPath();
+  if (ymin < 0 && ymax > 0) { c.moveTo(0, Y(0)); c.lineTo(w, Y(0)); }
+  c.moveTo(X(0), 0); c.lineTo(X(0), hh);
+  c.stroke();
+  c.strokeStyle = amber; c.beginPath();
+  let pen = false;
+  ys.forEach((y, px) => {
+    if (!isFinite(y) || y < ymin - (ymax - ymin) || y > ymax + (ymax - ymin)) { pen = false; return; }
+    if (pen) c.lineTo(px, Y(y)); else c.moveTo(px, Y(y));
+    pen = true;
+  });
+  c.stroke();
+}

@@ -93,6 +93,7 @@ function setup() {
     document.body.classList.add("home");
     topSites();
     planner();
+    notes();
     $("q").focus();
     return false;
   }
@@ -442,6 +443,18 @@ function drawPlanner(text, url) {
 async function planner() {
   const r = await ask1({ type: "planner" });
   drawPlanner(r && r.text, r && r.url);
+}
+
+// Notes widget on the start page: newest notes of the shared Notebook, switched in Settings, Start page.
+async function notes() {
+  const box = $("notes");
+  const r = await ask1({ type: "notes" });
+  if (!r || r.off) { box.replaceChildren(); return; }
+  const kids = [el("h3", null, "Notes")];
+  if (!r.items) kids.push(el("p", { class: "none" }, "Notes could not be loaded."));
+  else if (!r.items.length) kids.push(el("p", { class: "none" }, "No notes yet. Open Notebook from the menu to add one."));
+  else for (const n of r.items) kids.push(el("div", { class: "pe nt" }, el("b", null, n.title), n.more ? el("span", null, n.more) : null));
+  box.replaceChildren(...kids);
 }
 
 run();

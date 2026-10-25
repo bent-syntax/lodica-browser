@@ -94,6 +94,7 @@ object Helper {
                 .put("ai", Ai.connected)
                 .put("aiAlways", Prefs.aiAlways)
                 .put("planner", Prefs.plannerIcs)
+                .put("notes", Prefs.startNotes && Relay.available)
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
                 .put("fallback", Prefs.searchFallback.query)
@@ -302,6 +303,18 @@ object Helper {
                                 else {
                                     History.suggestSearches(q).forEach { items.put(JSONObject().put("title", it)) }
                                     History.suggest(q).forEach { items.put(JSONObject().put("url", it.url).put("title", it.title)) }
+                                }
+                                port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items))
+                            }.start()
+                        }
+                        // Start page Notes card: the newest Notebook notes as a title and a preview line.
+                        "notes" -> {
+                            val id = m.optInt("id")
+                            Thread {
+                                val items = org.json.JSONArray()
+                                if (Prefs.startNotes && Relay.available) Notebook.list()?.take(5)?.forEach { info ->
+                                    val lines = (Notebook.get(info.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
+                                    items.put(JSONObject().put("title", (lines.getOrNull(0) ?: info.title.ifBlank { "New note" }).take(80)).put("more", (lines.getOrNull(1) ?: "").take(120)))
                                 }
                                 port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items))
                             }.start()

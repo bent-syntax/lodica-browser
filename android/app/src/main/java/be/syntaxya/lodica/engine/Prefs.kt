@@ -56,6 +56,8 @@ object Prefs {
     var aiAlways by mutableStateOf(false); private set
     /** Smartschool planner ICS link shown on the start page; empty means not added. */
     var plannerIcs by mutableStateOf(""); private set
+    /** Show the newest Notebook notes on the start page. */
+    var startNotes by mutableStateOf(true); private set
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
@@ -135,6 +137,7 @@ object Prefs {
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
+        startNotes = sp.getBoolean("startNotes", true)
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
         quickHidden = sp.getString("quickHidden", "") ?: ""
@@ -232,6 +235,7 @@ object Prefs {
     }
     fun hideQuickHost(h: String) { quickHidden = (quickHidden.lines() + h).filter { it.isNotBlank() }.distinct().joinToString("\n"); sp.edit().putString("quickHidden", quickHidden).apply() }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
+    fun updateStartNotes(v: Boolean) { startNotes = v; sp.edit().putBoolean("startNotes", v).apply(); Helper.push() }
     fun updatePlannerIcs(v: String) { plannerIcs = v.trim().replace(Regex("^webcal://", RegexOption.IGNORE_CASE), "https://"); sp.edit().putString("plannerIcs", plannerIcs).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }

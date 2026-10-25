@@ -43,7 +43,7 @@ const DIRECT_HOSTS = [
 ];
 const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i;
 
-let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "" };
+let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", notes: false };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -161,7 +161,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
   if (msg.type === "state") {
     await configured;
-    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner };
+    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, notes: cfg.notes };
   }
   if (msg.type === "search") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
@@ -193,6 +193,15 @@ browser.runtime.onMessage.addListener(async (msg) => {
       asks.set(id, resolve);
       setTimeout(() => { if (asks.delete(id)) resolve([]); }, 3000);
       native.postMessage({ type: msg.type, id, q: String(msg.q || "").slice(0, 200) });
+    });
+  }
+  if (msg.type === "notes") {
+    if (!native || !cfg.notes) return [];
+    const id = ++askId;
+    return new Promise((resolve) => {
+      asks.set(id, resolve);
+      setTimeout(() => { if (asks.delete(id)) resolve([]); }, 10000);
+      native.postMessage({ type: "notes", id });
     });
   }
   if (msg.type === "icon") return icon(msg.h);
@@ -237,6 +246,7 @@ function connect() {
         aiAlways: !!msg.aiAlways,
         engine: /^https:\/\/[^\s]*%s/.test(String(msg.engine || "")) ? String(msg.engine) : "",
         fallback: /^https:\/\/[^\s]*%s/.test(String(msg.fallback || "")) ? String(msg.fallback) : "",
+        notes: !!msg.notes,
         planner: /^https:\/\/[^\s]+$/.test(String(msg.planner || "")) ? String(msg.planner) : "",
         theme: msg.theme && typeof msg.theme === "object" ? msg.theme : null,
       };

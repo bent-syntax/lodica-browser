@@ -11,8 +11,14 @@ function openNotebook() {
     L.chips = h("div", { class: "chips", style: "padding:0 12px 8px;overflow-x:auto;flex-wrap:nowrap;flex-shrink:0" });
     // Selecting math shows its answer above the note, with a button that writes it after the selection.
     L.ans = h("div", { class: "empty", style: "display:none;align-items:center;gap:8px;padding:0 12px 8px;color:var(--accent,#F59E0B);font-size:15px" });
+    // A function of x ("y = x^2", "sin(x)") shows its graph instead.
+    L.graph = h("canvas", { width: "320", height: "160", style: "display:none;margin:0 12px 8px;border-radius:12px;background:var(--raised);width:calc(100% - 24px);max-width:320px;flex-shrink:0" });
     const showAnswer = () => {
-      const a = L.ta.selectionStart === L.ta.selectionEnd ? null : mathAnswer(L.ta.value.slice(L.ta.selectionStart, L.ta.selectionEnd));
+      const sel = L.ta.selectionStart === L.ta.selectionEnd ? "" : L.ta.value.slice(L.ta.selectionStart, L.ta.selectionEnd);
+      const f = sel ? mathGraph(sel) : null;
+      L.graph.style.display = f ? "block" : "none";
+      if (f) drawGraph(L.graph, f);
+      const a = !sel || f ? null : mathAnswer(sel);
       if (a == null) { L.ans.style.display = "none"; return; }
       const end = L.ta.selectionEnd, add = (a.includes("=") ? "\n" : " = ") + a;
       L.ans.replaceChildren(h("span", { style: "flex:1", text: (a.includes("=") ? "" : "= ") + a }),
@@ -126,7 +132,7 @@ function openNotebook() {
     return h("div", { class: "spage" },
       h("div", { class: "sp-main", style: "display:flex;flex-direction:column;height:100%" },
         h("div", { class: "sp-head" }, h("h2", { text: "Notebook" }), ib("delete", "Delete note", del), ib("close", "Close notebook", () => L.close())),
-        L.status, L.chips, L.ans, L.ta));
+        L.status, L.chips, L.ans, L.graph, L.ta));
   });
   const L = NB.L;
   L.reload();

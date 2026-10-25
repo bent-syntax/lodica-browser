@@ -195,7 +195,7 @@ function setup() {
   if (!q) {
     document.body.classList.add("home");
     setupHome();
-    if (!priv) planner();
+    if (!priv) { planner(); notes(); }
     $("q").focus();
     return false;
   }
@@ -436,6 +436,18 @@ async function planner() {
   let text = null;
   if (url) text = await fetch(url).then((r) => (r.ok ? r.text() : null)).catch(() => null);
   drawPlanner(text, url);
+}
+
+// Newest Notebook notes on the start page, read through the app. Hidden when the Settings toggle is off or no server is linked.
+async function notes() {
+  const box = $("notes");
+  const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+  if (!st || !st.notes) { box.replaceChildren(); return; }
+  const items = await browser.runtime.sendMessage({ type: "notes" }).catch(() => []);
+  const kids = [el("h3", null, "Notes")];
+  if (!items || !items.length) kids.push(el("p", { class: "none" }, "No notes yet. Open Notebook from the menu to add one."));
+  else for (const n of items) kids.push(el("div", { class: "pe nt" }, el("b", null, n.title), n.more ? el("span", null, n.more) : null));
+  box.replaceChildren(...kids);
 }
 
 run();
