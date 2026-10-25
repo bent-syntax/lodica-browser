@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.5 (versionCode 106)
+- Fixed: When you long press on a shortcut it should give you to option to remove that shortcut
+- Fixed: There should not be an edit shortcut button there should be a plus to add shortcuts
+- Fixed: When a password gets auto filled in and you remove it by using backspace it shouldn't reappear
+- Fixed: When you click on the lodica text after you search something it shows a different start page but tha
+- Fixed: On the search engine the l from lodia needs to be replaced bij the logo
+- Fixed: There is no logo on the start page on mobile
+
 ## 1.13.4 (versionCode 105)
 - Desktop: the toolbar under the tabs shows fully again instead of being pushed down behind the page.
 
