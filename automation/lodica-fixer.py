@@ -237,7 +237,7 @@ def triage(task, wt):
     return res
 
 
-SESS = {}  # task id -> chat id of its triage, resumed by the fix attempts
+SESS = {}  # task id -> chat id of its first fix attempt, resumed by the retry (same model, so the cache carries)
 
 
 def triage_ask(task, wt):
@@ -247,10 +247,7 @@ def triage_ask(task, wt):
               '{"kind":"bug"|"feature","difficulty":"easy"|"hard","files":["repo relative paths likely to change"],"summary":"one sentence"}. '
               '"bug" means something existing works wrong; "feature" means new or changed behaviour that does not exist yet. '
               '"easy" means a small change in one or two files. Anything unclear or wide is "hard".')
-    sid = str(uuid.uuid4())
-    code, out = claude(HAIKU, prompt, wt, tools="Read,Grep,Glob", timeout=300, effort="low", budget=0.25, sid=sid)
-    if code == 0:
-        SESS[task.get("id")] = sid
+    code, out = claude(HAIKU, prompt, wt, tools="Read,Grep,Glob", timeout=300, effort="low", budget=0.25)
     m = re.search(r"\{.*\}", out, re.S)
     try:
         j = json.loads(m.group(0))
@@ -278,7 +275,10 @@ def attempt_fix(task, wt, model, files, hint="", kind="bug"):
               "do not commit (the runner commits). Keep Android and desktop behaviour in step when the task applies to both. "
               "If you cannot do it safely, change nothing. Finish with one line saying what you changed.")
     sid = SESS.get(task.get("id"))
-    code, out = claude(model, prompt, wt, tools=FIX_TOOLS, edit=True, sid=sid, resume=bool(sid), timeout=3600 if feat else 1800,
+    resume = bool(sid)
+    if not sid:
+        sid = SESS[task.get("id")] = str(uuid.uuid4())
+    code, out = claude(model, prompt, wt, tools=FIX_TOOLS, edit=True, sid=sid, resume=resume, timeout=3600 if feat else 1800,
                        effort="medium" if feat or model == SONNET else "low", budget=6 if feat else 2)
     log("fix attempt with %s exit %s: %s" % (model, code, one(out.strip().splitlines()[-1] if out.strip() else "", 160)))
     return code == 0
@@ -471,12 +471,12 @@ def process(tk, st, kinds):
                 continue
             feat = kind == "feature"
             verb, label = ("building", "Added") if feat else ("fixing", "Fixed")
-            models = [HAIKU if diff == "easy" and not feat else SONNET, SONNET]
+            models = [SONNET, SONNET]  # Haiku codes too weakly for fixes
             hint, ok, why = "", False, ""
             for k, model in enumerate(models):
                 if k == 1 and models[0] == SONNET and not hint:
                     break  # the first attempt already used Sonnet and left no failure to learn from
-                step(verb + " with " + ("Haiku" if model == HAIKU else "Sonnet") + (" (retry)" if k else ""))
+                step(verb + " with " + ("Sonnet") + (" (retry)" if k else ""))
                 if not attempt_fix(t, wt, model, files, hint, kind):
                     why = "claude did not finish"
                     hint = why
@@ -621,7 +621,7 @@ def main():
         print("%d open task(s)%s:" % (len(bugs), "" if fired else " (handled only once a trigger is completed)"))
         for t in bugs:
             print("  -", one(t.get("title"), 100))
-        print("Per task: triage bug/feature (%s, read only) -> fix (%s easy bug / %s hard bug or feature) in a worktree off main, one commit each ->" % (HAIKU, HAIKU, SONNET))
+        print("Per task: triage bug/feature (%s, read only) -> fix (%s) in a worktree off main, one commit each ->" % (HAIKU, SONNET))
         print("  quick checks -> retry once with %s. After all bugs: one scripts/ci-build.sh support/run-<timestamp> ->" % SONNET)
         print("  nord smoke test -> version bump, notes, merge to main, push main, tag -> mark tasks done. Finally the trigger goes back to needsAction.")
         print("  'run fixes' handles bugs, 'add features' handles features, 'run both' handles both; tasks of the other kind are skipped.")

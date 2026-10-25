@@ -52,4 +52,4 @@ Without lingering the timer only runs while you are logged in: `sudo loginctl en
 ## Usage
 
 Each `claude -p` call runs lean: no skills, no MCP servers, only project settings, no saved session, `--effort low` for triage and easy fixes, a per-call `--max-budget-usd` cap (triage 0.25, bug 2, feature 6). Triage answers are cached in `~/.local/state/lodica-fixer/triage.json` per task id and text, so a task skipped by one trigger is not triaged again.
-Triage, the fix and the retry of one task share one chat (`--session-id`, then `--resume`), so the files triage read are not read again, even though the model changes. Each task gets its own chat, so task texts never mix. If a chat is gone, the call starts a fresh one.
+Fixes always use Sonnet, never Haiku (its code is too weak). Haiku only triages, in its own chat: sharing a chat across models costs more, because the cache is per model. The first fix attempt and its retry share one Sonnet chat (`--session-id`, then `--resume`), so the retry does not re-read the code. If a chat is gone, the call starts a fresh one.
