@@ -23,6 +23,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.dom.minidom
 
 HOME = os.path.expanduser("~")
 STATE = os.environ.get("FIXER_STATE", os.path.join(HOME, ".local/state/lodica-fixer"))
@@ -261,12 +262,17 @@ def check_changes(files):
 
 
 def quick_checks(wt, files):
-    """node syntax and relay tests for what changed"""
+    """node syntax, XML well-formedness and relay tests for what changed"""
     for f in files:
         if f.endswith(".js") and os.path.exists(os.path.join(wt, f)):
             c, o = run(["node", "--check", f], cwd=wt)
             if c:
                 return "node --check %s failed: %s" % (f, o[-300:])
+        if f.endswith(".xml") and os.path.exists(os.path.join(wt, f)):
+            try:
+                xml.dom.minidom.parse(os.path.join(wt, f))
+            except Exception as e:
+                return "%s is not valid XML: %s" % (f, e)
     if any(f.startswith("relay/") for f in files):
         tests = sorted(glob.glob(os.path.join(wt, "relay", "test", "*.test.js")))
         c, o = run(["node", "--test"] + tests, cwd=os.path.join(wt, "relay"), timeout=300)
