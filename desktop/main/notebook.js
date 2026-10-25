@@ -7,7 +7,8 @@ const url = id => "/api/notebook" + (id ? "?id=" + encodeURIComponent(id) : "");
 async function list() {
   try {
     const [status, body] = await relay.request("GET", "/api/notebook", 15000);
-    return status === 200 ? JSON.parse(body).notes || null : null;
+    // A relay without several notes answers with the one note only.
+    return status === 200 ? JSON.parse(body).notes || [{ id: "1", title: "", at: 0 }] : null;
   } catch { return null; }
 }
 
@@ -15,7 +16,7 @@ async function list() {
 async function get(id) {
   try {
     const [status, body] = await relay.request("GET", url(id), 15000);
-    return status === 200 ? JSON.parse(body) : null;
+    return status === 200 ? { id, ...JSON.parse(body) } : null;
   } catch { return null; }
 }
 

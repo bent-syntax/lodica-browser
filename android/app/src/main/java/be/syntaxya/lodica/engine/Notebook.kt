@@ -18,7 +18,8 @@ object Notebook {
     }
 
     private fun parseList(body: String): List<NoteInfo> {
-        val a = JSONObject(body).getJSONArray("notes")
+        // A relay without several notes answers with the one note only.
+        val a = JSONObject(body).optJSONArray("notes") ?: return listOf(NoteInfo("1", ""))
         return List(a.length()) { val o = a.getJSONObject(it); NoteInfo(o.getString("id"), o.optString("title", "")) }
     }
 
