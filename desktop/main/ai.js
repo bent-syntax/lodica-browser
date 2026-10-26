@@ -82,22 +82,23 @@ function viaCli(prompt, system) {
     const p = spawn("claude", ["-p", "--model", "claude-haiku-5-5", "--output-format", "json", "--append-system-prompt", system], {
       windowsHide: true, shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"],
     });
-    let out = "";
+    let out = "", err = "";
     const timer = setTimeout(() => { p.kill(); reject(new Error("AI took too long")); }, 75000);
     p.stdout.on("data", d => { out += d; });
+    p.stderr.on("data", d => { err += d; });
     p.on("error", e => { clearTimeout(timer); reject(e); });
     p.on("close", () => {
       clearTimeout(timer);
       try {
         const j = JSON.parse(out);
-        if (j.is_error) return reject(new Error("AI failed"));
+        if (j.is_error) return reject(new Error(String(j.result || "AI failed").slice(0, 200)));
         const u = j.usage || {};
         resolve({
           text: String(j.result || "").trim(),
           input: (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0),
           output: u.output_tokens || 0,
         });
-      } catch { reject(new Error("AI failed")); }
+      } catch { reject(new Error((err.trim() || out.trim() || "AI failed").slice(0, 200))); }
     });
     p.stdin.end(prompt);
   });
