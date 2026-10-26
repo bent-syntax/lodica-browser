@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.24
+- Fixed: The phone app failed to build because of the control setup file; phone control from the desktop now installs
+
 ## 1.13.23
 - Added: Control your phone from the desktop while you share its screen: click to tap, drag to swipe, and Back, Home, Recent apps and Notifications buttons (turn on "Allow control from the browser" in the phone's Server settings)
 - Added: Surprise: tick off the last task or test of a day in the planner and it throws confetti
