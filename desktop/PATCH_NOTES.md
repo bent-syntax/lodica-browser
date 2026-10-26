@@ -1,3 +1,7 @@
+## 1.13.23
+- Added: Control your phone from the desktop while you share its screen: click to tap, drag to swipe, and Back, Home, Recent apps and Notifications buttons (turn on "Allow control from the browser" in the phone's Server settings)
+- Added: Surprise: tick off the last task or test of a day in the planner and it throws confetti
+
 ## 1.13.22
 - Fixed: The time line on the planner sits above the first item of the next lesson, not below it
 - Changed: A lesson with tests and tasks is coloured by share: 2 tests and 1 task is 2/3 red and 1/3 yellow

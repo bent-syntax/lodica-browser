@@ -468,6 +468,9 @@ fun SettingsScreen() {
                         SwitchRow("Share phone screen", "Shows this screen in the browser on your computer, for example to play a phone game there. Needs your OK each time and shows an ongoing notification", sharing) {
                             if (it) runCatching { consent.launch(ScreenShare.consentIntent(ctx)) } else { ScreenShare.stop(ctx); sharing = false }
                         }
+                        LinkRow(if (be.syntaxya.lodica.engine.RemoteControl.enabled) "Browser control is on" else "Allow control from the browser") {
+                            runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        }
                         Section("Hidden email")
                         SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
                         Section("Server")
@@ -1526,7 +1529,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Authenticator", 11, "totp 2fa codes google migration qr"),
     SettingsEntry("Server chat", 10, "room messages"),
     SettingsEntry("Instant chat messages", 10, "notifications live battery"),
-    SettingsEntry("Share phone screen", 10, "cast mirror screen computer game record"),
+    SettingsEntry("Share phone screen", 10, "cast mirror screen computer game record remote control accessibility tap"),
     SettingsEntry("Notifications", 10, "test permission alerts"),
     SettingsEntry("Inbox", 10, "mail"),
     SettingsEntry("Server setup", 10, "disconnect link"),

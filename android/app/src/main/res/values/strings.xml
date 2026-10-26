@@ -6,4 +6,5 @@
     <string name="widget_shortcuts">Lodica shortcuts</string>
     <string name="widget_sites">Lodica quick sites</string>
     <string name="widget_planner">Lodica Smartschool planner</string>
+    <string name="remote_control_description">Lets your linked Lodica browser tap, swipe and press Back or Home on this phone while you share the screen. Does nothing otherwise.</string>
 </resources>

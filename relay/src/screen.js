@@ -6,6 +6,8 @@
 //                                       within `wait` seconds (max 25) or no one is sharing
 //   GET    /api/screen?status=1      -> { live, seq }
 //   DELETE /api/screen               -> stops the share and drops the frame
+//   POST   /api/screen/input         body: { events: [...] } from the desktop -> { queued }. Event kinds: tap, swipe, key (see cleanEvent)
+//   GET    /api/screen/input?wait=<s> -> { events: [...] } for the phone; long-polls up to `wait` seconds (max 25)
 const FRAME_MAX = 1024 * 1024;
 const EXPIRE_MS = 10000;
 let frame = null; // { seq, at, data }
@@ -57,11 +59,69 @@ function get(req, res, h) {
 
 function remove(req, res) {
   frame = null;
+  queue = [];
   wake();
   res.writeHead(204); res.end();
 }
 
 /** Test hook. */
-function reset() { frame = null; seq = 0; wake(); }
+function reset() { frame = null; seq = 0; queue = []; wake(); wakeInput(); }
 
-module.exports = { put, get, remove, reset };
+// Remote control: the desktop queues input events, the phone fetches them. Coordinates are fractions (0..1) of the shared screen.
+const KEYS = new Set(['back', 'home', 'recents', 'notifications']);
+const QUEUE_MAX = 50;
+let queue = [];
+let inWaiters = [];
+
+const frac = (v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : null);
+
+/** Returns a clean event or null. Anything unknown is dropped. */
+function cleanEvent(e) {
+  if (!e || typeof e !== 'object') return null;
+  if (e.t === 'tap') {
+    const x = frac(e.x), y = frac(e.y);
+    if (x === null || y === null) return null;
+    return { t: 'tap', x, y, ms: Math.min(1500, Math.max(10, Number(e.ms) || 50)) };
+  }
+  if (e.t === 'swipe') {
+    const a = [frac(e.x), frac(e.y), frac(e.x2), frac(e.y2)];
+    if (a.includes(null)) return null;
+    return { t: 'swipe', x: a[0], y: a[1], x2: a[2], y2: a[3], ms: Math.min(2000, Math.max(50, Number(e.ms) || 250)) };
+  }
+  if (e.t === 'key' && KEYS.has(e.key)) return { t: 'key', key: e.key };
+  return null;
+}
+
+function wakeInput() { const w = inWaiters; inWaiters = []; for (const f of w) f(); }
+
+async function inputPost(req, res, h) {
+  let b;
+  try { b = JSON.parse((await h.readBody(req, 8192)).toString('utf8')); }
+  catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const list = Array.isArray(b && b.events) ? b.events.slice(0, 20) : [];
+  const ok = list.map(cleanEvent).filter(Boolean);
+  // Controls only make sense while a phone is sharing.
+  if (!live()) return h.sendJson(req, res, 200, { queued: 0 });
+  queue.push(...ok);
+  if (queue.length > QUEUE_MAX) queue = queue.slice(-QUEUE_MAX);
+  wakeInput();
+  h.sendJson(req, res, 200, { queued: ok.length });
+}
+
+function inputGet(req, res, h) {
+  const q = new URL(req.url, 'http://x').searchParams;
+  const wait = Math.min(25, Math.max(0, Number(q.get('wait')) || 0));
+  const take = () => { const events = queue; queue = []; h.sendJson(req, res, 200, { events }); };
+  if (queue.length || !wait) return take();
+  const timer = setTimeout(done, wait * 1000);
+  function done() {
+    clearTimeout(timer);
+    inWaiters = inWaiters.filter((f) => f !== done);
+    if (res.writableEnded || res.destroyed) return;
+    take();
+  }
+  inWaiters.push(done);
+  req.on('close', () => { clearTimeout(timer); inWaiters = inWaiters.filter((f) => f !== done); });
+}
+
+module.exports = { put, get, remove, reset, inputPost, inputGet, cleanEvent };

@@ -540,6 +540,12 @@ async function route(req, res) {
     if (m === 'DELETE') return screen.remove(req, res, h);
     return m === 'GET' ? screen.get(req, res, h) : screen.put(req, res, h);
   }
+  if (p === '/api/screen/input') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, POST');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? screen.inputGet(req, res, h) : screen.inputPost(req, res, h);
+  }
   if (p === '/api/pair') {
     if (m !== 'POST') return not('POST');
     if (!authed(req, res)) return;

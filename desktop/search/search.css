@@ -199,3 +199,9 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #plan .pe.done span { text-decoration: line-through; opacity: .6; }
 #plan .pi .tick { display: block; margin-top: 8px; cursor: pointer; }
 #plan .pi .tick input { margin-right: 8px; }
+
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+.confetti i { position: absolute; left: 50%; top: 55%; width: 8px; height: 12px; border-radius: 2px; animation: confetti 2.2s cubic-bezier(.2,.7,.4,1) forwards; }
+.confetti b { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 26px; color: #F59E0B; animation: confetti-text 2.4s ease forwards; }
+@keyframes confetti { to { transform: translate(var(--dx), calc(var(--dy) + 520px)) rotate(var(--r)); opacity: 0; } }
+@keyframes confetti-text { 0% { opacity: 0; transform: translateX(-50%) scale(.6); } 15% { opacity: 1; transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }

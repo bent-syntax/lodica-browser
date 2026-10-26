@@ -44,6 +44,7 @@ class ScreenShare : Service() {
     private var display: VirtualDisplay? = null
     private var reader: ImageReader? = null
     private var loop: Job? = null
+    private var inputLoop: Job? = null
 
     override fun onBind(i: Intent?): IBinder? = null
 
@@ -68,6 +69,7 @@ class ScreenShare : Service() {
             r.surface, null, null)
         running = true
         loop = scope.launch { send(r, w, h) }
+        inputLoop = scope.launch { pollInput() }
         return START_NOT_STICKY
     }
 
@@ -79,6 +81,7 @@ class ScreenShare : Service() {
         val was = running
         running = false
         loop?.cancel(); loop = null
+        inputLoop?.cancel(); inputLoop = null
         runCatching { display?.release() }; display = null
         runCatching { reader?.close() }; reader = null
         runCatching { projection?.stop() }; projection = null
@@ -141,6 +144,28 @@ class ScreenShare : Service() {
                 if (!scope.isActive) return
                 if (++fails >= MAX_FAILS) { Handler(Looper.getMainLooper()).post { shutdown() }; return }
                 delay(1_000)
+            }
+        }
+    }
+
+    /** Fetches taps, swipes and keys sent from the desktop and hands them to [RemoteControl]. */
+    private suspend fun pollInput() {
+        var fails = 0
+        while (scope.isActive) {
+            if (!RemoteControl.enabled) { delay(2_000); continue }
+            try {
+                val (code, body) = Relay.request("GET", "/api/screen/input?wait=20", readTimeoutMs = 30_000)
+                if (code !in 200..299) throw java.io.IOException("status $code")
+                fails = 0
+                val events = org.json.JSONObject(body).optJSONArray("events") ?: continue
+                for (i in 0 until events.length()) {
+                    events.optJSONObject(i)?.let { e -> Handler(Looper.getMainLooper()).post { RemoteControl.run(e) } }
+                    delay(60)
+                }
+            } catch (e: Exception) {
+                if (!scope.isActive) return
+                fails++
+                delay(if (fails > 5) 10_000L else 1_000L)
             }
         }
     }

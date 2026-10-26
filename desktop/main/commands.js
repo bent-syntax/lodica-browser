@@ -409,6 +409,7 @@ function init(deps) {
   on("notebook.put", (id, text, base) => require("./notebook").put(str(id), str(text), base));
   on("screen.frame", (after) => require("./screen").frame(after));
   on("screen.stop", () => require("./screen").stop());
+  on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.forget", address => relay.forget(str(address)));
 

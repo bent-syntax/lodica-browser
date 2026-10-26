@@ -455,6 +455,19 @@ function slotRules(text) {
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
 let plannerData = null, plannerOpen = "";
 const plannerDone = () => { try { return new Set(JSON.parse(localStorage.getItem("plannerDone") || "[]")); } catch (e) { return new Set(); } };
+/** A short burst of confetti from the middle of the page. */
+function confetti() {
+  const box = el("div", { class: "confetti" });
+  const colours = ["#F59E0B", "#F43F5E", "#E5E7EB", "#34D399", "#60A5FA"];
+  for (let i = 0; i < 60; i++) {
+    const p = el("i");
+    p.style.cssText = "--dx:" + Math.round((Math.random() - 0.5) * 700) + "px;--dy:" + Math.round(-120 - Math.random() * 280) + "px;--r:" + Math.round(Math.random() * 720) + "deg;background:" + colours[i % colours.length] + ";animation-delay:" + Math.round(Math.random() * 150) + "ms";
+    box.appendChild(p);
+  }
+  box.appendChild(el("b", null, "All done for today!"));
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 2600);
+}
 const plannerTick = (key) => { const d = plannerDone(); if (!d.delete(key)) d.add(key); try { localStorage.setItem("plannerDone", JSON.stringify([...d].slice(-300))); } catch (e) { /* storage full */ } };
 function drawPlanner(text, url, opts) {
   plannerData = { text, url, opts };
@@ -524,7 +537,13 @@ function drawPlanner(text, url, opts) {
         const c = el("label", { class: "tick" }, el("input", { type: "checkbox" }), t.title);
         c.firstChild.checked = done.has(tk);
         c.firstChild.onclick = (ev) => ev.stopPropagation();
-        c.firstChild.onchange = () => { plannerTick(tk); drawPlanner(plannerData.text, plannerData.url, plannerData.opts); };
+        c.firstChild.onchange = () => {
+          plannerTick(tk);
+          // ticking the last open task or test of a day is worth a party
+          const d = plannerDone();
+          if (d.has(tk) && evs.filter((x) => x.kind !== "lesson" && !x.allDay && x.day === t.day).every((x) => d.has(x.day + "|" + x.min + "|" + x.title))) confetti();
+          drawPlanner(plannerData.text, plannerData.url, plannerData.opts);
+        };
         det.push(c);
       }
       kids.push(el("div", { class: "pi" }, ...det));

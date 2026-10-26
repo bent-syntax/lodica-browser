@@ -58,6 +58,7 @@ fun PlannerCard(modifier: Modifier = Modifier) {
         }
     }
     val density = androidx.compose.ui.platform.LocalDensity.current
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var drag by remember { mutableStateOf(0f) }
     val shown = Prefs.plannerRows
     Column(modifier.clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -108,7 +109,13 @@ fun PlannerCard(modifier: Modifier = Modifier) {
                         if (r.detail.isNotBlank()) Text(r.detail, color = Mist, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                         for (t in if (r.kind != 0) listOf(r) else inside) {
                             val d = t.key in done
-                            Text((if (d) "\u2611 " else "\u2610 ") + t.title, color = if (d) Muted else Mist, fontSize = 13.sp, modifier = Modifier.fillMaxWidth().clickable { Prefs.togglePlannerDone(t.key) }.padding(top = 8.dp))
+                            Text((if (d) "\u2611 " else "\u2610 ") + t.title, color = if (d) Muted else Mist, fontSize = 13.sp, modifier = Modifier.fillMaxWidth().clickable {
+                                Prefs.togglePlannerDone(t.key)
+                                // ticking the last open task or test of a day is worth a cheer
+                                val day = rows.filter { it.kind != 0 && !it.allDay && it.day == t.day }
+                                if (t.key in Prefs.plannerDone && day.all { it.key in Prefs.plannerDone })
+                                    android.widget.Toast.makeText(ctx, "\uD83C\uDF89 All done for today!", android.widget.Toast.LENGTH_LONG).show()
+                            }.padding(top = 8.dp))
                             if (t !== r && t.detail.isNotBlank()) Text(t.detail, color = Muted, fontSize = 12.sp)
                         }
                     }

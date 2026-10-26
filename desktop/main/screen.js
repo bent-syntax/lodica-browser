@@ -19,4 +19,9 @@ async function stop() {
   try { const [status] = await relay.request("DELETE", "/api/screen", 15000); return status === 204; } catch { return false; }
 }
 
-module.exports = { frame, stop };
+/** Sends input events (taps, swipes, keys; coordinates are fractions 0..1 of the screen) to the phone. */
+async function input(events) {
+  try { const [status] = await relay.request("POST", "/api/screen/input", 5000, { events }); return status === 200; } catch { return false; }
+}
+
+module.exports = { frame, stop, input };
