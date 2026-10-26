@@ -61,16 +61,18 @@ fun PlannerCard(modifier: Modifier = Modifier) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
     var drag by remember { mutableStateOf(0f) }
     val shown = Prefs.plannerRows
+    // a task or test inside a lesson is already shown when that lesson is opened, so it gets no row of its own
+    val vis = rows.filter { r -> !(r.kind != 0 && !r.allDay && rows.any { l -> l.kind == 0 && !l.allDay && l.day == r.day && r.from >= l.from && r.from < l.to }) }
     Column(modifier.clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text("Smartschool planner", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         Box(Modifier.height(8.dp))
         if (note != null) Text(note!!, color = Muted, fontSize = 13.sp)
-        else Column(Modifier.fillMaxWidth().height(ROW_H * shown.coerceAtMost(rows.size.coerceAtLeast(1))).verticalScroll(rememberScrollState())) {
+        else Column(Modifier.fillMaxWidth().height(ROW_H * shown.coerceAtMost(vis.size.coerceAtLeast(1))).verticalScroll(rememberScrollState())) {
             val (today, minute) = clock
-            val cur = rows.indexOfFirst { it.kind == 0 && !it.allDay && it.day == today && minute >= it.from && minute < it.to }
-            val next = if (cur >= 0) -1 else rows.indexOfFirst { !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
+            val cur = vis.indexOfFirst { it.kind == 0 && !it.allDay && it.day == today && minute >= it.from && minute < it.to }
+            val next = if (cur >= 0) -1 else vis.indexOfFirst { !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
             val done = Prefs.plannerDone
-            for ((i, r) in rows.withIndex()) {
+            for ((i, r) in vis.withIndex()) {
                 // tasks and tests that start inside this lesson are folded into it
                 val inside = if (r.kind == 0 && !r.allDay) rows.filter { it.kind != 0 && !it.allDay && it.day == r.day && it.from >= r.from && it.from < r.to } else emptyList()
                 val tests = inside.count { it.kind == 2 }
@@ -122,7 +124,7 @@ fun PlannerCard(modifier: Modifier = Modifier) {
                 }
             }
         }
-        if (note == null && rows.size > 2) Box(
+        if (note == null && vis.size > 2) Box(
             Modifier.fillMaxWidth().padding(top = 6.dp).draggable(
                 orientation = Orientation.Vertical,
                 state = rememberDraggableState { d ->

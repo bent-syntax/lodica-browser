@@ -498,6 +498,9 @@ function drawPlanner(text, url, opts) {
   const prio = (e) => (e.kind === "lesson" ? 1 : 0);
   evs.sort((a, b) => a.day - b.day || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || a.min - b.min || prio(a) - prio(b));
   evs = evs.slice(0, 14);
+  // a task or test inside a lesson is shown when that lesson is opened, so it gets no row of its own
+  const all = evs;
+  evs = all.filter((e) => e.kind === "lesson" || e.allDay || !all.some((l) => l.kind === "lesson" && !l.allDay && l.day === e.day && e.min >= l.min && e.min < l.end));
   const label = (d) => new Date(d * 864e5).toLocaleDateString(undefined, { timeZone: "UTC", weekday: "long", day: "numeric", month: "short" });
   const kids = [el("h3", null, "Smartschool planner")];
   if (!evs.length) kids.push(el("p", { class: "none" }, text == null ? "Planner could not be loaded." : "Nothing planned in the next 7 days."));
@@ -516,7 +519,7 @@ function drawPlanner(text, url, opts) {
     const more = e.kind !== "lesson" && e.subject ? " · " + e.subject : "";
     const key = e.day + "|" + e.min + "|" + e.title;
     // tasks and tests that start inside a lesson are folded into that lesson row
-    const inside = e.kind === "lesson" && !e.allDay ? evs.filter((t) => t.kind !== "lesson" && !t.allDay && t.day === e.day && t.min >= e.min && t.min < e.end) : [];
+    const inside = e.kind === "lesson" && !e.allDay ? all.filter((t) => t.kind !== "lesson" && !t.allDay && t.day === e.day && t.min >= e.min && t.min < e.end) : [];
     const done = plannerDone();
     const tint = e.kind !== "lesson" ? e.kind : "";
     const cls = "pe" + (opts.colors !== false && tint ? " " + tint : "") + (e.kind !== "lesson" && done.has(key) ? " done" : "");
@@ -541,7 +544,7 @@ function drawPlanner(text, url, opts) {
           plannerTick(tk);
           // ticking the last open task or test of a day is worth a party
           const d = plannerDone();
-          if (d.has(tk) && evs.filter((x) => x.kind !== "lesson" && !x.allDay && x.day === t.day).every((x) => d.has(x.day + "|" + x.min + "|" + x.title))) confetti();
+          if (d.has(tk) && all.filter((x) => x.kind !== "lesson" && !x.allDay && x.day === t.day).every((x) => d.has(x.day + "|" + x.min + "|" + x.title))) confetti();
           drawPlanner(plannerData.text, plannerData.url, plannerData.opts);
         };
         det.push(c);

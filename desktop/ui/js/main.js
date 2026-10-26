@@ -19,7 +19,7 @@ function runShortcut(name) {
     case "settings": openSettings(); break;
     case "history": openHistory(); break;
     case "downloads": openDownloads(); break;
-    case "notebook": if (S.relayAvail) openNotebook(); break;
+    case "notebook": if (NB.L) NB.L.close(); else if (S.relayAvail) openNotebook(); break;
   }
 }
 
