@@ -163,6 +163,11 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
 #plan .pe.test { background: rgba(244,63,94,.18); border-radius: 12px; padding: 4px 8px; margin: 0 -8px; }
 #plan .pe.task b { color: #F59E0B; }
 #plan .pe.test b { color: #F43F5E; }
+#plan .pe { cursor: pointer; position: relative; }
+#plan .pe b { min-width: 96px; }
+#plan .pe .now { position: absolute; left: 0; right: 0; height: 2px; background: #F43F5E; pointer-events: none; }
+#plan .pi { margin: 2px 0 6px; padding: 8px 12px; border-radius: 12px; background: rgba(127,127,127,.15); font-size: 13px; }
+#plan .pi .dd { margin-top: 4px; white-space: pre-wrap; }
 #plan .pn { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 12px; color: #F43F5E; }
 #plan .pn b { min-width: 52px; font-weight: 600; }
 #plan .pn i { flex: 1; height: 2px; border-radius: 1px; background: #F43F5E; }

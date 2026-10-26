@@ -1,6 +1,8 @@
 package be.syntaxya.lodica.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -29,6 +31,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
@@ -43,11 +46,14 @@ private val ROW_H = 31.dp
 fun PlannerCard(modifier: Modifier = Modifier) {
     var rows by remember { mutableStateOf(PlannerWidget.plan()) }
     var note by remember { mutableStateOf(PlannerWidget.note()) }
+    var clock by remember { mutableStateOf(PlannerWidget.now()) }
+    var open by remember { mutableStateOf(-1) }
     LaunchedEffect(Prefs.plannerIcs, Prefs.plannerTz, Prefs.plannerSlots) {
         while (true) {
             withContext(Dispatchers.IO) { runCatching { PlannerWidget.fetch() } }
             rows = PlannerWidget.plan()
             note = PlannerWidget.note()
+            clock = PlannerWidget.now()
             delay(60_000)
         }
     }
@@ -59,17 +65,33 @@ fun PlannerCard(modifier: Modifier = Modifier) {
         Box(Modifier.height(8.dp))
         if (note != null) Text(note!!, color = Muted, fontSize = 13.sp)
         else Column(Modifier.fillMaxWidth().height(ROW_H * shown.coerceAtMost(rows.size.coerceAtLeast(1))).verticalScroll(rememberScrollState())) {
-            for ((text, kind) in rows) {
+            val (today, minute) = clock
+            val cur = rows.indexOfFirst { it.kind == 0 && !it.allDay && it.day == today && minute >= it.from && minute < it.to }
+            val next = if (cur >= 0) -1 else rows.indexOfFirst { it.kind == 0 && !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
+            for ((i, r) in rows.withIndex()) {
                 val bg = when {
-                    kind == 1 -> Color(0x59F59E0B)
-                    kind == 2 -> Color(0x59F43F5E)
+                    r.kind == 1 -> Color(0x59F59E0B)
+                    r.kind == 2 -> Color(0x59F43F5E)
                     else -> Color(0x26808080)
                 }
-                Text(
-                    text, color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth().height(ROW_H - 4.dp).clip(RoundedCornerShape(12.dp)).background(bg).padding(horizontal = 8.dp, vertical = 4.dp),
-                )
+                Box(Modifier.fillMaxWidth().height(ROW_H - 4.dp)) {
+                    Text(
+                        r.text.substringBefore(' ') + " " + r.range + "  " + r.title, color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.fillMaxWidth().height(ROW_H - 4.dp).clip(RoundedCornerShape(12.dp)).background(bg).clickable { open = if (open == i) -1 else i }.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                    if (i == cur) {
+                        val f = (minute - r.from).toFloat() / (r.to - r.from).coerceAtLeast(1)
+                        Box(Modifier.fillMaxWidth().offset(y = (ROW_H - 4.dp) * f).height(2.dp).background(Amber))
+                    } else if (i == next) Box(Modifier.fillMaxWidth().offset(y = (-3).dp).height(2.dp).background(Amber))
+                }
                 Box(Modifier.height(4.dp))
+                if (open == i) {
+                    Column(Modifier.fillMaxWidth().padding(bottom = 4.dp).clip(RoundedCornerShape(12.dp)).background(Color(0x26808080)).padding(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text(r.title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text(r.text.substringBefore(' ') + ", " + r.range, color = Muted, fontSize = 13.sp)
+                        if (r.detail.isNotBlank()) Text(r.detail, color = Mist, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
             }
         }
         if (note == null && rows.size > 2) Box(

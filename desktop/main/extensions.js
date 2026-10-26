@@ -136,6 +136,14 @@ function popupPage(id) {
   return pick ? String(pick).replace(/^\/+/, "") : null;
 }
 
+/** True when the extension has a real toolbar popup; its options page is a normal window that stays open. */
+function isPopup(id) {
+  try {
+    const m = JSON.parse(fs.readFileSync(path.join(dir(), id, "manifest.json"), "utf8"));
+    return !!((m.action && m.action.default_popup) || (m.browser_action && m.browser_action.default_popup));
+  } catch { return false; }
+}
+
 const popups = new Map();
 /** Open the extension's popup (or options page) in a small window, like Chrome's toolbar button. */
 function open(id, anchor) {
@@ -165,7 +173,10 @@ function open(id, anchor) {
       w.setContentSize(Math.min(800, Math.max(200, cw)), Math.min(600, Math.max(100, ch)));
     } catch { /* keep default size */ }
   });
-  w.on("blur", () => { setTimeout(() => { if (!w.isDestroyed() && !w.isFocused() && !w.webContents.isDevToolsOpened()) w.close(); }, 150); });
+  w.webContents.on("console-message", (_e, level, msg, line, src) => { if (level >= 2) console.error("extension", x.name, msg, src + ":" + line); });
+  w.webContents.on("render-process-gone", (_e, d) => console.error("extension", x.name, "page crashed:", d.reason));
+  if (!isPopup(id)) w.setSkipTaskbar(false);
+  else w.on("blur", () => { setTimeout(() => { if (!w.isDestroyed() && !w.isFocused() && !w.webContents.isDevToolsOpened()) w.close(); }, 150); });
   w.loadURL("chrome-extension://" + rid + "/" + page).catch(() => { if (!w.isDestroyed()) w.close(); });
   return { ok: true };
 }

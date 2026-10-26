@@ -453,7 +453,7 @@ function slotRules(text) {
   return out;
 }
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
-let plannerData = null;
+let plannerData = null, plannerOpen = "";
 function drawPlanner(text, url, opts) {
   plannerData = { text, url, opts };
   const box = $("plan");
@@ -470,7 +470,7 @@ function drawPlanner(text, url, opts) {
   let evs = parseIcs(text || "").map((e) => {
     const s = wall(e.start, zone), f = e.end ? wall(e.end, zone) : s;
     const sub = /Vakken:[ \t]*([^\n]+)/i.exec(e.desc || "");
-    return { day: s.day, min: s.min, endDay: f.day, end: f.min, allDay: e.allDay, title: e.title || "Untitled", where: e.where, subject: sub ? sub[1].trim() : "", kind: kindOf(e.title || "") };
+    return { day: s.day, min: s.min, endDay: f.day, end: f.min, allDay: e.allDay, title: e.title || "Untitled", where: e.where, desc: (e.desc || "").trim().slice(0, 600), subject: sub ? sub[1].trim() : "", kind: kindOf(e.title || "") };
   }).filter((e) => (e.allDay ? e.endDay - 1 : e.endDay) >= now.day && e.day < now.day + 7).map((e) => Object.assign(e, { day: Math.max(e.day, now.day) }));
   // A subject set for a time slot replaces the normal lessons in that slot. Tasks and tests always stay.
   for (let d = now.day; d < now.day + 7; d++) {
@@ -495,11 +495,22 @@ function drawPlanner(text, url, opts) {
       kids.push(el("div", { class: "pd" }, label(e.day)));
       last = e.day;
     }
+    const live = e.day === now.day && !marked && !e.allDay && e.min <= now.min && now.min < e.end;
     if (e.day === now.day && !marked && !e.allDay && e.min > now.min) mark();
     const main = e.kind === "lesson" && e.subject ? e.subject : e.title;
     const more = e.kind !== "lesson" && e.subject ? " · " + e.subject : "";
     const cls = "pe" + (opts.colors !== false && e.kind !== "lesson" ? " " + e.kind : "");
-    kids.push(el("div", { class: cls }, el("b", null, e.allDay ? "All day" : hhmm(e.min)), el("span", null, main + more), e.where ? el("em", null, e.where) : null));
+    const key = e.day + "|" + e.min + "|" + e.title;
+    const row = el("div", { class: cls + (live ? " live" : "") }, el("b", null, e.allDay ? "All day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)), el("span", null, main + more), e.where ? el("em", null, e.where) : null);
+    row.onclick = () => { plannerOpen = plannerOpen === key ? "" : key; drawPlanner(plannerData.text, plannerData.url, plannerData.opts); };
+    if (live) { marked = true; row.appendChild(el("i", { class: "now", style: "top:" + Math.round(100 * (now.min - e.min) / Math.max(1, e.end - e.min)) + "%" })); }
+    kids.push(row);
+    if (plannerOpen === key) {
+      const det = [el("b", null, main + more), el("div", null, label(e.day) + ", " + (e.allDay ? "all day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)))];
+      if (e.where) det.push(el("div", null, e.where));
+      if (e.desc) det.push(el("div", { class: "dd" }, e.desc));
+      kids.push(el("div", { class: "pi" }, ...det));
+    }
   }
   if (!marked) {
     if (last < now.day) kids.push(el("div", { class: "pd" }, label(now.day)));

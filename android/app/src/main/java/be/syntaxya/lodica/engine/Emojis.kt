@@ -73,8 +73,39 @@ object Emojis {
         return n
     }
 
+    /**
+     * Makes a plain background transparent: when the four corners are one opaque colour, every pixel of that colour
+     * that touches the edge (flood fill) is cleared. Pictures that already have transparency are left alone.
+     */
+    fun removeBackground(src: Bitmap): Bitmap {
+        val w = src.width; val h = src.height
+        if (w < 4 || h < 4) return src
+        val px = IntArray(w * h); src.getPixels(px, 0, w, 0, 0, w, h)
+        val corners = intArrayOf(px[0], px[w - 1], px[(h - 1) * w], px[h * w - 1])
+        if (corners.any { (it ushr 24) < 230 }) return src
+        fun ch(c: Int, sh: Int) = (c shr sh) and 255
+        val r0 = corners.sumOf { ch(it, 16) } / 4; val g0 = corners.sumOf { ch(it, 8) } / 4; val b0 = corners.sumOf { ch(it, 0) } / 4
+        fun near(c: Int, tol: Int): Boolean {
+            val dr = ch(c, 16) - r0; val dg = ch(c, 8) - g0; val db = ch(c, 0) - b0
+            return dr * dr + dg * dg + db * db <= tol * tol
+        }
+        if (corners.any { !near(it, 40) }) return src
+        val clear = BooleanArray(w * h); val q = IntArray(w * h); var head = 0; var tail = 0
+        fun seed(i: Int) { if (!clear[i] && near(px[i], 48)) { clear[i] = true; q[tail++] = i } }
+        for (x in 0 until w) { seed(x); seed((h - 1) * w + x) }
+        for (y in 0 until h) { seed(y * w); seed(y * w + w - 1) }
+        while (head < tail) {
+            val i = q[head++]; val x = i % w; val y = i / w
+            if (x > 0) seed(i - 1); if (x < w - 1) seed(i + 1); if (y > 0) seed(i - w); if (y < h - 1) seed(i + w)
+        }
+        if (tail < w * h / 50 || tail > w * h * 95 / 100) return src   // nothing to remove, or it would eat the whole picture
+        for (i in px.indices) if (clear[i]) px[i] = 0
+        return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
+    }
+
     /** Scales [src] to a centred 128px square PNG, stores it under [name] and syncs. Returns the final name. */
-    fun add(name: String, src: Bitmap): String {
+    fun add(name: String, original: Bitmap): String {
+        val src = removeBackground(original)
         val n = uniqueName(name)
         val out = Bitmap.createBitmap(SIZE, SIZE, Bitmap.Config.ARGB_8888)
         val s = minOf(SIZE.toFloat() / src.width, SIZE.toFloat() / src.height)

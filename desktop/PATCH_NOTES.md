@@ -1,3 +1,11 @@
+## 1.13.20
+
+- Added: Planner shows from-to hours per lesson, and tapping a lesson shows more about it
+- Added: A line on the planner shows the time: above the next lesson, or inside the current one
+- Changed: Adding a server emoji removes a plain background
+- Fixed: Extension options window no longer closes when you click away
+- Fixed: Claude in the browser shows the real error
+
 ## 1.13.19
 
 - Added: Planner on the start page, with a box around every subject and a grip to show more lessons

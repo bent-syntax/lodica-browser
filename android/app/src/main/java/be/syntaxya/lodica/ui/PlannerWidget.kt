@@ -29,7 +29,12 @@ class PlannerWidget : AppWidgetProvider() {
         manager.updateAppWidget(id, build(ctx, manager, id))
     }
 
-    private class Ev(var day: Long, val min: Int, val end: Int, val endDay: Long, val allDay: Boolean, val title: String, val subject: String, val kind: Int)
+    private class Ev(var day: Long, val min: Int, val end: Int, val endDay: Long, val allDay: Boolean, val title: String, val subject: String, val kind: Int, val desc: String = "")
+
+    /** One planner row: [text] for the widget, the rest for the start page card. */
+    class Row(val text: String, val kind: Int, val day: Long, val from: Int, val to: Int, val allDay: Boolean, val title: String, val detail: String) {
+        val range: String get() = if (allDay) "All day" else hhmm(from) + "-" + hhmm(to)
+    }
 
     private class Rule(val wd: Int, val from: Int, val to: Int, val subject: String)
 
@@ -135,7 +140,7 @@ class PlannerWidget : AppWidgetProvider() {
                         else if (Regex("^toets:\\s", RegexOption.IGNORE_CASE).containsMatchIn(title)) TEST else LESSON
                         val sub = Regex("Vakken:[ \t]*([^\n]+)", RegexOption.IGNORE_CASE).find(e["desc"] ?: "")?.groupValues?.get(1)?.trim().orEmpty()
                         if ((if (s.allDay) b.first - 1 else b.first) >= nowDay && a.first < nowDay + 7) {
-                            out.add(Ev(maxOf(a.first, nowDay), a.second, b.second, b.first, s.allDay, title, sub, kind))
+                            out.add(Ev(maxOf(a.first, nowDay), a.second, b.second, b.first, s.allDay, title, sub, kind, (e["desc"] ?: "").trim().take(600)))
                         }
                     }
                     cur = null
@@ -157,10 +162,13 @@ class PlannerWidget : AppWidgetProvider() {
             return out
         }
 
-        private fun hhmm(m: Int) = "%02d:%02d".format(Locale.ROOT, m / 60, m % 60)
+        /** Today (epoch day) and the minute of the day in the planner zone. */
+        fun now(): Pair<Long, Int> { val t = ZonedDateTime.now(zoneOf(Prefs.plannerTz)); return t.toLocalDate().toEpochDay() to t.hour * 60 + t.minute }
+
+        fun hhmm(m: Int) = "%02d:%02d".format(Locale.ROOT, m / 60, m % 60)
 
         /** The rows to show: day, time and subject; in tasks mode only tasks and tests. */
-        private fun rows(zone: ZoneId, tasksOnly: Boolean = Prefs.plannerWidgetMode == "tasks"): List<Pair<String, Int>> {
+        private fun rows(zone: ZoneId, tasksOnly: Boolean = Prefs.plannerWidgetMode == "tasks"): List<Row> {
             val src = text ?: return emptyList()
             val now = ZonedDateTime.now(zone)
             val nowDay = now.toLocalDate().toEpochDay()
@@ -180,12 +188,12 @@ class PlannerWidget : AppWidgetProvider() {
                 val main = if (e.kind == LESSON && e.subject.isNotEmpty()) e.subject else e.title
                 val more = if (e.kind != LESSON && e.subject.isNotEmpty()) " · " + e.subject else ""
                 val colour = if (!Prefs.plannerColors) 0 else if (e.kind == TASK) 1 else if (e.kind == TEST) 2 else 0
-                "$day ${if (e.allDay) "All day" else hhmm(e.min)}  $main$more" to colour
+                Row("$day ${if (e.allDay) "All day" else hhmm(e.min)}  $main$more", colour, e.day, e.min, if (e.end < e.min || e.endDay != e.day) 24 * 60 else e.end, e.allDay, main + more, e.desc)
             }
         }
 
         /** Rows for the start page planner: lessons, tasks and tests of the next 7 days. */
-        fun plan(): List<Pair<String, Int>> = if (Prefs.plannerIcs.isBlank()) emptyList() else rows(zoneOf(Prefs.plannerTz), false)
+        fun plan(): List<Row> = if (Prefs.plannerIcs.isBlank()) emptyList() else rows(zoneOf(Prefs.plannerTz), false)
 
         /** What to show instead of rows, or null when there are rows. */
         fun note(): String? = when {
@@ -225,14 +233,14 @@ class PlannerWidget : AppWidgetProvider() {
                 else -> null
             }
             for (i in 0 until ROWS) {
-                val row = if (note != null) (if (i == 0) note to 0 else null) else list.getOrNull(i)
+                val row = if (note != null) (if (i == 0) Row(note, 0, 0, 0, 0, false, "", "") else null) else list.getOrNull(i)
                 if (row == null || i >= fit) {
                     rv.setViewVisibility(ROW_IDS[i], android.view.View.GONE)
                     continue
                 }
                 rv.setViewVisibility(ROW_IDS[i], android.view.View.VISIBLE)
-                rv.setTextViewText(ROW_IDS[i], row.first)
-                rv.setInt(ROW_IDS[i], "setBackgroundResource", when (row.second) { 1 -> R.drawable.planner_task; 2 -> R.drawable.planner_test; else -> R.drawable.planner_row })
+                rv.setTextViewText(ROW_IDS[i], row.text)
+                rv.setInt(ROW_IDS[i], "setBackgroundResource", when (row.kind) { 1 -> R.drawable.planner_task; 2 -> R.drawable.planner_test; else -> R.drawable.planner_row })
                 rv.setTextColor(ROW_IDS[i], if (note != null) p.muted.toInt() else p.text.toInt())
             }
             val intent = Intent(ctx, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
