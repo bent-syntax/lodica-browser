@@ -9,8 +9,6 @@ Where things live and what they do. Start here.
 | `android/` | Android app, Kotlin + Jetpack Compose + GeckoView. Package `be.syntaxya.lodica`. |
 | `desktop/` | Desktop app, Electron. |
 | `relay/` | Node relay server: proxy, search, support tickets, updates, chat, push. |
-| `support/` | Support desk (mail in, tickets, Google Tasks). See below. |
-| `automation/` | `lodica-fixer.py` "run fixes" runner. See below. |
 | `scripts/` | Release gate script. |
 | `docs/` | Images, logos, screenshots, theme plugin docs, this guide. |
 | `.github/workflows/` | CI, support builds, release. |
@@ -79,68 +77,16 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `deploy/` | `install.sh`, `searxng.service`, `searxng-settings.yml` (search backend setup). |
 | `tools/lodica-gate.py` | Gate tool. |
 
-## support/ and automation/
+## Support desk and fixer (private)
 
-| Path | What it is |
-| --- | --- |
-| `support/server.js`, `app.js` | Support desk HTTP service: receives tickets from the relay and support mail, notifies the maintainer. |
-| `support/mail.js` | Mail intake for lodica@syntaxya.be. |
-| `support/tasks.js` | Adds tickets to the Google Tasks list "lodica". |
-| `support/install.sh`, `env.template` | Root install (systemd unit); env file lives outside the repo. |
-| `support/test/` | Tests: `cd support && node --test test/*.test.js`. |
-| `automation/lodica-fixer.py` | "run fixes" runner, started every 2 minutes by a systemd user timer. |
-| `automation/install-user.sh` | Installs the runner and timer for your user (no sudo). |
-
-Full details: `support/README.md`, `automation/README.md`.
-
-In-repo support code: `relay/src/support.js`, `desktop/main/support.js`, `android/.../ui/SupportDialog.kt`.
-
-## scripts/
-
-| Path | What it is |
-| --- | --- |
-| `ci-build.sh` | `scripts/ci-build.sh <branch>`: pushes the branch, waits for the GitHub build, downloads the APK, prints its path. |
-| `release-gate.sh` | Must pass before publishing: desktop tests, AppImage smoke test, APK checksum. Usage: `scripts/release-gate.sh <version>`. |
-
-## docs/
-
-| Path | What it is |
-| --- | --- |
-| `img/` | SVG diagrams used by the README. |
-| `logo/`, `screenshots/` | Brand assets and screenshots. |
-| `theme-plugins/` | Theme plugin docs. |
-
-## .github/workflows/
-
-| File | Trigger | What it does |
-| --- | --- | --- |
-| `ci.yml` | push to `main`, pull requests | Desktop `npm test` (under xvfb), Android `assembleDebug`. |
-| `support-build.yml` | push to `support/**` | Builds a signed test APK and uploads it as artifact `app-apk`. |
-| `release.yml` | push of tag `v*` | `verify` job, then signed APK and desktop installers, then a GitHub release. |
-
-## How builds work
-
-All builds run on GitHub Actions. Never build locally. The build server has about 1 GB RAM, so local Gradle and Electron builds run out of memory.
-
-- Push a `support/<name>` branch: `support-build.yml` builds a signed test APK (artifact `app-apk`).
-- `scripts/ci-build.sh <branch>` : pushes the branch, waits for the run, downloads `app-apk`.
-- Push to `main`: `ci.yml` runs desktop tests and a debug Android build.
-- Push a tag `v<x.y.z>`: `release.yml` verifies the versions and patch notes, builds the signed APK and desktop installers, and publishes a GitHub release.
-
-Versions are plain `x.y.z` with no beta suffix. Bump them together in:
-
-- `android/app/build.gradle.kts` (`versionName`, and `versionCode` +1)
-- `desktop/package.json` and `desktop/package-lock.json`
-- `## x.y.z` sections in `android/PATCH_NOTES.md`, `desktop/PATCH_NOTES.md` (checked by the release) and `CHANGELOG.md`
-
-The release job fails if any of these do not match the tag.
+The support desk (`support/`) and the "run fixes" runner (`automation/`) are not in this repo. They live only on the maintainer's server and are git-ignored. The runner calls Claude through a Hearth API key kept in `/etc/lodica-support.env`.
 
 ## Bug fix flow
 
 1. A user sends support mail to lodica@syntaxya.be.
 2. The support desk turns it into a ticket and adds it to the Google Tasks list "lodica".
 3. The maintainer checks the "run fixes" task.
-4. `automation/lodica-fixer.py` triages each task with Haiku, fixes easy bugs with Haiku and hard ones with Sonnet.
+4. the private fixer triages each task with Haiku and fixes with Sonnet, both through a Hearth API key.
 5. It builds through GitHub Actions and smoke tests on the phone.
 6. It releases the fix.
 7. It unchecks "run fixes".

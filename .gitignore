@@ -20,3 +20,7 @@ relay-token
 .claude/worktrees/
 *.log
 *.bak*
+
+# private: the support desk and the fixer are not published
+/support/
+/automation/

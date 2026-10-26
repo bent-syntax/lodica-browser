@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.25 (versionCode 126)
+- Changed: The files to host your own support desk are no longer published; support stays with the Lodica team
+
 ## 1.13.24 (versionCode 125)
 - Fixed: The phone app failed to build because of the control setup file; phone control from the desktop now installs
 

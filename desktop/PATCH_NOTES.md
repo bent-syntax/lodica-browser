@@ -1,3 +1,6 @@
+## 1.13.25
+- Changed: The files to host your own support desk are no longer published; support stays with the Lodica team
+
 ## 1.13.24
 - Fixed: The phone app failed to build because of the control setup file; phone control from the desktop now installs
 

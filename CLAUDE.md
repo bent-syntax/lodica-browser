@@ -16,7 +16,7 @@ Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for 
 - Android on a phone or emulator: use the `nord` command (`install`, `run`, `shot`, `ui`, `tap`, `swipe`, `key`, `crash`, `logs`) over adb.
 - Desktop: `npm test --prefix desktop`
 - Relay: `node --test relay/test/*.test.js`
-- Support: see `support/README.md`; fixer: `automation/README.md`.
+- Support desk and fixer are private and not in the repo (`support/` and `automation/` are git-ignored, kept on the server only).
 
 ## Design tokens
 
