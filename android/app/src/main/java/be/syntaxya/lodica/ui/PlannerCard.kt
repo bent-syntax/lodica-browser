@@ -68,21 +68,34 @@ fun PlannerCard(modifier: Modifier = Modifier) {
             val (today, minute) = clock
             val cur = rows.indexOfFirst { it.kind == 0 && !it.allDay && it.day == today && minute >= it.from && minute < it.to }
             val next = if (cur >= 0) -1 else rows.indexOfFirst { it.kind == 0 && !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
+            val done = Prefs.plannerDone
             for ((i, r) in rows.withIndex()) {
-                val bg = when {
-                    r.kind == 1 -> Color(0x59F59E0B)
-                    r.kind == 2 -> Color(0x59F43F5E)
+                // tasks and tests that start inside this lesson are folded into it
+                val inside = if (r.kind == 0 && !r.allDay) rows.filter { it.kind != 0 && !it.allDay && it.day == r.day && it.from >= r.from && it.from < r.to } else emptyList()
+                val test = inside.any { it.kind == 2 }
+                val tint = if (!Prefs.plannerColors) 0 else if (test) 2 else if (inside.isNotEmpty()) 1 else r.kind
+                val bg = when (tint) {
+                    1 -> Color(0x59F59E0B)
+                    2 -> Color(0x59F43F5E)
                     else -> Color(0x26808080)
                 }
+                val shownTasks = inside.filter { it.key !in done }
+                val label = r.text.substringBefore(' ') + " " + r.range + "  " + r.title + (if (shownTasks.isEmpty()) "" else "  " + shownTasks.joinToString(" · ") { it.title })
+                val ticked = r.kind != 0 && r.key in done
                 Box(Modifier.fillMaxWidth().height(ROW_H - 4.dp)) {
                     Text(
-                        r.text.substringBefore(' ') + " " + r.range + "  " + r.title, color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        label, color = if (ticked) Muted else Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        textDecoration = if (ticked) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
                         modifier = Modifier.fillMaxWidth().height(ROW_H - 4.dp).clip(RoundedCornerShape(12.dp)).background(bg).clickable { open = if (open == i) -1 else i }.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                     if (i == cur) {
                         val f = (minute - r.from).toFloat() / (r.to - r.from).coerceAtLeast(1)
                         Box(Modifier.fillMaxWidth().offset(y = (ROW_H - 4.dp) * f).height(2.dp).background(Amber))
-                    } else if (i == next) Box(Modifier.fillMaxWidth().offset(y = (-3).dp).height(2.dp).background(Amber))
+                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (ROW_H - 4.dp) * f - 7.dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
+                    } else if (i == next) {
+                        Box(Modifier.fillMaxWidth().offset(y = (-3).dp).height(2.dp).background(Amber))
+                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (-10).dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
+                    }
                 }
                 Box(Modifier.height(4.dp))
                 if (open == i) {
@@ -90,6 +103,11 @@ fun PlannerCard(modifier: Modifier = Modifier) {
                         Text(r.title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Text(r.text.substringBefore(' ') + ", " + r.range, color = Muted, fontSize = 13.sp)
                         if (r.detail.isNotBlank()) Text(r.detail, color = Mist, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                        for (t in if (r.kind != 0) listOf(r) else inside) {
+                            val d = t.key in done
+                            Text((if (d) "\u2611 " else "\u2610 ") + t.title, color = if (d) Muted else Mist, fontSize = 13.sp, modifier = Modifier.fillMaxWidth().clickable { Prefs.togglePlannerDone(t.key) }.padding(top = 8.dp))
+                            if (t !== r && t.detail.isNotBlank()) Text(t.detail, color = Muted, fontSize = 12.sp)
+                        }
                     }
                 }
             }

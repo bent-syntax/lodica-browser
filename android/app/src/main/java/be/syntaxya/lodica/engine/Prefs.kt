@@ -67,6 +67,7 @@ object Prefs {
     var plannerWidgetAlpha by mutableStateOf(0.85f); private set
     /** How many planner rows the start page shows before it scrolls; the grip on the card changes it. */
     var plannerRows by mutableStateOf(6); private set
+    var plannerDone by mutableStateOf(setOf<String>()); private set
     private val PLACES = listOf("left", "right", "below")
     /** Where the planner and the notes sit on the start page: "left", "right" or "below" the search bar. They never share a place. */
     var plannerPos by mutableStateOf("below"); private set
@@ -157,6 +158,7 @@ object Prefs {
         plannerWidgetMode = if (sp.getString("plannerWidgetMode", "full") == "tasks") "tasks" else "full"
         plannerWidgetAlpha = sp.getFloat("plannerWidgetAlpha", 0.85f).coerceIn(0f, 1f)
         plannerRows = sp.getInt("plannerRows", 6).coerceIn(2, 14)
+        plannerDone = sp.getStringSet("plannerDone", emptySet())?.toSet() ?: emptySet()
         plannerPos = sp.getString("plannerPos", "below")?.takeIf { it in PLACES } ?: "below"
         notesPos = sp.getString("notesPos", "left")?.takeIf { it in PLACES } ?: "left"
         if (notesPos == plannerPos) notesPos = PLACES.first { it != plannerPos }
@@ -277,6 +279,11 @@ object Prefs {
     fun updatePlannerWidgetMode(v: String) { plannerWidgetMode = if (v == "tasks") "tasks" else "full"; sp.edit().putString("plannerWidgetMode", plannerWidgetMode).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updatePlannerWidgetAlpha(v: Float) { plannerWidgetAlpha = v.coerceIn(0f, 1f); sp.edit().putFloat("plannerWidgetAlpha", plannerWidgetAlpha).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updatePlannerRows(v: Int) { plannerRows = v.coerceIn(2, 14); sp.edit().putInt("plannerRows", plannerRows).apply() }
+    /** Ticks a planner task or test off (or back on). Only the newest 300 are kept. */
+    fun togglePlannerDone(key: String) {
+        plannerDone = if (key in plannerDone) plannerDone - key else (plannerDone + key).toList().takeLast(300).toSet()
+        sp.edit().putStringSet("plannerDone", plannerDone).apply()
+    }
     fun updatePlannerColors(v: Boolean) { plannerColors = v; sp.edit().putBoolean("plannerColors", v).apply(); Helper.push() }
     fun updatePlannerTz(v: String) { plannerTz = v.trim().take(64); sp.edit().putString("plannerTz", plannerTz).apply(); Helper.push() }
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }

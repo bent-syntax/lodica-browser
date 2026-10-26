@@ -454,6 +454,8 @@ function slotRules(text) {
 }
 const hhmm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
 let plannerData = null, plannerOpen = "";
+const plannerDone = () => { try { return new Set(JSON.parse(localStorage.getItem("plannerDone") || "[]")); } catch (e) { return new Set(); } };
+const plannerTick = (key) => { const d = plannerDone(); if (!d.delete(key)) d.add(key); try { localStorage.setItem("plannerDone", JSON.stringify([...d].slice(-300))); } catch (e) { /* storage full */ } };
 function drawPlanner(text, url, opts) {
   plannerData = { text, url, opts };
   const box = $("plan");
@@ -499,16 +501,29 @@ function drawPlanner(text, url, opts) {
     if (e.day === now.day && !marked && !e.allDay && e.min > now.min) mark();
     const main = e.kind === "lesson" && e.subject ? e.subject : e.title;
     const more = e.kind !== "lesson" && e.subject ? " · " + e.subject : "";
-    const cls = "pe" + (opts.colors !== false && e.kind !== "lesson" ? " " + e.kind : "");
     const key = e.day + "|" + e.min + "|" + e.title;
-    const row = el("div", { class: cls + (live ? " live" : "") }, el("b", null, e.allDay ? "All day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)), el("span", null, main + more), e.where ? el("em", null, e.where) : null);
+    // tasks and tests that start inside a lesson are folded into that lesson row
+    const inside = e.kind === "lesson" && !e.allDay ? evs.filter((t) => t.kind !== "lesson" && !t.allDay && t.day === e.day && t.min >= e.min && t.min < e.end) : [];
+    const done = plannerDone();
+    const tint = e.kind !== "lesson" ? e.kind : inside.some((t) => t.kind === "test") ? "test" : inside.length ? "task" : "";
+    const cls = "pe" + (opts.colors !== false && tint ? " " + tint : "") + (e.kind !== "lesson" && done.has(key) ? " done" : "");
+    const extra = inside.filter((t) => !done.has(t.day + "|" + t.min + "|" + t.title)).map((t) => t.title).join(" · ");
+    const row = el("div", { class: cls + (live ? " live" : "") }, el("b", null, e.allDay ? "All day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)), el("span", null, main + more + (extra ? "  " + extra : "")), e.where ? el("em", null, e.where) : null);
     row.onclick = () => { plannerOpen = plannerOpen === key ? "" : key; drawPlanner(plannerData.text, plannerData.url, plannerData.opts); };
-    if (live) { marked = true; row.appendChild(el("i", { class: "now", style: "top:" + Math.round(100 * (now.min - e.min) / Math.max(1, e.end - e.min)) + "%" })); }
+    if (live) { marked = true; row.appendChild(el("i", { class: "now", style: "top:" + Math.round(100 * (now.min - e.min) / Math.max(1, e.end - e.min)) + "%" }, el("u", null, hhmm(now.min)))); }
     kids.push(row);
     if (plannerOpen === key) {
       const det = [el("b", null, main + more), el("div", null, label(e.day) + ", " + (e.allDay ? "all day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)))];
       if (e.where) det.push(el("div", null, e.where));
       if (e.desc) det.push(el("div", { class: "dd" }, e.desc));
+      for (const t of e.kind !== "lesson" ? [e] : inside) {
+        const tk = t.day + "|" + t.min + "|" + t.title;
+        const c = el("label", { class: "tick" }, el("input", { type: "checkbox" }), t.title);
+        c.firstChild.checked = done.has(tk);
+        c.firstChild.onclick = (ev) => ev.stopPropagation();
+        c.firstChild.onchange = () => { plannerTick(tk); drawPlanner(plannerData.text, plannerData.url, plannerData.opts); };
+        det.push(c);
+      }
       kids.push(el("div", { class: "pi" }, ...det));
     }
   }

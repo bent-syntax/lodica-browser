@@ -33,6 +33,7 @@ class PlannerWidget : AppWidgetProvider() {
 
     /** One planner row: [text] for the widget, the rest for the start page card. */
     class Row(val text: String, val kind: Int, val day: Long, val from: Int, val to: Int, val allDay: Boolean, val title: String, val detail: String) {
+        val key: String get() = "$day|$from|$title"
         val range: String get() = if (allDay) "All day" else hhmm(from) + "-" + hhmm(to)
     }
 

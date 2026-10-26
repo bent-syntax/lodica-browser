@@ -1,4 +1,9 @@
 # Patch notes
+## 1.13.21
+- Added: Tasks and tests show inside the lesson they belong to: yellow for a task, red for a test
+- Added: Tick off a task or test in the planner; its text hides but the colour stays until you tap the lesson
+- Changed: The current time shows on the line in the planner
+
 ## 1.13.20
 - Added: Planner shows from-to hours per lesson, and tapping a lesson shows more about it
 - Added: A line on the planner shows the time: above the next lesson, or inside the current one
