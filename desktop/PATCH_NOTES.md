@@ -1,3 +1,7 @@
+## 1.13.26
+
+- Added: New features request
+
 ## 1.13.25
 - Changed: The files to host your own support desk are no longer published; support stays with the Lodica team
 

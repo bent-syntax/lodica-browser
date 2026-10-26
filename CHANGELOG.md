@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.26 (versionCode 127)
+- Added: New features request
+
 ## 1.13.25 (versionCode 126)
 - Changed: The files to host your own support desk are no longer published; support stays with the Lodica team
 
