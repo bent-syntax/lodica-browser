@@ -505,10 +505,13 @@ function drawPlanner(text, url, opts) {
     // tasks and tests that start inside a lesson are folded into that lesson row
     const inside = e.kind === "lesson" && !e.allDay ? evs.filter((t) => t.kind !== "lesson" && !t.allDay && t.day === e.day && t.min >= e.min && t.min < e.end) : [];
     const done = plannerDone();
-    const tint = e.kind !== "lesson" ? e.kind : inside.some((t) => t.kind === "test") ? "test" : inside.length ? "task" : "";
+    const tint = e.kind !== "lesson" ? e.kind : "";
     const cls = "pe" + (opts.colors !== false && tint ? " " + tint : "") + (e.kind !== "lesson" && done.has(key) ? " done" : "");
+    const tests = inside.filter((t) => t.kind === "test").length;
+    // a lesson with 2 tests and 1 task is 2/3 red and 1/3 yellow
+    const split = opts.colors !== false && e.kind === "lesson" && inside.length ? Math.round(100 * tests / inside.length) : -1;
     const extra = inside.filter((t) => !done.has(t.day + "|" + t.min + "|" + t.title)).map((t) => t.title).join(" · ");
-    const row = el("div", { class: cls + (live ? " live" : "") }, el("b", null, e.allDay ? "All day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)), el("span", null, main + more + (extra ? "  " + extra : "")), e.where ? el("em", null, e.where) : null);
+    const row = el("div", { class: cls + (live ? " live" : ""), style: split >= 0 ? "background:linear-gradient(90deg,rgba(244,63,94,.35) " + split + "%,rgba(245,158,11,.35) " + split + "%);border-radius:12px;padding:4px 8px;margin:0 -8px" : "" }, el("b", null, e.allDay ? "All day" : hhmm(e.min) + "-" + hhmm(e.endDay === e.day ? e.end : 1440)), el("span", null, main + more + (extra ? "  " + extra : "")), e.where ? el("em", null, e.where) : null);
     row.onclick = () => { plannerOpen = plannerOpen === key ? "" : key; drawPlanner(plannerData.text, plannerData.url, plannerData.opts); };
     if (live) { marked = true; row.appendChild(el("i", { class: "now", style: "top:" + Math.round(100 * (now.min - e.min) / Math.max(1, e.end - e.min)) + "%" }, el("u", null, hhmm(now.min)))); }
     kids.push(row);

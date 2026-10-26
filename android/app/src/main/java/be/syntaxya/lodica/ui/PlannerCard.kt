@@ -67,18 +67,21 @@ fun PlannerCard(modifier: Modifier = Modifier) {
         else Column(Modifier.fillMaxWidth().height(ROW_H * shown.coerceAtMost(rows.size.coerceAtLeast(1))).verticalScroll(rememberScrollState())) {
             val (today, minute) = clock
             val cur = rows.indexOfFirst { it.kind == 0 && !it.allDay && it.day == today && minute >= it.from && minute < it.to }
-            val next = if (cur >= 0) -1 else rows.indexOfFirst { it.kind == 0 && !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
+            val next = if (cur >= 0) -1 else rows.indexOfFirst { !it.allDay && (it.day > today || (it.day == today && it.from > minute)) }
             val done = Prefs.plannerDone
             for ((i, r) in rows.withIndex()) {
                 // tasks and tests that start inside this lesson are folded into it
                 val inside = if (r.kind == 0 && !r.allDay) rows.filter { it.kind != 0 && !it.allDay && it.day == r.day && it.from >= r.from && it.from < r.to } else emptyList()
-                val test = inside.any { it.kind == 2 }
-                val tint = if (!Prefs.plannerColors) 0 else if (test) 2 else if (inside.isNotEmpty()) 1 else r.kind
-                val bg = when (tint) {
-                    1 -> Color(0x59F59E0B)
-                    2 -> Color(0x59F43F5E)
-                    else -> Color(0x26808080)
-                }
+                val tests = inside.count { it.kind == 2 }
+                val red = Color(0x59F43F5E)
+                val yellow = Color(0x59F59E0B)
+                val plain = Color(0x26808080)
+                // a lesson with 2 tests and 1 task is 2/3 red and 1/3 yellow
+                val fill: androidx.compose.ui.graphics.Brush = if (!Prefs.plannerColors) androidx.compose.ui.graphics.SolidColor(plain)
+                    else if (r.kind == 2) androidx.compose.ui.graphics.SolidColor(red)
+                    else if (r.kind == 1) androidx.compose.ui.graphics.SolidColor(yellow)
+                    else if (inside.isEmpty()) androidx.compose.ui.graphics.SolidColor(plain)
+                    else { val f = tests.toFloat() / inside.size; androidx.compose.ui.graphics.Brush.horizontalGradient(0f to red, f to red, f to yellow, 1f to yellow) }
                 val shownTasks = inside.filter { it.key !in done }
                 val label = r.text.substringBefore(' ') + " " + r.range + "  " + r.title + (if (shownTasks.isEmpty()) "" else "  " + shownTasks.joinToString(" · ") { it.title })
                 val ticked = r.kind != 0 && r.key in done
@@ -86,7 +89,7 @@ fun PlannerCard(modifier: Modifier = Modifier) {
                     Text(
                         label, color = if (ticked) Muted else Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         textDecoration = if (ticked) androidx.compose.ui.text.style.TextDecoration.LineThrough else null,
-                        modifier = Modifier.fillMaxWidth().height(ROW_H - 4.dp).clip(RoundedCornerShape(12.dp)).background(bg).clickable { open = if (open == i) -1 else i }.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth().height(ROW_H - 4.dp).clip(RoundedCornerShape(12.dp)).background(fill).clickable { open = if (open == i) -1 else i }.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                     if (i == cur) {
                         val f = (minute - r.from).toFloat() / (r.to - r.from).coerceAtLeast(1)

@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.22 (versionCode 123)
+- Fixed: The time line on the planner sits above the first item of the next lesson, not below it
+- Changed: A lesson with tests and tasks is coloured by share: 2 tests and 1 task is 2/3 red and 1/3 yellow
+
 ## 1.13.21 (versionCode 122)
 - Added: Tasks and tests show inside the lesson they belong to: yellow for a task, red for a test
 - Added: Tick off a task or test in the planner; its text hides but the colour stays until you tap the lesson
