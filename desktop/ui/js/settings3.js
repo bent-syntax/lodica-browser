@@ -93,9 +93,36 @@ function themePreviewBox() {
   paintPreview(currentColours());
   return previewEl;
 }
+// Reads the colours the applied theme really paints (built-in, plugin or system) as #rrggbb, so it can be forked into a custom theme.
+function appliedColours() {
+  const cx = document.createElement("canvas").getContext("2d"), cs = getComputedStyle(document.documentElement);
+  const hexOf = (name, fb) => {
+    const probe = h("i", { style: "color:var(" + name + ");display:none" });
+    document.body.append(probe);
+    cx.fillStyle = "#000"; cx.fillStyle = getComputedStyle(probe).color;
+    probe.remove();
+    cx.fillRect(0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    return d[3] ? "#" + [d[0], d[1], d[2]].map((n) => n.toString(16).padStart(2, "0")).join("") : fb;
+  };
+  void cs;
+  return { bg: hexOf("--bg", "#111827"), text: hexOf("--text", "#e5e7eb"), accent: hexOf("--amber", "#f59e0b"), accent2: hexOf("--coral", "#f43f5e"),
+    raised: hexOf("--raised", "#1f2937"), high: hexOf("--high", "#374151"), muted: hexOf("--muted", "#9ca3af") };
+}
 function themeEditor() {
   const c = Object.assign({}, PREVIEW_DEFAULT, S.prefs.customTheme);
   const cur = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2 };
+  for (const k of ["raised", "high", "muted"]) if (c[k]) cur[k] = c[k];
+  const opt = (key, label, mixPct) => {
+    const fallback = () => cur[key] || "#" + [0, 1, 2].map((i) => {
+      const f = (hex) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+      return Math.round(f(cur.text) * mixPct / 100 + f(cur.bg) * (100 - mixPct) / 100).toString(16).padStart(2, "0");
+    }).join("");
+    return h("label", { class: "ct-field" }, h("span", { text: label }),
+      h("input", { type: "color", value: fallback(), on: {
+        input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
+        change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur); } } }));
+  };
   const field = (key, label) => h("label", { class: "ct-field" }, h("span", { text: label }),
     h("input", { type: "color", value: cur[key], on: {
       input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
@@ -103,8 +130,10 @@ function themeEditor() {
   const on = (S.prefs.theme || "system") === "custom";
   return h("div", { class: "ct" },
     h("div", { class: "ct-row" }, field("bg", "Background"), field("text", "Text"), field("accent", "Accent"), field("accent2", "Second accent")),
+    h("div", { class: "ct-row" }, opt("raised", "Panels", 8), opt("high", "Hover", 16), opt("muted", "Muted text", 60)),
     h("div", { class: "ct-row" },
       h("button", { class: "ct-btn" + (on ? " sel" : ""), text: on ? "Using your theme" : "Use my theme", act: () => inv("theme.custom", cur) }),
+      h("button", { class: "ct-btn", text: "Edit the applied theme", title: "Copy the colours of the theme in use into your custom theme", act: () => inv("theme.custom", appliedColours()) }),
       S.prefs.customTheme ? h("button", { class: "ct-btn", text: "Remove", act: () => { inv("theme.custom", null); if (on) setPref("theme", "system"); } }) : null),
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }

@@ -335,6 +335,7 @@ async function themePut(req, res) {
   catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   if (!b || !['bg', 'text', 'accent', 'accent2'].every((k) => hex(b[k]))) return sendText(req, res, 400, 'bad theme');
   const out = { bg: b.bg, text: b.text, accent: b.accent, accent2: b.accent2, at: Number.isFinite(b.at) ? b.at : Date.now() };
+  for (const k of ['raised', 'high', 'muted']) if (hex(b[k])) out[k] = b[k];
   const tmp = `${THEME_FILE}.${process.pid}.tmp`;
   await fsp.writeFile(tmp, JSON.stringify(out), { mode: 0o600 });
   await fsp.rename(tmp, THEME_FILE);

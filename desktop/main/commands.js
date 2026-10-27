@@ -362,7 +362,9 @@ function init(deps) {
   on("theme.custom", async (c) => {
     if (c === null) { d.prefs.set("customTheme", null); return true; }
     if (!c || !["bg", "text", "accent", "accent2"].every(k => HEX.test(c[k]))) return false;
-    d.prefs.set("customTheme", { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2, at: Date.now() });
+    const out = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2, at: Date.now() };
+    for (const k of ["raised", "high", "muted"]) if (HEX.test(c[k])) out[k] = c[k];
+    d.prefs.set("customTheme", out);
     d.prefs.set("theme", "custom");
     pullTheme();
     return true;
