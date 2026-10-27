@@ -173,6 +173,7 @@ function secStart() {
   out.push(secHead("Shortcuts", "shortcuts"),
     setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
     setToggle("startNotes", "Show notes", "Show your newest notes from the shared Notebook on the start page."),
+    setRow("Notes notebook", "Which note the start page shows and adds to. Empty shows your newest notes.", notesPicker()),
     secHead("Smartschool planner", "planner"),
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",
@@ -342,4 +343,13 @@ function secKeys() {
     if (/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) setPref("siteOverrides", Object.assign({}, ov, { [host]: { desktopInput: true } }));
   } } })));
   return out;
+}
+
+// Select for the start page note; the list loads from the notebook after the section draws.
+function notesPicker() {
+  const sel = h("select", { on: { change: (e) => setPref("notesBook", e.target.value) } }, [h("option", { value: "", text: "Newest notes" })]);
+  inv("notebook.list").then((list) => {
+    for (const n of list || []) sel.append(h("option", { value: n.id, text: n.title || "Untitled note", selected: n.id === S.prefs.notesBook }));
+  }).catch(() => {});
+  return sel;
 }

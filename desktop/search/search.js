@@ -609,7 +609,17 @@ async function notes() {
   const kids = [el("h3", null, "Notes")];
   if (!r.items) kids.push(el("p", { class: "none" }, "Notes could not be loaded."));
   else if (!r.items.length) kids.push(el("p", { class: "none" }, "No notes yet. Open Notebook from the menu to add one."));
-  else for (const n of r.items) kids.push(el("div", { class: "pe nt" }, el("b", null, n.title), n.more ? el("span", null, n.more) : null));
+  else for (const n of r.items) kids.push(el("div", { class: "pe nt" }, n.title ? el("b", null, n.title) : null, n.more ? el("span", null, n.more) : null));
+  if (r.items) {
+    const inp = el("input", { class: "ntadd", type: "text", placeholder: "Add a note line…", maxlength: "500" });
+    inp.addEventListener("keydown", async (e) => {
+      if (e.key !== "Enter" || !inp.value.trim()) return;
+      inp.disabled = true;
+      await ask1({ type: "noteAdd", text: inp.value });
+      notes();
+    });
+    kids.push(inp);
+  }
   box.replaceChildren(...kids);
   resizable(box, "notes");
 }

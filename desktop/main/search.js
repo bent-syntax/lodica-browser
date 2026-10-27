@@ -46,6 +46,7 @@ async function handle(msg) {
   }
   if (msg.type === "planner") return planner();
   if (msg.type === "notes") return notes();
+  if (msg.type === "noteAdd") return noteAdd(String(msg.text || ""));
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);
   if (msg.type === "ask") return ask(msg);
@@ -69,12 +70,18 @@ async function planner() {
   }
 }
 
-// Notes widget on the start page: the newest notes of the shared notebook, first line as title.
+// Notes widget on the start page: the chosen note of the shared notebook (pref notesBook), else the newest five.
 async function notes() {
   if (prefs.p.startNotes === false || !relay.available) return { off: true };
   const nb = require("./notebook");
   const list = await nb.list();
   if (!list) return { items: null };
+  const pick = list.find((n) => n.id === prefs.p.notesBook);
+  if (pick) {
+    const full = await nb.get(pick.id);
+    const lines = String(full ? full.text : "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return { book: true, items: lines.slice(0, 8).map((l, i) => i === 0 ? { title: l.slice(0, 120), more: "" } : { title: "", more: l.slice(0, 200) }) };
+  }
   const items = [];
   for (const n of list.slice(0, 5)) {
     const full = await nb.get(n.id);
@@ -82,6 +89,27 @@ async function notes() {
     items.push({ title: (lines[0] || "Empty note").slice(0, 80), more: (lines[1] || "").slice(0, 120) });
   }
   return { items };
+}
+
+// Quick note from the start page: appends a line to the chosen note, else the newest note, else a new one.
+async function noteAdd(text) {
+  text = text.trim().slice(0, 500);
+  if (!text || !relay.available) return false;
+  const nb = require("./notebook");
+  const list = await nb.list();
+  if (!list) return false;
+  let id = (list.find((n) => n.id === prefs.p.notesBook) || list[0] || {}).id;
+  if (!id) { const c = await nb.create(); id = c && c.id; }
+  if (!id) return false;
+  for (let i = 0; i < 2; i++) {
+    const cur = await nb.get(id);
+    if (!cur) return false;
+    const body = String(cur.text || "");
+    const r = await nb.put(id, (body && !body.endsWith("\n") ? body + "\n" : body) + text, cur.rev);
+    if (r && !r.conflict && !r.gone) return true;
+    if (!r || r.gone) return false;
+  }
+  return false;
 }
 
 // Own shortcuts for the start page: up to 24 http(s) sites, each with an optional short name.
