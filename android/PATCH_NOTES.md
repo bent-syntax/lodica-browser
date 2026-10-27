@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.27
+- Changed: Round start page shortcuts; dark mode and force dark mode are separate settings
+
 ## 1.13.26
 - Added: New features request
 

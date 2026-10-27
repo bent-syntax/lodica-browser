@@ -2,6 +2,20 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.27 (versionCode 128)
+- Added: Start page planner and notes are free windows: drag the title, resize the corner, no overlap, double-click to reset
+- Added: Choose which notebook the start page notes use, and type notes from the start page
+- Added: Full custom themes, and edit an applied theme as a custom one
+- Added: Theme plugins can add animations for tabs and the window
+- Added: Install extensions from a .crx, .zip or .xpi file or an unpacked folder, with a permission prompt
+- Added: Add server emojis from the desktop
+- Added: Server chat opens and closes with Ctrl+Shift+K, bigger chat text and emojis, image previews with a download icon
+- Added: The assistant can use your own Hearth address and key (Settings > AI)
+- Added: Ask AI about the open page with Ctrl+Shift+L
+- Changed: The on-screen keyboard shortcut is now Ctrl+Alt+K
+- Fixed: Unpinned extensions stay unpinned, tab icons no longer flash, the planner shows at once on a new tab
+- Changed: Round start page shortcuts; dark mode and force dark mode are separate settings
+
 ## 1.13.26 (versionCode 127)
 - Added: New features request
 
