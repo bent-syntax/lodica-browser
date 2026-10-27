@@ -9,7 +9,7 @@ const history = require("./history");
 const errorpage = require("./errorpage");
 
 const HOME = "lodica://search/search.html";
-const LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(__dirname, "..", "ui", "logo.png")).toString("base64");
+let LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(__dirname, "..", "ui", "logo.png")).toString("base64");
 const PRELOAD = path.join(__dirname, "..", "preload", "content.js");
 const IDLE_MS = 10 * 60 * 1000;
 const MAX_CLOSED = 10;
@@ -488,6 +488,9 @@ function fallbackIcon(u) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin + "/favicon.ico" : null; } catch { return null; }
 }
 
+/** Tab icon of the Lodica start page, re-rendered in the theme colours. */
+function setLogo(png) { LOGO = "data:image/png;base64," + png.toString("base64"); }
+
 function listing() {
   const byRecent = (a, b) => b.lastUsed - a.lastUsed;
   return {
@@ -571,6 +574,6 @@ function init(d) {
 
 module.exports = {
   HOME, init, byContents, all, current, open, info, listing, select, create, move, newTab: create, close, reopen,
-  undoClose, closeAll, archive, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
+  undoClose, closeAll, archive, setLogo, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
   isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
 };

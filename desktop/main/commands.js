@@ -201,6 +201,7 @@ function init(deps) {
         const img = nativeImage.createFromBuffer(png);
         if (img.isEmpty()) return;
         global.__lodicaIcon = img;
+        tabs.setLogo(png);
         try { require("fs").writeFileSync(require("path").join(app.getPath("userData"), "theme-icon.png"), png); } catch {}
         const { BaseWindow } = require("electron");
         for (const w of BaseWindow.getAllWindows()) {
