@@ -382,6 +382,7 @@ fun SettingsScreen() {
                     Section("Blocking")
             SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
+            SwitchRow("Smartschool: sign in with Microsoft", "Click \"Microsoft\" on the Smartschool login page when you are already signed in to Microsoft. No password is stored", Prefs.smartschoolMs) { Prefs.updateSmartschoolMs(it) }
 
                     Section("Spelling")
             SwitchRow("Spell check", "Long-press a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }

@@ -89,6 +89,7 @@ object Prefs {
     var direct by mutableStateOf<Set<String>>(emptySet()); private set
 
     var cookieReject by mutableStateOf(true); private set
+    var smartschoolMs by mutableStateOf(false); private set
     var spell by mutableStateOf(true); private set
     var spellAuto by mutableStateOf(false); private set
     var spellLangs by mutableStateOf(setOf("en")); private set
@@ -174,6 +175,7 @@ object Prefs {
         routeVps = sp.getBoolean("routeVps", false)
         direct = sp.getStringSet("direct", emptySet())!!.toSet()
         cookieReject = sp.getBoolean("cookieReject", true)
+        smartschoolMs = sp.getBoolean("smartschoolMs", false)
         spell = sp.getBoolean("spell", true)
         spellAuto = sp.getBoolean("spellAuto", false)
         spellLangs = sp.getStringSet("spellLangs", null) ?: setOf("en")
@@ -381,6 +383,7 @@ object Prefs {
         spellLangs = if (n.isEmpty()) setOf(l) else n
         sp.edit().putStringSet("spellLangs", spellLangs).apply(); Helper.push()
     }
+    fun updateSmartschoolMs(v: Boolean) { smartschoolMs = v; sp.edit().putBoolean("smartschoolMs", v).apply(); Helper.push() }
     fun updateCookieReject(v: Boolean) { cookieReject = v; sp.edit().putBoolean("cookieReject", v).apply(); Helper.push() }
     fun togglePin(key: String) {
         menuPins = if (key in menuPins) menuPins - key else menuPins + key

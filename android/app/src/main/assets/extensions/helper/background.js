@@ -167,6 +167,13 @@ let askId = 0;
 
 browser.runtime.onMessage.addListener(async (msg) => {
   if (!msg) return undefined;
+  // Smartschool sign-in: does the browser already hold a Microsoft sign-in cookie? Names only, values never read.
+  if (msg.type === "msSession") {
+    try {
+      const cs = await browser.cookies.getAll({ domain: "login.microsoftonline.com" });
+      return cs.some((c) => /^ESTSAUTH(PERSISTENT|LIGHT)?$/.test(c.name));
+    } catch (e) { return false; }
+  }
   if (msg.type === "state") {
     await configured;
     return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
