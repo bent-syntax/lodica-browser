@@ -588,9 +588,17 @@ function resizable(box, key) {
   });
   box.append(g);
 }
+// The last planner answer is kept so a new tab draws it at once, then refreshes when the fetch returns.
 async function planner() {
+  if (!plannerData) {
+    try { const c = JSON.parse(localStorage.getItem("plannerCache") || "null"); if (c && c.url) drawPlanner(c.text, c.url, c.opts); } catch (e) { /* bad cache */ }
+  }
   const r = await ask1({ type: "planner" });
   drawPlanner(r && r.text, r && r.url, r && r.opts);
+  try {
+    if (r && r.url && r.text) localStorage.setItem("plannerCache", JSON.stringify({ text: r.text, url: r.url, opts: r.opts }));
+    else if (r && !r.url) localStorage.removeItem("plannerCache");
+  } catch (e) { /* storage full */ }
 }
 
 // Notes widget on the start page: newest notes of the shared Notebook, switched in Settings, Start page.
