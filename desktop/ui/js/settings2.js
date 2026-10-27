@@ -84,6 +84,13 @@ function secExtensions() {
       if (r && r.ok) { SET.exts = r.list; toast("Extension installed"); } else toast((r && r.error) || "Install failed");
       refreshSettings();
     } } })));
+  const local = (kind) => async () => {
+    const r = await inv("ext.local", kind);
+    if (r && r.ok) { SET.exts = r.list; toast("Extension installed"); } else if (r && !r.canceled) toast((r && r.error) || "Install failed");
+    refreshSettings();
+  };
+  out.push(setRow("Install from a file", "A .crx, .zip or Firefox .xpi file. You see its permissions first. Only extensions that use Chrome-compatible features load.", null, local("file")));
+  out.push(setRow("Load an unpacked folder", "A folder with a manifest.json, for extensions you are making. It is copied in; install again after changes.", null, local("folder")));
   for (const x of SET.exts || []) out.push(setRow(x.name, x.version ? "Version " + x.version : null, toggleEl(x.on),
     async () => { SET.exts = await inv("ext.toggle", x.id); refreshSettings(); }));
   for (const x of SET.exts || []) out.push(setRow("Remove " + x.name, null, null, async () => { SET.exts = await inv("ext.remove", x.id); refreshSettings(); }));

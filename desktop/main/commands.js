@@ -561,6 +561,17 @@ function init(deps) {
   on("pctabs.remote", async () => { await pctabs.refresh(); return pctabs.status(); });
   on("ext.list", () => extensions.list());
   on("ext.install", s => extensions.install(str(s)));
+  on("ext.local", async kind => {
+    const { dialog } = require("electron");
+    const folder = str(kind) === "folder";
+    const r = await dialog.showOpenDialog(d.win(), folder ? { title: "Choose an unpacked extension folder", properties: ["openDirectory"] }
+      : { title: "Choose an extension file", properties: ["openFile"], filters: [{ name: "Extensions", extensions: ["crx", "zip", "xpi"] }] });
+    if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
+    return extensions.installLocal(r.filePaths[0], async (name, perms) => (await dialog.showMessageBox(d.win(), {
+      type: "question", buttons: ["Install", "Cancel"], defaultId: 1, cancelId: 1, title: "Install extension",
+      message: "Install " + name + "?", detail: perms.length ? "It asks for:\n" + perms.join("\n") : "It asks for no special permissions.",
+    })).response === 0);
+  });
   on("ext.remove", id => extensions.remove(str(id)));
   on("ext.open", (id, anchor) => extensions.open(str(id), anchor));
   on("ext.toggle", id => extensions.toggle(str(id)));

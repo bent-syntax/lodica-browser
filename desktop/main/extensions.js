@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
+const crypto = require("crypto");
 const { app, net, session, BrowserWindow, shell } = require("electron");
 const store = require("./store");
 
@@ -98,6 +99,43 @@ async function install(input) {
   }
 }
 
+/** Install from a local .crx/.zip/.xpi file or an unpacked folder (copied into the extensions folder). Asks first, listing the permissions. */
+async function installLocal(src, confirm) {
+  try {
+    const st = fs.statSync(src);
+    fs.mkdirSync(dir(), { recursive: true });
+    const stage = fs.mkdtempSync(path.join(dir(), ".stage-"));
+    try {
+      if (st.isDirectory()) {
+        fs.cpSync(src, stage, { recursive: true, filter: f => !fs.lstatSync(f).isSymbolicLink() });
+      } else {
+        if (st.size > 60 * 1024 * 1024) throw new Error("Extension is too large");
+        unzip(crxToZip(fs.readFileSync(src)), stage);
+      }
+      const mf = JSON.parse(fs.readFileSync(path.join(stage, "manifest.json"), "utf8"));
+      const perms = [].concat(mf.permissions || [], mf.host_permissions || []).filter(x => typeof x === "string").slice(0, 30);
+      const label = String(mf.name || "this extension").slice(0, 60);
+      if (confirm && !(await confirm(label, perms))) { fs.rmSync(stage, { recursive: true, force: true }); return { ok: false, canceled: true }; }
+      const id = crypto.createHash("sha1").update(label + "|" + src).digest("hex").slice(0, 32).replace(/[0-9a-f]/g, c => "abcdefghijklmnop"[parseInt(c, 16)]);
+      if (list.some(x => x.id === id)) throw new Error("Already installed");
+      const target = path.join(dir(), id);
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.renameSync(stage, target);
+      try {
+        const ext = await loadInto(target);
+        list.push({ id, name: ext?.name || label, version: ext?.version || String(mf.version || ""), folder: target, on: true });
+      } catch (e) {
+        fs.rmSync(target, { recursive: true, force: true });
+        throw new Error("Not supported here: " + String(e && e.message || e).slice(0, 120));
+      }
+      persist();
+      return { ok: true, list: view() };
+    } finally { fs.rmSync(stage, { recursive: true, force: true }); }
+  } catch (e) {
+    return { ok: false, error: String(e && e.message || e).slice(0, 160) };
+  }
+}
+
 function unload(x) {
   for (const ses of sessions()) {
     try { loader(ses).removeExtension(x.runtimeId || x.id); } catch { /* not loaded */ }
@@ -189,4 +227,4 @@ async function init() {
   }
 }
 
-module.exports = { open, install, remove, toggle, list: view, init, parseId, _unzip: unzip, _crxToZip: crxToZip };
+module.exports = { open, install, installLocal, remove, toggle, list: view, init, parseId, _unzip: unzip, _crxToZip: crxToZip };
