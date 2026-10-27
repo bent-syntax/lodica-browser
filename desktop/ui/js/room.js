@@ -61,21 +61,29 @@ function openRoom() {
 }
 
 // An attachment: never opened or run, only previewed (verified images) or saved by the user.
+const ROOM_PREVIEW = new Map();
+function roomSave(f) {
+  inv("room.save", f.id, f.name).then((ok) => { if (ok) toast("Saved"); else if (ok === false) toast("Download failed"); });
+}
 function roomFile(f) {
-  const kb = f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + " KB" : (f.size / 1048576).toFixed(1) + " MB";
-  const box = h("div", { style: "display:flex;flex-direction:column;gap:4px" });
-  const save = h("button", { class: "btn", text: "Save " + f.name + " (" + kb + ")" });
-  save.addEventListener("click", () => inv("room.save", f.id, f.name).then((ok) => { if (ok) toast("Saved"); else if (ok === false) toast("Download failed"); }));
-  box.append(save);
   if (/^image\//.test(f.type)) {
-    const view = h("button", { class: "btn", text: "Preview" });
-    view.addEventListener("click", () => inv("room.preview", f.id).then((u) => {
-      if (!u) return toast("Preview unavailable");
-      view.replaceWith(h("img", { src: u, alt: f.name, style: "max-width:100%;max-height:260px;border-radius:8px" }));
-    }));
-    box.append(view);
+    const box = h("div", { style: "position:relative;display:inline-block;max-width:100%;min-width:96px;min-height:96px;border-radius:12px;overflow:hidden;background:var(--raised,#374151)" });
+    const dl = h("button", { class: "ib", title: "Download " + f.name, "aria-label": "Download " + f.name, style: "position:absolute;top:8px;right:8px;background:rgba(17,24,39,.7);color:#fff;border-radius:12px", act: () => roomSave(f) }, ico("download"));
+    const show = (u) => {
+      const img = h("img", { src: u, alt: f.name, style: "display:block;max-width:100%;width:auto;height:auto;object-fit:contain;max-height:calc(260px * var(--chat-scale, 1))" });
+      img.addEventListener("load", () => { box.style.minWidth = box.style.minHeight = ""; });
+      box.prepend(img);
+    };
+    box.append(dl);
+    if (ROOM_PREVIEW.has(f.id)) show(ROOM_PREVIEW.get(f.id));
+    else inv("room.preview", f.id).then((u) => {
+      if (!u) { box.prepend(h("div", { style: "padding:12px;font-size:13px", text: f.name })); return; }
+      ROOM_PREVIEW.set(f.id, u); show(u);
+    });
+    return box;
   }
-  return box;
+  const kb = f.size < 1024 * 1024 ? Math.max(1, Math.round(f.size / 1024)) + " KB" : (f.size / 1048576).toFixed(1) + " MB";
+  return h("button", { class: "btn", text: "Save " + f.name + " (" + kb + ")", act: () => roomSave(f) });
 }
 
 const ROOM_EMOJI = [..."😀😃😄😁😆😅😂🤣😊😇🙂😉😍🥰😘😋😎🤩🥳😏😒😞😔😢😭😤😡🤯😱😨😰🤔🙄😴🤗🤭🫡👍👎👏🙌🙏💪👀🔥✨🎉💯❤️💔💙💚💛🧡💜🖤🤝👋✅❌⭐🚀"].reduce((a, c) => { if (c === "\ufe0f" || c === "\u200d") a[a.length - 1] += c; else a.push(c); return a; }, []);
