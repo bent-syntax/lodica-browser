@@ -89,6 +89,7 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     "ai.memory.set": (text) => { memory = String(text || "").split("\n").filter(Boolean); return true; },
     "ai.usage": () => ({ used: 1200, limit: 50000, days: [{ day: "Today", tokens: 1200 }] }),
     "ai.ask": (q) => new Promise((r) => setTimeout(() => r({ text: "Mock answer for: " + q }), 600)),
+    "ai.pageCtx": () => "URL: https://example.com\nTitle: Example\n\nExample page text.",
     reader: () => ({ title: "Kite", text: "A kite is a tethered heavier-than-air craft.\n\nKites have a long history." }),
     "webapps.list": () => [{ id: "w1", name: "Mail", url: "https://mail.example.com" }],
     "webapps.install": () => ({ name: "Example" }),

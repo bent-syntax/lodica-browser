@@ -35,7 +35,7 @@ function openKeyboard() {
 }
 
 // Actions the renderer UI performs itself (it owns the sheets and the address field).
-const UI_ACTIONS = new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads", "notebook", "chat"]);
+const UI_ACTIONS = new Set(["address", "find", "switcher", "menu", "settings", "history", "downloads", "notebook", "chat", "assistant"]);
 
 /** Run a keybindable action by id. UI-side actions are forwarded to the bar view. */
 function runKey(id) {
@@ -489,6 +489,14 @@ function init(deps) {
   on("meter.reset", () => { meter.reset(); return meter.list(); });
 
   on("ai.ask", (q, ctx) => ai.ask(str(q), str(ctx)));
+  on("ai.pageCtx", async () => {
+    const t = cur(); if (!t || !t.view || t.view.webContents.isDestroyed() || !/^https?:/i.test(t.view.webContents.getURL())) return "";
+    try {
+      const wc = t.view.webContents;
+      const body = await wc.executeJavaScript("(() => { const s = String(getSelection()); return (s ? 'Selected text:\\n' + s.slice(0, 4000) + '\\n\\n' : '') + (document.body ? document.body.innerText : '').slice(0, 9000); })()", true);
+      return ("URL: " + wc.getURL() + "\nTitle: " + wc.getTitle() + "\n\n" + String(body || "")).slice(0, 12000);
+    } catch { return ""; }
+  });
   on("ai.status", () => ai.status());
   on("ai.chats", () => ai.chats.get());
   on("ai.chat.send", (id, text) => ai.chats.send(str(id), str(text)));

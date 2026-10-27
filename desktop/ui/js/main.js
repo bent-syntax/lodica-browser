@@ -20,6 +20,7 @@ function runShortcut(name) {
     case "history": openHistory(); break;
     case "downloads": openDownloads(); break;
     case "chat": if (ROOM.L) ROOM.L.close(); else if (S.relayAvail) openRoom(); break;
+    case "assistant": inv("ai.pageCtx").then((c) => openAiAnswer("", c || "")); break;
     case "notebook": if (NB.L) NB.L.close(); else if (S.relayAvail) openNotebook(); break;
   }
 }

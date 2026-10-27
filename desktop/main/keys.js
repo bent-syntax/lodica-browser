@@ -24,6 +24,7 @@ const ACTIONS = [
   { id: "notebook", label: "Notebook", def: ["Ctrl+Shift+O"] },
   { id: "devtools", label: "Developer tools", def: ["F12"] },
   { id: "chat", label: "Server chat", def: ["Ctrl+Shift+K"] },
+  { id: "assistant", label: "Ask AI about this page", def: ["Ctrl+Shift+L"] },
   { id: "osk", label: "On-screen keyboard", def: ["Ctrl+Alt+K"] },
   { id: "toggleVertical", label: "Vertical tabs on/off", def: ["Ctrl+Shift+V"] },
   { id: "toggleSplit", label: "Split view on/off", def: ["Ctrl+Shift+S"] },
