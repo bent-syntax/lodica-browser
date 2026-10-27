@@ -201,6 +201,7 @@ function secStart() {
   out.push(secHead("Shortcuts", "shortcuts"),
     setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
     setToggle("startNotes", "Show notes", "Show your newest notes from the shared Notebook on the start page."),
+    setRow("Add a server emoji", "Pick a PNG or JPEG. It is shrunk and shared with everyone on your server. Names use a to z, 0 to 9 and _.", emojiAdder()),
     setRow("Notes notebook", "Which note the start page shows and adds to. Empty shows your newest notes.", notesPicker()),
     secHead("Smartschool planner", "planner"),
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
@@ -374,6 +375,17 @@ function secKeys() {
 }
 
 // Select for the start page note; the list loads from the notebook after the section draws.
+function emojiAdder() {
+  const name = h("input", { placeholder: "name", maxlength: 32 });
+  const msg = h("span", { class: "muted" });
+  const go = h("button", { text: "Choose image", on: { click: async () => {
+    msg.textContent = "";
+    const r = await inv("emojis.add", name.value.trim());
+    msg.textContent = r?.error || (r?.ok ? "Added :" + r.name + ":" : "");
+  } } });
+  return h("div", { class: "row" }, [name, go, msg]);
+}
+
 function notesPicker() {
   const sel = h("select", { on: { change: (e) => setPref("notesBook", e.target.value) } }, [h("option", { value: "", text: "Newest notes" })]);
   inv("notebook.list").then((list) => {

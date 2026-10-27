@@ -534,6 +534,30 @@ function init(deps) {
     clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(e.png, "base64")));
     return true;
   });
+  // Add a server emoji: pick a PNG or JPEG, shrink it to fit the relay's size cap, upload it under a name.
+  on("emojis.add", async name => {
+    const n = str(name).toLowerCase();
+    if (!/^[a-z0-9_]{1,32}$/.test(n)) return { error: "Name: 1 to 32 letters, digits or _" };
+    if (!relay.available) return { error: "Link a Lodica server first" };
+    const { dialog, nativeImage } = require("electron");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Choose an emoji image", properties: ["openFile"], filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }] });
+    if (r.canceled || !r.filePaths[0]) return { canceled: true };
+    let img = nativeImage.createFromPath(r.filePaths[0]);
+    if (img.isEmpty()) return { error: "Could not read that image" };
+    const { width, height } = img.getSize();
+    let side = 128, png = "";
+    for (let i = 0; i < 4; i++, side = Math.round(side * 0.7)) {
+      const k = Math.min(1, side / Math.max(width, height));
+      png = img.resize({ width: Math.max(1, Math.round(width * k)), height: Math.max(1, Math.round(height * k)), quality: "best" }).toPNG().toString("base64");
+      if (png.length <= 96 * 1024) break;
+    }
+    if (png.length > 96 * 1024) return { error: "Image too big" };
+    try {
+      const res = await fetch(`${relay.API}/api/emojis`, { method: "POST", headers: { Authorization: "Bearer " + relay.token, "Content-Type": "application/json" }, body: JSON.stringify({ name: n, png, at: Date.now() }), signal: AbortSignal.timeout(20000) });
+      if (!res.ok) return { error: res.status === 409 ? "Emoji limit reached" : "Server said " + res.status };
+    } catch { return { error: "Server not reachable" }; }
+    return { ok: true, name: n };
+  });
   on("pctabs.remote", async () => { await pctabs.refresh(); return pctabs.status(); });
   on("ext.list", () => extensions.list());
   on("ext.install", s => extensions.install(str(s)));
