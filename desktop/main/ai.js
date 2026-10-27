@@ -1,4 +1,5 @@
-// Browser assistant: Anthropic API with a stored key, else the local `claude` CLI. Haiku 5.5 only.
+// Browser assistant: a Hearth server with the user's own address and key, else an Anthropic API key, else the local `claude` CLI.
+// The Anthropic and CLI paths use Haiku 5.5 only; Hearth picks the model itself ("auto").
 const { spawn, execFile } = require("child_process");
 const store = require("./store");
 const memory = require("./memory");
@@ -18,12 +19,15 @@ const FOLLOW_UP = " This is a follow-up in a conversation. Answer briefly, using
 const MAX_CHATS = 100, MAX_MSGS = 200;
 const KEEP_DAYS = 30;
 
+let hearthAddr = null, hearthKey = null, hearthInfo = null;
 let key = null, client = null, model = null, cli = false, onChange = () => {};
 let usageData = null;
 
 function init(deps = {}) {
   if (deps.onChange) onChange = deps.onChange;
   key = store.loadSecret("aikey", null) || null;
+  hearthAddr = store.loadSecret("hearthaddr", null) || null;
+  hearthKey = store.loadSecret("hearthkey", null) || null;
   execFile("claude", ["--version"], { timeout: 10000, windowsHide: true, shell: process.platform === "win32" }, err => {
     cli = !err;
     onChange(status());
@@ -31,8 +35,61 @@ function init(deps = {}) {
 }
 
 function status() {
-  const connected = !!key || cli;
-  return { status: key ? "api" : cli ? "cli" : "off", connected, hasKey: !!key };
+  const hearth = !!(hearthAddr && hearthKey);
+  const connected = hearth || !!key || cli;
+  return { status: hearth ? "hearth" : key ? "api" : cli ? "cli" : "off", connected, hasKey: !!key, hearth: { address: hearthAddr || "", hasKey: !!hearthKey, info: hearthInfo } };
+}
+
+const hearthUrl = p => hearthAddr + p;
+const hearthHeaders = () => ({ "x-api-key": hearthKey, "content-type": "application/json" });
+/** Maps a Hearth status code to a message. 401 is never retried: repeated wrong keys block the address for 15 minutes. */
+function hearthError(code) {
+  if (code === 401) return "Hearth refused the key. Check it in Settings > AI.";
+  if (code === 403) return "Hearth key may not use that model.";
+  if (code === 429) return "Hearth is busy or the key hit its limit. Try again soon.";
+  if (code === 502 || code === 504) return "Hearth could not answer. Try again.";
+  return "Hearth answered " + code;
+}
+
+/** Saves the Hearth address and key after checking them with GET /v1/models. Both empty clears them. */
+async function setHearth(addr, k) {
+  const a = String(addr || "").trim().replace(/\/+$/, ""), kk = String(k || "").trim();
+  if (!a && !kk) {
+    hearthAddr = hearthKey = hearthInfo = null;
+    store.saveSecret("hearthaddr", null); store.saveSecret("hearthkey", null);
+    onChange(status());
+    return { ok: true, ...status() };
+  }
+  if (!/^https?:\/\/[^\s/]+$/i.test(a) && !/^https?:\/\/[^\s/]+\/[^\s]*$/i.test(a)) return { ok: false, error: "Enter the Hearth address, like https://hearth.example.com" };
+  if (!kk) return { ok: false, error: "Enter the Hearth key" };
+  try {
+    const r = await fetch(a + "/v1/models", { headers: { "x-api-key": kk }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) return { ok: false, error: hearthError(r.status) };
+    hearthInfo = await r.json().catch(() => null);
+  } catch { return { ok: false, error: "Could not reach that address" }; }
+  hearthAddr = a; hearthKey = kk;
+  store.saveSecret("hearthaddr", a); store.saveSecret("hearthkey", kk);
+  onChange(status());
+  return { ok: true, ...status() };
+}
+
+// Hearth runs two requests at once for everyone, so ours go one at a time.
+let hearthQueue = Promise.resolve();
+function viaHearth(messages, system) {
+  const job = hearthQueue.then(async () => {
+    const body = JSON.stringify({ model: "auto", system, messages: messages.map(m => ({ role: m.role, content: String(m.content) })) });
+    for (let attempt = 0; ; attempt++) {
+      let r;
+      try { r = await fetch(hearthUrl("/v1/messages"), { method: "POST", headers: hearthHeaders(), body, signal: AbortSignal.timeout(300000) }); }
+      catch { throw new Error("Could not reach Hearth"); }
+      if (r.status === 429 && attempt === 0) { await new Promise(res => setTimeout(res, 3000)); continue; }
+      if (!r.ok) throw new Error(hearthError(r.status));
+      const j = await r.json();
+      return { text: textOf(j), input: 0, output: 0 };
+    }
+  });
+  hearthQueue = job.catch(() => {});
+  return job;
 }
 
 function setKey(k) {
@@ -155,7 +212,7 @@ async function run(history, ctx) {
   }));
   if (ctx) turns[turns.length - 1].content = "Page context (only if the question is about it):\n" + String(ctx).slice(0, 1200) + "\n\nQuestion: " + turns[turns.length - 1].content;
   const system = sysWithMemory();
-  const r = key ? await viaApi(turns, system, search) : await viaCli(turns.map(t => (t.role === "user" ? "User: " : "Assistant: ") + t.content).join("\n\n") + "\n\nAssistant:", system);
+  const r = hearthAddr && hearthKey ? await viaHearth(turns, system + (history.length === 1 ? "" : FOLLOW_UP)) : key ? await viaApi(turns, system, search) : await viaCli(turns.map(t => (t.role === "user" ? "User: " : "Assistant: ") + t.content).join("\n\n") + "\n\nAssistant:", system);
   record(r.input, r.output);
   const keep = [];
   for (const line of r.text.split("\n")) {
@@ -243,7 +300,7 @@ function chatsSetDir(dir) {
 function onChatsChange(fn) { onChats = fn; }
 
 module.exports = {
-  init, ask, status, setKey, usage, resetUsage,
+  init, ask, status, setKey, setHearth, viaHearth, usage, resetUsage,
   memory: { get: memory.get, set: memory.set },
   chats: { get: chatsGet, send: chatSend, delete: chatDelete, merge: chatMerge, setDir: chatsSetDir, dir: () => chatDir() || "", raw: chatsRaw, onChange: onChatsChange },
   MODEL,

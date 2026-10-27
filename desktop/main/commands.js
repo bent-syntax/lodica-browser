@@ -503,6 +503,7 @@ function init(deps) {
     return r.filePaths[0];
   });
   on("ai.setKey", k => ai.setKey(str(k)));
+  on("ai.setHearth", (a, k) => ai.setHearth(str(a), str(k)));
   on("ai.usage", () => ai.usage());
   on("ai.resetUsage", () => ai.resetUsage());
   on("ai.memory.get", () => ai.memory.get());

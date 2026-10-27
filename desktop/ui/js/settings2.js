@@ -25,6 +25,8 @@ function secAi() {
   const out = [secHead("AI"), setToggle("ai", "Ask AI", "Answers from Claude about the page or your question"),
     setRow("Status", null, st),
     setRow("Setup steps", null, ico("open", "chev"), () => inv("openExternal", "https://docs.anthropic.com/en/docs/claude-code/setup")),
+    setRow("Hearth address", (ai.hearth && ai.hearth.address) || "Not set. Hearth needs an address and a key; the assistant stays off until both are set.", ico("chevron", "chev"), () => askHearth()),
+    setRow("Hearth key", ai.hearth && ai.hearth.hasKey ? "Saved" : "Not set", ico("key", "chev"), () => askHearth(true)),
     setRow("API key", ai.hasKey ? "Saved" : "Not set", ico("key", "chev"), () => askAiKey())];
   if (!S.prefs.ai) return out;
   out.push(setToggle("aiAlways", "Always generate AI answers", "Off: search shows a button and only asks Claude when you click it"));
@@ -51,6 +53,20 @@ function secAi() {
     out.push(setRow("Reset usage", null, null, async () => { await inv("ai.resetUsage"); SET.usage = null; refreshSettings(); }));
   }
   return out;
+}
+async function askHearth(keyOnly) {
+  const h0 = (S.ai && S.ai.hearth) || {};
+  let addr = h0.address || "";
+  if (!keyOnly || !addr) {
+    const a = await textDialog({ title: "Hearth address", message: "The address of your Hearth server.", placeholder: "https://hearth.example.com", ok: "Next" });
+    if (a == null) return;
+    addr = a.trim();
+  }
+  const k = await textDialog({ title: "Hearth key", message: "Stored encrypted on this PC only. Leave both empty to remove Hearth.", placeholder: "hk_…", secret: true, ok: "Save" });
+  if (k == null) return;
+  const r = await inv("ai.setHearth", addr, k.trim());
+  if (r && r.ok) { S.ai = Object.assign({}, S.ai, r); toast(addr ? "Hearth connected" : "Hearth removed"); } else toast((r && r.error) || "Hearth failed");
+  refreshSettings();
 }
 async function askAiKey() {
   const v = await textDialog({ title: "API key", message: "Stored encrypted on this PC only.", placeholder: "sk-ant-…", secret: true, ok: "Save" });
