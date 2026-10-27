@@ -561,32 +561,83 @@ function drawPlanner(text, url, opts) {
 }
 // The marker moves on its own while the start page stays open.
 setInterval(() => { if (plannerData && document.body.classList.contains("home")) drawPlanner(plannerData.text, plannerData.url, plannerData.opts); }, 60000);
-// Drag the corner grip to resize a start page widget; the size is kept per widget.
+// Start page widgets are free windows: drag the title to move, drag the corner grip to resize, double-click the title to reset.
+// The rect is kept per widget as fractions of the window, and a widget stops at the edge of the other one.
+const FREE_MIN = { w: 200, h: 100 };
+function overlaps(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+function clampRect(r) {
+  const w = Math.min(Math.max(r.w, FREE_MIN.w), innerWidth), h = Math.min(Math.max(r.h, FREE_MIN.h), innerHeight);
+  return { x: Math.min(Math.max(Math.round(r.x / 4) * 4, 0), innerWidth - w), y: Math.min(Math.max(Math.round(r.y / 4) * 4, 0), innerHeight - h), w: Math.round(w / 4) * 4, h: Math.round(h / 4) * 4 };
+}
+function otherRect(box) {
+  const o = $(box.id === "plan" ? "notes" : "plan");
+  if (!o || !o.offsetWidth || !o.offsetHeight) return null;
+  const r = o.getBoundingClientRect();
+  return { x: r.left, y: r.top, w: r.width, h: r.height };
+}
+// Keeps [next] clear of the other widget: tries each axis on its own, else stays at [prev].
+function clearOf(box, next, prev) {
+  const o = otherRect(box);
+  if (!o || !overlaps(next, o)) return next;
+  const tryX = { ...prev, x: next.x, w: next.w }, tryY = { ...prev, y: next.y, h: next.h };
+  if (!overlaps(tryX, o)) return tryX;
+  if (!overlaps(tryY, o)) return tryY;
+  return prev;
+}
+function applyRect(box, r) {
+  box.dataset.free = "1";
+  box.style.left = r.x + "px"; box.style.top = r.y + "px"; box.style.width = r.w + "px"; box.style.height = r.h + "px";
+}
 function resizable(box, key) {
-  const apply = (w, h) => {
-    box.style.maxWidth = "none"; box.style.maxHeight = "none";
-    box.style.width = Math.min(w, innerWidth - 32) + "px"; box.style.height = h + "px";
+  const save = () => { try { localStorage.setItem("rect." + key, JSON.stringify({ x: box.offsetLeft / innerWidth, y: box.offsetTop / innerHeight, w: box.offsetWidth / innerWidth, h: box.offsetHeight / innerHeight })); } catch (e) { /* storage full */ } };
+  const place = () => {
+    try {
+      const f = JSON.parse(localStorage.getItem("rect." + key));
+      if (f && f.w > 0 && f.h > 0) { applyRect(box, clampRect({ x: f.x * innerWidth, y: f.y * innerHeight, w: f.w * innerWidth, h: f.h * innerHeight })); return; }
+    } catch (e) { /* no saved rect */ }
+    delete box.dataset.free; box.style.left = box.style.top = box.style.width = box.style.height = "";
+    try {
+      const s = JSON.parse(localStorage.getItem("size." + key));
+      if (s && s.w >= 160 && s.h >= 80) { box.style.maxWidth = "none"; box.style.maxHeight = "none"; box.style.width = Math.min(s.w, innerWidth - 32) + "px"; box.style.height = s.h + "px"; }
+    } catch (e) { /* no saved size */ }
   };
-  try {
-    const s = JSON.parse(localStorage.getItem("size." + key));
-    if (s && s.w >= 160 && s.h >= 80) apply(s.w, s.h);
-  } catch (e) { /* no saved size */ }
-  const g = el("div", { class: "grip", title: "Drag to resize" });
-  g.addEventListener("pointerdown", (ev) => {
+  place();
+  const current = () => { const r = box.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  const grab = (ev, resize) => {
     ev.preventDefault();
-    g.setPointerCapture(ev.pointerId);
-    const x0 = ev.clientX, y0 = ev.clientY, w0 = box.offsetWidth, h0 = box.offsetHeight;
-    const k = box.dataset.pos === "right" ? -1 : box.dataset.pos === "below" ? 2 : 1;
-    const move = (e) => apply(Math.max(160, w0 + k * (e.clientX - x0)), Math.max(80, h0 + e.clientY - y0));
-    const up = () => {
-      g.removeEventListener("pointermove", move);
-      g.removeEventListener("pointerup", up);
-      try { localStorage.setItem("size." + key, JSON.stringify({ w: box.offsetWidth, h: box.offsetHeight })); } catch (e) { /* storage full */ }
+    const target = ev.currentTarget;
+    target.setPointerCapture(ev.pointerId);
+    const start = current(), x0 = ev.clientX, y0 = ev.clientY;
+    let last = start;
+    const move = (e) => {
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      const want = resize ? { ...start, w: start.w + dx, h: start.h + dy } : { ...start, x: start.x + dx, y: start.y + dy };
+      last = clearOf(box, clampRect(want), last);
+      applyRect(box, last);
     };
-    g.addEventListener("pointermove", move);
-    g.addEventListener("pointerup", up);
-  });
+    const up = () => {
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", up);
+      save();
+    };
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+  };
+  const g = el("div", { class: "grip", title: "Drag to resize" });
+  g.addEventListener("pointerdown", (ev) => grab(ev, true));
   box.append(g);
+  const bar = box.querySelector("h3");
+  if (bar) {
+    bar.classList.add("dragbar");
+    bar.title = "Drag to move, double-click to reset";
+    bar.addEventListener("pointerdown", (ev) => grab(ev, false));
+    bar.addEventListener("dblclick", () => {
+      try { localStorage.removeItem("rect." + key); localStorage.removeItem("size." + key); } catch (e) { /* ignore */ }
+      box.style.maxWidth = box.style.maxHeight = "";
+      place();
+    });
+  }
+  if (!box.dataset.watch) { box.dataset.watch = "1"; addEventListener("resize", place); }
 }
 // The last planner answer is kept so a new tab draws it at once, then refreshes when the fetch returns.
 async function planner() {
