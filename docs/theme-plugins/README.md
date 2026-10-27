@@ -23,6 +23,25 @@ A plugin is a folder with a `plugin.json` and an optional CSS file:
 
 Variables you can set: `--bg`, `--raised`, `--high`, `--mist`, `--text`, `--muted`, `--amber`, `--coral`, `--link`, `--url`, `--sub`.
 
+## Animations
+Add an optional `animations` object to `plugin.json`:
+
+```json
+"animations": {
+  "pop": {
+    "target": "tab",
+    "duration": 300,
+    "iterations": 1,
+    "keyframes": { "from": { "opacity": "0", "transform": "scale(0.9)" }, "to": { "opacity": "1", "transform": "scale(1)" } }
+  }
+}
+```
+
+- `target`: `tab` (every tab row), `current-tab`, or `window` (the browser page).
+- `duration`: 50 to 10000 ms. `iterations`: 1 to 10, or `"infinite"`. At most 8 animations and 12 keyframes each.
+- Allowed properties: `opacity`, `transform`, `filter`, `background-color`, `color`, `border-color`, `box-shadow`. Values are plain CSS values without `url()`.
+- Animations are skipped when the system asks for reduced motion.
+
 ## Limits
 - Plugins never run code. Only CSS variables and one stylesheet (max 200 KB).
 - Stylesheets cannot use `@import` or load http(s)/file URLs. Variable values cannot contain semicolons, braces, angle brackets or backslashes.

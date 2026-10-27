@@ -95,7 +95,7 @@ function themePreviewBox() {
 }
 // Reads the colours the applied theme really paints (built-in, plugin or system) as #rrggbb, so it can be forked into a custom theme.
 function appliedColours() {
-  const cx = document.createElement("canvas").getContext("2d"), cs = getComputedStyle(document.documentElement);
+  const cx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
   const hexOf = (name, fb) => {
     const probe = h("i", { style: "color:var(" + name + ");display:none" });
     document.body.append(probe);
@@ -105,7 +105,6 @@ function appliedColours() {
     const d = cx.getImageData(0, 0, 1, 1).data;
     return d[3] ? "#" + [d[0], d[1], d[2]].map((n) => n.toString(16).padStart(2, "0")).join("") : fb;
   };
-  void cs;
   return { bg: hexOf("--bg", "#111827"), text: hexOf("--text", "#e5e7eb"), accent: hexOf("--amber", "#f59e0b"), accent2: hexOf("--coral", "#f43f5e"),
     raised: hexOf("--raised", "#1f2937"), high: hexOf("--high", "#374151"), muted: hexOf("--muted", "#9ca3af") };
 }

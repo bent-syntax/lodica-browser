@@ -3,6 +3,28 @@
   "author": "Lodica",
   "version": "1.0.0",
   "description": "Deep blue example theme",
-  "vars": { "--bg": "#0b1020", "--raised": "#141b33", "--high": "#222b4d", "--amber": "#7aa2f7", "--link": "#9ecbff" },
-  "css": "theme.css"
+  "vars": {
+    "--bg": "#0b1020",
+    "--raised": "#141b33",
+    "--high": "#222b4d",
+    "--amber": "#7aa2f7",
+    "--link": "#9ecbff"
+  },
+  "css": "theme.css",
+  "animations": {
+    "pop": {
+      "target": "tab",
+      "duration": 300,
+      "keyframes": {
+        "from": {
+          "opacity": "0",
+          "transform": "scale(0.92)"
+        },
+        "to": {
+          "opacity": "1",
+          "transform": "scale(1)"
+        }
+      }
+    }
+  }
 }
