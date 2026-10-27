@@ -1,0 +1,33 @@
+name: Windows test build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install dependencies
+        working-directory: desktop
+        run: npm ci
+      - name: Build installer
+        working-directory: desktop
+        shell: bash
+        env:
+          LODICA_API: ${{ secrets.LODICA_API }}
+          LODICA_DOMAIN: ${{ secrets.LODICA_DOMAIN }}
+          RELAY_TOKEN: ${{ secrets.LODICA_RELAY_TOKEN }}
+        run: |
+          if [ -n "$RELAY_TOKEN" ]; then printf '%s' "$RELAY_TOKEN" > relay-token; fi
+          npm run dist
+      - uses: actions/upload-artifact@v5
+        with:
+          name: windows-test
+          path: desktop/dist/*.exe
+          if-no-files-found: error
