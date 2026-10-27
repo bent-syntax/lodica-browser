@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.28 (versionCode 129)
+- Added: Theme plugin animations also run on the start page
+- Added: Planner is ready instantly on a new tab
+- Added: Chat images keep their aspect ratio while loading
+- Added: Make an extension starter folder on desktop, install .xpi files on Android
+- Fixed: Smartschool clicks Microsoft after More; custom colours no longer override another theme
+
 ## 1.13.27 (versionCode 128)
 - Added: Start page planner and notes are free windows: drag the title, resize the corner, no overlap, double-click to reset
 - Added: Choose which notebook the start page notes use, and type notes from the start page

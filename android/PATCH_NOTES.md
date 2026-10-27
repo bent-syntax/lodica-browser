@@ -1,4 +1,8 @@
 # Patch notes
+## 1.13.28
+- Added: Install Firefox extensions from an .xpi file
+- Fixed: Smartschool clicks Microsoft after More
+
 ## 1.13.27
 - Changed: Round start page shortcuts; dark mode and force dark mode are separate settings
 

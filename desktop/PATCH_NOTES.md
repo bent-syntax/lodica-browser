@@ -1,3 +1,11 @@
+## 1.13.28
+
+- Added: Theme plugin animations also run on the start page
+- Added: Planner is ready instantly on a new tab
+- Added: Chat images keep their aspect ratio while loading
+- Added: Make an extension starter folder
+- Fixed: Smartschool clicks Microsoft after More; custom colours no longer override another theme
+
 ## 1.13.27
 
 - Added: Start page planner and notes are free windows: drag the title, resize the corner, no overlap, double-click to reset

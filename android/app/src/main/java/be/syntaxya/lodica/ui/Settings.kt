@@ -868,6 +868,8 @@ private fun ExtensionsSection() {
     if (ex.busy) InfoRow("Working", "…")
     ex.status?.let { InfoRow("Status", it) }
     ex.hits.forEach { h -> LinkRow("Install ${h.name}", Amber) { ex.install(ctx, h) } }
+    val pickXpi = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> if (u != null) ex.installFile(ctx, u) }
+    LinkRow("Install from file (.xpi)", Amber) { pickXpi.launch(arrayOf("*/*")) }
     var confirmRemove by remember { mutableStateOf<be.syntaxya.lodica.engine.Extensions.Item?>(null) }
     confirmRemove?.let { i ->
         AlertDialog(

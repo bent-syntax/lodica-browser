@@ -143,6 +143,27 @@ object Extensions {
         })
     }
 
+    fun installFile(ctx: Context, uri: android.net.Uri) {
+        busy = true; status = null
+        Thread {
+            try {
+                val f = java.io.File(ctx.cacheDir, "pick-${System.nanoTime()}.xpi")
+                ctx.contentResolver.openInputStream(uri)!!.use { i -> f.outputStream().use { o -> i.copyTo(o) } }
+                main.post {
+                    ctl(ctx).install("file://" + f.absolutePath, WebExtensionController.INSTALLATION_METHOD_MANAGER).accept({
+                        busy = false; status = "Installed ${it?.metaData?.name ?: "extension"}"; refresh(ctx); f.delete()
+                    }, { e ->
+                        Log.w(TAG, "file install failed", e)
+                        busy = false; status = "Install failed. Is it a valid .xpi?"; f.delete()
+                    })
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "file read failed", e)
+                main.post { busy = false; status = "Could not read the file" }
+            }
+        }.start()
+    }
+
     fun toggle(ctx: Context, item: Item) {
         val c = ctl(ctx)
         val r = if (item.enabled) c.disable(item.ext, WebExtensionController.EnableSource.USER)

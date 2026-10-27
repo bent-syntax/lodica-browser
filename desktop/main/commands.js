@@ -581,6 +581,22 @@ function init(deps) {
       message: "Install " + name + "?", detail: perms.length ? "It asks for:\n" + perms.join("\n") : "It asks for no special permissions.",
     })).response === 0);
   });
+  on("ext.scaffold", async () => {
+    const { dialog, shell } = require("electron");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Choose where to create the extension folder", properties: ["openDirectory", "createDirectory"] });
+    if (r.canceled || !r.filePaths[0]) return { ok: false, canceled: true };
+    const dir = require("path").join(r.filePaths[0], "my-lodica-extension");
+    const fs = require("fs");
+    if (fs.existsSync(dir)) return { ok: false, error: "A folder named my-lodica-extension is already there" };
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(require("path").join(dir, "manifest.json"), JSON.stringify({
+      manifest_version: 3, name: "My extension", version: "1.0.0", description: "Describe what it does.",
+      content_scripts: [{ matches: ["https://example.com/*"], js: ["content.js"], run_at: "document_idle" }],
+    }, null, 2) + "\n");
+    fs.writeFileSync(require("path").join(dir, "content.js"), "// Runs on pages that match the patterns in manifest.json.\ndocument.body.style.outline = \"4px solid #F59E0B\";\n");
+    shell.showItemInFolder(dir);
+    return { ok: true, dir };
+  });
   on("ext.remove", id => extensions.remove(str(id)));
   on("ext.open", (id, anchor) => extensions.open(str(id), anchor));
   on("ext.toggle", id => extensions.toggle(str(id)));

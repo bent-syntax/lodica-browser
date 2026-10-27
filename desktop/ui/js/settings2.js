@@ -107,6 +107,10 @@ function secExtensions() {
   };
   out.push(setRow("Install from a file", "A .crx, .zip or Firefox .xpi file. You see its permissions first. Only extensions that use Chrome-compatible features load.", null, local("file")));
   out.push(setRow("Load an unpacked folder", "A folder with a manifest.json, for extensions you are making. It is copied in; install again after changes.", null, local("folder")));
+  out.push(setRow("Make an extension", "Creates a starter folder with a manifest.json and a content script. Edit it, then load the folder above.", null, async () => {
+    const r = await inv("ext.scaffold");
+    if (r && r.ok) toast("Starter created"); else if (r && !r.canceled) toast((r && r.error) || "Could not create it");
+  }));
   for (const x of SET.exts || []) out.push(setRow(x.name, x.version ? "Version " + x.version : null, toggleEl(x.on),
     async () => { SET.exts = await inv("ext.toggle", x.id); refreshSettings(); }));
   for (const x of SET.exts || []) out.push(setRow("Remove " + x.name, null, null, async () => { SET.exts = await inv("ext.remove", x.id); refreshSettings(); }));
