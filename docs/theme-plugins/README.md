@@ -37,7 +37,7 @@ Add an optional `animations` object to `plugin.json`:
 }
 ```
 
-- `target`: `tab` (every tab row), `current-tab`, or `window` (the browser page).
+- `target`: `tab` (every tab row), `current-tab`, or `window` (the browser page). On the start page: `logo` and `start-page`.
 - `duration`: 50 to 10000 ms. `iterations`: 1 to 10, or `"infinite"`. At most 8 animations and 12 keyframes each.
 - Allowed properties: `opacity`, `transform`, `filter`, `background-color`, `color`, `border-color`, `box-shadow`. Values are plain CSS values without `url()`.
 - Animations are skipped when the system asks for reduced motion.

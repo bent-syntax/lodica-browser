@@ -93,6 +93,7 @@ function setup() {
     document.body.classList.add("home");
     topSites();
     planner();
+    ask1({ type: "pluginAnim" }).then((r) => { if (r && r.css) { const st = document.createElement("style"); st.textContent = r.css; document.head.append(st); } });
     notes();
     $("q").focus();
     return false;

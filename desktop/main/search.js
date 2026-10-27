@@ -45,6 +45,7 @@ async function handle(msg) {
     return true;
   }
   if (msg.type === "planner") return planner();
+  if (msg.type === "pluginAnim") { const p = require("./themeplugins").get(prefs.p.themePlugin); return { css: p ? p.startCss : "" }; }
   if (msg.type === "notes") return notes();
   if (msg.type === "noteAdd") return noteAdd(String(msg.text || ""));
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }

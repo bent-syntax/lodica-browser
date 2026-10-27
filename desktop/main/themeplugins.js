@@ -17,14 +17,15 @@ const unsafeCss = (css) => /@import|url\s*\(\s*['"]?\s*(https?:|file:|\/\/)|expr
 // Animations: { "name": { "target": "tab", "duration": 600, "iterations": 1, "keyframes": { "0%": { "opacity": "0" }, "100%": { "opacity": "1" } } } }
 // They compile to plain @keyframes and a rule for one fixed target, so a plugin cannot reach any other element.
 const ANIM_TARGETS = { tab: ".t", "current-tab": ".t.cur", window: "body" };
+const START_TARGETS = { logo: ".mark", "start-page": "body" }; // these run on the start page only
 const ANIM_PROPS = new Set(["opacity", "transform", "filter", "background-color", "color", "border-color", "box-shadow"]);
 const ANIM_VALUE = /^[\w\s.,%#()+\-/]{1,120}$/;
 const ANIM_NAME = /^[a-z][\w-]{0,30}$/i;
-function animationCss(anims) {
+function animationCss(anims, targets = ANIM_TARGETS) {
   if (!anims || typeof anims !== "object") return "";
   let out = "";
   for (const [name, a] of Object.entries(anims).slice(0, 8)) {
-    const sel = a && ANIM_TARGETS[a.target];
+    const sel = a && targets[a.target];
     if (!ANIM_NAME.test(name) || !sel || !a.keyframes || typeof a.keyframes !== "object") continue;
     let frames = "";
     for (const [at, props] of Object.entries(a.keyframes).slice(0, 12)) {
@@ -54,8 +55,9 @@ function read(id) {
       if (unsafeCss(css)) css = "";
     }
     css += animationCss(m.animations);
+    const startCss = animationCss(m.animations, START_TARGETS);
     const s = (x, n) => String(x || "").slice(0, n);
-    return { id, name: s(m.name, 60) || id, author: s(m.author, 60), version: s(m.version, 20), description: s(m.description, 200), vars, css };
+    return { id, name: s(m.name, 60) || id, author: s(m.author, 60), version: s(m.version, 20), description: s(m.description, 200), vars, css, startCss };
   } catch { return null; }
 }
 
