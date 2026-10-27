@@ -1479,7 +1479,7 @@ const lodicaMain = () => {
       const el = link();
       if (shown(el)) {
         msTried = true;
-        ipcRenderer.invoke("msSession").then((ok) => { if (ok) el.click(); }, () => {});
+        el.click();
         return;
       }
       const m = document.getElementById("showmore");

@@ -1531,7 +1531,7 @@
       const el = link();
       if (shown(el)) {
         msTried = true;
-        browser.runtime.sendMessage({ type: "msSession" }).then((ok) => { if (ok) el.click(); }, () => {});
+        el.click();
         return;
       }
       const m = document.getElementById("showmore");

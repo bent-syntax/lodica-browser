@@ -112,6 +112,7 @@ function themeEditor() {
   const c = Object.assign({}, PREVIEW_DEFAULT, S.prefs.customTheme);
   const cur = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2 };
   for (const k of ["raised", "high", "muted"]) if (c[k]) cur[k] = c[k];
+  const on = (S.prefs.theme || "system") === "custom";
   const opt = (key, label, mixPct) => {
     const fallback = () => cur[key] || "#" + [0, 1, 2].map((i) => {
       const f = (hex) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
@@ -120,19 +121,18 @@ function themeEditor() {
     return h("label", { class: "ct-field" }, h("span", { text: label }),
       h("input", { type: "color", value: fallback(), on: {
         input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
-        change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur); } } }));
+        change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, on); } } }));
   };
   const field = (key, label) => h("label", { class: "ct-field" }, h("span", { text: label }),
     h("input", { type: "color", value: cur[key], on: {
       input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
-      change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur); } } }));
-  const on = (S.prefs.theme || "system") === "custom";
+      change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, on); } } }));
   return h("div", { class: "ct" },
     h("div", { class: "ct-row" }, field("bg", "Background"), field("text", "Text"), field("accent", "Accent"), field("accent2", "Second accent")),
     h("div", { class: "ct-row" }, opt("raised", "Panels", 8), opt("high", "Hover", 16), opt("muted", "Muted text", 60)),
     h("div", { class: "ct-row" },
-      h("button", { class: "ct-btn" + (on ? " sel" : ""), text: on ? "Using your theme" : "Use my theme", act: () => inv("theme.custom", cur) }),
-      h("button", { class: "ct-btn", text: "Edit the applied theme", title: "Copy the colours of the theme in use into your custom theme", act: () => inv("theme.custom", appliedColours()) }),
+      h("button", { class: "ct-btn" + (on ? " sel" : ""), text: on ? "Using your theme" : "Use my theme", act: () => inv("theme.custom", cur, true) }),
+      h("button", { class: "ct-btn", text: "Edit the applied theme", title: "Copy the colours of the theme in use into your custom theme", act: () => inv("theme.custom", appliedColours(), true) }),
       S.prefs.customTheme ? h("button", { class: "ct-btn", text: "Remove", act: () => { inv("theme.custom", null); if (on) setPref("theme", "system"); } }) : null),
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }
