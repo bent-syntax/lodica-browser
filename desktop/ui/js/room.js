@@ -75,10 +75,10 @@ function roomSave(f) {
 }
 function roomFile(f) {
   if (/^image\//.test(f.type)) {
-    const box = h("div", { style: "position:relative;display:inline-block;max-width:100%;min-width:96px;min-height:96px;border-radius:12px;overflow:hidden;background:var(--raised,#374151)" });
+    const box = h("div", { style: "position:relative;display:inline-block;max-width:100%;min-width:96px;min-height:96px;border-radius:12px;overflow:hidden;background:var(--raised,#374151)" + (f.w && f.h ? ";aspect-ratio:" + f.w + "/" + f.h + ";width:min(100%," + Math.round(f.w) + "px);max-height:calc(260px * var(--chat-scale, 1))" : "") });
     const dl = h("button", { class: "ib", title: "Download " + f.name, "aria-label": "Download " + f.name, style: "position:absolute;top:8px;right:8px;background:rgba(17,24,39,.7);color:#fff;border-radius:12px", act: () => roomSave(f) }, ico("download"));
     const show = (u) => {
-      const img = h("img", { src: u, alt: f.name, style: "display:block;max-width:100%;width:auto;height:auto;object-fit:contain;max-height:calc(260px * var(--chat-scale, 1))" });
+      const img = h("img", { src: u, alt: f.name, style: "display:block;max-width:100%;width:" + (f.w && f.h ? "100%;height:100%" : "auto;height:auto") + ";object-fit:contain;max-height:calc(260px * var(--chat-scale, 1))" });
       img.addEventListener("load", () => { box.style.minWidth = box.style.minHeight = ""; });
       box.prepend(img);
     };

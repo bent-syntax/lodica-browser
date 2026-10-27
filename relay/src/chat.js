@@ -163,7 +163,10 @@ async function postFile(req, res, ip, url, h) {
   const r = await chatfile.put(req, q.get('name'));
   if (!r.file) return h.sendText(req, res, r.status, r.error, { Connection: 'close' });
   const name = (q.get('from') || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, NAME_MAX) || 'Anonymous';
-  const msg = { id: ++seq, name, text: '\u{1F4CE} ' + r.file.name, at: Date.now(), room, file: r.file };
+  const dim = (k) => { const n = Number(q.get(k)); return Number.isInteger(n) && n > 0 && n <= 20000 ? n : 0; };
+  const w = dim('w'); const hh = dim('h');
+  const file = /^image\//.test(r.file.type) && w && hh ? { ...r.file, w, h: hh } : r.file;
+  const msg = { id: ++seq, name, text: '\u{1F4CE} ' + r.file.name, at: Date.now(), room, file };
   touch(name);
   log.push(msg);
   prune();

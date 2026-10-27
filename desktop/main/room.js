@@ -225,7 +225,9 @@ async function upload(filePath) {
   state.upload = { name, pct: 0 };
   changed();
   try {
-    const q = "?name=" + encodeURIComponent(name) + "&from=" + encodeURIComponent(state.name) + roomQ(state.room);
+    let dims = "";
+    try { const sz = require("electron").nativeImage.createFromPath(filePath).getSize(); if (sz.width > 0 && sz.height > 0) dims = "&w=" + sz.width + "&h=" + sz.height; } catch {}
+    const q = "?name=" + encodeURIComponent(name) + "&from=" + encodeURIComponent(state.name) + dims + roomQ(state.room);
     const [status, body] = await relay.uploadFile("/api/chat/file" + q, filePath, size, f => { const pct = Math.round(f * 100); if (!state.upload || state.upload.pct !== pct) { state.upload = { name, pct }; changed(); } });
     if (status === 200) return null;
     return status === 415 ? "This file type is not allowed" : status === 413 ? "File is larger than 5 GB" : status === 507 ? "The chat file store is full, try later" : status === 411 ? "Server answered 411" : status === 429 ? "Slow down a little" : status === 400 ? "Not sent: " + body.toString().slice(0, 60) : "Server answered " + status;
