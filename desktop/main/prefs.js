@@ -27,7 +27,7 @@ const QUALITIES = [144, 240, 360, 480, 720, 1080, 1440, 2160];
 const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com"]);
 
 const DEFAULTS = {
-  search: "", searchFallback: "DUCKDUCKGO", darkPages: true, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
+  search: "", searchFallback: "DUCKDUCKGO", darkPages: true, forceDark: false, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, spell: true, spellAuto: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, shareHistory: false, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
@@ -44,9 +44,6 @@ const p = Object.assign({}, DEFAULTS, store.load("prefs", {}));
 // Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
 delete p.gatedHosts;
 try { require("fs").rmSync(require("path").join(require("electron").app.getPath("userData"), "deviceGate.bin"), { force: true }); } catch {}
-// "Dark pages" and "Force dark" were two switches for one thing; either one on keeps dark on.
-if (p.forceDark) p.darkPages = true;
-delete p.forceDark;
 // An empty engine means "not chosen yet": Lodica Search while a server is linked, DuckDuckGo otherwise.
 if (p.search && !ENGINES[p.search]) p.search = "";
 if (!ENGINES[p.searchFallback] || p.searchFallback === "LODICA") p.searchFallback = "DUCKDUCKGO";

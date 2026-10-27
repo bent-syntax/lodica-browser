@@ -140,7 +140,7 @@ function pageState(tab) {
   return {
     cookies: p.cookieReject && !prefs.isTrusted(host),
     ads: !prefs.isTrusted(host) && !prefs.isCompat(host),
-    dark: p.darkPages,
+    dark: !!p.forceDark,
     spell: { on: !!p.spell, auto: !!p.spellAuto, langs: p.spellLangs },
     speed: p.speed,
     quality: prefs.qualityFor(host) ?? p.quality,
@@ -152,11 +152,11 @@ function pageState(tab) {
 /** Per-site override for a hostname (exact or parent domain), or null. Used by the preload at document start. */
 function overrideFor(host) { return prefs.siteOverride(host); }
 
-/** With "Dark pages" off, pages see a light scheme even when the system is dark (nativeTheme follows the system). */
+/** With "Dark mode" and "Force dark" both off, pages see a light scheme even when the system is dark (nativeTheme follows the system). */
 function syncScheme(wc) {
   try {
     if (!wc.debugger.isAttached()) wc.debugger.attach("1.3");
-    wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages ? "" : "light" }] }).catch(() => {});
+    wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages || prefs.p.forceDark ? "" : "light" }] }).catch(() => {});
   } catch { /* debugger busy or view gone */ }
 }
 

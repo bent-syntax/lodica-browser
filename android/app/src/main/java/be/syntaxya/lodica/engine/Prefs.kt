@@ -47,6 +47,7 @@ object Prefs {
     /** Used when Lodica Search is the engine but the server cannot be reached. */
     var searchFallback by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
     var darkPages by mutableStateOf(true); private set
+    var forceDark by mutableStateOf(false); private set
     var httpsOnly by mutableStateOf(true); private set
     var dummyLogin by mutableStateOf(true); private set
     var liveChat by mutableStateOf(true); private set
@@ -183,8 +184,7 @@ object Prefs {
         sp.getStringSet("menuPins", null)?.let { menuPins = it.toSet() }
         widgetText = sp.getString("widgetText", "") ?: ""
         widgetShape = sp.getString("widgetShape", "pill") ?: "pill"
-        // The old "Force dark" switch is merged into "Dark pages".
-        if (sp.getBoolean("forceDark", false)) { darkPages = true; sp.edit().putBoolean("darkPages", true).remove("forceDark").apply() }
+        forceDark = sp.getBoolean("forceDark", false)
         speed = sp.getFloat("speed", 1f)
         quality = sp.getInt("quality", 720)
         qualities = sp.getStringSet("qualities", emptySet())!!.mapNotNull { e ->
@@ -246,6 +246,7 @@ object Prefs {
 
     fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply(); Helper.push() }
     fun updateSearch(v: SearchEngine) { searchChosen = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
+    fun updateForceDark(v: Boolean) { forceDark = v; sp.edit().putBoolean("forceDark", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateDarkPages(v: Boolean) { darkPages = v; sp.edit().putBoolean("darkPages", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateHttpsOnly(v: Boolean) { httpsOnly = v; sp.edit().putBoolean("httpsOnly", v).apply(); Engine.applyPrefs() }
     /** User shortcuts as (url, name) pairs. */

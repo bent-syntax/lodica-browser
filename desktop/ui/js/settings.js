@@ -94,7 +94,10 @@ function secBrowsing() {
     setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number),
     setSelect("Site language", null, S.languages, "language")];
 }
-function secDarkPages() { return [setToggle("darkPages", "Dark pages", "Darken light sites that have no dark mode of their own")]; }
+function secDarkPages() {
+  return [setToggle("darkPages", "Dark mode", "Sites that have a dark mode switch to it"),
+    setToggle("forceDark", "Force dark", "Make every page dark, even sites with no dark mode")];
+}
 function secHttps() { return [setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"), S.relayAvail ? setToggle("routeVps", "Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct") : null]; }
 // 3. VPS
 // Own domain redirects: a typed name (or *.name) opens another address.

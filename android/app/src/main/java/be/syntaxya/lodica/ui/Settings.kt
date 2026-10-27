@@ -280,7 +280,8 @@ fun SettingsScreen() {
                     Section("Theme")
                     ThemePicker()
                     Section("Page colours")
-            SwitchRow("Dark pages", "Darken sites that have no dark mode", Prefs.darkPages) { Prefs.updateDarkPages(it) }
+            SwitchRow("Dark mode", "Sites that have a dark mode switch to it", Prefs.darkPages) { Prefs.updateDarkPages(it) }
+            SwitchRow("Force dark", "Make every page dark, even sites with no dark mode", Prefs.forceDark) { Prefs.updateForceDark(it) }
                     Section("Search widget")
                     WidgetEditor()
                 }
