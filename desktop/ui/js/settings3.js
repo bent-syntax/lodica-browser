@@ -263,6 +263,8 @@ function secSuggest() {
 function secServer() {
   const noDummy = S.prefs.noDummy || [];
   const out = [].concat(secVps());
+  out.push(setSelect("Chat size", "Size of server chat text and emojis", [
+    { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
   if (S.relayAvail) out.push(secHead("Hidden email", "mail"),
     setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms"),
     setRow("Sites without the hidden-email button", noDummy.length ? noDummy.join(", ") : "None. The button shows on sign-up pages",

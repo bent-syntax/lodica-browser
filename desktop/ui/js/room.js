@@ -33,14 +33,14 @@ function openRoom() {
       if (L.pick.style.display !== "none") { L.pick.style.display = "none"; return; }
       clear(L.pick);
       for (const c of ROOM_EMOJI) {
-        const b = h("button", { class: "ib", title: c, text: c, style: "font-size:20px" });
+        const b = h("button", { class: "ib", title: c, text: c, style: "font-size:calc(20px * var(--chat-scale, 1))" });
         b.addEventListener("click", () => put(c));
         L.pick.append(b);
       }
       const list = await inv("emojis.list") || [];
       ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
       for (const e of list) {
-        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:24px;height:24px" }));
+        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(24px * var(--chat-scale, 1));height:calc(24px * var(--chat-scale, 1))" }));
         b.addEventListener("click", () => put(":" + e.name + ":"));
         L.pick.prepend(b);
       }
@@ -86,7 +86,7 @@ function roomText(t) {
   const out = []; let at = 0;
   for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
     const png = map.get(m[1]); if (!png) continue;
-    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:22px;height:22px;vertical-align:middle" }));
+    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(22px * var(--chat-scale, 1));height:calc(22px * var(--chat-scale, 1));vertical-align:middle" }));
     at = m.index + m[0].length;
   }
   out.push(t.slice(at));
@@ -148,7 +148,11 @@ function roomRender() {
   const up = ROOM.state.upload;
   L.prog.style.display = up ? "" : "none";
   L.prog.textContent = up ? "Uploading " + up.name + " " + up.pct + "%" : "";
-  const sig = JSON.stringify([ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
+  const scale = (S.prefs.chatScale || 100) / 100;
+  L.thread.style.setProperty("--chat-scale", scale);
+  L.pick.style.setProperty("--chat-scale", scale);
+  L.ta.style.fontSize = Math.round(15 * scale) + "px";
+  const sig = JSON.stringify([scale, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
@@ -156,8 +160,8 @@ function roomRender() {
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
-      mine ? "" : h("div", { style: "color:var(--amber);font-size:12px", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
+      mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
   }
-  for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:11px", text: "Waiting for the server…" })));
+  for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:calc(11px * var(--chat-scale, 1))", text: "Waiting for the server…" })));
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;
 }

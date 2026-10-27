@@ -276,3 +276,6 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .prose p{font-size:15px;line-height:1.7}
 .toast{border-radius:999px;box-shadow:var(--shadow)}
 .toast .act{background:var(--amber-bg);border-radius:999px;padding:8px 16px}
+
+/* server chat size (Settings, Server) */
+.chat-thread[style*="--chat-scale"] .chat-q,.chat-thread[style*="--chat-scale"] .chat-a{font-size:calc(15px * var(--chat-scale,1))}
