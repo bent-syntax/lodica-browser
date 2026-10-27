@@ -49,7 +49,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | Path | What it is |
 | --- | --- |
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
-| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `search.js`, `downloads.js`, `ai.js`, `keys.js`, `prefs.js`. |
+| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `keys.js`, `prefs.js`. |
 | `preload/` | Preload scripts exposing IPC to the UI. |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `js/`. |
 | `pdf/` | Built-in PDF viewer. |

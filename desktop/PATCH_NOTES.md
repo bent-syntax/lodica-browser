@@ -1,3 +1,14 @@
+## 1.13.29
+
+- Added: AI can browse for you: a new button in the AI sheet lets it open pages, click, type and scroll, with a Stop button and a confirmation before risky clicks
+- Added: Planner and notes keep clear of the search bar and can be resized from every edge and corner
+- Added: The active tab is easier to see and dragging a tab shows where it will land
+- Fixed: Emoji add button layout, and Enter now adds the emoji
+- Fixed: Start page shortcuts are round
+- Fixed: Custom theme now also colours the start page search box
+- Fixed: Choosing a theme no longer leaves Custom selected, so it stays after a restart
+- Fixed: Notes on the start page show the full text
+
 ## 1.13.28
 
 - Added: Theme plugin animations also run on the start page

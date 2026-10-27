@@ -120,6 +120,8 @@ async function openClosed() {
 }
 
 // Ask AI: question, answer, follow-up box.
+let agentSink = null;
+window.lodica.on("agent", (p) => { if (agentSink) agentSink(p); });
 function openAiAnswer(q, ctx) {
   if (!S.ai || !S.ai.connected) { toast({ text: "Ask AI isn't set up", actions: [{ label: "Settings", fn: () => openSettings("ai") }] }); return; }
   sheet({ title: "Ask AI", key: "ai", tall: true, wide: true }, (b, L) => {
@@ -144,7 +146,25 @@ function openAiAnswer(q, ctx) {
         h("div", { style: "margin-top:6px" }, ib("copy", "Copy", () => { navigator.clipboard.writeText(r.text).catch(() => {}); toast("Copied"); }))));
     };
     ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); const v = ta.value; ta.value = ""; ask(v); } });
-    L.sheet.append(h("div", { class: "ai-in" }, ta, ib("up", "Send", () => { const v = ta.value; ta.value = ""; ask(v); })));
+    // Agent: the AI drives the browser for this goal. It asks before risky clicks and can be stopped.
+    const act = async () => {
+      const goal = ta.value.trim(); if (!goal) { toast("Type what the AI should do"); return; }
+      ta.value = "";
+      const log = h("div", { class: "think" }, h("span", { class: "spin" }), "Working…");
+      const stopBtn = btn("Stop", () => inv("ai.agent.stop"), "muted");
+      thread.append(h("div", { class: "aiq", text: goal }), log, stopBtn);
+      const steps = [];
+      agentSink = (p) => { if (p && p.step) { steps.push(p.step); log.lastChild.textContent = p.step + "…"; } };
+      const r = await inv("ai.agent.start", goal);
+      agentSink = null;
+      stopBtn.remove();
+      if (L.closed) return;
+      const failed = !r || r.error;
+      log.replaceWith(h("div", { class: failed ? "think" : "prose", style: "padding-bottom:8px" + (failed ? ";color:var(--coral)" : "") },
+        failed ? (r && r.error) || "Agent failed" : r.text,
+        steps.length ? h("div", { style: "margin-top:6px;color:var(--muted);font-size:12px", text: steps.join(" · ") }) : ""));
+    };
+    L.sheet.append(h("div", { class: "ai-in" }, ta, ib("up", "Send", () => { const v = ta.value; ta.value = ""; ask(v); }), ib("globe", "Let AI do it in the browser", act)));
     b.append(thread);
     if (q) ask(q);
   });

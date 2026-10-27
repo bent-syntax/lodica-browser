@@ -91,13 +91,13 @@ async function notes() {
   if (pick) {
     const full = await nb.get(pick.id);
     const lines = String(full ? full.text : "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    return { book: true, items: lines.slice(0, 8).map((l, i) => i === 0 ? { title: l.slice(0, 120), more: "" } : { title: "", more: l.slice(0, 200) }) };
+    return { book: true, items: lines.slice(0, 60).map((l, i) => i === 0 ? { title: l.slice(0, 200), more: "" } : { title: "", more: l.slice(0, 400) }) };
   }
   const items = [];
   for (const n of list.slice(0, 5)) {
     const full = await nb.get(n.id);
     const lines = String(full ? full.text : "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    items.push({ title: (lines[0] || "Empty note").slice(0, 80), more: (lines[1] || "").slice(0, 120) });
+    items.push({ title: (lines[0] || "Empty note").slice(0, 120), more: lines.slice(1, 8).join("\n").slice(0, 600) });
   }
   return { items };
 }

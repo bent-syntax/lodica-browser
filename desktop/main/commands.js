@@ -497,6 +497,11 @@ function init(deps) {
       return ("URL: " + wc.getURL() + "\nTitle: " + wc.getTitle() + "\n\n" + String(body || "")).slice(0, 12000);
     } catch { return ""; }
   });
+  on("ai.agent.start", (goal) => {
+    if (!d.ai.status().connected) return { error: "AI is not connected" };
+    return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, push: (p) => d.ui.push("agent", p) });
+  });
+  on("ai.agent.stop", () => require("./aiagent").stop());
   on("ai.status", () => ai.status());
   on("ai.chats", () => ai.chats.get());
   on("ai.chat.send", (id, text) => ai.chats.send(str(id), str(text)));

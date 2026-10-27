@@ -562,7 +562,7 @@ function drawPlanner(text, url, opts) {
 }
 // The marker moves on its own while the start page stays open.
 setInterval(() => { if (plannerData && document.body.classList.contains("home")) drawPlanner(plannerData.text, plannerData.url, plannerData.opts); }, 60000);
-// Start page widgets are free windows: drag the title to move, drag the corner grip to resize, double-click the title to reset.
+// Start page widgets are free windows: drag the title to move, drag any edge or corner to resize, double-click the title to reset.
 // The rect is kept per widget as fractions of the window, and a widget stops at the edge of the other one.
 const FREE_MIN = { w: 200, h: 100 };
 function overlaps(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
@@ -570,19 +570,23 @@ function clampRect(r) {
   const w = Math.min(Math.max(r.w, FREE_MIN.w), innerWidth), h = Math.min(Math.max(r.h, FREE_MIN.h), innerHeight);
   return { x: Math.min(Math.max(Math.round(r.x / 4) * 4, 0), innerWidth - w), y: Math.min(Math.max(Math.round(r.y / 4) * 4, 0), innerHeight - h), w: Math.round(w / 4) * 4, h: Math.round(h / 4) * 4 };
 }
-function otherRect(box) {
-  const o = $(box.id === "plan" ? "notes" : "plan");
-  if (!o || !o.offsetWidth || !o.offsetHeight) return null;
-  const r = o.getBoundingClientRect();
-  return { x: r.left, y: r.top, w: r.width, h: r.height };
+// Things a widget must not cover: the other widget and the search bar.
+function obstacles(box) {
+  const list = [];
+  for (const el of [$(box.id === "plan" ? "notes" : "plan"), $("f")]) {
+    if (!el || !el.offsetWidth || !el.offsetHeight) continue;
+    const r = el.getBoundingClientRect();
+    list.push({ x: r.left - 8, y: r.top - 8, w: r.width + 16, h: r.height + 16 });
+  }
+  return list;
 }
-// Keeps [next] clear of the other widget: tries each axis on its own, else stays at [prev].
+// Keeps [next] clear of the obstacles: tries each axis on its own, else stays at [prev].
 function clearOf(box, next, prev) {
-  const o = otherRect(box);
-  if (!o || !overlaps(next, o)) return next;
+  const os = obstacles(box), hit = (r) => os.some((o) => overlaps(r, o));
+  if (!hit(next)) return next;
   const tryX = { ...prev, x: next.x, w: next.w }, tryY = { ...prev, y: next.y, h: next.h };
-  if (!overlaps(tryX, o)) return tryX;
-  if (!overlaps(tryY, o)) return tryY;
+  if (!hit(tryX)) return tryX;
+  if (!hit(tryY)) return tryY;
   return prev;
 }
 function applyRect(box, r) {
@@ -605,6 +609,7 @@ function resizable(box, key) {
   place();
   const current = () => { const r = box.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
   const grab = (ev, resize) => {
+    const dir = typeof resize === "string" ? resize : "";
     ev.preventDefault();
     const target = ev.currentTarget;
     target.setPointerCapture(ev.pointerId);
@@ -612,7 +617,15 @@ function resizable(box, key) {
     let last = start;
     const move = (e) => {
       const dx = e.clientX - x0, dy = e.clientY - y0;
-      const want = resize ? { ...start, w: start.w + dx, h: start.h + dy } : { ...start, x: start.x + dx, y: start.y + dy };
+      let want;
+      if (!dir) want = { ...start, x: start.x + dx, y: start.y + dy };
+      else {
+        want = { ...start };
+        if (dir.includes("e")) want.w = start.w + dx;
+        if (dir.includes("s")) want.h = start.h + dy;
+        if (dir.includes("w")) { want.w = Math.max(start.w - dx, FREE_MIN.w); want.x = start.x + start.w - want.w; }
+        if (dir.includes("n")) { want.h = Math.max(start.h - dy, FREE_MIN.h); want.y = start.y + start.h - want.h; }
+      }
       last = clearOf(box, clampRect(want), last);
       applyRect(box, last);
     };
@@ -624,9 +637,11 @@ function resizable(box, key) {
     target.addEventListener("pointermove", move);
     target.addEventListener("pointerup", up);
   };
-  const g = el("div", { class: "grip", title: "Drag to resize" });
-  g.addEventListener("pointerdown", (ev) => grab(ev, true));
-  box.append(g);
+  if (!box.querySelector(".rz")) for (const d of ["n", "s", "e", "w", "ne", "nw", "se", "sw"]) {
+    const g = el("div", { class: "rz " + d });
+    g.addEventListener("pointerdown", (ev) => grab(ev, d));
+    box.append(g);
+  }
   const bar = box.querySelector("h3");
   if (bar) {
     bar.classList.add("dragbar");

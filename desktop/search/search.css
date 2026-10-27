@@ -141,7 +141,7 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #top { gap: 18px; margin-top: 36px; }
 #top a { border-radius: 16px; padding: 8px 0; transition: background .15s; }
 #top a:hover { background: var(--raised); }
-#top a .fav { width: 56px; height: 56px; border-radius: 18px; }
+#top a .fav { width: 56px; height: 56px; border-radius: 50%; }
 #pages a { transition: background .15s; }
 #viewer img { border-radius: 16px;  }
 
@@ -149,7 +149,8 @@ body.home .brand { font-size: 34px; letter-spacing: -.02em; }
 #plan:empty, #notes:empty { display: none; }
 #plan h3, #notes h3 { margin: 0 0 8px; font-size: 15px; }
 #notes .nt { flex-direction: column; gap: 0; padding: 4px 0; }
-#notes .nt span { color: var(--sub); font-size: 13px; }
+#notes .nt span { color: var(--sub); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+#notes .nt b { overflow-wrap: anywhere; }
 #notes .ntadd { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line, rgba(127,127,127,.3)); background: transparent; color: inherit; font: inherit; font-size: 13px; }
 #plan .none, #notes .none { margin: 0; color: var(--sub); font-size: 13px; }
 #plan .pd { margin: 10px 0 4px; font-size: 12px; color: var(--sub); text-transform: capitalize; }
@@ -174,7 +175,13 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
 #plan .pn i { flex: 1; height: 2px; border-radius: 1px; background: #F43F5E; }
 #plan[data-free], #notes[data-free] { position: fixed !important; margin: 0 !important; max-width: none !important; max-height: none !important; z-index: 5; }
 .dragbar { cursor: move; touch-action: none; user-select: none; }
-.grip { position: sticky; bottom: -10px; float: right; clear: both; width: 20px; height: 20px; margin: 0 -14px -10px 0; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, var(--sub) 50%, var(--sub) 58%, transparent 58%, transparent 74%, var(--sub) 74%, var(--sub) 82%, transparent 82%); border-radius: 0 0 12px 0; opacity: .6; }
+.rz { position: absolute; z-index: 6; touch-action: none; }
+.rz.n, .rz.s { left: 8px; right: 8px; height: 8px; cursor: ns-resize; }
+.rz.e, .rz.w { top: 8px; bottom: 8px; width: 8px; cursor: ew-resize; }
+.rz.n { top: 0; } .rz.s { bottom: 0; } .rz.e { right: 0; } .rz.w { left: 0; }
+.rz.ne, .rz.nw, .rz.se, .rz.sw { width: 14px; height: 14px; }
+.rz.ne { top: 0; right: 0; cursor: nesw-resize; } .rz.sw { bottom: 0; left: 0; cursor: nesw-resize; }
+.rz.nw { top: 0; left: 0; cursor: nwse-resize; } .rz.se { bottom: 0; right: 0; cursor: nwse-resize; }
 /* Side placement (Settings): beside the search bar on wide screens, under it on narrow ones. */
 @media (min-width: 1100px) {
   #plan[data-pos="left"], #notes[data-pos="left"], #plan[data-pos="right"], #notes[data-pos="right"] { position: fixed; top: 24vh; width: 280px; max-height: 60vh; overflow: auto; margin: 0; }
@@ -190,9 +197,9 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #f button { background: var(--amber); color: contrast-color(var(--amber)); border-radius: 50%; }
 #f button:hover { background: var(--amber-hi); }
 /* 1.13.1 redesign: new-tab shortcut tiles as cards. */
-#top a { padding: 14px 8px 10px; border-radius: 20px; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
+#top a { padding: 14px 8px 10px; border-radius: 42px; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
 #top a:hover { background: var(--hover2, var(--raised)); transform: translateY(-2px); }
-#top a .fav { border-radius: 16px; }
+#top a .fav { border-radius: 50%; }
 /* redesign pass: results as 20px cards, pill tabs */
 #tabs a { border-radius: 999px; padding: 6px 16px; }
 .r { padding: 16px 20px; margin-bottom: 8px; border-radius: 20px; background: var(--raised); }
@@ -208,3 +215,7 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 .confetti b { position: absolute; left: 50%; top: 40%; transform: translateX(-50%); font-size: 26px; color: #F59E0B; animation: confetti-text 2.4s ease forwards; }
 @keyframes confetti { to { transform: translate(var(--dx), calc(var(--dy) + 520px)) rotate(var(--r)); opacity: 0; } }
 @keyframes confetti-text { 0% { opacity: 0; transform: translateX(-50%) scale(.6); } 15% { opacity: 1; transform: translateX(-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+/* Search box follows the active theme, including custom colours: same raised fill and soft edge as the shortcut tiles. */
+#f { background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); color: var(--text); }
+#f:focus-within { border-color: var(--amber); }
+#q::placeholder { color: var(--muted); }

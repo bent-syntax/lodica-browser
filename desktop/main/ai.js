@@ -111,14 +111,14 @@ function sdk() {
 const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
 
 /** One Haiku 5.5 call. Web search is tried first (deep research); when the org has it off the call retries without. */
-async function viaApi(messages, system, search) {
+async function viaApi(messages, system, search, plain) {
   const c = sdk();
-  const base = { model: MODEL, max_tokens: search ? 2048 : 1000, system: search ? system : system + FOLLOW_UP, messages };
+  const base = { model: MODEL, max_tokens: search ? 2048 : 1000, system: search || plain ? system : system + FOLLOW_UP, messages };
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 1 }];
   let input = 0, output = 0, msg, conv = messages.slice();
   const add = m => { const u = m.usage || {}; input += (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0); output += u.output_tokens || 0; };
   try {
-    if (!search) throw Object.assign(new Error("no search"), { status: 400 });
+    if (!search || plain) throw Object.assign(new Error("no search"), { status: 400 });
     for (let i = 0; i < 4; i++) {
       msg = await c.messages.create({ ...base, system: system + RESEARCH, tools, messages: conv });
       add(msg);
@@ -223,6 +223,16 @@ async function run(history, ctx) {
   return text ? { text } : { error: "Empty answer" };
 }
 
+/** One raw completion over [{role,content}] with a custom system prompt, using the same provider order. Returns the text. */
+async function complete(turns, system) {
+  if (!status().connected) throw new Error("AI is not connected");
+  const r = hearthAddr && hearthKey ? await viaHearth(turns, system)
+    : key ? await viaApi(turns, system, false, true)
+    : await viaCli(turns.map(t => (t.role === "user" ? "User: " : "Assistant: ") + t.content).join("\n\n") + "\n\nAssistant:", system);
+  record(r.input, r.output);
+  return String(r.text || "");
+}
+
 /** `prior` is earlier {role,text} turns of the same conversation, for follow-up questions. */
 async function ask(q, ctx, prior) {
   const before = Array.isArray(prior) ? prior.slice(-10).map(m => ({ role: m && m.role === "assistant" ? "assistant" : "user", text: String(m && m.text || "") })) : [];
@@ -300,7 +310,7 @@ function chatsSetDir(dir) {
 function onChatsChange(fn) { onChats = fn; }
 
 module.exports = {
-  init, ask, status, setKey, setHearth, viaHearth, usage, resetUsage,
+  init, ask, complete, status, setKey, setHearth, viaHearth, usage, resetUsage,
   memory: { get: memory.get, set: memory.set },
   chats: { get: chatsGet, send: chatSend, delete: chatDelete, merge: chatMerge, setDir: chatsSetDir, dir: () => chatDir() || "", raw: chatsRaw, onChange: onChatsChange },
   MODEL,

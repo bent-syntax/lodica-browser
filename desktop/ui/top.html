@@ -14,7 +14,16 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outlin
 #tabs::-webkit-scrollbar{display:none}
 .t{flex:0 1 180px;min-width:72px;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
 .t:hover{background:var(--hover2)}
-.t.cur{background:var(--high);box-shadow:inset 0 -2px 0 var(--amber)}
+.t.cur{background:var(--high);color:var(--amber);font-weight:600;box-shadow:inset 0 -3px 0 var(--amber),0 0 0 1px color-mix(in srgb,var(--amber) 55%,transparent)}
+.t:not(.cur){opacity:.8}
+.t.dragging{opacity:.55;transform:scale(.96);box-shadow:0 0 0 2px var(--amber)}
+body.tabdrag .t{transition:transform .12s}
+.t.drop-before::before,.t.drop-after::after{content:"";position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.t.drop-before::before{left:-3px}
+.t.drop-after::after{right:-3px}
+body.vert .t.drop-before::before,body.vert .t.drop-after::after{left:0;right:0;width:auto;height:3px;top:auto;bottom:auto}
+body.vert .t.drop-before::before{top:-3px}
+body.vert .t.drop-after::after{bottom:-3px}
 .t.priv .l{color:var(--coral)}
 .t.split{box-shadow:inset 0 -2px var(--amber)}
 .t .l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -59,7 +68,7 @@ body.bt:not(.vert){padding:0 8px;gap:8px;align-items:flex-end;background:var(--b
 body.bt:not(.vert) #list{align-items:flex-end;height:100%;padding-top:6px}
 body.bt:not(.vert) .t{height:30px;background:transparent;border-radius:12px 12px 0 0;padding:0 6px 0 10px}
 body.bt:not(.vert) .t:hover{background:var(--hover)}
-body.bt:not(.vert) .t.cur{background:var(--raised);box-shadow:none}
+body.bt:not(.vert) .t.cur{background:var(--raised);box-shadow:inset 0 3px 0 var(--amber)}
 body.bt:not(.vert) .add{height:30px;border-radius:12px}
 body.bt .t .fv,body.bt .t .fl{border-radius:4px}
 body.bt .t .x{border-radius:999px}

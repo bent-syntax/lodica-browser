@@ -121,12 +121,12 @@ function themeEditor() {
     return h("label", { class: "ct-field" }, h("span", { text: label }),
       h("input", { type: "color", value: fallback(), on: {
         input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
-        change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, on); } } }));
+        change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, (S.prefs.theme || "system") === "custom"); } } }));
   };
   const field = (key, label) => h("label", { class: "ct-field" }, h("span", { text: label }),
     h("input", { type: "color", value: cur[key], on: {
       input: (e) => { cur[key] = e.target.value; paintPreview(cur); },
-      change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, on); } } }));
+      change: (e) => { cur[key] = e.target.value; inv("theme.custom", cur, (S.prefs.theme || "system") === "custom"); } } }));
   return h("div", { class: "ct" },
     h("div", { class: "ct-row" }, field("bg", "Background"), field("text", "Text"), field("accent", "Accent"), field("accent2", "Second accent")),
     h("div", { class: "ct-row" }, opt("raised", "Panels", 8), opt("high", "Hover", 16), opt("muted", "Muted text", 60)),
@@ -376,14 +376,17 @@ function secKeys() {
 
 // Select for the start page note; the list loads from the notebook after the section draws.
 function emojiAdder() {
-  const name = h("input", { placeholder: "name", maxlength: 32 });
-  const msg = h("span", { class: "muted" });
-  const go = h("button", { text: "Choose image", on: { click: async () => {
+  const name = h("input", { placeholder: "name", maxlength: 32, style: "width:140px;min-width:0" });
+  const msg = h("span", { class: "muted", style: "font-size:12px" });
+  const pick = async () => {
     msg.textContent = "";
     const r = await inv("emojis.add", name.value.trim());
     msg.textContent = r?.error || (r?.ok ? "Added :" + r.name + ":" : "");
-  } } });
-  return h("div", { class: "row" }, [name, go, msg]);
+  };
+  const go = h("button", { text: "Choose image", style: "white-space:nowrap;flex:none;padding:8px 16px", on: { click: pick } });
+  name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); pick(); } });
+  return h("div", { style: "display:flex;flex-direction:column;align-items:flex-end;gap:8px" }, [
+    h("div", { style: "display:flex;gap:8px;align-items:center" }, [name, go]), msg]);
 }
 
 function notesPicker() {
