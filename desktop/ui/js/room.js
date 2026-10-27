@@ -17,6 +17,14 @@ function openRoom() {
       const err = await inv("room.send", v);
       if (err) { L.ta.value = v; toast(err); }
     };
+    L.el.addEventListener("keydown", (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const d = e.key === "+" || e.key === "=" ? 1 : e.key === "-" ? -1 : 0; if (!d) return;
+      e.preventDefault();
+      const steps = [100, 125, 150, 200], i = Math.max(0, steps.indexOf(S.prefs.chatScale || 100));
+      const n = steps[Math.min(steps.length - 1, Math.max(0, i + d))];
+      if (n !== S.prefs.chatScale) setPref("chatScale", n);
+    });
     L.ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
     L.prog = h("div", { class: "empty", style: "padding:0 12px;display:none" });
     const attach = async () => {
