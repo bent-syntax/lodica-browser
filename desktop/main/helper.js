@@ -139,6 +139,7 @@ function pageState(tab) {
   const p = prefs.p;
   return {
     cookies: p.cookieReject && !prefs.isTrusted(host),
+    msLogin: !!p.smartschoolMs && /(^|\.)smartschool\.be$/i.test(host),
     ads: !prefs.isTrusted(host) && !prefs.isCompat(host),
     dark: !!p.forceDark,
     spell: { on: !!p.spell, auto: !!p.spellAuto, langs: p.spellLangs },
@@ -301,6 +302,13 @@ function init(d) {
   });
   ipcMain.on("siteOverride", (e, host) => { e.returnValue = overrideFor(host); });
   ipcMain.handle("page", e => pageState(deps.tabs.byContents(e.sender)));
+  // Smartschool sign-in: true when this tab's session already holds a Microsoft sign-in cookie (names only, values never read).
+  ipcMain.handle("msSession", async e => {
+    try {
+      const cs = await e.sender.session.cookies.get({ domain: "login.microsoftonline.com" });
+      return cs.some(c => /^ESTSAUTH(PERSISTENT|LIGHT)?$/.test(c.name));
+    } catch { return false; }
+  });
   ipcMain.handle("dict", (e, lang) => dictText(lang));
   // Translate / dictionary lookups for the selection bubble; only these two services
   ipcMain.handle("fetchJson", async (e, url) => {

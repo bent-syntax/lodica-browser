@@ -279,7 +279,7 @@ function secSpell() {
     h("div", { class: "chips" }, SPELL_LANGS.map(([k, n]) => h("button", { class: "chip" + (langs.includes(k) ? " sel" : ""), act: () => pick(k), text: n })))];
 }
 function secBlocking() {
-  return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups")];
+  return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
 }
 function secSuggest() {
   return [secHead("Address bar suggestions", "suggest"),

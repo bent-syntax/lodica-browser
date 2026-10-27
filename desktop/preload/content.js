@@ -1464,6 +1464,25 @@ const lodicaMain = () => {
     if ((+prev.speed || 1) !== (+page.speed || 1)) applySpeed();
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
     watchCookies();
+    msLogin();
+  }
+
+  // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
+  let msTried = false;
+  function msLogin() {
+    if (msTried || !page.msLogin || window !== window.top) return;
+    const find = () => [...document.querySelectorAll("a,button")].find((el) =>
+      /microsoft/i.test((el.textContent || "") + " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("href") || "")) && el.offsetParent !== null);
+    let n = 0;
+    const tick = () => {
+      if (msTried) return;
+      const el = find();
+      if (el) {
+        msTried = true;
+        ipcRenderer.invoke("msSession").then((ok) => { if (ok) el.click(); }, () => {});
+      } else if (++n < 20) setTimeout(tick, 250);
+    };
+    tick();
   }
 
   ipcRenderer.invoke("page").then(usePage, () => {});
