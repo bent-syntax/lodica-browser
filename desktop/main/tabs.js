@@ -9,6 +9,8 @@ const history = require("./history");
 const errorpage = require("./errorpage");
 
 const HOME = "lodica://search/search.html";
+/** Last good favicons per host, so a navigation never blanks the icon while the page loads its own. */
+const iconCache = new Map();
 let LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(__dirname, "..", "ui", "logo.png")).toString("base64");
 const PRELOAD = path.join(__dirname, "..", "preload", "content.js");
 const IDLE_MS = 10 * 60 * 1000;
@@ -140,7 +142,12 @@ function wire(t, wc) {
   };
   adopt(wc, wc);
   wc.on("focus", () => focusPane(t));
-  wc.on("page-favicon-updated", (_, favicons) => { t.icons = Array.isArray(favicons) ? favicons.slice(0, 8) : []; pushCount(); });
+  wc.on("page-favicon-updated", (_, favicons) => {
+    if (!Array.isArray(favicons) || !favicons.length) return;
+    t.icons = favicons.slice(0, 8);
+    if (t.host) { iconCache.set(t.host, t.icons); if (iconCache.size > 200) iconCache.delete(iconCache.keys().next().value); }
+    pushCount();
+  });
   wc.on("page-title-updated", (_, title) => {
     t.title = title;
     if (!t.private) history.title(t.url, title);
@@ -152,7 +159,7 @@ function wire(t, wc) {
   wc.on("did-navigate", (_, navUrl) => {
     const isErr = errorpage.isErrorUrl(navUrl);
     const url = isErr ? errorpage.failedOf(navUrl) || t.url : navUrl;
-    Object.assign(t, { url, host: hostOf(url), blocked: 0, emailForm: false, emailFocus: false, icons: [], crashed: false, failUrl: isErr ? url : null });
+    Object.assign(t, { url, host: hostOf(url), blocked: 0, emailForm: false, emailFocus: false, icons: iconCache.get(hostOf(url)) || [], crashed: false, failUrl: isErr ? url : null });
     const from = t.navStart ? hostOf(t.navStart) : "";
     t.origin = !isErr && /^https?:/i.test(t.navStart || "") && from && from !== t.host ? from : "";
     t.navStart = null;
