@@ -1523,16 +1523,20 @@
   let msTried = false;
   function msLogin() {
     if (msTried || !page.msLogin || !TOP || !/(^|\.)smartschool\.be$/i.test(location.hostname)) return;
-    const find = () => [...document.querySelectorAll("a,button")].find((el) =>
-      /microsoft/i.test((el.textContent || "") + " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("href") || "")) && el.offsetParent !== null);
-    let n = 0;
+    const link = () => document.querySelector('a[href*="/login/sso/init/office365"]');
+    const shown = (el) => !!el && el.offsetParent !== null;
+    let n = 0, more = false;
     const tick = () => {
       if (msTried) return;
-      const el = find();
-      if (el) {
+      const el = link();
+      if (shown(el)) {
         msTried = true;
         browser.runtime.sendMessage({ type: "msSession" }).then((ok) => { if (ok) el.click(); }, () => {});
-      } else if (++n < 20) setTimeout(tick, 250);
+        return;
+      }
+      const m = document.getElementById("showmore");
+      if (!more && shown(m)) { more = true; m.click(); }
+      if (++n < 24) setTimeout(tick, 250);
     };
     tick();
   }
