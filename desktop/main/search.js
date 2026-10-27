@@ -57,18 +57,28 @@ async function handle(msg) {
 }
 
 // Smartschool planner: the ICS export is fetched here because the start page has no cross-origin access.
+let plannerCache = null; // { url, text, at }: the last good ICS, so a new tab never waits for the network
 async function planner() {
   const url = String(prefs.p.plannerIcs || "").trim().replace(/^webcal:\/\//i, "https://");
   if (!/^https:\/\/[^\s]+$/.test(url)) return { url: "" };
   const opts = { colors: prefs.p.plannerColors !== false, tz: String(prefs.p.plannerTz || "").slice(0, 64), slots: String(prefs.p.plannerSlots || "").slice(0, 4000) };
-  try {
-    const r = await net.fetch(url, { signal: AbortSignal.timeout(10000) });
-    if (!r.ok) return { url, text: null, opts };
-    return { url, text: (await r.text()).slice(0, 2e6), opts };
-  } catch {
-    return { url, text: null, opts };
-  }
+  const fresh = plannerCache && plannerCache.url === url;
+  if (fresh && Date.now() - plannerCache.at < 120000) return { url, text: plannerCache.text, opts };
+  const load = async () => {
+    try {
+      const r = await net.fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return null;
+      const text = (await r.text()).slice(0, 2e6);
+      plannerCache = { url, text, at: Date.now() };
+      return text;
+    } catch { return null; }
+  };
+  if (fresh) { load(); return { url, text: plannerCache.text, opts }; } // stale copy now, refresh behind it
+  return { url, text: await load(), opts };
 }
+
+/** Warms the planner cache at app start and when a tab opens. */
+function prefetchPlanner() { planner().catch(() => {}); }
 
 // Notes widget on the start page: the chosen note of the shared notebook (pref notesBook), else the newest five.
 async function notes() {
@@ -169,4 +179,8 @@ function ask(msg) {
   ]);
 }
 
-module.exports = { init };
+// Keeps the planner warm so the first tab already has it.
+setTimeout(prefetchPlanner, 3000).unref();
+setInterval(prefetchPlanner, 100000).unref();
+
+module.exports = { init, prefetchPlanner };
