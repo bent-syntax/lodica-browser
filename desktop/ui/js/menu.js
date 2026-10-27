@@ -10,8 +10,10 @@ function openMenu() {
     let more = false;
     const grid = h("div", { class: "mgrid" });
     const cell = (icon, label, fn, cls, dis) => ({ key: icon, icon, label, fn, cls, dis });
+    const implicit = !Array.isArray(S.prefs.menuPins);
     const togglePin = (k) => {
-      pins = pins.includes(k) ? pins.filter((x) => x !== k) : pins.concat(k);
+      if (implicit && !S.prefs.menuPins) pins = pins.concat(all.filter((c) => c.key.startsWith("ext:") && !pins.includes(c.key)).map((c) => c.key));
+      pins =pins.includes(k) ? pins.filter((x) => x !== k) : pins.concat(k);
       S.prefs.menuPins = pins; inv("prefs.set", "menuPins", pins); render();
     };
     let all = [];
@@ -27,7 +29,7 @@ function openMenu() {
     };
     const render = () => {
       grid.replaceChildren();
-      for (const c of all) if (more || pins.includes(c.key) || c.key.startsWith("ext:")) grid.append(mk(c));
+      for (const c of all) if (more || pins.includes(c.key) || (implicit && !S.prefs.menuPins && c.key.startsWith("ext:"))) grid.append(mk(c));
       grid.append(h("button", { class: "mcell", act: () => { more = !more; render(); } },
         ico(more ? "close" : "apps"), h("span", { text: more ? "Done" : "More" })));
     };

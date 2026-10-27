@@ -609,7 +609,7 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
                 }.getOrNull()
             }?.also { FavCache[host] = it }
         }
-        Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(52.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
             val ic = icon
             if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(26.dp))
             else Text(host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
