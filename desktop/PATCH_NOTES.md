@@ -1,3 +1,7 @@
+## 1.13.40
+
+- Fixed: 2 finger swipe to go back
+
 ## 1.13.39
 
 - Fixed: Auto fillin password

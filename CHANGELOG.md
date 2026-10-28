@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.40 (versionCode 141)
+- Fixed: 2 finger swipe to go back
+
 ## 1.13.39 (versionCode 140)
 - Fixed: Auto fillin password
 
