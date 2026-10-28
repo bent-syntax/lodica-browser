@@ -176,6 +176,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
   if (msg.type === "state") {
     await configured;
+    console.log("lodica state ai=" + cfg.ai + " native=" + !!native);
     return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search") {
