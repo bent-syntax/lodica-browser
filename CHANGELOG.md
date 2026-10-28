@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.36 (versionCode 137)
+- Fixed: The Generate an AI answer button and AI answers now show on Lodica Search results when an AI key is set
+
 ## 1.13.35 (versionCode 136)
 - Fixed: Phone no longer jumps to the desktop site after you chose mobile (the Minecraft desktop mode was sticking to tabs)
 - Fixed: Touchpad two-finger sideways swipe now counts small up/down wobble, so back and forward trigger reliably

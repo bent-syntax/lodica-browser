@@ -1,3 +1,7 @@
+## 1.13.36
+
+- Fixed: The Generate an AI answer button and AI answers now show on Lodica Search results when an AI key is set
+
 ## 1.13.35
 
 - Fixed: Phone no longer jumps to the desktop site after you chose mobile (the Minecraft desktop mode was sticking to tabs)
