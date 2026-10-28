@@ -1,4 +1,6 @@
 # Patch notes
+## 1.13.39
+- Fixed: Auto fillin password
 
 ## 1.13.38
 

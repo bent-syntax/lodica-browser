@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.39 (versionCode 140)
+- Fixed: Auto fillin password
+
 ## 1.13.38 (versionCode 139)
 - Added: Planner items starting with "Afwerkingsopdracht:" now count as tasks (yellow), like Huistaak and Meebrengen
 

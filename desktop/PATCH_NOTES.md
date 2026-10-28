@@ -1,3 +1,7 @@
+## 1.13.39
+
+- Fixed: Auto fillin password
+
 ## 1.13.38
 
 - Added: Planner items starting with "Afwerkingsopdracht:" now count as tasks (yellow), like Huistaak and Meebrengen
