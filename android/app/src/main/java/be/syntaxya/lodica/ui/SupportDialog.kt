@@ -2,6 +2,11 @@ package be.syntaxya.lodica.ui
 
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
+import android.view.Gravity
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.window.DialogWindowProvider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -112,6 +117,15 @@ internal fun SupportDialog(onClose: () -> Unit) {
     // a new request needs a linked email, so answers can always reach the user
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
     val canWrite = linked.isNotEmpty()
+    // pin the dialog to the top: a centred dialog moves every time the keyboard (or its suggestion strip) changes height
+    val view = LocalView.current
+    val topGap = with(LocalDensity.current) { 48.dp.roundToPx() }
+    SideEffect {
+        (view.parent as? DialogWindowProvider)?.window?.let { w ->
+            w.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
+            w.attributes = w.attributes.also { it.y = topGap }
+        }
+    }
     AlertDialog(
         onDismissRequest = onClose,
         title = {
@@ -124,7 +138,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
         text = {
             Column {
                 if (linked.isNotEmpty()) Text("Answers go to $linked", Modifier.padding(bottom = 8.dp), fontSize = 12.sp, color = Amber)
-                Column(Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState())) {
+                Column(Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())) {
                     if (open) {
                         val steps = listOf("Sent", "Reviewing", "Asking", "Fixing", "Confirming", "Done")
                         val at = when (Support.status) { "seen" -> 1; "needs-info" -> 2; "fixing" -> 3; "awaiting-confirm" -> 4; "done", "closed" -> 5; else -> 0 }
