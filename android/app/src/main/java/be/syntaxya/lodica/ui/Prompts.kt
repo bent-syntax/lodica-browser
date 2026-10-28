@@ -246,14 +246,21 @@ object Prompts : PromptDelegate, PermissionDelegate {
 
     // --- logins (stored in the encrypted Vault via Autocomplete.StorageDelegate) ---
 
-    /** A saved login exists for this form: fill it straight away. */
+    /** Sessions whose current page already got its saved login filled; cleared on the next page load. */
+    private val loginFilled = java.util.Collections.synchronizedMap(java.util.WeakHashMap<GeckoSession, Boolean>())
+
+    fun resetLoginFill(s: GeckoSession) { loginFilled.remove(s) }
+
+    /** A saved login exists for this form: fill it once per page, so a field the user cleared stays cleared. */
     override fun onLoginSelect(
         s: GeckoSession, req: PromptDelegate.AutocompleteRequest<Autocomplete.LoginSelectOption>,
     ): GeckoResult<PromptResponse> {
+        if (loginFilled.containsKey(s)) return GeckoResult.fromValue(req.dismiss())
         // Saved logins only: never Gecko's suggested strong password or a Relay mask.
         val first = req.options.firstOrNull {
             it.hint and (Autocomplete.SelectOption.Hint.GENERATED or Autocomplete.SelectOption.Hint.FIREFOX_RELAY) == 0
         } ?: return GeckoResult.fromValue(req.dismiss())
+        loginFilled[s] = true
         return GeckoResult.fromValue(req.confirm(first))
     }
 

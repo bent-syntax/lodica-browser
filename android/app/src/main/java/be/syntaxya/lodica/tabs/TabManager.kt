@@ -525,6 +525,7 @@ object TabManager {
 
     private class Progress(val tab: Tab) : GeckoSession.ProgressDelegate {
         override fun onPageStart(session: GeckoSession, url: String) {
+            be.syntaxya.lodica.ui.Prompts.resetLoginFill(session)
             tab.loading = true
             tab.progress = 5
             tab.blocked = 0
