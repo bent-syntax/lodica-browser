@@ -218,21 +218,19 @@ function shortcut(e, input) {
 
 // Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
 function swipeNav(wc) {
-  let sum = 0, last = 0, locked = 0;
+  let sum = 0, sy = 0, last = 0, locked = 0;
   wc.on("input-event", (_e, ev) => {
     if (ev.type !== "mouseWheel") return;
     const now = Date.now();
     if (now < locked) return;
-    if (now - last > 150) sum = 0;
+    if (now - last > 150) { sum = 0; sy = 0; }
     last = now;
-    const dx = ev.deltaX || 0, dy = ev.deltaY || 0;
-    if (Math.abs(dx) <= Math.abs(dy) * 2) { sum = 0; return; }
-    sum += dx;
-    if (Math.abs(sum) < 150) return;
-    if (now < (global.lodicaSwipeLock || 0)) { sum = 0; return; }
+    sum += ev.deltaX || 0; sy += ev.deltaY || 0;
+    if (Math.abs(sum) < 150 || Math.abs(sum) <= Math.abs(sy) * 2) return;
+    if (now < (global.lodicaSwipeLock || 0)) { sum = 0; sy = 0; return; }
     global.lodicaSwipeLock = now + 700;
     M.commands.mouse(sum < 0 ? "back" : "forward");
-    sum = 0;
+    sum = 0; sy = 0;
     locked = now + 700;
   });
 }

@@ -105,7 +105,7 @@ object TabManager {
                 return blank
             }
         }
-        val tab = Tab(private = private, url = url, desktop = parent?.desktop ?: Prefs.desktopDefault)
+        val tab = Tab(private = private, url = url, desktop = if (parent != null && !parent.autoDesktop) parent.desktop else Prefs.desktopDefault)
         val at = tabs.size
         // A new private tab shares cookies with the others, so it waits behind the same lock.
         if (private && privateLocked) tab.locked = true
@@ -304,6 +304,7 @@ object TabManager {
 
     fun setDesktop(tab: Tab, on: Boolean) {
         tab.desktop = on
+        tab.autoDesktop = false
         tab.session?.settings?.apply {
             userAgentMode = if (on) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
             viewportMode = if (on) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP else GeckoSessionSettings.VIEWPORT_MODE_MOBILE
@@ -461,8 +462,17 @@ object TabManager {
                     val ua = if (tab.desktop || Prefs.isCompat(host)) null else Prefs.userAgent.value
                     if (session.settings.userAgentOverride != ua) session.settings.userAgentOverride = ua
                     // Minecraft Classic refuses to start without a keyboard: give it the desktop page and input model.
-                    if (!tab.desktop && (host == "minecraft.net" || host.endsWith(".minecraft.net"))) {
+                    val mc = host == "minecraft.net" || host.endsWith(".minecraft.net")
+                    if (tab.autoDesktop && !mc) {
+                        tab.autoDesktop = false
+                        tab.desktop = Prefs.desktopDefault
+                        session.settings.userAgentMode = if (tab.desktop) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP else GeckoSessionSettings.USER_AGENT_MODE_MOBILE
+                        session.settings.viewportMode = if (tab.desktop) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP else GeckoSessionSettings.VIEWPORT_MODE_MOBILE
+                        session.settings.userAgentOverride = if (tab.desktop || Prefs.isCompat(host)) null else Prefs.userAgent.value
+                    }
+                    if (!tab.desktop && mc) {
                         tab.desktop = true
+                        tab.autoDesktop = true
                         session.settings.userAgentMode = GeckoSessionSettings.USER_AGENT_MODE_DESKTOP
                         session.settings.viewportMode = GeckoSessionSettings.VIEWPORT_MODE_DESKTOP
                         session.settings.userAgentOverride = null
@@ -481,7 +491,7 @@ object TabManager {
         }
 
         override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
-            val child = Tab(private = tab.private, url = uri, desktop = tab.desktop)
+            val child = Tab(private = tab.private, url = uri, desktop = tab.desktop && !tab.autoDesktop)
             child.spawned = true
             val s = newSession(child)
             child.session = s

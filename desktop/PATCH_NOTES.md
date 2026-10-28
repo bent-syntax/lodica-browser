@@ -1,3 +1,8 @@
+## 1.13.35
+
+- Fixed: Phone no longer jumps to the desktop site after you chose mobile (the Minecraft desktop mode was sticking to tabs)
+- Fixed: Touchpad two-finger sideways swipe now counts small up/down wobble, so back and forward trigger reliably
+
 ## 1.13.34
 
 - Faster: Lodica Search results start loading as soon as you press Enter, and the address bar warms up the connection to your top history match

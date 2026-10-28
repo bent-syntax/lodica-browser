@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.13.35
+
+- Fixed: Phone no longer jumps to the desktop site after you chose mobile (the Minecraft desktop mode was sticking to tabs)
+- Fixed: Touchpad two-finger sideways swipe now counts small up/down wobble, so back and forward trigger reliably
+
 ## 1.13.34
 
 - Version bump to match desktop

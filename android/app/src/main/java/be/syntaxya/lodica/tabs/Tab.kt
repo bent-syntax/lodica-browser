@@ -43,6 +43,8 @@ class Tab(
     var navStart: String? = null
     var blocked by mutableIntStateOf(0)
     var desktop by mutableStateOf(desktop)
+    /** Desktop mode forced for a site that needs it (Minecraft Classic); undone when the tab leaves that site. */
+    var autoDesktop = false
     var lastUsed by mutableStateOf(lastUsed)
     var thumbnail by mutableStateOf<Bitmap?>(null)
     var crashed by mutableStateOf(false)
@@ -73,7 +75,7 @@ class Tab(
     val displayTitle: String get() = title.ifBlank { host.ifBlank { url } }
     val host: String get() = runCatching { android.net.Uri.parse(url).host.orEmpty() }.getOrDefault("").removePrefix("www.")
 
-    fun record() = TabRecord(id, url, title, private, state, lastUsed, desktop)
+    fun record() = TabRecord(id, url, title, private, state, lastUsed, desktop && !autoDesktop)
 
     companion object {
         fun from(r: TabRecord) = Tab(r.id, r.private, r.url, r.title, r.state, r.lastUsed, r.desktop).also { it.locked = r.private }

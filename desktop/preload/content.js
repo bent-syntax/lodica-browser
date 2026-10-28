@@ -18,7 +18,7 @@ const browser = { runtime: { connectNative() {
       }
     }, true);
     // Two fingers sideways on a touchpad: an arrow grows at the edge, and past the limit history goes back/forward.
-    let sum = 0, last = 0, lock = 0, arrow = null, hide = 0;
+    let sum = 0, sy = 0, last = 0, lock = 0, arrow = null, hide = 0;
     const LIMIT = 150;
     const canScroll = (el, dx) => {
       for (; el && el !== document.documentElement; el = el.parentElement) {
@@ -42,19 +42,20 @@ const browser = { runtime: { connectNative() {
       arrow.style.right = back ? "auto" : off + "px";
       arrow.firstChild.style.transform = back ? "" : "scaleX(-1)";
       arrow.style.opacity = String(Math.max(.25, e));
-      clearTimeout(hide); hide = setTimeout(() => { sum = 0; arrow && arrow.remove(); }, 200);
+      clearTimeout(hide); hide = setTimeout(() => { sum = 0; sy = 0; arrow && arrow.remove(); }, 200);
     };
     window.addEventListener("wheel", e => {
       const now = Date.now();
       if (now < lock || e.ctrlKey) return;
-      if (now - last > 200) sum = 0;
+      if (now - last > 200) { sum = 0; sy = 0; }
       last = now;
-      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) * 2 || canScroll(e.target, e.deltaX)) { sum = 0; return; }
-      sum += e.deltaX;
+      if (e.deltaX && canScroll(e.target, e.deltaX)) { sum = 0; sy = 0; return; }
+      sum += e.deltaX; sy += e.deltaY;
+      if (Math.abs(sum) <= Math.abs(sy) * 2) return;
       draw(Math.abs(sum), sum < 0);
       if (Math.abs(sum) < LIMIT) return;
       ipcRenderer.send("helper", { type: "nav", dir: sum < 0 ? "back" : "forward", swipe: true });
-      sum = 0; lock = now + 700; arrow && arrow.remove();
+      sum = 0; sy = 0; lock = now + 700; arrow && arrow.remove();
     }, { capture: true, passive: true });
   }
   return port;
