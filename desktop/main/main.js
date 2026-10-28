@@ -218,7 +218,7 @@ function shortcut(e, input) {
 
 // Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
 function swipeNav(wc) {
-  let sum = 0, sy = 0, last = 0, locked = 0;
+  let sum = 0, sy = 0, last = 0, locked = 0, timer = null;
   wc.on("input-event", (_e, ev) => {
     if (ev.type !== "mouseWheel") return;
     const now = Date.now();
@@ -226,12 +226,18 @@ function swipeNav(wc) {
     if (now - last > 150) { sum = 0; sy = 0; }
     last = now;
     sum += ev.deltaX || 0; sy += ev.deltaY || 0;
-    if (Math.abs(sum) < 150 || Math.abs(sum) <= Math.abs(sy) * 2) return;
-    if (now < (global.lodicaSwipeLock || 0)) { sum = 0; sy = 0; return; }
-    global.lodicaSwipeLock = now + 700;
-    M.commands.mouse(sum < 0 ? "back" : "forward");
-    sum = 0; sy = 0;
-    locked = now + 700;
+    // Navigate when the fingers let go (events stop), a little after the page's own arrow handler, which wins when present.
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      const go = Math.abs(sum) >= 150 && Math.abs(sum) > Math.abs(sy) * 2, dir = sum < 0 ? "back" : "forward";
+      sum = 0; sy = 0;
+      if (!go) return;
+      const t = Date.now();
+      if (t < (global.lodicaSwipeLock || 0)) return;
+      global.lodicaSwipeLock = t + 700;
+      locked = t + 700;
+      M.commands.mouse(dir);
+    }, 260);
   });
 }
 

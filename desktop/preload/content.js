@@ -42,7 +42,12 @@ const browser = { runtime: { connectNative() {
       arrow.style.right = back ? "auto" : off + "px";
       arrow.firstChild.style.transform = back ? "" : "scaleX(-1)";
       arrow.style.opacity = String(Math.max(.25, e));
-      clearTimeout(hide); hide = setTimeout(() => { sum = 0; sy = 0; arrow && arrow.remove(); }, 200);
+      // Like Firefox: navigate when the fingers let go (wheel events stop), if the arrow was pulled past the limit.
+      clearTimeout(hide); hide = setTimeout(() => {
+        const go = Math.abs(sum) >= LIMIT, dir = sum < 0 ? "back" : "forward";
+        sum = 0; sy = 0; arrow && arrow.remove();
+        if (go) { lock = Date.now() + 700; ipcRenderer.send("helper", { type: "nav", dir, swipe: true }); }
+      }, 160);
     };
     window.addEventListener("wheel", e => {
       const now = Date.now();
@@ -53,9 +58,6 @@ const browser = { runtime: { connectNative() {
       sum += e.deltaX; sy += e.deltaY;
       if (Math.abs(sum) <= Math.abs(sy) * 2) return;
       draw(Math.abs(sum), sum < 0);
-      if (Math.abs(sum) < LIMIT) return;
-      ipcRenderer.send("helper", { type: "nav", dir: sum < 0 ? "back" : "forward", swipe: true });
-      sum = 0; sy = 0; lock = now + 700; arrow && arrow.remove();
     }, { capture: true, passive: true });
   }
   return port;
