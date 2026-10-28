@@ -98,7 +98,7 @@ object Ai {
     /** Pings the bridge; if it is not running, asks for the Termux permission and starts it. */
     fun connect() {
         if (!enabled) return
-        if (!termuxInstalled) { connected = false; status = "Termux not installed"; return }
+        if (!termuxInstalled) { connected = hasKey; status = "Termux not installed"; return }
         status = "Connecting…"
         io.execute {
             if (ping()) { main.post { setConnected(true, false) }; return@execute }
@@ -106,7 +106,7 @@ object Ai {
                 val host = Prompts.host
                 if (host == null) { start(); return@post }
                 host.requestAndroid(arrayOf(PERMISSION)) { ok ->
-                    if (ok) start() else { connected = false; status = "Termux permission denied" }
+                    if (ok) start() else { connected = hasKey; status = "Termux permission denied" }
                 }
             }
         }
@@ -122,7 +122,7 @@ object Ai {
             .putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         try { app.startService(intent) } catch (e: Exception) {
             Log.w(TAG, "termux start failed: ${e.javaClass.simpleName}")
-            connected = false; status = "Termux refused the command (allow-external-apps?)"; return
+            connected = hasKey; status = "Termux refused the command (allow-external-apps?)"; return
         }
         io.execute {
             var ok = false
