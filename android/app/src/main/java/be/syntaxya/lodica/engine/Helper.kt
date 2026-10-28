@@ -76,12 +76,11 @@ object Helper {
     }
 
     /** Send the current routing config to the background script. Safe before it connects. */
-    fun push() {
-        val p = background ?: run { Log.w(TAG, "push skipped, helper not connected yet"); return }
+    fun push(target: WebExtension.Port? = null) {
+        val p = target ?: background ?: run { Log.w(TAG, "push skipped, helper not connected yet"); return }
         Log.i(TAG, "push api=${Relay.available} domain=${Relay.DOMAIN} ai=${Ai.connected} key=${Ai.hasKey}")
         val on = Relay.available && Prefs.routeVps && Relay.up
-        p.postMessage(
-            JSONObject().put("type", "config").put("enabled", on).put("auth", if (on) Relay.proxyAuth else "")
+        val msg = try { JSONObject().put("type", "config").put("enabled", on).put("auth", if (on) Relay.proxyAuth else "")
                 .put("direct", JSONArray(Prefs.direct.toList()))
                 .put("lite", JSONArray(Prefs.lite.toList()))
                 .put("page", JSONObject().put("cookies", Prefs.cookieReject).put("msLogin", Prefs.smartschoolMs).put("dark", Prefs.forceDark)
@@ -101,7 +100,8 @@ object Helper {
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)
                 .put("fallback", Prefs.searchFallback.query)
                 .put("theme", themeJson())
-        )
+        } catch (e: Throwable) { Log.w(TAG, "push build failed", e); JSONObject().put("type", "config").put("ai", Ai.connected).put("aiAlways", Prefs.aiAlways) }
+        try { p.postMessage(msg); Log.i(TAG, "push sent ${msg.toString().length}") } catch (e: Throwable) { Log.w(TAG, "push post failed", e) }
     }
 
     /** Palette colours for the start page, so it matches the app theme. */
@@ -294,7 +294,7 @@ object Helper {
                 override fun onPortMessage(message: Any, port: WebExtension.Port) {
                     val m = message as? JSONObject ?: return
                     when (m.optString("type")) {
-                        "config?" -> push()
+                        "config?" -> push(port)
                         "saved" -> Meter.saved(m.optString("host"), m.optInt("count"))
                         // Search page suggestions and top sites, from local history.
                         "suggest", "top" -> {
