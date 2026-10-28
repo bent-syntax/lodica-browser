@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.42 (versionCode 143)
+- Fixed: Dark mode on mobile
+
 ## 1.13.41 (versionCode 142)
 - Fixed: Support screen no longer jumps up and down while typing
 - Fixed: A new message after a fixed request starts a new support thread

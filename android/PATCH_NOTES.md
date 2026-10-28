@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.42
+- Fixed: Dark mode on mobile
+
 ## 1.13.41
 - Fixed: Support screen no longer jumps up and down while typing
 - Fixed: A new message after a fixed request starts a new support thread
