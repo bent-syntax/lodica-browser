@@ -83,7 +83,7 @@ object Helper {
         val msg = try { JSONObject().put("type", "config").put("enabled", on).put("auth", if (on) Relay.proxyAuth else "")
                 .put("direct", JSONArray(Prefs.direct.toList()))
                 .put("lite", JSONArray(Prefs.lite.toList()))
-                .put("page", JSONObject().put("cookies", Prefs.cookieReject).put("msLogin", Prefs.smartschoolMs).put("dark", Prefs.forceDark)
+                .put("page", JSONObject().put("cookies", Prefs.cookieReject).put("msLogin", Prefs.smartschoolMs).put("dark", Prefs.forceDark).put("darkPages", Prefs.darkPages)
                     .put("spell", JSONObject().put("on", Prefs.spell).put("auto", Prefs.spellAuto).put("langs", JSONArray(Prefs.spellLangs.toList()))).put("speed", Prefs.speed.toDouble())
                     .put("quality", Prefs.quality).put("qualities", JSONObject(Prefs.qualities as Map<*, *>)))
                 .put("api", if (Relay.available) Relay.apiToken else "")
