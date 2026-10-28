@@ -1,3 +1,7 @@
+## 1.13.41
+
+- Fixed: A new message after a fixed request starts a new support thread
+
 ## 1.13.40
 
 - Fixed: 2 finger swipe to go back

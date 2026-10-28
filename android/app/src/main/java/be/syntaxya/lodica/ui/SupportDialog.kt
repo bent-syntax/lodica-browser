@@ -151,7 +151,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
                 if (canWrite) OutlinedTextField(
                     value = text, onValueChange = { text = it },
                     label = { Text(if (open) "Reply" else "Your message") },
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), minLines = 3,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp), minLines = 3, maxLines = 3,
                 )
                 if (canWrite) Row {
                     TextButton(enabled = pics.size < 3 && !busy, onClick = { pick.launch("image/*") }) { Text(if (pics.isEmpty()) "Add image" else "Images: ${pics.size}/3") }
