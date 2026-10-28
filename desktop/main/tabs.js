@@ -154,7 +154,10 @@ function wire(t, wc) {
     persist(); pushTab(t);
   });
   wc.on("did-start-navigation", d => {
-    if (d.isMainFrame && !d.isSameDocument) t.navStart = d.url;
+    if (d.isMainFrame && !d.isSameDocument) {
+      t.navStart = d.url;
+      if (!t.private && d.url.startsWith("lodica://search/")) require("./search").prefetchUrl(d.url);
+    }
   });
   wc.on("did-navigate", (_, navUrl) => {
     const isErr = errorpage.isErrorUrl(navUrl);

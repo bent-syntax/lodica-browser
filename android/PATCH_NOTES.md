@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.13.34
+
+- Version bump to match desktop
+
 ## 1.13.33
 
 - Fixed: Two fingers sideways on a touchpad goes back or forward again, with an arrow at the edge

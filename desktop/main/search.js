@@ -138,11 +138,22 @@ function setQuick(list) {
   return out;
 }
 
-async function search(msg) {
+// Results are kept for two minutes and shared between a prefetch (started when the tab begins navigating) and the page's own request.
+const hits = new Map();
+function search(msg) {
   if (!relay.available) return { error: "Lodica Search needs a linked server. Link one in Settings, or pick another search engine." };
   const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
   if (msg.c) qs.set("c", String(msg.c));
   if (msg.l) qs.set("l", String(msg.l));
+  const key = qs.toString(), hit = hits.get(key);
+  if (hit && Date.now() - hit.at < 120000) return hit.p;
+  const p = fetchSearch(qs);
+  hits.set(key, { at: Date.now(), p });
+  if (hits.size > 40) hits.delete(hits.keys().next().value);
+  p.then(r => { if (r && r.error && hits.get(key)?.p === p) hits.delete(key); });
+  return p;
+}
+async function fetchSearch(qs) {
   try {
     const r = await fetch(relay.API + "/api/search?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(20000) });
     if (!r.ok) return { error: "Search failed (" + r.status + ")" };
@@ -150,6 +161,15 @@ async function search(msg) {
   } catch {
     return { error: "Search server unreachable" };
   }
+}
+/** Starts the request for a lodica://search URL before its page has loaded. */
+function prefetchUrl(url) {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "lodica:" || u.hostname !== "search") return;
+    const q = (u.searchParams.get("q") || "").trim(), l = require("electron").app.getLocale().slice(0, 2).toLowerCase();
+    if (q) search({ q, p: Math.min(10, Math.max(1, parseInt(u.searchParams.get("p"), 10) || 1)), c: u.searchParams.get("c") === "images" ? "images" : "", l: /^[a-z]{2}$/.test(l) ? l : undefined });
+  } catch { /* not a search URL */ }
 }
 
 // Site icons for the result circles. Fetched from the site itself (no third-party icon service), cached in memory.
@@ -184,4 +204,4 @@ function ask(msg) {
 setTimeout(prefetchPlanner, 3000).unref();
 setInterval(prefetchPlanner, 100000).unref();
 
-module.exports = { init, prefetchPlanner };
+module.exports = { init, prefetchPlanner, prefetchUrl };

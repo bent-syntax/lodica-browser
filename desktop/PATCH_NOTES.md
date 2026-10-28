@@ -1,3 +1,7 @@
+## 1.13.34
+
+- Faster: Lodica Search results start loading as soon as you press Enter, and the address bar warms up the connection to your top history match
+
 ## 1.13.33
 
 - Fixed: Two fingers sideways on a touchpad goes back or forward again, with an arrow at the edge

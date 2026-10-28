@@ -115,6 +115,8 @@ async function suggest(text) {
   text = str(text).trim();
   if (!text) return [];
   const hist = cur()?.private || !d.prefs.p.historySuggest ? [] : d.history.suggest(text).map(h => h.search ? { title: h.title, url: d.prefs.resolve(h.title, d.relay.available), search: true } : h);
+  const top = hist.find(h => !h.search && /^https:\/\//.test(h.url || ""));
+  if (top) try { curWc()?.session.preconnect({ url: top.url, numSockets: 1 }); } catch { /* no session */ }
   const seen = new Set(hist.map(h => h.url));
   const eng = (await engineSuggest(text)).filter(s => !seen.has(s.url));
   return hist.concat(eng).slice(0, 10);

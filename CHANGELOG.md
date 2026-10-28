@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.34 (versionCode 135)
+- Faster: Lodica Search results start loading as soon as you press Enter, and the address bar warms up the connection to your top history match
+
 ## 1.13.33 (versionCode 134)
 - Fixed: Two fingers sideways on a touchpad goes back or forward again, with an arrow at the edge
 - Fixed: Saving an API key on some Samsung phones, so Ask AI shows up
