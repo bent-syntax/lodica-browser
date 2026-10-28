@@ -385,8 +385,6 @@ async function run() {
     const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
     if (offer(st)) return;
   }
-  const dbg = await browser.runtime.sendMessage({ type: "state" }).catch((e) => String(e));
-    $("results").append(el("div", { class: "ans" }, "DEBUG ai off " + JSON.stringify(dbg).slice(0, 300)));
 }
 
 // Smartschool planner on the start page: reads the ICS export the user added in Settings.
