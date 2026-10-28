@@ -78,7 +78,7 @@ object Helper {
     /** Send the current routing config to the background script. Safe before it connects. */
     fun push() {
         val p = background ?: run { Log.w(TAG, "push skipped, helper not connected yet"); return }
-        Log.i(TAG, "push api=${Relay.available} domain=${Relay.DOMAIN}")
+        Log.i(TAG, "push api=${Relay.available} domain=${Relay.DOMAIN} ai=${Ai.connected} key=${Ai.hasKey}")
         val on = Relay.available && Prefs.routeVps && Relay.up
         p.postMessage(
             JSONObject().put("type", "config").put("enabled", on).put("auth", if (on) Relay.proxyAuth else "")
