@@ -118,17 +118,18 @@ internal fun SupportDialog(onClose: () -> Unit) {
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
     val canWrite = linked.isNotEmpty()
     // pin the dialog to the top: a centred dialog moves every time the keyboard (or its suggestion strip) changes height
-    val view = LocalView.current
     val topGap = with(LocalDensity.current) { 48.dp.roundToPx() }
-    SideEffect {
-        (view.parent as? DialogWindowProvider)?.window?.let { w ->
-            w.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
-            w.attributes = w.attributes.also { it.y = topGap }
-        }
-    }
     AlertDialog(
         onDismissRequest = onClose,
         title = {
+            // read the view inside the dialog: outside it the parent is the activity, not the dialog window
+            val view = LocalView.current
+            SideEffect {
+                (view.parent as? DialogWindowProvider)?.window?.let { w ->
+                    w.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
+                    w.attributes = w.attributes.also { it.y = topGap }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconTile(Icons.Rounded.ChatBubbleOutline, 40, Amber)
                 Spacer(Modifier.width(12.dp))
