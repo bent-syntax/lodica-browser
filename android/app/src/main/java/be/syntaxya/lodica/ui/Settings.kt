@@ -293,7 +293,7 @@ fun SettingsScreen() {
                     PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
                     Section("Smartschool planner")
                     PlannerSetting()
-                    SwitchRow("Colour tasks and tests", "Huistaak and Meebrengen in yellow, Toets in red", Prefs.plannerColors) { Prefs.updatePlannerColors(it) }
+                    SwitchRow("Colour tasks and tests", "Huistaak, Meebrengen and Afwerkingsopdracht in yellow, Toets in red", Prefs.plannerColors) { Prefs.updatePlannerColors(it) }
                     PlannerTextSetting(
                         "Time zone for the planner. Empty is Brussels, \"local\" is this device.", "Europe/Brussels", true, Prefs.plannerTz,
                     ) { Prefs.updatePlannerTz(it) }

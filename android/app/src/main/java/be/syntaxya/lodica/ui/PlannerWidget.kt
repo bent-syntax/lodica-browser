@@ -137,7 +137,7 @@ class PlannerWidget : AppWidgetProvider() {
                         val a = wall(s, zone)
                         val b = end?.let { wall(it, zone) } ?: a
                         val title = e["title"] ?: "Untitled"
-                        val kind = if (Regex("^(huistaak|meebrengen):\\s", RegexOption.IGNORE_CASE).containsMatchIn(title)) TASK
+                        val kind = if (Regex("^(huistaak|meebrengen|afwerkingsopdracht):\\s", RegexOption.IGNORE_CASE).containsMatchIn(title)) TASK
                         else if (Regex("^toets:\\s", RegexOption.IGNORE_CASE).containsMatchIn(title)) TEST else LESSON
                         val sub = Regex("Vakken:[ \t]*([^\n]+)", RegexOption.IGNORE_CASE).find(e["desc"] ?: "")?.groupValues?.get(1)?.trim().orEmpty()
                         if ((if (s.allDay) b.first - 1 else b.first) >= nowDay && a.first < nowDay + 7) {

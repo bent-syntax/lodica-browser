@@ -482,7 +482,7 @@ function drawPlanner(text, url, opts) {
   const zone = plannerZone(opts.tz);
   const now = zoned(new Date(), zone);
   const rules = slotRules(opts.slots);
-  const kindOf = (t) => (/^(huistaak|meebrengen):\s/i.test(t) ? "task" : /^toets:\s/i.test(t) ? "test" : "lesson");
+  const kindOf = (t) => (/^(huistaak|meebrengen|afwerkingsopdracht):\s/i.test(t) ? "task" : /^toets:\s/i.test(t) ? "test" : "lesson");
   let evs = parseIcs(text || "").map((e) => {
     const s = wall(e.start, zone), f = e.end ? wall(e.end, zone) : s;
     const sub = /Vakken:[ \t]*([^\n]+)/i.exec(e.desc || "");

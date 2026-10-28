@@ -1,3 +1,7 @@
+## 1.13.38
+
+- Added: Planner items starting with "Afwerkingsopdracht:" now count as tasks (yellow), like Huistaak and Meebrengen
+
 ## 1.13.37
 
 - Fixed: The Generate an AI answer button now shows on Lodica Search results; the app config reached the helper too late or not at all
