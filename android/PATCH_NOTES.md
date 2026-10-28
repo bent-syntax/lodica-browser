@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.32
+- Fixed: Api search
+
 ## 1.13.31
 - Fixed: Server chat emojis on Android are bigger, and Android syncs server emojis every time the chat opens
 
