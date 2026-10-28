@@ -52,6 +52,7 @@ function places(p) {
   return { plan, notes };
 }
 let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", plannerOpts: { colors: true, tz: "", slots: "" }, notes: false, pos: places() };
+const dbg = { n: 0 };
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -176,7 +177,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
   if (msg.type === "state") {
     await configured;
-    return { api: true, ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
+    return { dbg, api: true, ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
@@ -247,6 +248,7 @@ async function fetchIcon(host) {
 function connect() {
   const port = browser.runtime.connectNative("lodica");
   port.onMessage.addListener((msg) => {
+    dbg.n++; dbg.last = msg && msg.type; dbg.ai = msg && msg.ai;
     if (msg && msg.type === "config") {
       if (/^[a-z0-9.-]+$/i.test(String(msg.domain || ""))) domain = String(msg.domain).toLowerCase();
       legacy = !!msg.legacy;
