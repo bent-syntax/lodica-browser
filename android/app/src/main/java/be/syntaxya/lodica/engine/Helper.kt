@@ -101,7 +101,7 @@ object Helper {
                 .put("fallback", Prefs.searchFallback.query)
                 .put("theme", themeJson())
         } catch (e: Throwable) { Log.w(TAG, "push build failed", e); JSONObject().put("type", "config").put("ai", Ai.connected).put("aiAlways", Prefs.aiAlways) }
-        try { p.postMessage(msg); Log.i(TAG, "push sent ${msg.toString().length}") } catch (e: Throwable) { Log.w(TAG, "push post failed", e) }
+        Thread { try { p.postMessage(msg); Log.i(TAG, "push sent ${msg.toString().length}") } catch (e: Throwable) { Log.w(TAG, "push post failed", e) } }.start()
     }
 
     /** Palette colours for the start page, so it matches the app theme. */
