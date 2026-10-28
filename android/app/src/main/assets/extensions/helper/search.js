@@ -371,9 +371,19 @@ async function run() {
   // the app's config had not arrived yet.
   // Private tabs never send the question to the AI.
   applyTheme(state && state.theme);
-  if (state && state.ai && !cat && page === 1 && !priv) {
-    if (state.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
+  const offer = (st) => {
+    if (cat || page !== 1 || priv || !$("ai").hidden) return true;
+    if (!st || !st.ai) return false;
+    if (st.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
     else askButton(data);
+    return true;
+  };
+  if (offer(state)) return;
+  // The app's config can arrive after state answered; ask again a few times.
+  for (const wait of [1000, 2000, 4000]) {
+    await new Promise((r) => setTimeout(r, wait));
+    const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => null);
+    if (offer(st)) return;
   }
 }
 

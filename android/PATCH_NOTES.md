@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.13.37
+
+- Fixed: The Generate an AI answer button now shows on Lodica Search results; the app config reached the helper too late or not at all
+
 ## 1.13.36
 
 - Fixed: The Generate an AI answer button and AI answers now show on Lodica Search results when an AI key is set

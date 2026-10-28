@@ -52,6 +52,7 @@ function places(p) {
   return { plan, notes };
 }
 let cfg = { enabled: false, auth: "", direct: [], lite: [], api: "", ai: false, aiAlways: false, theme: null, engine: "", fallback: "", planner: "", plannerOpts: { colors: true, tz: "", slots: "" }, notes: false, pos: places() };
+let gotConfig = false;
 let ready;
 const configured = new Promise((resolve) => { ready = resolve; });
 setTimeout(() => ready(), 2000); // never hold page loads hostage to a missing app
@@ -248,6 +249,7 @@ function connect() {
   const port = browser.runtime.connectNative("lodica");
   port.onMessage.addListener((msg) => {
     if (msg && msg.type === "config") {
+      gotConfig = true;
       if (/^[a-z0-9.-]+$/i.test(String(msg.domain || ""))) domain = String(msg.domain).toLowerCase();
       legacy = !!msg.legacy;
       dns = Array.isArray(msg.dns) ? msg.dns.filter((p) => Array.isArray(p) && p.length === 2).map((p) => [String(p[0]).toLowerCase(), String(p[1])]) : [];
@@ -287,7 +289,15 @@ function connect() {
     }
   });
   native = port;
-  try { port.postMessage({ type: "config?" }); } catch (e) {}
+  // The app may not have its side of the port ready yet, so a single request can be dropped. Ask until it answers.
+  gotConfig = false;
+  let tries = 0;
+  const ask = () => {
+    if (gotConfig || native !== port || tries++ > 20) return;
+    try { port.postMessage({ type: "config?" }); } catch (e) {}
+    setTimeout(ask, 500);
+  };
+  ask();
   port.onDisconnect.addListener(() => { native = null; setTimeout(connect, 1000); });
 }
 connect();
