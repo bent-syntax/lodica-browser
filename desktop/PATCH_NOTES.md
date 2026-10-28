@@ -1,3 +1,7 @@
+## 1.13.31
+
+- Fixed: Server chat emojis on Android are bigger, and Android syncs server emojis every time the chat opens
+
 ## 1.13.30
 
 - Fixed: Ask AI now switches on when you connect a key or Hearth, and for people who were already connected

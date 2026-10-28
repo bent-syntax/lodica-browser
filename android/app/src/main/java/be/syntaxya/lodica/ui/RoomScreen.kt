@@ -84,7 +84,7 @@ fun RoomScreen() {
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
     var emojis by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
+    DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -105,7 +105,7 @@ fun RoomScreen() {
             else LazyVerticalGrid(GridCells.Adaptive(48.dp), Modifier.heightIn(max = 300.dp)) {
                 gridItems(Emojis.list.toList(), key = { it.name }) { e ->
                     val bmp = remember(e.name, e.at) { android.graphics.BitmapFactory.decodeFile(Emojis.file(e.name).path)?.asImageBitmap() }
-                    if (bmp != null) Image(bmp, e.name, Modifier.padding(4.dp).size(44.dp).clickable { text += ":" + e.name + ":"; emojis = false })
+                    if (bmp != null) Image(bmp, e.name, Modifier.padding(4.dp).size(56.dp).clickable { text += ":" + e.name + ":"; emojis = false })
                 }
             }
         },
@@ -318,7 +318,7 @@ private fun EmojiText(t: String) {
         append(t.substring(at))
     }
     val inline = used.associateWith { n ->
-        InlineTextContent(Placeholder(24.sp, 24.sp, PlaceholderVerticalAlign.TextCenter)) {
+        InlineTextContent(Placeholder(40.sp, 40.sp, PlaceholderVerticalAlign.TextCenter)) {
             val bmp = remember(n) { android.graphics.BitmapFactory.decodeFile(Emojis.file(n).path)?.asImageBitmap() }
             if (bmp != null) Image(bmp, n, Modifier.fillMaxSize())
         }
