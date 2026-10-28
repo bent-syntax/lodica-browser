@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.30 (versionCode 131)
+- Fixed: Ask AI now switches on when you connect a key or Hearth, and for people who were already connected
+- Fixed: Server chat emojis are bigger and sync every time the chat opens
+- Added: Adding a server emoji removes a plain background around the picture
+
 ## 1.13.29 (versionCode 130)
 - Added: AI can browse for you: a new button in the AI sheet lets it open pages, click, type and scroll, with a Stop button and a confirmation before risky clicks
 - Added: Planner and notes keep clear of the search bar and can be resized from every edge and corner

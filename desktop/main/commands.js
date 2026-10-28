@@ -515,8 +515,10 @@ function init(deps) {
     ai.chats.setDir(r.filePaths[0]);
     return r.filePaths[0];
   });
-  on("ai.setKey", k => ai.setKey(str(k)));
-  on("ai.setHearth", (a, k) => ai.setHearth(str(a), str(k)));
+  // Connecting a provider also switches Ask AI on; it stays off for people who never connect.
+  const enable = r => { if (r && !prefs.p.ai && ai.status().connected) prefs.set("ai", true); return r; };
+  on("ai.setKey", k => enable(ai.setKey(str(k))));
+  on("ai.setHearth", async (a, k) => enable(await ai.setHearth(str(a), str(k))));
   on("ai.usage", () => ai.usage());
   on("ai.resetUsage", () => ai.resetUsage());
   on("ai.memory.get", () => ai.memory.get());
@@ -559,6 +561,9 @@ function init(deps) {
     let img = nativeImage.createFromPath(r.filePaths[0]);
     if (img.isEmpty()) return { error: "Could not read that image" };
     const { width, height } = img.getSize();
+    // Plain backgrounds (white or any flat colour around the picture) become transparent.
+    const bmp = Buffer.from(img.toBitmap());
+    if (require("./emojibg").removeBackground(bmp, width, height)) img = nativeImage.createFromBitmap(bmp, { width, height });
     let side = 128, png = "";
     for (let i = 0; i < 4; i++, side = Math.round(side * 0.7)) {
       const k = Math.min(1, side / Math.max(width, height));

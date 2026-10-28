@@ -46,9 +46,9 @@ function openRoom() {
         L.pick.append(b);
       }
       const list = await inv("emojis.list") || [];
-      ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
+      if (list.length) ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
       for (const e of list) {
-        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(24px * var(--chat-scale, 1));height:calc(24px * var(--chat-scale, 1))" }));
+        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(36px * var(--chat-scale, 1));height:calc(36px * var(--chat-scale, 1))" }));
         b.addEventListener("click", () => put(":" + e.name + ":"));
         L.pick.prepend(b);
       }
@@ -62,7 +62,12 @@ function openRoom() {
         L.pick,
         h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
   });
-  inv("emojis.list").then((l) => { ROOM.emojis = new Map((l || []).map((e) => [e.name, e.png])); roomRender(); });
+  // Fetch the server emojis on every open; an empty answer keeps what we have, and one retry covers a slow link.
+  const syncEmojis = (retry) => inv("emojis.list").then((l) => {
+    if (l && l.length) { ROOM.emojis = new Map(l.map((e) => [e.name, e.png])); roomRender(); }
+    else if (retry) setTimeout(() => ROOM.L && syncEmojis(false), 3000);
+  });
+  syncEmojis(true);
   inv("room.discover").then((s) => { if (s) { ROOM.state = s; roomRender(); } });
   inv("room.start").then((s) => { if (s) ROOM.state = s; ROOM.L && (ROOM.L.name.value = ROOM.state.name || ""); roomRender(); });
   return ROOM.L;
@@ -102,7 +107,7 @@ function roomText(t) {
   const out = []; let at = 0;
   for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
     const png = map.get(m[1]); if (!png) continue;
-    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(22px * var(--chat-scale, 1));height:calc(22px * var(--chat-scale, 1));vertical-align:middle" }));
+    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(32px * var(--chat-scale, 1));height:calc(32px * var(--chat-scale, 1));vertical-align:middle" }));
     at = m.index + m[0].length;
   }
   out.push(t.slice(at));
