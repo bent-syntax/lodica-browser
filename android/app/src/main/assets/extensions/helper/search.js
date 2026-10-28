@@ -371,7 +371,6 @@ async function run() {
   // the app's config had not arrived yet.
   // Private tabs never send the question to the AI.
   applyTheme(state && state.theme);
-  { const d = $("ai"); d.hidden = false; $("ai-body").textContent = "dbg ai=" + (state && state.ai) + " api=" + (state && state.api) + " priv=" + priv + " cat=" + cat + " page=" + page; }
   if (state && state.ai && !cat && page === 1 && !priv) {
     if (state.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
     else askButton(data);
