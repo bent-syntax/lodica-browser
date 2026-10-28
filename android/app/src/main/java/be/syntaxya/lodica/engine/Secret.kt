@@ -34,11 +34,16 @@ object Secret {
     fun put(name: String, value: String?) {
         val e = sp().edit()
         if (value == null) { e.remove("$name.ct").remove("$name.iv").apply(); return }
-        runCatching {
+        fun seal() {
             val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
             val ct = c.doFinal(value.toByteArray(Charsets.UTF_8))
             e.putString("$name.ct", Base64.encodeToString(ct, Base64.NO_WRAP))
                 .putString("$name.iv", Base64.encodeToString(c.iv, Base64.NO_WRAP)).apply()
+        }
+        // Some Samsung StrongBox keys generate fine but fail on use; drop the key and make a plain one.
+        runCatching { seal() }.recoverCatching {
+            KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(KEY_ALIAS)
+            seal()
         }.onFailure { Log.w(TAG, "not saved: ${it.javaClass.simpleName}") }
     }
 
@@ -54,6 +59,6 @@ object Secret {
             return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
                 .apply { init(b.build()) }.generateKey()
         }
-        return runCatching { gen(true) }.getOrElse { gen(false) }
+        return gen(false)
     }
 }
