@@ -83,6 +83,7 @@ object Ai {
         apiKey = Secret.get("aikey")
         hasKey = apiKey != null
         connected = hasKey
+        Helper.push()
         if (enabled) { status = "Checking…"; io.execute { val ok = ping(); main.post { setConnected(ok, false) } } }
     }
 

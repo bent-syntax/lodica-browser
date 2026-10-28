@@ -177,7 +177,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   if (msg.type === "state") {
     await configured;
     console.log("lodica state ai=" + cfg.ai + " native=" + !!native);
-    return { api: true, ai: cfg.ai && !!native, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
+    return { api: true, ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
@@ -288,6 +288,7 @@ function connect() {
     }
   });
   native = port;
+  try { port.postMessage({ type: "config?" }); } catch (e) {}
   port.onDisconnect.addListener(() => { native = null; setTimeout(connect, 1000); });
 }
 connect();
