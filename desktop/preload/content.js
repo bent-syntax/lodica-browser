@@ -17,6 +17,45 @@ const browser = { runtime: { connectNative() {
         ipcRenderer.send("helper", { type: "nav", dir: e.button === 3 ? "back" : "forward" });
       }
     }, true);
+    // Two fingers sideways on a touchpad: an arrow grows at the edge, and past the limit history goes back/forward.
+    let sum = 0, last = 0, lock = 0, arrow = null, hide = 0;
+    const LIMIT = 150;
+    const canScroll = (el, dx) => {
+      for (; el && el !== document.documentElement; el = el.parentElement) {
+        const o = getComputedStyle(el).overflowX;
+        if ((o === "auto" || o === "scroll") && el.scrollWidth > el.clientWidth + 1) {
+          if (dx < 0 ? el.scrollLeft > 0 : el.scrollLeft + el.clientWidth < el.scrollWidth - 1) return true;
+        }
+      }
+      return false;
+    };
+    const draw = (p, back) => {
+      if (!document.documentElement) return;
+      if (!arrow) {
+        arrow = document.createElement("div");
+        arrow.setAttribute("style", "position:fixed;top:50%;z-index:2147483647;width:44px;height:44px;margin-top:-22px;border-radius:50%;background:#1F2937;color:#F59E0B;display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4);transition:opacity .15s");
+        arrow.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
+      }
+      if (!arrow.isConnected) document.documentElement.appendChild(arrow);
+      const e = Math.min(1, p / LIMIT), off = Math.round(-44 + 72 * e);
+      arrow.style.left = back ? off + "px" : "auto";
+      arrow.style.right = back ? "auto" : off + "px";
+      arrow.firstChild.style.transform = back ? "" : "scaleX(-1)";
+      arrow.style.opacity = String(Math.max(.25, e));
+      clearTimeout(hide); hide = setTimeout(() => { sum = 0; arrow && arrow.remove(); }, 200);
+    };
+    window.addEventListener("wheel", e => {
+      const now = Date.now();
+      if (now < lock || e.ctrlKey) return;
+      if (now - last > 200) sum = 0;
+      last = now;
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY) * 2 || canScroll(e.target, e.deltaX)) { sum = 0; return; }
+      sum += e.deltaX;
+      draw(Math.abs(sum), sum < 0);
+      if (Math.abs(sum) < LIMIT) return;
+      ipcRenderer.send("helper", { type: "nav", dir: sum < 0 ? "back" : "forward", swipe: true });
+      sum = 0; lock = now + 700; arrow && arrow.remove();
+    }, { capture: true, passive: true });
   }
   return port;
 } } };

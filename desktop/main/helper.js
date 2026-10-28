@@ -222,7 +222,10 @@ async function onMessage(tab, frame, m) {
   switch (m.type) {
     case "nav":
       if (frame.parent) return;
-      if (m.dir === "back" || m.dir === "forward") require("./commands").mouse(m.dir);
+      if (m.dir === "back" || m.dir === "forward") {
+        if (m.swipe) { if (Date.now() < (global.lodicaSwipeLock || 0)) return; global.lodicaSwipeLock = Date.now() + 700; }
+        require("./commands").mouse(m.dir);
+      }
       return;
     case "hello": {
       let list = live(tab).filter(f => !sameFrame(f.frame, frame));

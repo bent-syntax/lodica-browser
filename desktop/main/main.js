@@ -229,6 +229,8 @@ function swipeNav(wc) {
     if (Math.abs(dx) <= Math.abs(dy) * 2) { sum = 0; return; }
     sum += dx;
     if (Math.abs(sum) < 150) return;
+    if (now < (global.lodicaSwipeLock || 0)) { sum = 0; return; }
+    global.lodicaSwipeLock = now + 700;
     M.commands.mouse(sum < 0 ? "back" : "forward");
     sum = 0;
     locked = now + 700;

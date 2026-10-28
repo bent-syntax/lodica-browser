@@ -1,3 +1,8 @@
+## 1.13.33
+
+- Fixed: Two fingers sideways on a touchpad goes back or forward again, with an arrow at the edge
+- Fixed: Saving an API key on some Samsung phones, so Ask AI shows up
+
 ## 1.13.32
 
 - Fixed: Api search
