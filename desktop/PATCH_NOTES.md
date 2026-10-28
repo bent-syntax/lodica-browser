@@ -1,3 +1,7 @@
+## 1.13.43
+
+- Fixed: Support window stays at the top while typing
+
 ## 1.13.42
 
 - Fixed: Dark mode on mobile

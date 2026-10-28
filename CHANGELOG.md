@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.43 (versionCode 144)
+- Fixed: Support window stays at the top while typing on mobile
+
 ## 1.13.42 (versionCode 143)
 - Fixed: Dark mode on mobile
 
