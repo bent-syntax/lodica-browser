@@ -270,6 +270,8 @@ function onView(t, wc) {
     shortcut(e, i);
   });
   swipeNav(wc);
+  // A navigation just started (maybe by Chromium's own swipe): the swipe handlers must not go back a second time.
+  wc.on("did-start-navigation", (e) => { if (e.isMainFrame) global.lodicaSwipeLock = Date.now() + 1200; });
   wc.on("enter-html-full-screen", () => M.ui.setFull(true));
   wc.on("leave-html-full-screen", () => M.ui.setFull(false));
   wc.once("destroyed", () => M.ui.setFull(false));
@@ -404,6 +406,8 @@ function wire(m) {
 
 // Native Wayland when available, X11 otherwise. No effect on Windows.
 if (process.platform === "linux") app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+// Windows: Chromium's own two-finger touchpad swipe for history back/forward (like Firefox).
+if (process.platform === "win32") app.commandLine.appendSwitch("enable-features", "TouchpadOverscrollHistoryNavigation,OverscrollHistoryNavigation");
 
 app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference

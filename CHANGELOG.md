@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.50 (versionCode 151)
+- Fixed: Desktop two-finger touchpad swipe back/forward on Windows now uses Chromium's own gesture
+
 ## 1.13.49 (versionCode 150)
 - Added: Desktop shows a message when a download starts or fails
 

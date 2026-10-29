@@ -1,3 +1,7 @@
+## 1.13.50
+
+- Fixed: Two-finger touchpad swipe back/forward on Windows
+
 ## 1.13.49
 
 - Added: Message when a download starts or fails
