@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.0 (versionCode 160)
+- Fixed: Desktop two-finger touchpad swipe back/forward works again (the swipe code was lost at build time in 1.13.57 and 1.13.58)
+- Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)
+
 ## 1.13.58 (versionCode 159)
 - Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)
 

@@ -1,3 +1,8 @@
+## 1.14.0
+
+- Fixed: Two-finger touchpad swipe back/forward works again. The swipe code was lost when the app was built, so 1.13.57 and 1.13.58 had no swipe
+- Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)
+
 ## 1.13.58
 
 - Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)

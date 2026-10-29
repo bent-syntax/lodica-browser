@@ -434,6 +434,9 @@ if (process.platform === "win32") app.commandLine.appendSwitch("enable-features"
 app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
   for (const ses of sessions()) registerProtocol(ses);
+  for (const ses of sessions()) {
+    try { ses.registerPreloadScript({ type: "frame", id: "lodica-swipe", filePath: path.join(ROOT, "preload", "swipe.js") }); } catch (e) { console.error("swipe preload", e.message); }
+  }
   createWindow();
   const m = loadModules();
   m.ui.init(win, uiView);

@@ -1,4 +1,9 @@
 # Patch notes
+## 1.14.0
+
+- Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)
+- Changed: Desktop touchpad swipe fix
+
 ## 1.13.58
 - Changed: Maintenance release, desktop only
 
