@@ -279,3 +279,20 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 
 /* server chat size (Settings, Server) */
 .chat-thread[style*="--chat-scale"] .chat-q,.chat-thread[style*="--chat-scale"] .chat-a{font-size:calc(15px * var(--chat-scale,1))}
+
+/* Subject per time slot: a textarea that grows with its lines, no drag handle, text padded like the other fields. */
+.set-row textarea.set-input{height:auto;min-height:36px;padding:8px 10px;resize:none;overflow:hidden;line-height:1.45;width:250px;text-align:left;vertical-align:top;box-sizing:border-box}
+/* The opacity slider stayed wider than its row and stuck out on the right. */
+.range-side{max-width:100%;min-width:0}
+.set-range{width:160px;max-width:100%;min-width:0;margin:0}
+.range-side .val{min-width:34px;text-align:right}
+
+/* Server chat uses the full width of the window: smaller side gutters, messages are not capped at 820px. */
+.spage-layer .sp-head{padding-left:16px;padding-right:12px}
+.spage-layer .chat-tabs,.spage-layer .chat-panel,.spage-layer .ai-in{padding-left:12px;padding-right:12px}
+.spage-layer .chat-thread{padding:12px 0}
+.spage-layer .chat-a{max-width:calc(100% - 24px);margin:0 12px 12px}
+.spage-layer .chat-q{margin:0 12px 12px auto;max-width:80%}
+.set-range,.set-range:focus{-webkit-appearance:none;appearance:none;height:20px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;cursor:pointer}
+.set-range::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--amber) var(--fill,100%),var(--high) var(--fill,100%))}
+.set-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border-radius:50%;background:var(--amber);border:2px solid var(--bg);box-shadow:0 0 0 1px color-mix(in srgb,var(--amber) 60%,transparent)}

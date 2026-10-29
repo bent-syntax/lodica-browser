@@ -326,9 +326,8 @@ function init(d) {
   });
   // Translation of the selection: free service by default, Claude (own key or Hearth) when "Translate with Claude" is on.
   const LANG = { en: "English", nl: "Dutch", fr: "French" };
-  ipcMain.handle("translate", async (e, a) => {
-    const text = String(a && a.text || "").trim().slice(0, 400);
-    const from = a && a.from, to = a && a.to;
+  async function translateText(text, from, to) {
+    text = String(text || "").trim().slice(0, 400);
     if (!text || !LANG[from] || !LANG[to] || from === to) return "";
     if (prefs.p.translateAi && deps.ai && deps.ai.status().connected) {
       try {
@@ -341,6 +340,27 @@ function init(d) {
     const r = await net.fetch(u, { signal: AbortSignal.timeout(8000) });
     const t = String((await r.json())?.responseData?.translatedText || "");
     return /MYMEMORY WARNING|INVALID/i.test(t) ? "" : t;
+  }
+  ipcMain.handle("translate", (e, a) => translateText(a && a.text, a && a.from, a && a.to));
+  // Which of English, Dutch and French a text is, by how many of its words each dictionary knows.
+  const wordSets = {};
+  const known = (l) => (wordSets[l] ||= new Set(dictText(l).split("\n")));
+  function detectLang(text) {
+    const words = String(text).toLowerCase().match(/[\p{L}']+/gu) || [];
+    const langs = ["en", "nl", "fr"], score = langs.map((l) => { const set = known(l); return words.filter((w) => set.has(w)).length; });
+    const best = Math.max(...score);
+    if (!best) return /[éèêàçùâîôû]/i.test(text) ? "fr" : null;
+    const tied = langs.filter((l, i) => score[i] === best);
+    return tied.length > 1 && /[éèêàçùâîôû]/i.test(text) && tied.includes("fr") ? "fr" : tied[0];
+  }
+  // preload/translate.js asks for the selected text: Dutch becomes French, French becomes Dutch, only with the setting on.
+  ipcMain.handle("translate-selection", async (e, text) => {
+    text = String(text || "").trim();
+    if (!prefs.p.selTranslate || text.length < 2 || text.length > 300 || !/\p{L}/u.test(text)) return null;
+    const from = detectLang(text);
+    if (from !== "nl" && from !== "fr") return null;
+    const to = from === "nl" ? "fr" : "nl";
+    try { const out = await translateText(text, from, to); return out ? { from, to, out } : null; } catch { return null; }
   });
   prefs.events.on("change", pushPage);
 }

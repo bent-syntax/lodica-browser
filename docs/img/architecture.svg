@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="380" viewBox="0 0 1000 380" role="img" aria-label="Architecture: Android app and desktop app connect to the optional relay, which provides search, chat and updates">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1l8 4-8 4" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <rect width="1000" height="380" rx="20" fill="#111827"/>
+  <g font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+    <rect x="40" y="50" width="280" height="120" rx="20" fill="#1F2937"/>
+    <text x="60" y="90" font-size="20" font-weight="600" fill="#E5E7EB">android/</text>
+    <text x="60" y="116" font-size="13" fill="#9CA3AF">Kotlin, Jetpack Compose,</text>
+    <text x="60" y="136" font-size="13" fill="#9CA3AF">GeckoView</text>
+    <rect x="40" y="210" width="280" height="120" rx="20" fill="#1F2937"/>
+    <text x="60" y="250" font-size="20" font-weight="600" fill="#E5E7EB">desktop/</text>
+    <text x="60" y="276" font-size="13" fill="#9CA3AF">Electron, Windows and Linux</text>
+    <text x="60" y="296" font-size="13" fill="#9CA3AF">built-in PDF viewer</text>
+    <rect x="600" y="100" width="360" height="180" rx="20" fill="#1F2937" stroke="#F59E0B" stroke-width="2" stroke-dasharray="8 6"/>
+    <text x="624" y="140" font-size="20" font-weight="600" fill="#E5E7EB">relay/ (optional)</text>
+    <text x="624" y="170" font-size="13" fill="#9CA3AF">Node server you host yourself</text>
+    <g font-size="12" fill="#E5E7EB">
+      <rect x="624" y="195" width="80" height="28" rx="14" fill="#374151"/><text x="664" y="214" text-anchor="middle">Search</text>
+      <rect x="714" y="195" width="70" height="28" rx="14" fill="#374151"/><text x="749" y="214" text-anchor="middle">Chat</text>
+      <rect x="794" y="195" width="80" height="28" rx="14" fill="#374151"/><text x="834" y="214" text-anchor="middle">Updates</text>
+      <rect x="624" y="233" width="110" height="28" rx="14" fill="#374151"/><text x="679" y="252" text-anchor="middle">Tab sharing</text>
+      <rect x="744" y="233" width="100" height="28" rx="14" fill="#374151"/><text x="794" y="252" text-anchor="middle">Proxy</text>
+    </g>
+    <text x="460" y="150" font-size="12" fill="#9CA3AF" text-anchor="middle">HTTPS</text>
+  </g>
+  <path d="M322 110 C450 110 450 170 598 170" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" marker-end="url(#a)"/>
+  <path d="M322 270 C450 270 450 210 598 210" fill="none" stroke="#F59E0B" stroke-width="1.8" stroke-linecap="round" marker-end="url(#a)"/>
+</svg>

@@ -1,4 +1,11 @@
 # Patch notes
+## 1.14.2
+
+- Changed: The start page planner shows today and the next day with lessons, and moves on once today's last lesson is over
+- Fixed: Signing in to Smartschool with Microsoft starts at once
+- Changed: Emojis drawn by AI look like polished Apple-style emoji with gradients and highlights
+- Changed: Server emojis are stored sharper (256 px), so they look better when sent to Snapchat
+
 ## 1.14.1
 
 - Changed: Maintenance release, desktop only

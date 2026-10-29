@@ -1,93 +1,97 @@
-# Lodica
+<p align="center">
+  <img src="docs/img/banner.svg" alt="Lodica: a privacy-focused browser for Android and desktop" width="100%">
+</p>
 
-A privacy-focused browser for Android (GeckoView) and desktop (Electron), with vertical tabs, editable keybinds, customizable gestures, a built-in PDF viewer, ad blocking and a custom start page.
+<p align="center">
+  <a href="https://github.com/bent-syntax/lodica-browser/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/bent-syntax/lodica-browser?color=F59E0B&labelColor=1F2937"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-F59E0B?labelColor=1F2937"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20%7C%20Windows%20%7C%20Linux-F59E0B?labelColor=1F2937">
+</p>
 
-![Setup overview](docs/img/overview.svg)
+**Lodica** is a privacy-focused browser with vertical tabs, a password vault, built-in ad blocking and its own search page. It runs on Android (GeckoView) and on Windows and Linux (Electron). Everything works without a server; an optional self-hosted relay adds search, chat, tab sharing and update notices.
 
-| Folder | What it is |
-| --- | --- |
-| `android/` | Android app (Kotlin, Jetpack Compose, GeckoView). Package id `be.syntaxya.lodica`. |
-| `desktop/` | Desktop app (Electron). |
-
-Both apps share one version number (currently 1.7.3).
-
-Repo layout and build flow: [docs/STRUCTURE.md](docs/STRUCTURE.md).
+![Lodica start page](docs/screenshots/start.png)
 
 ## Highlights
 
-- Search uses the engine you choose, on the start page, in the widget and on desktop.
-- Quick sites on the start page, custom DNS rules (domain to redirect, as many as you like).
-- With a relay: hidden email, tab sharing, server chat with private chats and groups, and notifications for new versions and new messages.
-- Android widgets: search bar, shortcuts and quick sites.
+<p align="center">
+  <img src="docs/img/features.svg" alt="Feature overview: vertical tabs, ad blocking, password vault, PDF viewer, Lodica Search, planner and notes, themes, gestures and keys" width="100%">
+</p>
 
- Everything works without a server. A relay is only needed for the optional hidden email, tab sharing and search features. The relay lives in `relay/` in this repository.
+- **Privacy:** uBlock Origin, automatic cookie-banner rejection, per-site data meter, per-site lite mode, anti-fingerprinting.
+- **Vault:** per-site dummy email aliases and strong passwords, unlocked with biometrics (Android) or a PIN (desktop).
+- **AI, optional:** Ask AI through your own Claude Code sign-in, with local encrypted memory. Off by default.
+- **Desktop extras:** downloads with pause, resume and progress ring, two-finger touchpad swipe back/forward, translation of selected French or Dutch text, serial monitor, error page with retry.
+- **Android extras:** home-screen widgets, web apps as real apps, picture-in-picture, reader mode with read-aloud.
+- Full lists: [android/FEATURES.md](android/FEATURES.md), [desktop/FEATURES.md](desktop/FEATURES.md).
 
-## Android
+## Download
 
-Requirements: JDK 17, Android SDK (platform and build-tools for the version in `android/app/build.gradle.kts`).
+Get the latest build from [GitHub Releases](https://github.com/bent-syntax/lodica-browser/releases/latest). Current version: **1.14.2**.
 
-![Android build steps](docs/img/android-build.svg)
+| Platform | File |
+| --- | --- |
+| Windows installer | `Lodica-Setup-<version>.exe` |
+| Windows portable | `Lodica-Portable-<version>.exe` |
+| Linux AppImage | `Lodica-<version>.AppImage` |
+| Linux Debian/Ubuntu | `Lodica-<version>.deb` |
+| Android | `Lodica-<version>.apk` (allow installing unknown apps) |
+
+## Project layout
+
+<p align="center">
+  <img src="docs/img/architecture.svg" alt="Architecture: the Android and desktop apps optionally connect to the relay" width="100%">
+</p>
+
+| Folder | What it is |
+| --- | --- |
+| `android/` | Android app (Kotlin, Jetpack Compose, GeckoView), package `be.syntaxya.lodica` |
+| `desktop/` | Desktop app (Electron) |
+| `relay/` | Node relay: proxy, search, support, updates, chat, push |
+| `docs/` | Images, logos, theme plugin docs, [repo structure guide](docs/STRUCTURE.md) |
+
+Both apps share one version number. Release history: [CHANGELOG.md](CHANGELOG.md).
+
+## Build and test
+
+Builds run only through GitHub Actions (`ci.yml` on push to `main`, `release.yml` on a `v<x.y.z>` tag).
 
 ```bash
-git clone <this repository>
-cd lodica-browser/android
-echo "sdk.dir=$ANDROID_HOME" > local.properties
-./gradlew assembleDebug
-adb install app/build/outputs/apk/debug/*.apk
+npm test --prefix desktop            # desktop tests
+node --test relay/test/*.test.js     # relay tests
 ```
 
-Release builds need your own signing key: create `android/keystore/lodica.jks` (alias `lodica`) and run
-`LODICA_KEYSTORE_PASS=<password> ./gradlew assembleRelease`. The `keystore/` folder is gitignored.
-
-## Desktop
-
-Requirements: Node.js 20 or newer.
-
-![Desktop build steps](docs/img/desktop-build.svg)
+Run the desktop app from source (Node.js 20 or newer):
 
 ```bash
-cd lodica-browser/desktop
+cd desktop
 npm ci
-npm start             # run from source
-npm run dist:linux    # AppImage and deb in dist/
-npm run dist          # Windows installer (untested)
+npm start
 ```
+
+Android release builds need your own signing key at `android/keystore/lodica.jks` (alias `lodica`, gitignored).
 
 ## Optional: connect a relay
 
-![Relay overview](docs/img/relay.svg)
-
-The relay is a server you host yourself (code in `relay/`). You need a Debian or Ubuntu VPS and a domain with a wildcard DNS record (`*.example.com`) pointing at the VPS. Then run, as root on the server:
+The relay is a server you host yourself (code in `relay/`). You need a Debian or Ubuntu VPS and a domain with a wildcard DNS record (`*.example.com`) pointing at it. As root on the server:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo bash -s -- example.com
 ```
 
-It installs Node and the relay, installs [Caddy](https://caddyserver.com) if it is missing, and prints a token. Caddy routes `lodica.example.com` and `tunnel.example.com` and gets and renews their Let's Encrypt certificates by itself, so ports 80/443 must be reachable from the internet. If Caddy already runs, its existing sites are left alone: only hostnames it does not serve yet are added in `/etc/caddy/lodica-relay.caddy`, and the Caddyfile is backed up first. Everything is reachable on port **443**, so networks that block unusual ports still work: a small SNI router inside the relay owns 443, sends `lodica.<domain>` to the relay API and `tunnel.<domain>` to the relay proxy, and passes every other name to Caddy, which the installer moves to port 8443 (`https_port` in the Caddyfile). Nothing is decrypted by the router. The relay also keeps its own TCP ports **44741** (API) and **44742** (tunnel) as a fallback for older clients; the installer opens those in ufw. Open 80, 443 and those two in your host's web firewall too if it has one. Tune the router with `LODICA_EDGE_PORT`, `LODICA_EDGE_FALLBACK_PORT`, `LODICA_EDGE_API_HOST` and `LODICA_EDGE_TUNNEL_HOST` in `/etc/lodica-relay/relay.env`.
-
-To use your own certificate instead of Caddy's:
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh | sudo env LODICA_TLS_CERT=/path/fullchain.pem LODICA_TLS_KEY=/path/key.pem bash -s -- example.com
-```
-
-Set `LODICA_API_PORT` / `LODICA_PROXY_PORT` to use other ports (the apps expect the defaults). Running it again updates the relay and keeps the token. The app's setup wizard shows this same command with your domain filled in. To link the apps:
+The installer sets up Node, the relay and [Caddy](https://caddyserver.com) (certificates are automatic) and prints a token. Port 443 must be reachable; the relay also keeps ports 44741 and 44742 as a fallback for older clients. Running it again updates the relay and keeps the token. To link the apps:
 
 - **Android:** open the setup wizard from Settings, enter your domain, then paste the token.
-- **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config`. This writes the gitignored `desktop/config.json`.
+- **Desktop:** run `LODICA_API=https://lodica.<domain> LODICA_DOMAIN=<domain> LODICA_TOKEN_FILE=./relay-token npm run config` in `desktop/`. This writes the gitignored `desktop/config.json`.
 
-### Chat notifications
+Without a relay these features stay hidden and the browser works normally. On Android, instant chat messages use a foreground service: allow notifications and the battery exemption when asked.
 
-On Android, instant chat messages use a foreground service. Allow notifications when asked (POST_NOTIFICATIONS), and accept the battery exemption prompt so the system keeps the connection alive. The "Instant chat messages" switch turns it off. NFC pages: GeckoView has no Web NFC, so `NDEFReader.scan()` and `write()` reject with `NotSupportedError`; the desktop app does not support it either.
+## Contributing and security
 
-Without a relay these features stay hidden and the browser works normally.
-
-## Notes
-
-- Never commit `config.json`, `relay-token`, `keystore/` or `*.env`. They are gitignored.
-- Feature list: `android/FEATURES.md`, `desktop/FEATURES.md`. Patch notes: `*/PATCH_NOTES.md`.
-- Only the Android build was compiled here. The Windows build and real-device behavior are untested.
+- Read [docs/STRUCTURE.md](docs/STRUCTURE.md) first. Versions stay in sync across `android/app/build.gradle.kts`, `desktop/package.json`, `CHANGELOG.md` and both `PATCH_NOTES.md` files.
+- Never commit `config.json`, `relay-token`, `keystore/` or `*.env`; they are gitignored.
+- Report problems or security issues to [lodica@syntaxya.be](mailto:lodica@syntaxya.be).
 
 ## License
 
-MIT.
+[MIT](LICENSE)

@@ -498,7 +498,13 @@ function drawPlanner(text, url, opts) {
   }
   const prio = (e) => (e.kind === "lesson" ? 1 : 0);
   evs.sort((a, b) => a.day - b.day || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || a.min - b.min || prio(a) - prio(b));
-  evs = evs.slice(0, 14);
+  // Two days at a time: today and the next day with something planned, so tomorrow shows before midnight. Once the last
+  // lesson of today is over, today goes and the next two days show.
+  const todayLessons = evs.filter((e) => e.kind === "lesson" && !e.allDay && e.day === now.day);
+  const droppedToday = todayLessons.length > 0 && todayLessons.every((e) => e.endDay === e.day && e.end <= now.min);
+  if (droppedToday) evs = evs.filter((e) => e.day !== now.day);
+  const shownDays = [...new Set(evs.map((e) => e.day))].slice(0, 2);
+  evs = evs.filter((e) => shownDays.includes(e.day)).slice(0, 40);
   // a task or test inside a lesson is shown when that lesson is opened, so it gets no row of its own
   const all = evs;
   evs = all.filter((e) => e.kind === "lesson" || e.allDay || !all.some((l) => l.kind === "lesson" && !l.allDay && l.day === e.day && e.min >= l.min && e.min < l.end));
@@ -510,7 +516,7 @@ function drawPlanner(text, url, opts) {
   for (const e of evs) {
     if (e.day !== last) {
       if (last === now.day && !marked) mark();
-      if (e.day > now.day && !marked) { kids.push(el("div", { class: "pd" }, label(now.day))); mark(); }
+      if (e.day > now.day && !marked && !droppedToday) { kids.push(el("div", { class: "pd" }, label(now.day))); mark(); }
       kids.push(el("div", { class: "pd" }, label(e.day)));
       last = e.day;
     }
@@ -553,7 +559,7 @@ function drawPlanner(text, url, opts) {
       kids.push(el("div", { class: "pi" }, ...det));
     }
   }
-  if (!marked) {
+  if (!marked && !droppedToday) {
     if (last < now.day) kids.push(el("div", { class: "pd" }, label(now.day)));
     if (last <= now.day) mark();
   }

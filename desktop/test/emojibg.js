@@ -7,6 +7,7 @@ test("clears flat border, keeps centre", () => {
   for (let y = 3; y < 7; y++) for (let x = 3; x < 7; x++) { const i = (y * w + x) * 4; b[i] = 0; b[i + 1] = 0; b[i + 2] = 200; }
   assert.ok(removeBackground(b, w, h));
   assert.strictEqual(b[3], 0); assert.strictEqual(b[c + 3], 255);
+  assert.deepStrictEqual([b[0], b[1], b[2]], [0, 0, 0]); // premultiplied: a cleared pixel has no colour left
 });
 test("leaves busy corners alone", () => {
   const b = Buffer.alloc(100, 255); b[0] = 0; b[1] = 0; b[2] = 0;

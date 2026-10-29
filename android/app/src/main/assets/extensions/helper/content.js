@@ -1527,19 +1527,17 @@
   function msLogin() {
     if (msTried || !page.msLogin || !TOP || !/(^|\.)smartschool\.be$/i.test(location.hostname)) return;
     const link = () => document.querySelector('a[href*="/login/sso/init/office365"]');
-    const shown = (el) => !!el && el.offsetParent !== null;
-    let n = 0, more = false;
+    // The link is clicked as soon as it is in the page, even while the "show more" list still hides it, and the page is checked every 50 ms (it was 250 ms and visible only).
+    let n = 0;
     const tick = () => {
       if (msTried) return;
       const el = link();
-      if (shown(el)) {
+      if (el) {
         msTried = true;
         el.click();
         return;
       }
-      const m = document.getElementById("showmore");
-      if (!more && shown(m)) { more = true; m.click(); }
-      if (++n < 24) setTimeout(tick, 250);
+      if (++n < 160) setTimeout(tick, 50);
     };
     tick();
   }

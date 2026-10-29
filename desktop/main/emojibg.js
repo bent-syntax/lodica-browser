@@ -22,7 +22,8 @@ function removeBackground(buf, w, h, tol = 40) {
   let n = 0;
   while (stack.length) {
     const k = stack.pop(), x = k % w, y = (k - x) / w;
-    buf[k * 4 + 3] = 0; n++;
+    // The bitmap is premultiplied: a cleared pixel must be all zero, or its old colour shows as white.
+    buf[k * 4] = 0; buf[k * 4 + 1] = 0; buf[k * 4 + 2] = 0; buf[k * 4 + 3] = 0; n++;
     if (x > 0) push(x - 1, y); if (x < w - 1) push(x + 1, y);
     if (y > 0) push(x, y - 1); if (y < h - 1) push(x, y + 1);
   }

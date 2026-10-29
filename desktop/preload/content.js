@@ -1405,33 +1405,6 @@ const lodicaMain = () => {
     }, true);
   }
 
-  // Settings > Translation: translate the selection without a click, in the browser colours, with a Copy button.
-  async function autoTranslate(s) {
-    const from = await detectLang(s.text);
-    if (from !== "nl" && from !== "fr") { translateBubble(s); bubble.dataset.t = s.text; return; }
-    let out = "", theme = null;
-    try { [out, theme] = await Promise.all([ipcRenderer.invoke("translate", { text: s.text, from, to: TR_TARGET[from] }), ipcRenderer.invoke("lodica-theme")]); } catch (e) { /* offline */ }
-    const cur = selected();
-    if (!out || !cur || cur.text !== s.text || !page.selTranslate) return;
-    showBubble(s.x, s.y, (d) => {
-      d.setAttribute("data-kind", "translate");
-      d.dataset.t = s.text;
-      if (theme) { d.style.background = theme.bg; d.style.color = theme.text; d.style.border = "1px solid " + theme.amber; }
-      d.style.cssText += ";display:flex;gap:8px;align-items:center;font-size:13px;max-width:360px";
-      const t = document.createElement("span");
-      t.textContent = from.toUpperCase() + " \u2192 " + TR_TARGET[from].toUpperCase() + ": " + out;
-      const c = document.createElement("button");
-      c.textContent = "Copy";
-      c.style.cssText = "all:initial;cursor:pointer;font:600 12px system-ui,sans-serif;color:" + (theme ? theme.amber : "#F59E0B") + ";padding:0 2px";
-      c.addEventListener("mousedown", (e) => e.preventDefault());
-      c.addEventListener("click", () => {
-        try { navigator.clipboard.writeText(out); } catch (e) { /* blocked */ }
-        c.textContent = "Copied";
-      });
-      d.appendChild(t); d.appendChild(c);
-    }, true);
-  }
-
   let selTimer = 0;
   document.addEventListener("selectionchange", () => {
     clearTimeout(selTimer);
@@ -1443,7 +1416,7 @@ const lodicaMain = () => {
         const cv = g && drawGraph(g);
         if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
-        if (s && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { if (page.selTranslate) autoTranslate(s); else { translateBubble(s); bubble.dataset.t = s.text; } }
+        if (s && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { if (!page.selTranslate) { translateBubble(s); bubble.dataset.t = s.text; } }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
         return;
       }
@@ -1570,19 +1543,17 @@ const lodicaMain = () => {
   function msLogin() {
     if (msTried || !page.msLogin || !TOP || !/(^|\.)smartschool\.be$/i.test(location.hostname)) return;
     const link = () => document.querySelector('a[href*="/login/sso/init/office365"]');
-    const shown = (el) => !!el && el.offsetParent !== null;
-    let n = 0, more = false;
+    // The link is clicked as soon as it is in the page, even while the "show more" list still hides it, and the page is checked every 50 ms (it was 250 ms and visible only).
+    let n = 0;
     const tick = () => {
       if (msTried) return;
       const el = link();
-      if (shown(el)) {
+      if (el) {
         msTried = true;
         el.click();
         return;
       }
-      const m = document.getElementById("showmore");
-      if (!more && shown(m)) { more = true; m.click(); }
-      if (++n < 24) setTimeout(tick, 250);
+      if (++n < 160) setTimeout(tick, 50);
     };
     tick();
   }

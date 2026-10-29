@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.2 (versionCode 162)
+- Changed: Planner shows today and the next day, then the next two days after the last lesson
+- Fixed: Smartschool Microsoft sign-in starts at once
+- Changed: Desktop swipe pulls the arrow out of the side and goes on release
+- Fixed: Desktop second swipe back/forward without moving the cursor
+- Fixed: Desktop selection translation works in frames and shadow DOM
+- Added: Desktop emoji size setting for the server chat, whole-window opacity, README rework
+- Fixed: Desktop emoji background removal, slider and planner slot box layout
+- Changed: Sharper server emojis (256 px) and Apple-style AI emoji drawings
+
 ## 1.14.1 (versionCode 161)
 - Fixed: Desktop swipe back/forward navigates at the arrow limit, with an arrow in the theme colours
 - Fixed: Desktop translation of selected text works, Dutch to French and French to Dutch

@@ -1,3 +1,18 @@
+## 1.14.2
+
+- Changed: The start page planner shows today and the next day with lessons, and moves on to the next two days once today's last lesson is over
+- Fixed: Signing in to Smartschool with Microsoft starts at once instead of after about 2 seconds
+- Changed: Two-finger swipe pulls the arrow out of the side the further you move, and goes back or forward when you lift your fingers
+- Fixed: Two-finger swipe works again for a second swipe without moving the cursor first
+- Fixed: Translating selected text works on more sites, also in frames and inside page components (it was tied to the page script that the build replaced)
+- Changed: The add shortcut button on the start page is smaller
+- Changed: Server chat uses the full width of the window
+- Added: Setting for the size of server emojis in the chat, apart from the chat text size, and server emojis are bigger by default
+- Fixed: Removing the background of a picture when adding a server emoji works
+- Changed: Server emojis are stored sharper (up to 256 px), so they look better when sent to Snapchat
+- Changed: The opacity setting fades the whole browser window, so the apps under it show through. The slider no longer sticks out of its row
+- Fixed: The subject per time slot box in the planner settings is aligned, grows with its lines and has no drag handle
+
 ## 1.14.1
 
 - Fixed: Two-finger swipe back/forward goes as soon as you pass the arrow limit instead of waiting for the touchpad to stop sending movement

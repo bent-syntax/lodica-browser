@@ -24,7 +24,7 @@ const applyPrefs = p => {
   document.documentElement.dataset.theme = (p && p.theme) || "system";
   applyCustom(document.documentElement, (p && p.theme) || "system", p && p.customTheme, p && p.sysAccent);
   applyPlugin((p && p.themePlugin) || "");
-  document.documentElement.style.setProperty("--ui-a", String(Math.min(100, Math.max(30, (p && p.uiAlpha) || 100)) / 100));
+  document.documentElement.style.setProperty("--ui-a", "1");
   vert = !!(p && p.vertTabs); folded = vert && !!p.vertCollapsed;
   document.body.classList.toggle("vert", vert);
   document.body.classList.toggle("fold", folded);

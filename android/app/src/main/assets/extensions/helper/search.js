@@ -476,7 +476,13 @@ function drawPlanner(text, url, opts) {
   }
   const prio = (e) => (e.kind === "lesson" ? 1 : 0);
   evs.sort((a, b) => a.day - b.day || (a.allDay ? -1 : 0) - (b.allDay ? -1 : 0) || a.min - b.min || prio(a) - prio(b));
-  evs = evs.slice(0, 14);
+  // Two days at a time: today and the next day with something planned, so tomorrow shows before midnight. Once the last
+  // lesson of today is over, today goes and the next two days show.
+  const todayLessons = evs.filter((e) => e.kind === "lesson" && !e.allDay && e.day === now.day);
+  const droppedToday = todayLessons.length > 0 && todayLessons.every((e) => e.endDay === e.day && e.end <= now.min);
+  if (droppedToday) evs = evs.filter((e) => e.day !== now.day);
+  const shownDays = [...new Set(evs.map((e) => e.day))].slice(0, 2);
+  evs = evs.filter((e) => shownDays.includes(e.day)).slice(0, 40);
   const label = (d) => new Date(d * 864e5).toLocaleDateString(undefined, { timeZone: "UTC", weekday: "long", day: "numeric", month: "short" });
   const kids = [el("h3", null, "Smartschool planner")];
   if (!evs.length) kids.push(el("p", { class: "none" }, text == null ? "Planner could not be loaded." : "Nothing planned in the next 7 days."));
@@ -485,7 +491,7 @@ function drawPlanner(text, url, opts) {
   for (const e of evs) {
     if (e.day !== last) {
       if (last === now.day && !marked) mark();
-      if (e.day > now.day && !marked) { kids.push(el("div", { class: "pd" }, label(now.day))); mark(); }
+      if (e.day > now.day && !marked && !droppedToday) { kids.push(el("div", { class: "pd" }, label(now.day))); mark(); }
       kids.push(el("div", { class: "pd" }, label(e.day)));
       last = e.day;
     }
@@ -495,7 +501,7 @@ function drawPlanner(text, url, opts) {
     const cls = "pe" + (opts.colors !== false && e.kind !== "lesson" ? " " + e.kind : "");
     kids.push(el("div", { class: cls }, el("b", null, e.allDay ? "All day" : hhmm(e.min)), el("span", null, main + more), e.where ? el("em", null, e.where) : null));
   }
-  if (!marked) {
+  if (!marked && !droppedToday) {
     if (last < now.day) kids.push(el("div", { class: "pd" }, label(now.day)));
     if (last <= now.day) mark();
   }

@@ -113,8 +113,7 @@ const applyTheme = () => {
   const t = (S.prefs && S.prefs.theme) || "system";
   document.documentElement.dataset.theme = t;
   applyCustom(document.documentElement, t, S.prefs && S.prefs.customTheme, S.prefs && S.prefs.sysAccent);
-  const a = Math.min(100, Math.max(30, (S.prefs && S.prefs.uiAlpha) || 100)) / 100;
-  document.documentElement.style.setProperty("--ui-a", String(a));
+  document.documentElement.style.setProperty("--ui-a", "1");
   document.documentElement.style.setProperty("--ui-blur", S.prefs && S.prefs.uiBlur ? "18px" : "0px");
   const P = S.prefs || {}, bt = !P.barBottom;
   const side = P.vertTabs ? (P.vertCollapsed ? 44 : Math.min(480, Math.max(160, P.vertWidth || 220))) : 0;

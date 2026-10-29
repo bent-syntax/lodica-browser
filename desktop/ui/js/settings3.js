@@ -212,8 +212,8 @@ function secStart() {
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerTz || "", placeholder: "Europe/Brussels",
         on: { change: (e) => { S.prefs.plannerTz = e.target.value.trim().slice(0, 64); inv("prefs.set", "plannerTz", S.prefs.plannerTz); } } })),
     setRow("Subject per time slot", "One per line, like \"Mon 08:30-09:20 Maths\". Without a day it counts every day. It replaces the lessons in that slot. Tasks and tests stay.",
-      h("textarea", { class: "field set-input", rows: "4", value: S.prefs.plannerSlots || "", placeholder: "Mon 08:30-09:20 Maths",
-        on: { change: (e) => { S.prefs.plannerSlots = e.target.value.slice(0, 4000); inv("prefs.set", "plannerSlots", S.prefs.plannerSlots); } } })),
+      h("textarea", { class: "field set-input", rows: String(slotRows(S.prefs.plannerSlots)), value: S.prefs.plannerSlots || "", placeholder: "Mon 08:30-09:20 Maths",
+        on: { input: (e) => { e.target.rows = slotRows(e.target.value); }, change: (e) => { S.prefs.plannerSlots = e.target.value.slice(0, 4000); inv("prefs.set", "plannerSlots", S.prefs.plannerSlots); } } })),
     setPlace("plannerPos", "Planner position", "Where the planner sits on the start page.", "below"),
     setPlace("notesPos", "Notes position", "Where the notes sit on the start page. The planner and the notes can't share a place.", "left"));
   return out;
@@ -239,8 +239,8 @@ function secLayout() {
     setToggle("vertTabs", "Vertical tabs", "Move the tab strip to a side panel. Shortcut: " + (comboLabel("toggleVertical") || "none")),
     setToggle("barBottom", "Toolbar at bottom", "Put the address bar under the page instead of under the tabs."),
     secHead("Transparency", "transparency"),
-    setSlider("Window opacity", S.prefs.uiAlpha || 100, 30, 100, (v) => setPref("uiAlpha", v)),
-    setToggle("uiBlur", "Blur behind window", "Frosted-glass look. Works on Windows, macOS and compositors that blur behind windows. Restart Lodica to apply transparency changes.")];
+    setSlider("Browser opacity", S.prefs.uiAlpha || 100, 30, 100, (v) => setPref("uiAlpha", v)),
+    setToggle("uiBlur", "Blur behind window", "Frosted-glass look. Works on Windows, macOS and compositors that blur behind windows. Restart Lodica to apply the blur.")];
 }
 function bgPreview(bg) {
   const v = String(bg.value || "");
@@ -257,10 +257,12 @@ function bgPreview(bg) {
 }
 function setSlider(title, val, min, max, set) {
   const out = h("span", { class: "val", text: String(val) });
+  const fill = (el) => el.style.setProperty("--fill", Math.round(100 * (el.value - min) / (max - min)) + "%");
   const inp = h("input", { type: "range", min, max, value: val, class: "set-range", on: {
-    input: (e) => { out.textContent = e.target.value; },
+    input: (e) => { out.textContent = e.target.value; fill(e.target); },
     change: (e) => set(Number(e.target.value)),
   } });
+  fill(inp);
   return setRow(title, null, h("span", { class: "range-side" }, inp, out));
 }
 
@@ -278,6 +280,8 @@ function secSpell() {
     setToggle("spellAuto", "Correct automatically", "Off: right-click a misspelled word to see the suggestions. On: fix it when you type a space or punctuation, Backspace undoes it"),
     h("div", { class: "chips" }, SPELL_LANGS.map(([k, n]) => h("button", { class: "chip" + (langs.includes(k) ? " sel" : ""), act: () => pick(k), text: n })))];
 }
+// The slot box grows with its lines (2 at least), so it needs no drag handle.
+const slotRows = (v) => Math.max(2, String(v || "").split(/\r?\n/).length);
 function secTranslate() {
   return [secHead("Translation", "translate"), setToggle("selTranslate", "Translate selected text", "Select Dutch text and the French translation appears next to it, select French and you get Dutch, with a Copy button. Off: a Translate button appears instead"),
     setToggle("translateAi", "Translate with Claude", "Uses your Claude key or Hearth connection from the AI settings for a more accurate translation. Falls back to the free service when AI is not connected")];
@@ -299,6 +303,8 @@ function secServer() {
   const out = [].concat(secVps());
   out.push(setSelect("Chat size", "Size of server chat text and emojis", [
     { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
+  out.push(setSelect("Emoji size", "Size of server emojis in the chat, apart from the text size", [
+    { key: 100, label: "Small" }, { key: 150, label: "Medium" }, { key: 200, label: "Large" }, { key: 300, label: "Extra large" }], "chatEmojiScale", Number));
   if (S.relayAvail) out.push(secHead("Hidden email", "mail"),
     setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms"),
     setRow("Sites without the hidden-email button", noDummy.length ? noDummy.join(", ") : "None. The button shows on sign-up pages",

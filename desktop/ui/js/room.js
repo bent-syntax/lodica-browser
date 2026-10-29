@@ -48,7 +48,7 @@ function openRoom() {
       const list = await inv("emojis.list") || [];
       if (list.length) ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
       for (const e of list) {
-        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(36px * var(--chat-scale, 1));height:calc(36px * var(--chat-scale, 1))" }));
+        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(36px * var(--chat-scale, 1) * var(--emoji-scale, 1));height:calc(36px * var(--chat-scale, 1) * var(--emoji-scale, 1))" }));
         b.addEventListener("click", () => put(":" + e.name + ":"));
         L.pick.prepend(b);
       }
@@ -107,7 +107,7 @@ function roomText(t) {
   const out = []; let at = 0;
   for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
     const png = map.get(m[1]); if (!png) continue;
-    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(32px * var(--chat-scale, 1));height:calc(32px * var(--chat-scale, 1));vertical-align:middle" }));
+    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));height:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));vertical-align:middle" }));
     at = m.index + m[0].length;
   }
   out.push(t.slice(at));
@@ -172,8 +172,11 @@ function roomRender() {
   const scale = (S.prefs.chatScale || 100) / 100;
   L.thread.style.setProperty("--chat-scale", scale);
   L.pick.style.setProperty("--chat-scale", scale);
+  const emo = (S.prefs.chatEmojiScale || 150) / 100;
+  L.thread.style.setProperty("--emoji-scale", emo);
+  L.pick.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(15 * scale) + "px";
-  const sig = JSON.stringify([scale, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
+  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;

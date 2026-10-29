@@ -241,6 +241,22 @@ global.lodicaWheelDbg = (dx, sum, dy, shift) => {
 };
 // Swipe reports from the page preload. Own channel: no tab lookup, so nothing between the page and history can drop it.
 require("electron").ipcMain.handle("lodica-theme", () => global.lodicaTheme || null);
+// After a swipe navigation the new page has not seen the mouse yet, and wheel events were dropped until the cursor moved.
+// A mouse move at the real cursor position tells the page it is hovered, so the next swipe works at once.
+function hoverNewPage() {
+  const { screen } = require("electron");
+  const wc = M.tabs.wcOf();
+  if (!wc || wc.isDestroyed()) return;
+  const poke = () => {
+    try {
+      const v = M.tabs.current()?.view, c = win.getContentBounds(), b = v ? v.getBounds() : { x: 0, y: 0 }, p = screen.getCursorScreenPoint();
+      if (wc.isDestroyed()) return;
+      wc.sendInputEvent({ type: "mouseMove", x: Math.max(0, p.x - c.x - b.x), y: Math.max(0, p.y - c.y - b.y) });
+    } catch { /* window closing */ }
+  };
+  wc.once("dom-ready", poke);
+  wc.once("did-finish-load", poke);
+}
 require("electron").ipcMain.on("swipe", (_e, m) => {
   if (!m || typeof m !== "object") return;
   if (m.dir === "back" || m.dir === "forward") {
@@ -248,6 +264,7 @@ require("electron").ipcMain.on("swipe", (_e, m) => {
     if (now < (global.lodicaSwipeLock || 0)) return;
     global.lodicaSwipeLock = now + 700;
     M.commands.mouse(m.dir);
+    hoverNewPage();
     return;
   }
   if (global.lodicaSwipeDebug) global.lodicaWheelDbg(+m.dx || 0, +m.sum || 0, +m.dy || 0, !!m.shift);
@@ -324,10 +341,16 @@ function checkClipboard() {
   M.ui.push("clipboard", { url: text });
 }
 
+// The whole browser window, page included, fades so the apps under it show. Windows and macOS only.
+function applyOpacity() {
+  const a = Math.min(100, Math.max(30, Number(M && M.prefs.p.uiAlpha) || 100)) / 100;
+  try { if (win && !win.isDestroyed()) win.setOpacity(a); } catch { /* not supported on this system */ }
+}
+
 function createWindow() {
   // A see-through window must be created that way, so changing transparency or blur applies after a restart.
   const pp = (M && M.prefs.p) || {};
-  const seeThrough = (pp.uiAlpha || 100) < 100 || !!pp.uiBlur;
+  const seeThrough = !!pp.uiBlur;
   win = new BaseWindow({
     width: 1200, height: 800, minWidth: 400, minHeight: 500, backgroundColor: seeThrough ? "#00000000" : "#111827",
     ...(seeThrough ? { transparent: true } : {}),
@@ -436,7 +459,9 @@ app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
   for (const ses of sessions()) registerProtocol(ses);
   for (const ses of sessions()) {
-    try { ses.registerPreloadScript({ type: "frame", id: "lodica-swipe", filePath: path.join(ROOT, "preload", "swipe.js") }); } catch (e) { console.error("swipe preload", e.message); }
+    for (const name of ["swipe", "translate"]) {
+      try { ses.registerPreloadScript({ type: "frame", id: "lodica-" + name, filePath: path.join(ROOT, "preload", name + ".js") }); } catch (e) { console.error(name + " preload", e.message); }
+    }
   }
   createWindow();
   const m = loadModules();
@@ -445,6 +470,8 @@ app.whenReady().then(() => {
   m.ui.initDivider(dividerView);
   M = m;
   wire(m);
+  applyOpacity();
+  m.prefs.events.on("change", (k) => { if (k === "uiAlpha") applyOpacity(); });
   require("./emojipicker").init(m.prefs);
   try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
   uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));

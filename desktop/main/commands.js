@@ -568,8 +568,8 @@ function init(deps) {
     // Plain backgrounds (white or any flat colour around the picture) become transparent.
     const bmp = Buffer.from(img.toBitmap());
     if (require("./emojibg").removeBackground(bmp, width, height)) img = nativeImage.createFromBitmap(bmp, { width, height });
-    let side = 128, png = "";
-    for (let i = 0; i < 4; i++, side = Math.round(side * 0.7)) {
+    let side = 256, png = ""; // 256 px keeps a sent emoji sharp (Snapchat showed 128 px ones blurry); smaller only when the 96 KB server cap needs it
+    for (let i = 0; i < 5; i++, side = Math.round(side * 0.75)) {
       const k = Math.min(1, side / Math.max(width, height));
       png = img.resize({ width: Math.max(1, Math.round(width * k)), height: Math.max(1, Math.round(height * k)), quality: "best" }).toPNG().toString("base64");
       if (png.length <= 96 * 1024) break;

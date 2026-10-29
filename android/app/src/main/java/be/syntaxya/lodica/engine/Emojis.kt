@@ -21,7 +21,7 @@ data class Emoji(val name: String, val at: Long)
  * server by name (newest write wins, deletes are tombstones), and shown in the Lodica keyboard's emoji tab.
  */
 object Emojis {
-    private const val SIZE = 128
+    private const val SIZE = 256 // sharp when sent on to Snapchat and other apps; add() steps down when the server cap (96 KB) needs it
     private lateinit var app: Context
     private lateinit var dir: File
     private val meta get() = app.getSharedPreferences("emojis", Context.MODE_PRIVATE)
@@ -103,7 +103,7 @@ object Emojis {
         return Bitmap.createBitmap(px, w, h, Bitmap.Config.ARGB_8888)
     }
 
-    /** Scales [src] to a centred 128px square PNG, stores it under [name] and syncs. Returns the final name. */
+    /** Scales [src] to a centred 256px square PNG (smaller if the server cap needs it), stores it under [name] and syncs. Returns the final name. */
     fun add(name: String, original: Bitmap): String {
         val src = removeBackground(original)
         val n = uniqueName(name)
@@ -111,7 +111,15 @@ object Emojis {
         val s = minOf(SIZE.toFloat() / src.width, SIZE.toFloat() / src.height)
         val w = (src.width * s).toInt().coerceAtLeast(1); val h = (src.height * s).toInt().coerceAtLeast(1)
         Canvas(out).drawBitmap(Bitmap.createScaledBitmap(src, w, h, true), ((SIZE - w) / 2).toFloat(), ((SIZE - h) / 2).toFloat(), null)
-        file(n).outputStream().use { out.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        var png = java.io.ByteArrayOutputStream().also { out.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        var side = SIZE
+        // The server keeps a PNG up to 96 KB (as base64): step the size down until it fits.
+        while (png.size * 4 / 3 > 96 * 1024 && side > 64) {
+            side = side * 3 / 4
+            val small = Bitmap.createScaledBitmap(out, side, side, true)
+            png = java.io.ByteArrayOutputStream().also { small.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+        }
+        file(n).writeBytes(png)
         val at = System.currentTimeMillis()
         list.add(0, Emoji(n, at)); tombs.remove(n); save()
         push(n)

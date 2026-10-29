@@ -219,3 +219,9 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #f { background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); color: var(--text); }
 #f:focus-within { border-color: var(--amber); }
 #q::placeholder { color: var(--muted); }
+
+/* The add-shortcut button is a small round button, not a full-size site tile. */
+#top a.add { width: 56px; padding: 8px 0; align-self: flex-start; }
+#top a.add .fav { width: 36px; height: 36px; margin-top: 10px; font-size: 20px; }
+.addf { width: 200px; }
+.addf input { height: 30px; }
