@@ -41,7 +41,7 @@ const { ipcRenderer, webFrame } = require("electron");
       clearTimeout(hide); hide = setTimeout(() => {
         const go = Math.abs(sum) >= LIMIT, dir = sum < 0 ? "back" : "forward";
         sum = 0; sy = 0; arrow && arrow.remove();
-        if (go) { lock = Date.now() + 700; ipcRenderer.send("helper", { type: "nav", dir, swipe: true }); }
+        if (go) { lock = Date.now() + 700; ipcRenderer.send("swipe", { dir }); }
       }, 160);
     };
     window.addEventListener("wheel", e => {
@@ -49,7 +49,7 @@ const { ipcRenderer, webFrame } = require("electron");
       if (now < lock || e.ctrlKey) return;
       if (now - last > 200) { sum = 0; sy = 0; }
       last = now;
-      ipcRenderer.send("helper", { type: "wheelx", dx: Math.round(e.deltaX), dy: Math.round(e.deltaY), sum: Math.round(sum), shift: e.shiftKey });
+      ipcRenderer.send("swipe", { dx: Math.round(e.deltaX), dy: Math.round(e.deltaY), sum: Math.round(sum), shift: e.shiftKey });
       if (e.deltaX && canScroll(e.target, e.deltaX)) { sum = 0; sy = 0; return; }
       sum += e.deltaX; sy += e.deltaY;
       if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;

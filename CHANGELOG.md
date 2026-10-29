@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.57 (versionCode 158)
+- Fixed: Two-finger touchpad swipe back/forward now reports from the page straight to the app, so it no longer depends on the tab lookup
+
 ## 1.13.56 (versionCode 157)
 - Changed: Swipe diagnostics also listen for wheel events directly in the page
 

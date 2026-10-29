@@ -1,3 +1,7 @@
+## 1.13.57
+
+- Fixed: Two-finger touchpad swipe back/forward now reports from the page straight to the app, so it no longer depends on the tab lookup
+
 ## 1.13.56
 
 - Changed: Swipe diagnostics also listen for wheel events directly in the page

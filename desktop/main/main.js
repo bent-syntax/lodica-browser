@@ -239,6 +239,18 @@ global.lodicaWheelDbg = (dx, sum, dy, shift) => {
   dbg.maxX["sum"] = Math.max(dbg.maxX["sum"] || 0, Math.abs(sum));
   if (shift) dbg.counts["domShift"] = (dbg.counts["domShift"] || 0) + 1;
 };
+// Swipe reports from the page preload. Own channel: no tab lookup, so nothing between the page and history can drop it.
+require("electron").ipcMain.on("swipe", (_e, m) => {
+  if (!m || typeof m !== "object") return;
+  if (m.dir === "back" || m.dir === "forward") {
+    const now = Date.now();
+    if (now < (global.lodicaSwipeLock || 0)) return;
+    global.lodicaSwipeLock = now + 700;
+    M.commands.mouse(m.dir);
+    return;
+  }
+  if (global.lodicaSwipeDebug) global.lodicaWheelDbg(+m.dx || 0, +m.sum || 0, +m.dy || 0, !!m.shift);
+});
 function swipeDebugEvents(win) {
   for (const n of ["app-command", "swipe", "scroll-touch-begin", "scroll-touch-end", "scroll-touch-edge"]) {
     win.on(n, (_e, a) => { dbg.counts[n] = (dbg.counts[n] || 0) + 1; dbg.last = n + " " + (typeof a === "string" ? a : ""); });
