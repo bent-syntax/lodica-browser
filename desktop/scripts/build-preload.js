@@ -76,6 +76,46 @@ swap(`  try {
   } catch (e) { /* storage unavailable */ }`, `  ipcRenderer.invoke("page").then(usePage, () => {});
   ipcRenderer.on("page", (e, p) => usePage(p));`);
 
+// Translation: pages cannot call the translate services (CORS), so lookups go through the main process, which also
+// offers Claude. Dutch and French translate into each other.
+swap('  const trFetch = (u) => fetch(u).then((r) => r.json());', '  const trFetch = (u) => ipcRenderer.invoke("fetchJson", u);');
+swap('const TR_TARGET = { en: "nl", nl: "en", fr: "en" };', 'const TR_TARGET = { en: "nl", nl: "fr", fr: "nl" };');
+swap(`    try {
+      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + from + "|" + to);
+      out.text = (j && j.responseData && j.responseData.translatedText) || "";
+    } catch (e) { /* offline */ }`, `    try { out.text = (await ipcRenderer.invoke("translate", { text, from, to })) || ""; } catch (e) { /* offline */ }`);
+swap("s.text.length <= 80 && /\\p{L}/u.test(s.text)", "s.text.length <= 200 && /\\p{L}/u.test(s.text)");
+swap("{ translateBubble(s); bubble.dataset.t = s.text; }", "{ if (page.selTranslate) autoTranslate(s); else { translateBubble(s); bubble.dataset.t = s.text; } }");
+swap("  let selTimer = 0;\n", `  // Settings > Translation: translate the selection without a click, in the browser colours, with a Copy button.
+  async function autoTranslate(s) {
+    const from = await detectLang(s.text);
+    if (from !== "nl" && from !== "fr") { translateBubble(s); bubble.dataset.t = s.text; return; }
+    let out = "", theme = null;
+    try { [out, theme] = await Promise.all([ipcRenderer.invoke("translate", { text: s.text, from, to: TR_TARGET[from] }), ipcRenderer.invoke("lodica-theme")]); } catch (e) { /* offline */ }
+    const cur = selected();
+    if (!out || !cur || cur.text !== s.text || !page.selTranslate) return;
+    showBubble(s.x, s.y, (d) => {
+      d.setAttribute("data-kind", "translate");
+      d.dataset.t = s.text;
+      if (theme) { d.style.background = theme.bg; d.style.color = theme.text; d.style.border = "1px solid " + theme.amber; }
+      d.style.cssText += ";display:flex;gap:8px;align-items:center;font-size:13px;max-width:360px";
+      const t = document.createElement("span");
+      t.textContent = from.toUpperCase() + " \\u2192 " + TR_TARGET[from].toUpperCase() + ": " + out;
+      const c = document.createElement("button");
+      c.textContent = "Copy";
+      c.style.cssText = "all:initial;cursor:pointer;font:600 12px system-ui,sans-serif;color:" + (theme ? theme.amber : "#F59E0B") + ";padding:0 2px";
+      c.addEventListener("mousedown", (e) => e.preventDefault());
+      c.addEventListener("click", () => {
+        try { navigator.clipboard.writeText(out); } catch (e) { /* blocked */ }
+        c.textContent = "Copied";
+      });
+      d.appendChild(t); d.appendChild(c);
+    }, true);
+  }
+
+  let selTimer = 0;
+`);
+
 if (/browser\.storage|wrappedJSObject|openOrClosed/.test(js)) throw new Error("build-preload: Firefox API left");
 fs.mkdirSync(path.join(root, "preload"), { recursive: true });
 fs.writeFileSync(path.join(root, "preload", "content.js"), js);

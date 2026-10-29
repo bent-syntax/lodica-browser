@@ -240,6 +240,7 @@ global.lodicaWheelDbg = (dx, sum, dy, shift) => {
   if (shift) dbg.counts["domShift"] = (dbg.counts["domShift"] || 0) + 1;
 };
 // Swipe reports from the page preload. Own channel: no tab lookup, so nothing between the page and history can drop it.
+require("electron").ipcMain.handle("lodica-theme", () => global.lodicaTheme || null);
 require("electron").ipcMain.on("swipe", (_e, m) => {
   if (!m || typeof m !== "object") return;
   if (m.dir === "back" || m.dir === "forward") {
@@ -384,7 +385,7 @@ function wire(m) {
       ui.push(ev, data);
     },
   };
-  m.helper.init({ tabs, ui: helperUi, vault: m.vault, meter: m.meter });
+  m.helper.init({ tabs, ui: helperUi, vault: m.vault, meter: m.meter, ai: m.ai });
   m.ai.init({ onChange: s => ui.push("ai", s) });
   if (m.ai.status().connected && !m.prefs.p.ai && !m.prefs.p.aiAutoOn) { m.prefs.set("ai", true); m.prefs.set("aiAutoOn", true); }
   m.net.init({ tabs, meter: m.meter, ui, sessions: ses });

@@ -2,8 +2,13 @@
 
 // Electron bridge: the helper "port" talks to the main process over IPC.
 const { ipcRenderer, webFrame } = require("electron");
-// Back/forward input (mouse buttons, two-finger swipe) works on every page, with or without the helper.
-(() => {
+const browser = { runtime: { connectNative() {
+  const port = {
+    postMessage(m) { ipcRenderer.send("helper", m); },
+    onMessage: { addListener(fn) { ipcRenderer.on("helper", (e, m) => fn(m)); } },
+    onDisconnect: { addListener() {} },
+  };
+  ipcRenderer.send("helper", { type: "hello", top: window === window.top, host: location.hostname });
   if (window === window.top) {
     // Mouse buttons 4 and 5 (Linux has no app-command): navigate history.
     window.addEventListener("mouseup", e => {
@@ -13,15 +18,6 @@ const { ipcRenderer, webFrame } = require("electron");
       }
     }, true);
   }
-})();
-
-const browser = { runtime: { connectNative() {
-  const port = {
-    postMessage(m) { ipcRenderer.send("helper", m); },
-    onMessage: { addListener(fn) { ipcRenderer.on("helper", (e, m) => fn(m)); } },
-    onDisconnect: { addListener() {} },
-  };
-  ipcRenderer.send("helper", { type: "hello", top: window === window.top, host: location.hostname });
   return port;
 } } };
 
@@ -962,6 +958,22 @@ const lodicaMain = () => {
         }, 200);
       });
       darkObs.observe(document.documentElement, { childList: true, subtree: true });
+      darkAttrObs = new MutationObserver((muts) => {
+        for (const m of muts) {
+          const el = m.target;
+          const rec = darkRecs.get(el);
+          if (!rec || !el.isConnected) continue;
+          if (rec.saved) for (const prop in rec.saved) {
+            const [v, pri] = rec.saved[prop];
+            if (v) el.style.setProperty(prop, v, pri); else el.style.removeProperty(prop);
+          }
+          darkRecs.delete(el);
+          darkCount--;
+          darkQueue.push(() => { if (el.isConnected && !darkRecs.has(el)) { darkCount++; darkElement(el, el.parentElement && darkRecs.get(el.parentElement) || null); } });
+        }
+        if (!darkTimer) darkTimer = setTimeout(darkPump, 0);
+      });
+      darkAttrObs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"], subtree: true });
     } else if (!want && st) {
       st.remove();
       darkStop();
@@ -1028,26 +1040,7 @@ const lodicaMain = () => {
   // --- Math answer: select an equation and the result shows above it ---
 
   // lodica:math:start
-  // A number as text: a fraction ("1/2", "-7/3") when it is one with a denominator up to 1000, else rounded to [prec] digits.
-  function mathFrac(n, prec) {
-    const dec = String(Number(n.toPrecision(prec || 12)));
-    if (!isFinite(n) || Number.isInteger(Number(dec)) || Math.abs(n) >= 1e9) return dec;
-    const x = Math.abs(n);
-    let h0 = 0, h1 = 1, k0 = 1, k1 = 0, y = x;
-    for (let i = 0; i < 24; i++) {
-      const a = Math.floor(y);
-      [h0, h1] = [h1, a * h1 + h0];
-      [k0, k1] = [k1, a * k1 + k0];
-      if (k1 > 1000) return dec;
-      if (Math.abs(x - h1 / k1) < 1e-9 * Math.max(1, x)) return k1 === 1 ? dec : (n < 0 ? "-" : "") + h1 + "/" + k1;
-      const f = y - a;
-      if (f < 1e-12) break;
-      y = 1 / f;
-    }
-    return dec;
-  }
-
-  function calc(src, raw) {
+  function calc(src) {
     let s = String(src).trim().replace(/\s*=\s*\??\s*$/, "");
     if (!s || s.length > 200 || !/\d/.test(s)) return null;
     s = s.replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/[−–—]/g, "-").replace(/ /g, " ");
@@ -1105,9 +1098,8 @@ const lodicaMain = () => {
     let v;
     try { v = expr(); if (i !== tk.length) return null; } catch (e) { return null; }
     if (!ops || typeof v !== "number" || !isFinite(v)) return null;
-    if (raw) return v;
     if (Math.abs(v) >= 1e15 || (v !== 0 && Math.abs(v) < 1e-9)) return v.toExponential(6).replace(/\.?0+e/, "e");
-    return mathFrac(v, 12);
+    return String(Number(v.toPrecision(12)));
   }
 
   // "3x - 24 = -6" -> "x = 6"; one letter unknown, degree 1 or 2
@@ -1125,15 +1117,15 @@ const lodicaMain = () => {
       .replace(/(?<=[\d)])\s*(?=\u0001)/g, "*").replace(/(?<=\u0001)\s*(?=[\d(])/g, "*").replace(/\u0001\s*(?=\u0001)/g, "\u0001*")
       .replace(/\u0001/g, "(" + x + ")").replace(/\0/g, "").replace(/(?<=[\d)])\s*(?=\()/g, "*");
     const f = (x) => {
-      const a = calc("(" + side(l, x) + ")-(" + side(r, x) + ")", true);
-      return a == null ? NaN : a;
+      const a = calc("(" + side(l, x) + ")-(" + side(r, x) + ")");
+      return a == null ? NaN : Number(a);
     };
     const f0 = f(0), f1 = f(1), f2 = f(2), f3 = f(3);
     if (![f0, f1, f2, f3].every(isFinite)) return null;
     const A = (f2 - 2 * f1 + f0) / 2, B = f1 - f0 - A, C = f0;
     const tol = 1e-7 * (1 + Math.abs(f0) + Math.abs(f1) + Math.abs(f2));
     if (Math.abs(A * 9 + B * 3 + C - f3) > tol) return null;
-    const fmt = (n) => mathFrac(n, 10);
+    const fmt = (n) => String(Number(n.toPrecision(10)));
     const eps = 1e-9;
     if (Math.abs(A) < eps) {
       if (Math.abs(B) < eps) return null;
@@ -1146,6 +1138,78 @@ const lodicaMain = () => {
     const [p, o] = x1 < x2 ? [x1, x2] : [x2, x1];
     return v + " = " + fmt(p) + " or " + fmt(o);
   }
+  // "f(x) = 3x + 14" or "y = x^2" -> { v, f } where f maps the unknown to a number
+  function graphOf(src) {
+    const s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    const m = /^(?:[a-z]\s*\(\s*([a-z])\s*\)|y)\s*=\s*([^=]+)$/i.exec(s);
+    if (!m || s.length > 120) return null;
+    const e = m[2].trim();
+    const vars = new Set((e.replace(/sqrt|pi/gi, "").match(/[a-z]/gi) || []).map((c) => c.toLowerCase()));
+    const v = m[1] ? m[1].toLowerCase() : [...vars][0] || "x";
+    if (vars.size > 1 || (vars.size === 1 && !vars.has(v)) || !vars.size) return null;
+    if (!/^[\d\s.,+\-*/^%()a-z]+$/i.test(e)) return null;
+    const sub = (x) => e.replace(/sqrt/gi, "\u0002").replace(/pi/gi, "\u0003")
+      .replace(new RegExp(v, "gi"), "\u0001")
+      .replace(/(?<=[\d)])\s*(?=\u0001)/g, "*").replace(/(?<=\u0001)\s*(?=[\d(])/g, "*").replace(/\u0001\s*(?=\u0001)/g, "\u0001*")
+      .replace(/\u0001/g, "(" + x + ")").replace(/\u0002/g, "sqrt").replace(/\u0003/g, "pi").replace(/(?<=[\d)])\s*(?=\()/g, "*");
+    const f = (x) => { const a = calc("(" + sub(x) + ")+0"); return a == null ? NaN : Number(a); };
+    if (!isFinite(f(1)) && !isFinite(f(2)) && !isFinite(f(0.5))) return null;
+    return { v, f };
+  }
+
+  function drawGraph(g) {
+    const W = 260, H = 180, c = document.createElement("canvas");
+    c.width = W * 2; c.height = H * 2;
+    c.style.cssText = "display:block;width:" + W + "px;height:" + H + "px;border-radius:6px;background:#111";
+    const k = c.getContext("2d");
+    k.scale(2, 2);
+    const xs = [], ys = [];
+    for (let i = 0; i <= 240; i++) { const x = -10 + i / 12; xs.push(x); ys.push(g.f(x)); }
+    const fin = ys.filter(isFinite).sort((a, b) => a - b);
+    if (!fin.length) return null;
+    let lo = fin[0], hi = fin[fin.length - 1];
+    if (hi - lo > 200) { lo = fin[Math.floor(fin.length * 0.05)]; hi = fin[Math.ceil(fin.length * 0.95) - 1]; }
+    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+    const pad = (hi - lo) * 0.1; lo -= pad; hi += pad;
+    const px = (x) => (x + 10) / 20 * W, py = (y) => H - (y - lo) / (hi - lo) * H;
+    k.strokeStyle = "#555"; k.lineWidth = 1; k.beginPath();
+    if (lo < 0 && hi > 0) { k.moveTo(0, py(0)); k.lineTo(W, py(0)); }
+    k.moveTo(px(0), 0); k.lineTo(px(0), H); k.stroke();
+    k.fillStyle = "#aaa"; k.font = "10px system-ui,sans-serif";
+    k.fillText(String(Number(hi.toPrecision(3))), 3, 11);
+    k.fillText(String(Number(lo.toPrecision(3))), 3, H - 4);
+    k.strokeStyle = "#F59E0B"; k.lineWidth = 2; k.beginPath();
+    let pen = false;
+    for (let i = 0; i < xs.length; i++) {
+      const y = ys[i];
+      if (!isFinite(y) || y < lo - (hi - lo) || y > hi + (hi - lo)) { pen = false; continue; }
+      if (pen) k.lineTo(px(xs[i]), py(y)); else { k.moveTo(px(xs[i]), py(y)); pen = true; }
+    }
+    k.stroke();
+    // where the line crosses y = 0 (x intercepts, found by bisection) and x = 0
+    const pts = [];
+    for (let i = 0; i < xs.length - 1 && pts.length < 4; i++) {
+      let a = xs[i], b = xs[i + 1], fa = ys[i], fb = ys[i + 1];
+      if (!isFinite(fa) || !isFinite(fb)) continue;
+      if (fa === 0) { pts.push([a, 0]); continue; }
+      if (fa * fb > 0) continue;
+      if (Math.abs(fa) > 1e6 || Math.abs(fb) > 1e6) continue;
+      for (let n = 0; n < 40; n++) { const m = (a + b) / 2, fm = g.f(m); if (!isFinite(fm)) break; if (fa * fm <= 0) { b = m; fb = fm; } else { a = m; fa = fm; } }
+      pts.push([(a + b) / 2, 0]);
+    }
+    const y0 = g.f(0);
+    if (isFinite(y0)) pts.push([0, y0]);
+    k.fillStyle = "#fff"; k.font = "10px system-ui,sans-serif";
+    const fm = (n) => String(Number(n.toPrecision(3)));
+    for (const [x, y] of pts) {
+      if (y < lo || y > hi) continue;
+      k.beginPath(); k.arc(px(x), py(y), 3, 0, 7); k.fill();
+      const t = "(" + fm(x) + ", " + fm(y) + ")";
+      k.fillText(t, Math.min(Math.max(px(x) + 5, 2), W - k.measureText(t).width - 2), Math.min(Math.max(py(y) - 5, 22), H - 14));
+    }
+    return c;
+  }
+
   // lodica:math:end
 
   // lodica:spell:start
@@ -1288,7 +1352,7 @@ const lodicaMain = () => {
 
   // Translate / dictionary for a selected word or short phrase (Dutch, French, English)
   const TR_LANGS = ["en", "nl", "fr"];
-  const TR_TARGET = { en: "nl", nl: "en", fr: "en" };
+  const TR_TARGET = { en: "nl", nl: "fr", fr: "nl" };
   async function detectLang(text) {
     const words = text.toLowerCase().match(/[\p{L}']+/gu) || [];
     const ds = await Promise.all(TR_LANGS.map(loadDict));
@@ -1305,10 +1369,7 @@ const lodicaMain = () => {
     if (!from) return { error: "Language not recognised" };
     const to = TR_TARGET[from];
     const out = { from, to, text: "", def: "" };
-    try {
-      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + from + "|" + to);
-      out.text = (j && j.responseData && j.responseData.translatedText) || "";
-    } catch (e) { /* offline */ }
+    try { out.text = (await ipcRenderer.invoke("translate", { text, from, to })) || ""; } catch (e) { /* offline */ }
     if (from === "en" && !/\s/.test(text.trim())) {
       try {
         const j = await trFetch("https://api.dictionaryapi.dev/api/v2/entries/en/" + encodeURIComponent(text.trim().toLowerCase()));
@@ -1344,26 +1405,24 @@ const lodicaMain = () => {
     }, true);
   }
 
-  // Automatic translation next to a selection of French or Dutch text (Settings > Privacy)
+  // Settings > Translation: translate the selection without a click, in the browser colours, with a Copy button.
   async function autoTranslate(s) {
     const from = await detectLang(s.text);
-    if (from !== "fr" && from !== "nl") return;
-    let out = "";
-    try {
-      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(s.text) + "&langpair=" + from + "|en");
-      out = (j && j.responseData && j.responseData.translatedText) || "";
-    } catch (e) { /* offline */ }
+    if (from !== "nl" && from !== "fr") { translateBubble(s); bubble.dataset.t = s.text; return; }
+    let out = "", theme = null;
+    try { [out, theme] = await Promise.all([ipcRenderer.invoke("translate", { text: s.text, from, to: TR_TARGET[from] }), ipcRenderer.invoke("lodica-theme")]); } catch (e) { /* offline */ }
     const cur = selected();
     if (!out || !cur || cur.text !== s.text || !page.selTranslate) return;
     showBubble(s.x, s.y, (d) => {
       d.setAttribute("data-kind", "translate");
       d.dataset.t = s.text;
-      d.style.cssText += ";display:flex;gap:6px;align-items:center;font-size:12px;padding:4px 8px;max-width:320px";
+      if (theme) { d.style.background = theme.bg; d.style.color = theme.text; d.style.border = "1px solid " + theme.amber; }
+      d.style.cssText += ";display:flex;gap:8px;align-items:center;font-size:13px;max-width:360px";
       const t = document.createElement("span");
-      t.textContent = out;
+      t.textContent = from.toUpperCase() + " \u2192 " + TR_TARGET[from].toUpperCase() + ": " + out;
       const c = document.createElement("button");
       c.textContent = "Copy";
-      c.style.cssText = "all:initial;cursor:pointer;font:600 11px system-ui,sans-serif;color:#F59E0B;padding:0 2px";
+      c.style.cssText = "all:initial;cursor:pointer;font:600 12px system-ui,sans-serif;color:" + (theme ? theme.amber : "#F59E0B") + ";padding:0 2px";
       c.addEventListener("mousedown", (e) => e.preventDefault());
       c.addEventListener("click", () => {
         try { navigator.clipboard.writeText(out); } catch (e) { /* blocked */ }
@@ -1380,12 +1439,11 @@ const lodicaMain = () => {
       const s = selected();
       const ans = s && (solve(s.text) || calc(s.text));
       if (ans == null) {
+        const g = s && graphOf(s.text);
+        const cv = g && drawGraph(g);
+        if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
-        if (s && page.selTranslate && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text)) {
-          if (!(bubble && bubble.dataset.t === s.text)) autoTranslate(s);
-          return;
-        }
-        if (s && s.text.trim().length > 1 && s.text.length <= 80 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { translateBubble(s); bubble.dataset.t = s.text; }
+        if (s && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { if (page.selTranslate) autoTranslate(s); else { translateBubble(s); bubble.dataset.t = s.text; } }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
         return;
       }
@@ -1504,10 +1562,13 @@ const lodicaMain = () => {
     msLogin();
   }
 
+  // Late retries: the page options can arrive after the first paint.
+  for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) applyDark(); }, t);
+
   // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
   let msTried = false;
   function msLogin() {
-    if (msTried || !page.msLogin || window !== window.top) return;
+    if (msTried || !page.msLogin || !TOP || !/(^|\.)smartschool\.be$/i.test(location.hostname)) return;
     const link = () => document.querySelector('a[href*="/login/sso/init/office365"]');
     const shown = (el) => !!el && el.offsetParent !== null;
     let n = 0, more = false;
@@ -1546,11 +1607,9 @@ const lodicaMain = () => {
     const root = best && best.closest("article, main, [role=main]") || best || document.body;
     const parts = [];
     for (const el of root.querySelectorAll("h1, h2, h3, h4, p, li, blockquote, pre")) {
-      if (el.closest("nav, footer, aside, form, table, figure figcaption, [aria-hidden=true], .infobox, .navbox, .reflist")) continue;
+      if (el.closest("nav, footer, aside, form, figure figcaption, table, [aria-hidden=true], .infobox, .navbox, .toc, #toc")) continue;
       if (el.parentElement && el.parentElement.closest("p, li, blockquote")) continue;
-      // Citation markers like [12] or [citation needed] are noise in reading text.
-      const t = el.textContent.replace(/\[(\d+|[a-z]|citation needed|edit)\]/gi, "").replace(/\s+/g, " ").trim();
-      if (el.tagName === "H1" && t === (document.querySelector("h1")?.textContent || "").trim()) continue;
+      const t = el.textContent.replace(/\s+/g, " ").replace(/\s*\[(\d+|[a-z]|citation needed|edit)\]/gi, "").trim();
       if (t.length < (/^H/.test(el.tagName) ? 2 : 25)) continue;
       parts.push(/^H/.test(el.tagName) ? "## " + t : el.tagName === "LI" ? "• " + t : t);
     }

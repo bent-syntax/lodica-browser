@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.1
+
+- Changed: Maintenance release, desktop only
+
 ## 1.14.0
 
 - Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)

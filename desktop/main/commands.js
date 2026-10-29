@@ -196,6 +196,7 @@ function init(deps) {
   on("theme.colors", c => {
     const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
     if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
+    global.lodicaTheme = { bg: c.bg, amber: c.amber, text: c.text }; // read by the page preloads (swipe arrow)
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => {

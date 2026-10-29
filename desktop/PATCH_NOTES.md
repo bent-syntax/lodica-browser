@@ -1,3 +1,11 @@
+## 1.14.1
+
+- Fixed: Two-finger swipe back/forward goes as soon as you pass the arrow limit instead of waiting for the touchpad to stop sending movement
+- Changed: The swipe arrow uses your theme colours
+- Fixed: Translating selected text works in the browser (the translation was blocked on web pages and its code was dropped by the build)
+- Changed: Selected Dutch text is translated to French and selected French text to Dutch
+- Added: Setting to translate with Claude (your key or Hearth) for a more accurate translation (Settings > Translation)
+
 ## 1.14.0
 
 - Fixed: Two-finger touchpad swipe back/forward works again. The swipe code was lost when the app was built, so 1.13.57 and 1.13.58 had no swipe

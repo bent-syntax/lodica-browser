@@ -279,7 +279,8 @@ function secSpell() {
     h("div", { class: "chips" }, SPELL_LANGS.map(([k, n]) => h("button", { class: "chip" + (langs.includes(k) ? " sel" : ""), act: () => pick(k), text: n })))];
 }
 function secTranslate() {
-  return [secHead("Translation", "translate"), setToggle("selTranslate", "Translate selected text", "Select French or Dutch text and the English translation appears next to it, with a Copy button")];
+  return [secHead("Translation", "translate"), setToggle("selTranslate", "Translate selected text", "Select Dutch text and the French translation appears next to it, select French and you get Dutch, with a Copy button. Off: a Translate button appears instead"),
+    setToggle("translateAi", "Translate with Claude", "Uses your Claude key or Hearth connection from the AI settings for a more accurate translation. Falls back to the free service when AI is not connected")];
 }
 function secBlocking() {
   return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
