@@ -220,12 +220,14 @@ function shortcut(e, input) {
 function swipeNav(wc) {
   let sum = 0, sy = 0, last = 0, locked = 0, timer = null;
   wc.on("input-event", (_e, ev) => {
-    if (ev.type !== "mouseWheel") return;
+    if (ev.type !== "mouseWheel" && ev.type !== "gestureScrollUpdate") return;
     const now = Date.now();
     if (now < locked) return;
     if (now - last > 150) { sum = 0; sy = 0; }
     last = now;
-    sum += ev.deltaX || -(ev.wheelTicksX || 0) * 40 || 0; sy += ev.deltaY || 0;
+    // Gesture scrolls move the content, so their sign is the opposite of a wheel's.
+    const dx = ev.deltaX || -(ev.wheelTicksX || 0) * 40 || 0;
+    sum += ev.type === "gestureScrollUpdate" ? -dx : dx; sy += ev.deltaY || 0;
     // Navigate when the fingers let go (events stop), a little after the page's own arrow handler, which wins when present.
     clearTimeout(timer);
     timer = setTimeout(() => {

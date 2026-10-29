@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.47
+- Changed: Maintenance release, desktop fixes only
+
 ## 1.13.46
 - Fixed: Dark mode now works on Android 17 phones
 

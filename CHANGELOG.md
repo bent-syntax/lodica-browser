@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.47 (versionCode 148)
+- Fixed: Desktop tab strip now follows custom themes and theme plugins
+- Fixed: Desktop two-finger swipe back/forward works on every page, also with touchpad gesture scrolls
+
 ## 1.13.46 (versionCode 147)
 - Fixed: Dark mode now works on Android 17 phones (page options sent as their own message)
 - Fixed: Desktop hides the tab strip and bar when a page goes fullscreen

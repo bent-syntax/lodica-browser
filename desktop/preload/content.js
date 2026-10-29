@@ -2,13 +2,8 @@
 
 // Electron bridge: the helper "port" talks to the main process over IPC.
 const { ipcRenderer, webFrame } = require("electron");
-const browser = { runtime: { connectNative() {
-  const port = {
-    postMessage(m) { ipcRenderer.send("helper", m); },
-    onMessage: { addListener(fn) { ipcRenderer.on("helper", (e, m) => fn(m)); } },
-    onDisconnect: { addListener() {} },
-  };
-  ipcRenderer.send("helper", { type: "hello", top: window === window.top, host: location.hostname });
+// Back/forward input (mouse buttons, two-finger swipe) works on every page, with or without the helper.
+(() => {
   if (window === window.top) {
     // Mouse buttons 4 and 5 (Linux has no app-command): navigate history.
     window.addEventListener("mouseup", e => {
@@ -60,6 +55,15 @@ const browser = { runtime: { connectNative() {
       draw(Math.abs(sum), sum < 0);
     }, { capture: true, passive: true });
   }
+})();
+
+const browser = { runtime: { connectNative() {
+  const port = {
+    postMessage(m) { ipcRenderer.send("helper", m); },
+    onMessage: { addListener(fn) { ipcRenderer.on("helper", (e, m) => fn(m)); } },
+    onDisconnect: { addListener() {} },
+  };
+  ipcRenderer.send("helper", { type: "hello", top: window === window.top, host: location.hostname });
   return port;
 } } };
 

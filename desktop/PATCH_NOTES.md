@@ -1,3 +1,8 @@
+## 1.13.47
+
+- Fixed: Tab strip now follows custom themes and theme plugins
+- Fixed: Two-finger swipe back/forward works on every page, also with touchpad gesture scrolls
+
 ## 1.13.46
 
 - Fixed: Tab strip and bar now hide when a page goes fullscreen
