@@ -49,6 +49,7 @@ const { ipcRenderer, webFrame } = require("electron");
       if (now < lock || e.ctrlKey) return;
       if (now - last > 200) { sum = 0; sy = 0; }
       last = now;
+      if (e.deltaX) ipcRenderer.send("helper", { type: "wheelx", dx: Math.round(e.deltaX), sum: Math.round(sum) });
       if (e.deltaX && canScroll(e.target, e.deltaX)) { sum = 0; sy = 0; return; }
       sum += e.deltaX; sy += e.deltaY;
       if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;

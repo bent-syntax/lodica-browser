@@ -74,8 +74,7 @@ function subscribe() {
   on("mail", onMail);
   on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: d.sysAccent || (S.prefs && S.prefs.sysAccent) }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
   on("relay", (d) => { S.relay = Object.assign({}, S.relay, d || {}); refreshInbox(); refreshSettings(); });
-  on("downloads", (list) => refreshDownloads(list));
-  on("downloadStart", (d) => dlAnimate(d && d.name));
+  on("downloads", (list) => { dlRing(list); refreshDownloads(list); });
   on("openRoom", (r) => { openRoom(); if (r) inv("room.select", r); });
   on("room", (d) => { ROOM.state = d || ROOM.state; if (ROOM.L) roomRender(); });
   on("ai.chats", (c) => { CHAT.chats = c || []; if (CHAT.L && !CHAT.busy) chatRender(); });
@@ -179,3 +178,20 @@ async function start() {
   checkLock();
 }
 start();
+
+// Progress ring around the toolbar Downloads button.
+let DLP = { on: false, pct: 0, ind: false };
+function dlRing(list) {
+  if (list) {
+    const a = list.filter(d => d.state === "progressing");
+    const total = a.reduce((n, d) => n + (d.total || 0), 0);
+    const got = a.reduce((n, d) => n + (d.received || 0), 0);
+    DLP = { on: a.length > 0, pct: total ? Math.min(100, Math.round(got / total * 100)) : 0, ind: a.length > 0 && !total };
+  }
+  const b = document.querySelector('button.dlp');
+  if (!b) return;
+  b.classList.toggle("on", DLP.on);
+  b.classList.toggle("ind", DLP.ind);
+  b.style.setProperty("--p", DLP.pct);
+}
+new MutationObserver(() => dlRing()).observe(document.body, { childList: true, subtree: true });

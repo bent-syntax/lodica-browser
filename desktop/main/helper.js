@@ -227,6 +227,9 @@ async function onMessage(tab, frame, m) {
         require("./commands").mouse(m.dir);
       }
       return;
+    case "wheelx":
+      if (global.lodicaWheelDbg) global.lodicaWheelDbg(m.dx, m.sum);
+      return;
     case "hello": {
       let list = live(tab).filter(f => !sameFrame(f.frame, frame));
       const entry = { frame, top: !!m.top, form: false, focus: false };

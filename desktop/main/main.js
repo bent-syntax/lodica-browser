@@ -232,6 +232,11 @@ function swipeDebug(wc, label) {
   const txt = Object.entries(dbg.counts).map(([a, b]) => a + ":" + b).join("  ") + "\nmax |dx|: " + JSON.stringify(dbg.maxX) + "\nmax |dy|: " + JSON.stringify(dbg.maxY) + "\nlast moving: " + dbg.last;
   wc.executeJavaScript("(()=>{let d=document.getElementById('lodica-swipe-dbg');if(!d){d=document.createElement('pre');d.id='lodica-swipe-dbg';d.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#111827;color:#F59E0B;padding:8px 12px;border-radius:12px;font:12px monospace;pointer-events:none;white-space:pre-wrap;max-width:60vw';document.documentElement.append(d);}d.textContent=" + JSON.stringify(txt) + ";})()").catch(() => {});
 }
+global.lodicaWheelDbg = (dx, sum) => {
+  dbg.counts["domWheelX"] = (dbg.counts["domWheelX"] || 0) + 1;
+  dbg.maxX["domWheelX"] = Math.max(dbg.maxX["domWheelX"] || 0, Math.abs(dx));
+  dbg.maxX["sum"] = Math.max(dbg.maxX["sum"] || 0, Math.abs(sum));
+};
 function swipeDebugEvents(win) {
   for (const n of ["app-command", "swipe", "scroll-touch-begin", "scroll-touch-end", "scroll-touch-edge"]) {
     win.on(n, (_e, a) => { dbg.counts[n] = (dbg.counts[n] || 0) + 1; dbg.last = n + " " + (typeof a === "string" ? a : ""); });
@@ -370,7 +375,7 @@ function wire(m) {
   if (m.ai.status().connected && !m.prefs.p.ai && !m.prefs.p.aiAutoOn) { m.prefs.set("ai", true); m.prefs.set("aiAutoOn", true); }
   m.net.init({ tabs, meter: m.meter, ui, sessions: ses });
   m.pctabs.init({ tabs, ui, ai: m.ai });
-  m.downloads.init({ ui, sessions: ses });
+  m.downloads.init({ ui, sessions: ses, anim: () => require("./dlpage").play({ wc: tabs.wcOf(), win, pageBounds: ui.pageBounds }) });
   m.remind.init({ tabs, win: () => win });
   m.webapps.init({ tabs, openApp });
   m.perms.init({ ui, tabs, sessions: ses });

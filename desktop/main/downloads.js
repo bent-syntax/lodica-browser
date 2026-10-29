@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { app, shell, session } = require("electron");
 const store = require("./store");
+let anim = null;
 
 let ui = null, seq = Date.now();
 let items = store.load("downloads", []).filter(d => d && d.id);
@@ -74,7 +75,7 @@ function onWillDownload(e, item, wc) {
   if (items.length > 200) items.length = 200;
   track(item, d);
   persist(); push(true);
-  ui?.push("downloadStart", { name: d.name });
+  anim?.();
   ui?.toast("Downloading " + d.name);
 }
 
@@ -122,6 +123,7 @@ function download(url, ses = session.defaultSession) {
 
 function init(deps) {
   ui = deps.ui;
+  anim = deps.anim;
   for (const ses of deps.sessions) ses.on("will-download", onWillDownload);
 }
 

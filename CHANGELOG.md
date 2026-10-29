@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.54 (versionCode 155)
+- Fixed: Download animation plays in the page: the file starts at the cursor and the folder sits at the bottom
+- Added: Progress ring around the toolbar Downloads icon
+- Changed: Swipe diagnostics also show sideways wheel movement seen by the page
+
 ## 1.13.53 (versionCode 154)
 - Fixed: Windows touchpad swipe back/forward listens to the raw browser back/forward command
 
