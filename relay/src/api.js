@@ -10,6 +10,7 @@ const { cfg, tokenOk, limited, noteFail } = require('./config');
 const { parseMessage } = require('./mime');
 const page = require('./tabs-page');
 const search = require('./search');
+const adblock = require('./adblock');
 const updates = require('./updates');
 const chat = require('./chat');
 const support = require('./support');
@@ -556,6 +557,11 @@ async function route(req, res) {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
     return pairGet(req, res, r[1]);
+  }
+  if (p === '/api/adblock') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return sendJson(req, res, 200, adblock.status());
   }
   if (p === '/api/emojis') {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');

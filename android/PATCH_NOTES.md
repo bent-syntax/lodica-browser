@@ -1,4 +1,8 @@
 # Patch notes
+## 1.15.0
+
+- Changed: Maintenance release, desktop and server only
+
 ## 1.14.2
 
 - Changed: The start page planner shows today and the next day with lessons, and moves on once today's last lesson is over

@@ -18,6 +18,21 @@ const IP = /^(\d{1,3}(\.\d{1,3}){3}|\[[0-9a-f:]+\])$/i;
 
 let blocker = null, deps = null, sessions = [];
 
+// Ad blocking runs in the browser (the Ghostery lists, strength by Settings) or on the Lodica server, which then refuses ad and tracker
+// domains for everything sent through it. Without a linked server it is always the browser. YouTube is handled in the browser either way.
+const LEVELS = ["light", "standard", "strict"];
+const level = () => (LEVELS.includes(prefs.p.adBlockLevel) ? prefs.p.adBlockLevel : "standard");
+// Only when the server says it can (a relay from before this feature answers 404 and would refuse the login).
+let serverSupport = false;
+const serverAds = () => prefs.p.adBlockMode === "server" && relay.available && serverSupport;
+async function checkServer() {
+  serverSupport = false;
+  if (prefs.p.adBlockMode === "server" && relay.available) {
+    try { const [status] = await relay.request("GET", "/api/adblock"); serverSupport = status === 200; } catch { /* offline: the browser blocks */ }
+  }
+  applyProxy();
+}
+
 const hostOf = u => { try { return new URL(u).hostname; } catch { return ""; } };
 const isLocal = h => !h || h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || IP.test(h) || !h.includes(".");
 
@@ -63,7 +78,7 @@ function onBeforeRequest(details, cb) {
     if (tab) { tab.blocked++; deps.tabs.pushTab(tab); }
     return cb({ cancel: true });
   }
-  if (!blocker) return cb({});
+  if (!blocker || serverAds()) return cb({});
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
   blocker.onBeforeRequest(details, r => {
     if (r && (r.cancel || r.redirectURL)) {
@@ -75,7 +90,7 @@ function onBeforeRequest(details, cb) {
 }
 
 function onHeadersReceived(details, cb) {
-  if (!blocker) return cb({});
+  if (!blocker || serverAds()) return cb({});
   const tab = tabOf(details);
   const page = tab?.host || hostOf(details.url);
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
@@ -103,7 +118,7 @@ function onCompleted(details) {
 }
 
 function proxyConfig() {
-  if (prefs.p.routeVps && relay.available) {
+  if ((prefs.p.routeVps || serverAds()) && relay.available) {
     return { mode: "pac_script", pacScript: "data:application/x-ns-proxy-autoconfig;base64," + Buffer.from(relay.pacScript()).toString("base64") };
   }
   return { mode: "system" };
@@ -131,24 +146,34 @@ function init(d) {
     if (!authInfo.isProxy || !relay.available || !relay.proxyAuth) return;
     e.preventDefault();
     const [user, ...pass] = Buffer.from(relay.proxyAuth.replace(/^Basic\s+/i, ""), "base64").toString().split(":");
-    cb(user, pass.join(":"));
+    // "+ads-<strength>" after the user name asks the server to refuse ad and tracker domains.
+    cb(serverAds() ? user + "+ads-" + level() : user, pass.join(":"));
   });
-  prefs.events.on("change", key => { if (!key || key === "routeVps") applyProxy(); });
+  prefs.events.on("change", key => {
+    if (!key || key === "routeVps" || key === "adBlockMode" || key === "adBlockLevel") applyProxy();
+    if (key === "adBlockMode" || key === "adBlockLevel") for (const ses of sessions) { try { ses.clearAuthCache?.(); ses.closeAllConnections?.(); } catch { /* closing */ } }
+    if (key === "adBlockLevel") loadBlocker();
+    if (key === "adBlockMode") checkServer();
+  });
+  // The YouTube preload asks whether this site is on the allow lists before it touches the player.
+  ipcMain.on("lodica-adblock", (e, host) => { e.returnValue = !(prefs.isTrusted(String(host)) || prefs.isCompat(String(host))); });
   applyProxy();
   loadBlocker();
   setInterval(() => loadBlocker(), DAY).unref();
+  checkServer();
 }
 
 // The cached list is reused for a day; after that it is fetched again. A failed fetch keeps the cached copy.
 function loadBlocker() {
-  const file = path.join(app.getPath("userData"), "ghostery.bin");
+  const lv = level(), file = path.join(app.getPath("userData"), lv === "standard" ? "ghostery.bin" : "ghostery-" + lv + ".bin");
+  const build = lv === "light" ? ElectronBlocker.fromPrebuiltAdsOnly : lv === "strict" ? ElectronBlocker.fromPrebuiltFull : ElectronBlocker.fromPrebuiltAdsAndTracking;
   const stale = () => { try { return Date.now() - fs.statSync(file).mtimeMs > DAY; } catch { return true; } };
-  const make = fresh => ElectronBlocker.fromPrebuiltAdsAndTracking(fetch, {
+  const make = fresh => build.call(ElectronBlocker, fetch, {
     path: file,
     read: fresh ? () => Promise.reject(new Error("stale")) : fs.promises.readFile,
     write: fs.promises.writeFile,
   });
-  const apply = b => { blocker = b; };
+  const apply = b => { if (level() === lv) blocker = b; };
   (stale() ? make(true).catch(() => make(false)) : make(false))
     .then(apply)
     .catch(e => console.error("ghostery load failed:", e.message));

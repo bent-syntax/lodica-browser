@@ -8,7 +8,7 @@ const check = (name, ok, extra) => { console.log((ok ? "PASS " : "FAIL ") + name
 const dir = path.join(__dirname, "..");
 const read = (f) => readFileSync(path.join(dir, f), "utf8");
 
-check("main.js registers the swipe and translate preloads on the sessions", /for \(const name of \["swipe", "translate"\]\)[\s\S]{0,120}registerPreloadScript/.test(read("main/main.js")));
+check("main.js registers the swipe and translate preloads on the sessions", /for \(const name of \["swipe", "translate", "youtube"\]\)[\s\S]{0,120}registerPreloadScript/.test(read("main/main.js")));
 check("preload/translate.js asks main for the translation", read("preload/translate.js").includes('invoke("translate-selection"') && read("main/helper.js").includes('handle("translate-selection"'));
 check("build-preload does not touch swipe.js", !/swipe\.js/.test(read("scripts/build-preload.js")));
 check("packaged files include preload/", read("package.json").includes('"preload/**"'));

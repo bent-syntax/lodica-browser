@@ -1,3 +1,9 @@
+## 1.15.0
+
+- Fixed: YouTube ads are blocked: the ad data is removed from the player before YouTube uses it, ad slots are hidden, and an ad that still plays is skipped
+- Added: Ad blocking strength in Settings > Privacy: Light, Standard or Strict
+- Added: Choose where ads are blocked: in this browser (default) or on your Lodica server, which then refuses ad and tracker domains for all your traffic. Needs a server updated to this version. Without a linked server the browser always blocks
+
 ## 1.14.2
 
 - Changed: The start page planner shows today and the next day with lessons, and moves on to the next two days once today's last lesson is over

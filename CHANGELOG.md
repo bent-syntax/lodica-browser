@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.0 (versionCode 163)
+- Fixed: Desktop YouTube ads are blocked (player data, ad slots, skipping)
+- Added: Desktop ad blocking strength (light, standard, strict)
+- Added: Ad blocking on the server or in the browser; the relay filters ad and tracker domains by host name
+
 ## 1.14.2 (versionCode 162)
 - Changed: Planner shows today and the next day, then the next two days after the last lesson
 - Fixed: Smartschool Microsoft sign-in starts at once

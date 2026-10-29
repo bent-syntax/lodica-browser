@@ -287,7 +287,12 @@ function secTranslate() {
     setToggle("translateAi", "Translate with Claude", "Uses your Claude key or Hearth connection from the AI settings for a more accurate translation. Falls back to the free service when AI is not connected")];
 }
 function secBlocking() {
-  return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
+  const ads = [setSelect("Ad blocking strength", "Light blocks ads. Standard also blocks trackers. Strict adds pop-ups, cookie notices and other annoyances. YouTube ads are blocked at every strength", [
+    { key: "light", label: "Light" }, { key: "standard", label: "Standard" }, { key: "strict", label: "Strict" }], "adBlockLevel")];
+  // Without a linked server the browser always does it.
+  if (S.relayAvail) ads.push(setSelect("Block ads on", "This browser: the app blocks ads and trackers. My server: your Lodica server refuses ad and tracker domains for all your traffic, which then goes through the server. YouTube ads are still removed by the browser", [
+    { key: "browser", label: "This browser" }, { key: "server", label: "My server" }], "adBlockMode"));
+  return [secHead("Blocking", "blocking"), ...ads, setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
 }
 function secSuggest() {
   return [secHead("Address bar suggestions", "suggest"),

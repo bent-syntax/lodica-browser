@@ -2,6 +2,7 @@
 const { cfg, loadToken } = require('./config');
 const api = require('./api');
 const proxy = require('./proxy');
+const adblock = require('./adblock');
 const edge = require('./edge');
 
 const log = (msg) => console.log(msg);   // journald adds timestamps
@@ -12,6 +13,7 @@ setInterval(() => {
 }, 3600e3).unref();
 
 const apiServer = api.start(log);
+adblock.start(log);
 const proxyServer = proxy.start(log);
 const edgeServer = cfg.edgePort ? edge.start(log) : null;
 

@@ -459,7 +459,7 @@ app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
   for (const ses of sessions()) registerProtocol(ses);
   for (const ses of sessions()) {
-    for (const name of ["swipe", "translate"]) {
+    for (const name of ["swipe", "translate", "youtube"]) {
       try { ses.registerPreloadScript({ type: "frame", id: "lodica-" + name, filePath: path.join(ROOT, "preload", name + ".js") }); } catch (e) { console.error(name + " preload", e.message); }
     }
   }

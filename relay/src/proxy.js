@@ -7,10 +7,11 @@ const net = require('net');
 const fs = require('fs');
 const { cfg, tokenOk, limited, noteFail } = require('./config');
 const { resolveSafe, GuardError } = require('./ssrf');
+const adblock = require('./adblock');
 
 const stats = {
   connectOk: 0, connectFail: 0, httpOk: 0, httpFail: 0,
-  authFail: 0, ssrfDenied: 0, portDenied: 0, badRequest: 0,
+  authFail: 0, adBlocked: 0, ssrfDenied: 0, portDenied: 0, badRequest: 0,
   bytesUp: 0, bytesDown: 0, active: 0, certReloads: 0,
 };
 
@@ -19,18 +20,21 @@ const HOP = new Set(['proxy-authorization', 'proxy-connection', 'proxy-authentic
 
 function clientIp(sock) { return (sock && sock.remoteAddress) || '?'; }
 
-function checkProxyAuth(req) {
+// The proxy login. The user name is "lodica", or "lodica+ads-<strength>" to have ad and tracker hosts refused (see adblock.js).
+function authOf(req) {
   const h = req.headers['proxy-authorization'];
-  if (typeof h !== 'string') return false;
+  if (typeof h !== 'string') return null;
   const m = /^Basic\s+([A-Za-z0-9+/=]+)\s*$/i.exec(h);
-  if (!m) return false;
+  if (!m) return null;
   const dec = Buffer.from(m[1], 'base64').toString('utf8');
   const i = dec.indexOf(':');
-  if (i < 0) return false;
-  const userOk = dec.slice(0, i) === 'lodica';
+  if (i < 0) return null;
+  const user = dec.slice(0, i), ads = adblock.levelOf(user);
+  const userOk = user === 'lodica' || ads !== null;
   const passOk = tokenOk(dec.slice(i + 1));
-  return userOk && passOk;
+  return userOk && passOk ? { ads } : null;
 }
+const checkProxyAuth = (req) => authOf(req) !== null;
 
 const AUTH_407 = 'HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm="Lodica"\r\n' +
   'Content-Type: text/plain\r\nContent-Length: 29\r\nConnection: close\r\n\r\nProxy authentication required';
@@ -78,9 +82,11 @@ async function onConnect(req, client, head) {
   client.on('error', () => {});
   const ip = clientIp(client);
   if (limited(ip)) { rawReply(client, 429, 'Too many failed attempts'); return; }
-  if (!checkProxyAuth(req)) { stats.authFail++; noteFail(ip); client.end(AUTH_407); return; }
+  const auth = authOf(req);
+  if (!auth) { stats.authFail++; noteFail(ip); client.end(AUTH_407); return; }
   const t = parseAuthority(req.url || '');
   if (!t) { stats.badRequest++; return rawReply(client, 400, 'Bad CONNECT target'); }
+  if (auth.ads && adblock.blocked(t.host, auth.ads)) { stats.adBlocked++; return rawReply(client, 403, 'Blocked by the ad filter'); }
   if (cfg.blockedPorts.has(t.port)) { stats.portDenied++; return rawReply(client, 403, 'Port not allowed'); }
   let upstream;
   try {
@@ -133,7 +139,8 @@ async function onRequest(req, res) {
     res.end(msg + '\n');
   };
   if (limited(ip)) return deny(429, 'Too many failed attempts');
-  if (!checkProxyAuth(req)) {
+  const auth = authOf(req);
+  if (!auth) {
     stats.authFail++; noteFail(ip);
     return deny(407, 'Proxy authentication required', { 'Proxy-Authenticate': 'Basic realm="Lodica"' });
   }
@@ -144,6 +151,7 @@ async function onRequest(req, res) {
     return deny(400, 'Only CONNECT and absolute http:// URIs are supported');
   }
   if (u.username || u.password) { stats.badRequest++; return deny(400, 'Credentials in URL not supported'); }
+  if (auth.ads && adblock.blocked(u.hostname, auth.ads)) { stats.adBlocked++; return deny(403, 'Blocked by the ad filter'); }
   const port = u.port ? Number(u.port) : 80;
   if (cfg.blockedPorts.has(port)) { stats.portDenied++; return deny(403, 'Port not allowed'); }
   let addrs;
@@ -233,4 +241,4 @@ function start(log) {
   return server;
 }
 
-module.exports = { start, stats };
+module.exports = { start, stats, authOf };
