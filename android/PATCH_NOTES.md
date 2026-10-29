@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.44
+- Fixed: Support window no longer shifts when the keyboard opens
+
 ## 1.13.43
 - Fixed: Support window stays at the top while typing
 
