@@ -48,7 +48,7 @@ function track(item, d) {
     persist(); push(true);
     if (state === "completed" && ui) {
       ui.toast("Downloaded " + d.name, "Open").then(ok => { if (ok) shell.openPath(d.path); }).catch(() => {});
-    }
+    } else if (state === "interrupted" && ui) ui.toast("Download failed: " + d.name);
   });
 }
 
@@ -74,6 +74,7 @@ function onWillDownload(e, item, wc) {
   if (items.length > 200) items.length = 200;
   track(item, d);
   persist(); push(true);
+  ui?.toast("Downloading " + d.name);
 }
 
 const find = id => items.find(d => d.id === String(id));

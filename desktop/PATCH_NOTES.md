@@ -1,3 +1,7 @@
+## 1.13.49
+
+- Added: Message when a download starts or fails
+
 ## 1.13.48
 
 - Added: Touchpad swipe diagnostics overlay (Ctrl+Alt+Shift+D)

@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.49 (versionCode 150)
+- Added: Desktop shows a message when a download starts or fails
+
 ## 1.13.48 (versionCode 149)
 - Added: Desktop touchpad swipe diagnostics overlay (Ctrl+Alt+Shift+D) to find why swipe back does not fire
 
