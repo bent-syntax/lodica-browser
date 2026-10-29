@@ -27,7 +27,7 @@
 
 ## Download
 
-Get the latest build from [GitHub Releases](https://github.com/bent-syntax/lodica-browser/releases/latest). Current version: **1.15.0**.
+Get the latest build from [GitHub Releases](https://github.com/bent-syntax/lodica-browser/releases/latest). Current version: **1.14.3**.
 
 | Platform | File |
 | --- | --- |

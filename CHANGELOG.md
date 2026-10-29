@@ -2,7 +2,7 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
-## 1.15.0 (versionCode 163)
+## 1.14.3 (versionCode 163)
 - Fixed: Desktop YouTube ads are blocked (player data, ad slots, skipping)
 - Added: Desktop ad blocking strength (light, standard, strict)
 - Added: Ad blocking on the server or in the browser; the relay filters ad and tracker domains by host name

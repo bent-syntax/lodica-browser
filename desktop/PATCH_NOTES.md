@@ -1,4 +1,4 @@
-## 1.15.0
+## 1.14.3
 
 - Fixed: YouTube ads are blocked: the ad data is removed from the player before YouTube uses it, ad slots are hidden, and an ad that still plays is skipped
 - Added: Ad blocking strength in Settings > Privacy: Light, Standard or Strict
