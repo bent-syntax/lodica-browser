@@ -1,3 +1,7 @@
+## 1.13.55
+
+- Changed: Swipe diagnostics count every sideways and vertical wheel event the page sees
+
 ## 1.13.54
 
 - Fixed: Download animation plays in the page: the file starts at the cursor and the folder sits at the bottom

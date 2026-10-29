@@ -232,10 +232,12 @@ function swipeDebug(wc, label) {
   const txt = Object.entries(dbg.counts).map(([a, b]) => a + ":" + b).join("  ") + "\nmax |dx|: " + JSON.stringify(dbg.maxX) + "\nmax |dy|: " + JSON.stringify(dbg.maxY) + "\nlast moving: " + dbg.last;
   wc.executeJavaScript("(()=>{let d=document.getElementById('lodica-swipe-dbg');if(!d){d=document.createElement('pre');d.id='lodica-swipe-dbg';d.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#111827;color:#F59E0B;padding:8px 12px;border-radius:12px;font:12px monospace;pointer-events:none;white-space:pre-wrap;max-width:60vw';document.documentElement.append(d);}d.textContent=" + JSON.stringify(txt) + ";})()").catch(() => {});
 }
-global.lodicaWheelDbg = (dx, sum) => {
-  dbg.counts["domWheelX"] = (dbg.counts["domWheelX"] || 0) + 1;
-  dbg.maxX["domWheelX"] = Math.max(dbg.maxX["domWheelX"] || 0, Math.abs(dx));
+global.lodicaWheelDbg = (dx, sum, dy, shift) => {
+  dbg.counts["domWheel"] = (dbg.counts["domWheel"] || 0) + 1;
+  dbg.maxX["domWheel"] = Math.max(dbg.maxX["domWheel"] || 0, Math.abs(dx));
+  dbg.maxY["domWheel"] = Math.max(dbg.maxY["domWheel"] || 0, Math.abs(dy || 0));
   dbg.maxX["sum"] = Math.max(dbg.maxX["sum"] || 0, Math.abs(sum));
+  if (shift) dbg.counts["domShift"] = (dbg.counts["domShift"] || 0) + 1;
 };
 function swipeDebugEvents(win) {
   for (const n of ["app-command", "swipe", "scroll-touch-begin", "scroll-touch-end", "scroll-touch-edge"]) {

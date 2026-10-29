@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.55
+- Changed: Maintenance release, desktop only
+
 ## 1.13.54
 - Changed: Maintenance release, desktop only
 

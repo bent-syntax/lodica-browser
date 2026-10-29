@@ -228,7 +228,7 @@ async function onMessage(tab, frame, m) {
       }
       return;
     case "wheelx":
-      if (global.lodicaWheelDbg) global.lodicaWheelDbg(m.dx, m.sum);
+      if (global.lodicaWheelDbg) global.lodicaWheelDbg(m.dx, m.sum, m.dy, m.shift);
       return;
     case "hello": {
       let list = live(tab).filter(f => !sameFrame(f.frame, frame));

@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.55 (versionCode 156)
+- Changed: Swipe diagnostics count every sideways and vertical wheel event the page sees
+
 ## 1.13.54 (versionCode 155)
 - Fixed: Download animation plays in the page: the file starts at the cursor and the folder sits at the bottom
 - Added: Progress ring around the toolbar Downloads icon
