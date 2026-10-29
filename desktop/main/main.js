@@ -216,10 +216,29 @@ function shortcut(e, input) {
   M.commands.runKey(id);
 }
 
+// Debug overlay (Ctrl+Alt+Shift+D): counts every input event type that reaches the page so a touchpad can be diagnosed.
+const dbg = { counts: {}, last: "", at: 0 };
+function swipeDebug(wc, label) {
+  const k = label.split(" ")[0];
+  dbg.counts[k] = (dbg.counts[k] || 0) + 1;
+  if (k !== "mouseMove") dbg.last = label;
+  const now = Date.now();
+  if (now - dbg.at < 200 || wc.isDestroyed()) return;
+  dbg.at = now;
+  const txt = Object.entries(dbg.counts).map(([a, b]) => a + ":" + b).join("  ") + "\nlast: " + dbg.last;
+  wc.executeJavaScript("(()=>{let d=document.getElementById('lodica-swipe-dbg');if(!d){d=document.createElement('pre');d.id='lodica-swipe-dbg';d.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#111827;color:#F59E0B;padding:8px 12px;border-radius:12px;font:12px monospace;pointer-events:none;white-space:pre-wrap;max-width:60vw';document.documentElement.append(d);}d.textContent=" + JSON.stringify(txt) + ";})()").catch(() => {});
+}
+function swipeDebugEvents(win) {
+  for (const n of ["app-command", "swipe", "scroll-touch-begin", "scroll-touch-end", "scroll-touch-edge"]) {
+    win.on(n, (_e, a) => { dbg.counts[n] = (dbg.counts[n] || 0) + 1; dbg.last = n + " " + (typeof a === "string" ? a : ""); });
+  }
+}
+
 // Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
 function swipeNav(wc) {
   let sum = 0, sy = 0, last = 0, locked = 0, timer = null;
   wc.on("input-event", (_e, ev) => {
+    if (global.lodicaSwipeDebug) swipeDebug(wc, ev.type + " dx=" + Math.round(ev.deltaX || 0) + " dy=" + Math.round(ev.deltaY || 0));
     if (ev.type !== "mouseWheel" && ev.type !== "gestureScrollUpdate") return;
     const now = Date.now();
     if (now < locked) return;
@@ -244,7 +263,12 @@ function swipeNav(wc) {
 }
 
 function onView(t, wc) {
-  wc.on("before-input-event", shortcut);
+  wc.on("before-input-event", (e, i) => {
+    if (i.type === "keyDown" && i.control && i.alt && i.shift && i.key.toLowerCase() === "d") {
+      global.lodicaSwipeDebug = !global.lodicaSwipeDebug; dbg.counts = {}; e.preventDefault(); return;
+    }
+    shortcut(e, i);
+  });
   swipeNav(wc);
   wc.on("enter-html-full-screen", () => M.ui.setFull(true));
   wc.on("leave-html-full-screen", () => M.ui.setFull(false));
@@ -417,6 +441,7 @@ app.whenReady().then(() => {
     if (cmd === "browser-backward") m.commands.mouse("back");
     else if (cmd === "browser-forward") m.commands.mouse("forward");
   });
+  swipeDebugEvents(win);
   win.on("swipe", (_e, dir) => { if (dir === "left") m.commands.mouse("back"); else if (dir === "right") m.commands.mouse("forward"); });
   win.on("focus", checkClipboard);
   win.on("minimize", () => m.tabs.setLocked(true));

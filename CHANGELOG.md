@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.48 (versionCode 149)
+- Added: Desktop touchpad swipe diagnostics overlay (Ctrl+Alt+Shift+D) to find why swipe back does not fire
+
 ## 1.13.47 (versionCode 148)
 - Fixed: Desktop tab strip now follows custom themes and theme plugins
 - Fixed: Desktop two-finger swipe back/forward works on every page, also with touchpad gesture scrolls

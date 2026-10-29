@@ -1,3 +1,7 @@
+## 1.13.48
+
+- Added: Touchpad swipe diagnostics overlay (Ctrl+Alt+Shift+D)
+
 ## 1.13.47
 
 - Fixed: Tab strip now follows custom themes and theme plugins
