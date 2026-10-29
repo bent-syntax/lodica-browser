@@ -60,7 +60,8 @@ async function refreshDownloads(list) {
       h("div", { class: "main" }, h("div", { class: "t1", text: d.name }), h("div", { class: "t2", text: sub }),
         run ? h("div", { class: "dl-prog" }, h("i", { style: "width:" + pct + "%" })) : null),
       done ? ib("folder", "Show in folder", () => inv("downloads.show", d.id)) : null,
-      run ? ib("close", "Cancel", () => inv("downloads.cancel", d.id)) : null,
+      run ? ib(d.paused ? "play" : "pause", d.paused ? "Resume" : "Pause", () => inv(d.paused ? "downloads.resume" : "downloads.pause", d.id)) : null,
+      run ? ib("close", "Stop", () => inv("downloads.cancel", d.id)) : null,
       !run && !done ? ib("reload", "Retry", () => inv("downloads.resume", d.id)) : null,
       !run ? ib("delete", "Remove", () => inv("downloads.remove", d.id).then(() => refreshDownloads())) : null));
   }

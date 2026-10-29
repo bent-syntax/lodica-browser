@@ -74,6 +74,7 @@ function onWillDownload(e, item, wc) {
   if (items.length > 200) items.length = 200;
   track(item, d);
   persist(); push(true);
+  ui?.push("downloadStart", { name: d.name });
   ui?.toast("Downloading " + d.name);
 }
 
@@ -81,13 +82,14 @@ const find = id => items.find(d => d.id === String(id));
 
 function open(id) { const d = find(id); if (d) shell.openPath(d.path).catch(() => {}); return !!d; }
 function show(id) { const d = find(id); if (d) shell.showItemInFolder(d.path); return !!d; }
+function pause(id) { const it = live.get(String(id)); if (it && !it.isPaused()) it.pause(); push(true); return !!it; }
 function cancel(id) { const it = live.get(String(id)); if (it) it.cancel(); return !!it; }
 
 function resume(id) {
   const d = find(id);
   if (!d) return false;
   const it = live.get(d.id);
-  if (it) { if (it.canResume()) it.resume(); return true; }
+  if (it) { if (it.isPaused() || it.canResume()) it.resume(); push(true); return true; }
   if (d.state !== "interrupted" || !d.urlChain?.length) return false;
   resuming.set(d.path, d);
   try {
@@ -123,4 +125,4 @@ function init(deps) {
   for (const ses of deps.sessions) ses.on("will-download", onWillDownload);
 }
 
-module.exports = { init, list, open, show, cancel, resume, remove, clear, download };
+module.exports = { init, list, open, show, pause, cancel, resume, remove, clear, download };

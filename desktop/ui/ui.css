@@ -394,3 +394,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .sup-err{color:var(--coral);font-size:13px}
 .sup-err:empty{display:none}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+.dl-fly{position:fixed;z-index:9999;width:24px;height:24px;margin:-12px 0 0 -12px;color:var(--amber);pointer-events:none}
+.dl-fly svg,.dl-dock svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dl-dock{position:fixed;z-index:9998;left:50%;bottom:20px;width:48px;height:48px;margin-left:-24px;color:var(--amber);pointer-events:none;transform:translateY(80px);transition:transform .25s ease}
+.dl-dock.in{transform:none}
+.dl-dock .lid{transform-origin:3px 7px;transition:transform .2s ease}
+.dl-dock.open .lid{transform:rotate(-24deg)}
+.dl-fly.eaten{opacity:0;transition:opacity .15s}

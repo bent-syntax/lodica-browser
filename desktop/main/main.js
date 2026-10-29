@@ -236,29 +236,28 @@ function swipeDebugEvents(win) {
 
 // Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
 function swipeNav(wc) {
-  let sum = 0, sy = 0, last = 0, locked = 0, timer = null;
+  // Wheel and gesture events describe the same swipe with different signs, so keep them apart and never mix them.
+  const acc = { mouseWheel: { x: 0, y: 0 }, gestureScrollUpdate: { x: 0, y: 0 } };
+  let last = 0, locked = 0;
+  const reset = () => { for (const k in acc) { acc[k].x = 0; acc[k].y = 0; } };
   wc.on("input-event", (_e, ev) => {
     if (global.lodicaSwipeDebug) swipeDebug(wc, ev.type + " dx=" + Math.round(ev.deltaX || 0) + " dy=" + Math.round(ev.deltaY || 0));
-    if (ev.type !== "mouseWheel" && ev.type !== "gestureScrollUpdate") return;
+    const a = acc[ev.type];
+    if (!a) return;
     const now = Date.now();
-    if (now < locked) return;
-    if (now - last > 150) { sum = 0; sy = 0; }
+    if (now < locked || now < (global.lodicaSwipeLock || 0)) { reset(); return; }
+    if (now - last > 150) reset();
     last = now;
-    // Gesture scrolls move the content, so their sign is the opposite of a wheel's.
-    const dx = ev.deltaX || -(ev.wheelTicksX || 0) * 40 || 0;
-    sum += ev.type === "gestureScrollUpdate" ? -dx : dx; sy += ev.deltaY || 0;
-    // Navigate when the fingers let go (events stop), a little after the page's own arrow handler, which wins when present.
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      const go = Math.abs(sum) >= 100 && Math.abs(sum) > Math.abs(sy) * 1.5, dir = sum < 0 ? "back" : "forward";
-      sum = 0; sy = 0;
-      if (!go) return;
-      const t = Date.now();
-      if (t < (global.lodicaSwipeLock || 0)) return;
-      global.lodicaSwipeLock = t + 700;
-      locked = t + 700;
-      M.commands.mouse(dir);
-    }, 260);
+    a.x += ev.deltaX || 0; a.y += ev.deltaY || 0;
+    // Gesture scroll deltas move the content: fingers right means negative x, which is back. Wheel deltas are the opposite.
+    const g = acc.gestureScrollUpdate, w = acc.mouseWheel;
+    const useG = Math.abs(g.x) >= Math.abs(w.x);
+    const sx = useG ? g.x : -w.x, sy = useG ? g.y : w.y;
+    if (Math.abs(sx) < 100 || Math.abs(sx) < Math.abs(sy) * 1.5) return;
+    reset();
+    locked = now + 700;
+    global.lodicaSwipeLock = now + 700;
+    M.commands.mouse(sx < 0 ? "back" : "forward");
   });
 }
 

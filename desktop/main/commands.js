@@ -482,6 +482,7 @@ function init(deps) {
   on("downloads.list", () => downloads.list());
   on("downloads.open", id => downloads.open(str(id)));
   on("downloads.show", id => downloads.show(str(id)));
+  on("downloads.pause", id => downloads.pause(str(id)));
   on("downloads.cancel", id => downloads.cancel(str(id)));
   on("downloads.resume", id => downloads.resume(str(id)));
   on("downloads.remove", id => downloads.remove(str(id)));

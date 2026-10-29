@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.51 (versionCode 152)
+- Fixed: Desktop two-finger touchpad swipe no longer mixes wheel and gesture events
+- Added: Pause, resume and stop for desktop downloads
+- Added: Desktop download start animation, a file flies into a folder at the bottom
+
 ## 1.13.50 (versionCode 151)
 - Fixed: Desktop two-finger touchpad swipe back/forward on Windows now uses Chromium's own gesture
 

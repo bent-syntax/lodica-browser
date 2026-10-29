@@ -1,3 +1,9 @@
+## 1.13.51
+
+- Fixed: Two-finger touchpad swipe back/forward on Windows
+- Added: Pause, resume and stop for downloads
+- Added: Animation when a download starts
+
 ## 1.13.50
 
 - Fixed: Two-finger touchpad swipe back/forward on Windows
