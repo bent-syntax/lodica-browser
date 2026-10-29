@@ -3,6 +3,7 @@ package be.syntaxya.lodica.ui
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.view.Gravity
+import android.view.WindowManager
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -118,7 +119,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
     val canWrite = linked.isNotEmpty()
     // pin the dialog to the top: a centred dialog moves every time the keyboard (or its suggestion strip) changes height
-    val topGap = with(LocalDensity.current) { 48.dp.roundToPx() }
+    val topGap = with(LocalDensity.current) { 32.dp.roundToPx() }
     AlertDialog(
         onDismissRequest = onClose,
         title = {
@@ -126,6 +127,8 @@ internal fun SupportDialog(onClose: () -> Unit) {
             val view = LocalView.current
             SideEffect {
                 (view.parent as? DialogWindowProvider)?.window?.let { w ->
+                    // no resize or pan when the keyboard opens: resizing the window is what shifts it a few pixels
+                    w.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING or WindowManager.LayoutParams.SOFT_INPUT_STATE_UNCHANGED)
                     w.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
                     w.attributes = w.attributes.also { it.y = topGap }
                 }
