@@ -1,3 +1,7 @@
+## 1.13.52
+
+- Changed: Swipe diagnostics show the largest sideways movement
+
 ## 1.13.51
 
 - Fixed: Two-finger touchpad swipe back/forward on Windows

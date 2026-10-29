@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.52 (versionCode 153)
+- Changed: Desktop swipe diagnostics overlay shows the largest sideways and vertical movement
+
 ## 1.13.51 (versionCode 152)
 - Fixed: Desktop two-finger touchpad swipe no longer mixes wheel and gesture events
 - Added: Pause, resume and stop for desktop downloads

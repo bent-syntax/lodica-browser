@@ -217,15 +217,19 @@ function shortcut(e, input) {
 }
 
 // Debug overlay (Ctrl+Alt+Shift+D): counts every input event type that reaches the page so a touchpad can be diagnosed.
-const dbg = { counts: {}, last: "", at: 0 };
+const dbg = { counts: {}, last: "", at: 0, maxX: {}, maxY: {} };
 function swipeDebug(wc, label) {
   const k = label.split(" ")[0];
   dbg.counts[k] = (dbg.counts[k] || 0) + 1;
-  if (k !== "mouseMove") dbg.last = label;
+  if (k !== "mouseMove") {
+    const m = /dx=(-?\d+) dy=(-?\d+)/.exec(label);
+    if (m) { dbg.maxX[k] = Math.max(dbg.maxX[k] || 0, Math.abs(+m[1])); dbg.maxY[k] = Math.max(dbg.maxY[k] || 0, Math.abs(+m[2])); if (+m[1] || +m[2]) dbg.last = label; }
+    else dbg.last = label;
+  }
   const now = Date.now();
   if (now - dbg.at < 200 || wc.isDestroyed()) return;
   dbg.at = now;
-  const txt = Object.entries(dbg.counts).map(([a, b]) => a + ":" + b).join("  ") + "\nlast: " + dbg.last;
+  const txt = Object.entries(dbg.counts).map(([a, b]) => a + ":" + b).join("  ") + "\nmax |dx|: " + JSON.stringify(dbg.maxX) + "\nmax |dy|: " + JSON.stringify(dbg.maxY) + "\nlast moving: " + dbg.last;
   wc.executeJavaScript("(()=>{let d=document.getElementById('lodica-swipe-dbg');if(!d){d=document.createElement('pre');d.id='lodica-swipe-dbg';d.style.cssText='position:fixed;top:8px;right:8px;z-index:2147483647;background:#111827;color:#F59E0B;padding:8px 12px;border-radius:12px;font:12px monospace;pointer-events:none;white-space:pre-wrap;max-width:60vw';document.documentElement.append(d);}d.textContent=" + JSON.stringify(txt) + ";})()").catch(() => {});
 }
 function swipeDebugEvents(win) {
