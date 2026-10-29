@@ -1,3 +1,9 @@
+## 1.14.4
+
+- Changed: Tabs on PC is now Linked devices: link once, then tick what to share. Choices: open tabs, history, authenticator keys, passwords, name in the server chat, Bluetooth devices, Wi-Fi networks and passwords, start page shortcuts, settings and themes, and site lists
+- Added: A link key protects passwords, authenticator keys and Wi-Fi passwords. Move it to a new device with a key file plus a code shown on the device that made it (valid 30 seconds, works once), or save a file for a USB cable and insert it on the desktop with one button
+- Changed: Two-finger swipe goes back or forward only when you lift your fingers and the pull is still far from where your fingers started. Pulling back to the start cancels it
+
 ## 1.14.3
 
 - Fixed: YouTube ads are blocked: the ad data is removed from the player before YouTube uses it, ad slots are hidden, and an ad that still plays is skipped

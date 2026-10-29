@@ -66,7 +66,9 @@ if (window === window.top) {
     sum += dx; sy += e.deltaY;
     if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;
     draw(Math.abs(sum), sum < 0);
-    if (run >= 5 && a < peak * .95) { release(); return; }
+    // Momentum carries on in the direction of the pull. Steps that go back toward where the fingers started are not a release:
+    // the arrow shrinks with them, and it only goes when the fingers lift while the pull is still far enough from the start.
+    if (run >= 5 && a < peak * .95 && Math.sign(dx) === Math.sign(sum)) { release(); return; }
     idle = setTimeout(release, 130); // no more movement at all: fingers up with no momentum
   }, { capture: true, passive: true });
 }

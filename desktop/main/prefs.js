@@ -30,7 +30,7 @@ const DEFAULTS = {
   search: "", searchFallback: "DUCKDUCKGO", darkPages: true, forceDark: false, chatScale: 100, chatEmojiScale: 150, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, smartschoolMs: false, spell: true, spellAuto: false, selTranslate: false, adBlockMode: "browser", adBlockLevel: "standard", translateAi: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
-  pcTabs: false, shareHistory: false, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
+  pcTabs: false, shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, startNotes: true, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
   emojiPicker: true,
   betaUnlocked: false, betaEnabled: false,

@@ -77,4 +77,12 @@ function copy(origin, user) {
   return true;
 }
 
-module.exports = { state, pinSet, setPin, check, unlock, lock, list, save, remove, delete: remove, find, copy };
+// Linked devices (linkdata.js): every entry out, other devices' entries merged in (the newer one wins).
+function exportAll() { return all().map((e) => ({ ...e })); }
+function importMany(list) {
+  const r = require("./linkdata").mergePasswords(all(), list);
+  if (r.changed) { entries = r.list; persist(); }
+  return r.changed;
+}
+
+module.exports = { exportAll, importMany, state, pinSet, setPin, check, unlock, lock, list, save, remove, delete: remove, find, copy };

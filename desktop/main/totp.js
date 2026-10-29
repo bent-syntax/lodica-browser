@@ -102,4 +102,12 @@ function forHost(host) { const b = base(host); return b ? all().find(a => a.host
 function setHost(id, host) { const a = all().find(x => x.id === id); if (!a) return false; a.host = String(host || "").trim().toLowerCase().replace(/^www\./, "").slice(0, 120); return persist(); }
 function copy(id) { const a = all().find(x => x.id === id); return a ? code(a) : null; }
 
-module.exports = { forHost, setHost, list, add, addImage, remove, rename, copy, code, fromText };
+// Linked devices (linkdata.js): every account out, accounts the other device has merged in.
+function exportAll() { return all().map((a) => ({ ...a })); }
+function importMany(list) {
+  const r = require("./linkdata").mergeTotp(all(), list, () => crypto.randomBytes(6).toString("hex"));
+  if (r.changed) { accounts = r.list; persist(); }
+  return r.changed;
+}
+
+module.exports = { exportAll, importMany, forHost, setHost, list, add, addImage, remove, rename, copy, code, fromText };

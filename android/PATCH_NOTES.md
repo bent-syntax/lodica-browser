@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.4
+
+- Changed: Maintenance release, desktop only
+
 ## 1.14.3
 
 - Changed: Maintenance release, desktop and server only

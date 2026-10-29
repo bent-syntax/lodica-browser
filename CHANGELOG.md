@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.4 (versionCode 164)
+- Added: Desktop Linked devices: choose what to share (10 categories) and a link key for passwords, authenticator keys and Wi-Fi passwords, moved by file plus one-time code or by cable
+- Changed: Desktop swipe cancels when pulled back to the start
+
 ## 1.14.3 (versionCode 163)
 - Fixed: Desktop YouTube ads are blocked (player data, ad slots, skipping)
 - Added: Desktop ad blocking strength (light, standard, strict)

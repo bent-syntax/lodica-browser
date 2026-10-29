@@ -73,6 +73,16 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   r = await run([[-14, 0], [-21, 0], [-28, 0], [0, 0], ...Array.from({ length: 40 }, (_, k) => [Math.round(-30 * Math.pow(0.975, k)), 0])]);
   check("a gesture that stays short of the limit does nothing", r.length === 0, JSON.stringify(r));
 
+  // pulled out, then back to where the fingers started, then lifted: nothing happens
+  r = await run([...burst(-20, 0, 8), ...burst(20, 0, 8), [0, 0], ...Array.from({ length: 30 }, (_, k) => [Math.round(-3 * Math.pow(0.97, k)), 0])]);
+  check("pulling back to the start before lifting cancels", r.length === 0, JSON.stringify(r));
+  // pulled out far, eased back a little but still far from the start, then lifted: goes
+  r = await run([...burst(-20, 0, 12), ...burst(20, 0, 3), [0, 0]]);
+  check("lifting while still far from the start goes", r.length === 1 && r[0] === "back", JSON.stringify(r));
+  // momentum that turns back toward the start does not release early
+  r = await run([...burst(-20, 0, 8), ...Array.from({ length: 12 }, (_, k) => [Math.round(30 * Math.pow(0.9, k)), 0])]);
+  check("a return movement is not a release", r.at.length === 0, JSON.stringify(r.at));
+
   r = await run(burst(-14, 0, 4));
   check("arrow uses the theme colours", r.arrows.length > 0 && r.arrows.every((v) => v.includes("#112233") && v.includes("#aabbcc")), JSON.stringify(r.arrows));
   check("arrow stays an outline short of the limit", r.arrows.every((v) => !/background:#aabbcc/.test(v)));

@@ -533,6 +533,30 @@ function init(deps) {
   on("pctabs.pair", text => pctabs.pair(str(text)));
   on("pctabs.code", () => pctabs.pairCode());
   on("pctabs.pairCode", code => pctabs.pairWithCode(str(code)));
+  // Linked devices: what to share, and the link key that protects passwords, authenticator keys and Wi-Fi passwords.
+  const ld = require("./linkdata");
+  on("link.cats", () => ({
+    cats: ld.CATS.filter(c => !c.platform || c.platform === process.platform).map(c => ({ id: c.id, label: c.label, note: c.note, locked: !!c.locked, on: !!(prefs.p.linkShare || {})[c.id] })),
+    key: pctabs.keyStatus(), bluetooth: pctabs.status().bluetooth || [], keyMissing: !!pctabs.status().keyMissing,
+  }));
+  on("link.sel", (id, v) => { if (!ld.CATS.some(c => c.id === str(id))) return false; prefs.set("linkShare", { ...prefs.p.linkShare, [str(id)]: !!v }); return true; });
+  on("link.key.create", () => pctabs.createKey());
+  on("link.key.save", async cable => {
+    const { dialog } = require("electron");
+    const r = await dialog.showSaveDialog(d.win(), { title: cable ? "Save the key file to carry over a cable" : "Save the key file", defaultPath: "lodica-key.lkey", filters: [{ name: "Lodica key", extensions: ["lkey"] }] });
+    if (r.canceled || !r.filePath) return { canceled: true };
+    require("fs").writeFileSync(r.filePath, pctabs.makeKeyFile(!!cable), { mode: 0o600 });
+    return { ok: true, path: r.filePath, cable: !!cable };
+  });
+  on("link.key.insert", async () => {
+    const { dialog } = require("electron"), fs = require("fs");
+    const r = await dialog.showOpenDialog(d.win(), { title: "Choose the key file", properties: ["openFile"], filters: [{ name: "Lodica key", extensions: ["lkey"] }] });
+    if (r.canceled || !r.filePaths[0]) return { canceled: true };
+    if (fs.statSync(r.filePaths[0]).size > 64 * 1024) return { error: "That is not a key file" };
+    return pctabs.insertKeyFile(fs.readFileSync(r.filePaths[0], "utf8"));
+  });
+  on("link.key.enter", code => pctabs.enterKeyCode(str(code)));
+  on("link.key.forget", () => { pctabs.forgetKey(); return true; });
   on("pctabs.control", (type, url) => pctabs.control({ type: str(type), url: str(url) }));
   const listEmojis = async () => {
     if (!relay.available) return [];

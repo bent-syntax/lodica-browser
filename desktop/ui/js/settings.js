@@ -182,8 +182,8 @@ function secEmojis() {
 
 function secPcTabs() {
   const on = !!S.prefs.pcTabs;
-  const out = [secHead("Tabs on PC", "pctabs"),
-    setRow("Tabs on PC", "Share open tabs with your other device. Link once, both sides stay in sync", toggleEl(on), () => {
+  const out = [secHead("Linked devices", "pctabs"),
+    setRow("Linked devices", "Link your phone and PC once, then choose below what they share. Both sides stay in sync", toggleEl(on), () => {
       SET.pcLink = null; SET.pcRemote = null; setPref("pcTabs", !on);
     })];
   if (!on) { out.push(h("div", { class: "chips" }, enterCodeBtn())); return out; }
@@ -207,7 +207,7 @@ function secPcTabs() {
     btn("Show link code", async () => {
       const c = await inv("pctabs.code");
       if (!c) { toast("Could not make a code. Is the relay set up?"); return; }
-      await textDialog({ title: "Link code", message: "Type this code on your other device within 10 minutes: Settings, Tabs on PC, Enter link code.", value: c, ok: "Done" });
+      await textDialog({ title: "Link code", message: "Type this code on your other device within 10 minutes: Settings, Linked devices, Enter link code.", value: c, ok: "Done" });
     }),
     enterCodeBtn(),
     btn("Link with other device", async () => {
@@ -224,7 +224,7 @@ function secPcTabs() {
       if (!ok) return;
       SET.pcLink = (await inv("pctabs.reset")) || ""; SET.pcRemote = null; refreshSettings();
     }, "muted") : null));
-  out.push(setRow("Share history with linked devices", "Pages you visit appear in the history of the other device too", toggleEl(!!S.prefs.shareHistory), () => setPref("shareHistory", !S.prefs.shareHistory)));
+  out.push(...linkRows());
   out.push(setRow("Control the phone", "Open a page on the linked phone. The phone must allow control in its settings", null));
   out.push(h("div", { class: "chips" },
     btn("Open page on phone", async () => {
@@ -255,4 +255,66 @@ function secTabs() {
   const opts = [{ key: 0, label: "Never" }, { key: 7, label: "7 days" }, { key: 14, label: "14 days" }, { key: 30, label: "30 days" }];
   return [secHead("Tabs"), setRow("Auto-archive tabs unused for", null, null),
     chips(opts, S.prefs.autoArchiveDays ?? 14, (k) => setPref("autoArchiveDays", Number(k)))];
+}
+
+// ---- Linked devices: what to share and the link key ----
+// The key protects passwords, authenticator keys and Wi-Fi passwords. A new device gets it by file plus a one-time code shown on
+// the device that made the file (valid 30 seconds, one use), or by a file carried over a USB cable and inserted with one button.
+function linkRows() {
+  if (!SET.linkSub) {
+    SET.linkSub = true;
+    window.lodica.on("link.key", (m) => linkKeyStep(m || {}));
+  }
+  if (SET.linkCats == null) {
+    SET.linkCats = false;
+    inv("link.cats").then((r) => { SET.linkCats = r || { cats: [], key: {} }; refreshSettings(); });
+  }
+  const L = SET.linkCats || { cats: [], key: {}, bluetooth: [] }, hasKey = !!(L.key && L.key.hasKey);
+  const reload = () => { SET.linkCats = null; refreshSettings(); };
+  const out = [setRow("What to share", "Switch on what this device sends to the linked device and takes in from it", null)];
+  for (const c of L.cats) {
+    out.push(setRow(c.label, c.note + (c.locked && !hasKey ? ". Create or insert the link key below first" : ""), toggleEl(c.on), async () => {
+      await inv("link.sel", c.id, !c.on); reload();
+    }));
+  }
+  if (L.bluetooth && L.bluetooth.length) out.push(setRow("Bluetooth devices on the other device", L.bluetooth.join(", "), null));
+  if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Insert the link key on this device to receive them", null));
+  out.push(setRow("Link key", hasKey ? "This device has the link key. Make a key file to put it on another device" : "No key on this device yet. Create one, or insert a key file made on the other device", null));
+  out.push(h("div", { class: "chips" },
+    !hasKey ? btn("Create key", async () => { await inv("link.key.create"); reload(); }) : null,
+    hasKey ? btn("Save key file (code)", async () => {
+      const r = await inv("link.key.save", false);
+      if (r && r.ok) toast("Key file saved. On the new device choose Insert key file. A code appears here");
+    }) : null,
+    hasKey ? btn("Save key file for a cable", async () => {
+      const ok = await confirmDialog({ title: "File for a cable", message: "This file holds the key itself. Copy it over the USB cable to the desktop, insert it there, then delete it. Anyone who gets the file gets the key.", ok: "Save the file" });
+      if (!ok) return;
+      const r = await inv("link.key.save", true);
+      if (r && r.ok) toast("Saved. Copy it over the cable, then insert it on the desktop");
+    }) : null,
+    btn("Insert key file", async () => {
+      const r = await inv("link.key.insert");
+      if (!r || r.canceled) return;
+      if (r.error) { toast(r.error); return; }
+      if (r.ok) { toast("Key inserted"); reload(); return; }
+      toast("Asking the other device for a code…");
+    }),
+    hasKey ? btn("Forget key", async () => {
+      const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you insert a key again.", ok: "Forget" });
+      if (ok) { await inv("link.key.forget"); reload(); }
+    }, "muted") : null));
+  return out;
+}
+// Steps of moving the key, from the main process.
+async function linkKeyStep(m) {
+  if (m.step === "code") {
+    await textDialog({ title: "Code for the new device", message: "Type this code on the new device within " + (m.seconds || 30) + " seconds. It works once.", value: m.code, ok: "Done" });
+  } else if (m.step === "enter") {
+    const v = await textDialog({ title: "Enter the code", message: "Type the 6-digit code shown on the device that made the key file. It is valid for 30 seconds.", placeholder: "123456", ok: "Send" });
+    if (v != null) inv("link.key.enter", v.trim());
+  } else if (m.step === "done") { toast("Key inserted"); SET.linkCats = null; refreshSettings(); }
+  else if (m.step === "sent") toast("The new device has the key");
+  else if (m.step === "bad") toast(m.error === "too many tries" ? "Too many wrong codes. Start again" : m.error === "expired" ? "The code expired. Start again" : "Wrong code");
+  else if (m.step === "unknown") toast("That device did not make this key file");
+  else if (m.step === "expired") toast("Waited too long. Start again");
 }
