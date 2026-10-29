@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.46 (versionCode 147)
+- Fixed: Dark mode now works on Android 17 phones (page options sent as their own message)
+- Fixed: Desktop hides the tab strip and bar when a page goes fullscreen
+- Changed: Desktop two-finger swipe back/forward is more forgiving
+
 ## 1.13.45 (versionCode 146)
 - Fixed: Dark mode alone now darkens pages that have no dark mode of their own
 

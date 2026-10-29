@@ -1,3 +1,8 @@
+## 1.13.46
+
+- Fixed: Tab strip and bar now hide when a page goes fullscreen
+- Changed: Two-finger swipe back/forward is more forgiving
+
 ## 1.13.45
 
 - Fixed: Dark mode alone now darkens pages that have no dark mode of their own

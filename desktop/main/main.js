@@ -225,11 +225,11 @@ function swipeNav(wc) {
     if (now < locked) return;
     if (now - last > 150) { sum = 0; sy = 0; }
     last = now;
-    sum += ev.deltaX || 0; sy += ev.deltaY || 0;
+    sum += ev.deltaX || -(ev.wheelTicksX || 0) * 40 || 0; sy += ev.deltaY || 0;
     // Navigate when the fingers let go (events stop), a little after the page's own arrow handler, which wins when present.
     clearTimeout(timer);
     timer = setTimeout(() => {
-      const go = Math.abs(sum) >= 150 && Math.abs(sum) > Math.abs(sy) * 2, dir = sum < 0 ? "back" : "forward";
+      const go = Math.abs(sum) >= 100 && Math.abs(sum) > Math.abs(sy) * 1.5, dir = sum < 0 ? "back" : "forward";
       sum = 0; sy = 0;
       if (!go) return;
       const t = Date.now();
@@ -244,6 +244,9 @@ function swipeNav(wc) {
 function onView(t, wc) {
   wc.on("before-input-event", shortcut);
   swipeNav(wc);
+  wc.on("enter-html-full-screen", () => M.ui.setFull(true));
+  wc.on("leave-html-full-screen", () => M.ui.setFull(false));
+  wc.once("destroyed", () => M.ui.setFull(false));
   M.commands.applyAgent(t, wc);
   M.helper.syncScheme(wc);
   // A cross-process navigation can drop the emulated scheme, so sites showed dark with "Dark pages" off.

@@ -1517,26 +1517,10 @@
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
     watchCookies();
     msLogin();
-    badge();
   }
 
-  // Test build only: a small badge with the dark mode state, to see why a page stays light.
-  let dbg = "?";
-function badge() {
-    if (!TOP) return;
-    let b = document.getElementById("lodica-badge");
-    if (!b) {
-      b = document.createElement("div");
-      b.id = "lodica-badge";
-      b.style.cssText = "position:fixed;left:4px;bottom:4px;z-index:2147483647;background:#000;color:#0f0;font:11px monospace;padding:2px 6px;border-radius:6px;opacity:.85;pointer-events:none;white-space:pre";
-      (document.documentElement || document.body).appendChild(b);
-    }
-    let sc = "?", bg = "?", hb = "?";
-    try { sc = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; } catch (e) {}
-    try { bg = document.body ? getComputedStyle(document.body).backgroundColor : "nobody"; hb = getComputedStyle(document.documentElement).backgroundColor; } catch (e) {}
-    b.textContent = "helper ok cfg=" + JSON.stringify(dbg) + " dark=" + page.dark + " dp=" + page.darkPages + " scheme=" + sc + "\nisDark=" + pageIsDark() + " style=" + !!document.getElementById("lodica-dark") + " n=" + darkCount + "\nbody=" + bg + " html=" + hb;
-  }
-  for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) { applyDark(); badge(); } }, t);
+  // Late retries: the page options can arrive after the first paint.
+  for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) applyDark(); }, t);
 
   // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
   let msTried = false;
@@ -1561,8 +1545,8 @@ function badge() {
   }
 
   try {
-    browser.storage.local.get(["page", "dbg"]).then((r) => { dbg = r.dbg || "none"; usePage(r.page); }, () => {});
-    browser.storage.onChanged.addListener((ch) => { if (ch.dbg) dbg = ch.dbg.newValue; if (ch.page) usePage(ch.page.newValue); });
+    browser.storage.local.get("page").then((r) => usePage(r.page), () => {});
+    browser.storage.onChanged.addListener((ch) => { if (ch.page) usePage(ch.page.newValue); });
   } catch (e) { /* storage unavailable */ }
 
   // --- Reader view: the app asks the top frame for the main text ---

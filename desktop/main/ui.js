@@ -8,6 +8,7 @@ const handlers = new Map();
 const waits = new Map(); // id -> resolve
 let win = null, view = null, top = null, divider = null, mode = "bar", seq = 0, ready = false, topReady = false;
 let refocus = () => {};
+let full = false; // page (e.g. a video) is fullscreen: hide the tab strip and bar
 const queue = [];
 
 function init(window, uiView) {
@@ -56,6 +57,7 @@ function size() {
 /** Page area: the window minus the tab strip and the bar. */
 function pageBounds() {
   const { width, height } = size();
+  if (full) return { x: 0, y: 0, width, height };
   const left = sideWidth();
   const bt = barTop();
   if (left) return { x: left, y: bt ? BAR : 0, width: Math.max(0, width - left), height: Math.max(0, height - BAR) };
@@ -76,10 +78,22 @@ function fit() {
   if (!win || win.isDestroyed() || !view) return;
   const { width, height } = size();
   const left = sideWidth();
+  if (full && mode !== "overlay") {
+    top?.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    return;
+  }
   top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - BAR) } : { x: 0, y: 0, width, height: TOP });
   const bt = barTop();
   view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - BAR), width: Math.max(0, width - (bt ? left : 0)), height: BAR });
+}
+
+/** Hide or restore the tab strip and bar while a page is fullscreen. */
+function setFull(on) {
+  full = !!on;
+  fit();
+  require("./tabs").fit();
 }
 
 function layout(m) {
@@ -126,4 +140,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, handle, push, layout, fit, pageBounds, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };

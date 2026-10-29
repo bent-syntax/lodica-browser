@@ -19,7 +19,7 @@ const browser = { runtime: { connectNative() {
     }, true);
     // Two fingers sideways on a touchpad: an arrow grows at the edge, and past the limit history goes back/forward.
     let sum = 0, sy = 0, last = 0, lock = 0, arrow = null, hide = 0;
-    const LIMIT = 150;
+    const LIMIT = 100;
     const canScroll = (el, dx) => {
       for (; el && el !== document.documentElement; el = el.parentElement) {
         const o = getComputedStyle(el).overflowX;
@@ -56,7 +56,7 @@ const browser = { runtime: { connectNative() {
       last = now;
       if (e.deltaX && canScroll(e.target, e.deltaX)) { sum = 0; sy = 0; return; }
       sum += e.deltaX; sy += e.deltaY;
-      if (Math.abs(sum) <= Math.abs(sy) * 2) return;
+      if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;
       draw(Math.abs(sum), sum < 0);
     }, { capture: true, passive: true });
   }

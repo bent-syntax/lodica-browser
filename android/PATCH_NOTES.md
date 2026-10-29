@@ -1,4 +1,7 @@
 # Patch notes
+## 1.13.46
+- Fixed: Dark mode now works on Android 17 phones
+
 ## 1.13.45
 - Fixed: Dark mode alone now darkens pages that have no dark mode of their own
 
