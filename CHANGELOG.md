@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.45 (versionCode 146)
+- Fixed: Dark mode alone now darkens pages that have no dark mode of their own
+
 ## 1.13.44 (versionCode 145)
 - Fixed: Support window no longer shifts a few pixels when the keyboard opens
 

@@ -1,3 +1,7 @@
+## 1.13.45
+
+- Fixed: Dark mode alone now darkens pages that have no dark mode of their own
+
 ## 1.13.44
 
 - Fixed: Support window no longer shifts when the keyboard opens
