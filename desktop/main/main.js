@@ -449,6 +449,18 @@ app.whenReady().then(() => {
     else if (cmd === "browser-forward") m.commands.mouse("forward");
   });
   swipeDebugEvents(win);
+  if (process.platform === "win32") {
+    // Raw WM_APPCOMMAND: Electron names only some commands, touchpad drivers may send others.
+    win.hookWindowMessage(0x0319, (_w, lp) => {
+      let c = 0;
+      try { c = (Buffer.from(lp).readUInt32LE(0) >>> 16) & 0x0fff; } catch {}
+      dbg.counts["wm-appcommand"] = (dbg.counts["wm-appcommand"] || 0) + 1;
+      dbg.last = "wm-appcommand " + c;
+      if (Date.now() - (global.lodicaWmNav || 0) < 600) return;
+      if (c === 1) { global.lodicaWmNav = Date.now(); m.commands.mouse("back"); }
+      else if (c === 2) { global.lodicaWmNav = Date.now(); m.commands.mouse("forward"); }
+    });
+  }
   win.on("swipe", (_e, dir) => { if (dir === "left") m.commands.mouse("back"); else if (dir === "right") m.commands.mouse("forward"); });
   win.on("focus", checkClipboard);
   win.on("minimize", () => m.tabs.setLocked(true));

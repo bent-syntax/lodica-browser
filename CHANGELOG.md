@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.53 (versionCode 154)
+- Fixed: Windows touchpad swipe back/forward listens to the raw browser back/forward command
+
 ## 1.13.52 (versionCode 153)
 - Changed: Desktop swipe diagnostics overlay shows the largest sideways and vertical movement
 

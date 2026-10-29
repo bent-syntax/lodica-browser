@@ -1,3 +1,7 @@
+## 1.13.53
+
+- Fixed: Windows touchpad swipe back/forward listens to the raw browser back/forward command
+
 ## 1.13.52
 
 - Changed: Swipe diagnostics show the largest sideways movement
