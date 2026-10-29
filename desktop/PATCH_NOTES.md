@@ -1,3 +1,7 @@
+## 1.13.58
+
+- Added: Setting to translate selected French or Dutch text into English next to the selection, with a Copy button (Settings > Privacy > Translation)
+
 ## 1.13.57
 
 - Fixed: Two-finger touchpad swipe back/forward now reports from the page straight to the app, so it no longer depends on the tab lookup

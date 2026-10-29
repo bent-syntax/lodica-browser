@@ -143,6 +143,7 @@ function pageState(tab) {
     ads: !prefs.isTrusted(host) && !prefs.isCompat(host),
     dark: !!p.forceDark,
     spell: { on: !!p.spell, auto: !!p.spellAuto, langs: p.spellLangs },
+    selTranslate: !!p.selTranslate,
     speed: p.speed,
     quality: prefs.qualityFor(host) ?? p.quality,
     qualities: p.qualities,

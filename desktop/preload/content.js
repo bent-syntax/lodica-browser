@@ -1387,6 +1387,35 @@ const lodicaMain = () => {
     }, true);
   }
 
+  // Automatic translation next to a selection of French or Dutch text (Settings > Privacy)
+  async function autoTranslate(s) {
+    const from = await detectLang(s.text);
+    if (from !== "fr" && from !== "nl") return;
+    let out = "";
+    try {
+      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(s.text) + "&langpair=" + from + "|en");
+      out = (j && j.responseData && j.responseData.translatedText) || "";
+    } catch (e) { /* offline */ }
+    const cur = selected();
+    if (!out || !cur || cur.text !== s.text || !page.selTranslate) return;
+    showBubble(s.x, s.y, (d) => {
+      d.setAttribute("data-kind", "translate");
+      d.dataset.t = s.text;
+      d.style.cssText += ";display:flex;gap:6px;align-items:center;font-size:12px;padding:4px 8px;max-width:320px";
+      const t = document.createElement("span");
+      t.textContent = out;
+      const c = document.createElement("button");
+      c.textContent = "Copy";
+      c.style.cssText = "all:initial;cursor:pointer;font:600 11px system-ui,sans-serif;color:#F59E0B;padding:0 2px";
+      c.addEventListener("mousedown", (e) => e.preventDefault());
+      c.addEventListener("click", () => {
+        try { navigator.clipboard.writeText(out); } catch (e) { /* blocked */ }
+        c.textContent = "Copied";
+      });
+      d.appendChild(t); d.appendChild(c);
+    }, true);
+  }
+
   let selTimer = 0;
   document.addEventListener("selectionchange", () => {
     clearTimeout(selTimer);
@@ -1395,6 +1424,10 @@ const lodicaMain = () => {
       const ans = s && (solve(s.text) || calc(s.text));
       if (ans == null) {
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
+        if (s && page.selTranslate && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text)) {
+          if (!(bubble && bubble.dataset.t === s.text)) autoTranslate(s);
+          return;
+        }
         if (s && s.text.trim().length > 1 && s.text.length <= 80 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { translateBubble(s); bubble.dataset.t = s.text; }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
         return;

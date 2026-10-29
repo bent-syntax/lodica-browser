@@ -54,7 +54,7 @@ function setTabBody(tab) {
     case "downloads": return [secHead("Downloads", "downloads"), setRow("Open downloads", "Files saved from the web", ico("chevron", "chev"), () => openDownloads())];
     case "ai": return secAi();
     case "theme": return [secTheme(), secDarkPages()];
-    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSpell()];
+    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSpell(), secTranslate()];
     case "data": return secData();
     case "server": return secServer();
     case "about": return secAbout();
@@ -277,6 +277,9 @@ function secSpell() {
     setToggle("spell", "Check spelling", "Words are checked against every language you pick below. A word that is right in any one of them is left alone"),
     setToggle("spellAuto", "Correct automatically", "Off: right-click a misspelled word to see the suggestions. On: fix it when you type a space or punctuation, Backspace undoes it"),
     h("div", { class: "chips" }, SPELL_LANGS.map(([k, n]) => h("button", { class: "chip" + (langs.includes(k) ? " sel" : ""), act: () => pick(k), text: n })))];
+}
+function secTranslate() {
+  return [secHead("Translation", "translate"), setToggle("selTranslate", "Translate selected text", "Select French or Dutch text and the English translation appears next to it, with a Copy button")];
 }
 function secBlocking() {
   return [secHead("Blocking", "blocking"), setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
