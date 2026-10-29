@@ -102,7 +102,7 @@ object Helper {
                 .put("theme", themeJson())
         } catch (e: Throwable) { Log.w(TAG, "push build failed", e); JSONObject().put("type", "config").put("ai", Ai.connected).put("aiAlways", Prefs.aiAlways) }
         // Gecko drops the first message on a fresh port, so a small config goes first and the full one follows.
-        Thread { try { p.postMessage(JSONObject().put("type", "config").put("ai", Ai.connected).put("aiAlways", Prefs.aiAlways)); p.postMessage(msg); Log.i(TAG, "push sent ${msg.toString().length}") } catch (e: Throwable) { Log.w(TAG, "push post failed", e) } }.start()
+        Thread { try { p.postMessage(JSONObject().put("type", "config").put("ai", Ai.connected).put("aiAlways", Prefs.aiAlways)); Thread.sleep(200); try { p.postMessage(JSONObject().put("type", "page").put("page", msg.optJSONObject("page") ?: JSONObject())) } catch (e: Throwable) { Log.w(TAG, "page post failed", e) }; Thread.sleep(200); p.postMessage(msg); Log.i(TAG, "push sent ${msg.toString().length}") } catch (e: Throwable) { Log.w(TAG, "push post failed", e) } }.start()
     }
 
     /** Palette colours for the start page, so it matches the app theme. */

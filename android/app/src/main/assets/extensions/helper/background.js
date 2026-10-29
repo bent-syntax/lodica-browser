@@ -245,11 +245,19 @@ async function fetchIcon(host) {
   } catch (e) { return null; }
 }
 
-let fulls = 0, smalls = 0;
+let fulls = 0, smalls = 0, pages = 0;
 function connect() {
   const port = browser.runtime.connectNative("lodica");
   port.onMessage.addListener((msg) => {
-    if (msg && msg.type === "config") {
+    if (msg && msg.type === "page" && msg.page) {
+      // Small page-only message: the full config can be dropped on some devices.
+      gotConfig = true; pages++;
+      browser.storage.local.set({ page: Object.assign({}, msg.page, { lite: cfg.lite }), dbg: { fulls, smalls, pages } });
+      try {
+        const bs = browser.browserSettings && browser.browserSettings.overrideContentColorScheme;
+        if (bs) bs.set({ value: msg.page.dark || msg.page.darkPages ? "dark" : "light" });
+      } catch (e) {}
+    } else if (msg && msg.type === "config") {
       // The small first config has no page options. Keep asking until the full one arrives.
       gotConfig = !!msg.page;
       fulls += gotConfig ? 1 : 0; smalls += gotConfig ? 0 : 1;
@@ -274,7 +282,7 @@ function connect() {
       };
       // Content scripts in every frame read page options from storage; the native port only reaches the app.
       if (msg.page) browser.storage.local.set({ page: Object.assign({}, msg.page, { lite: cfg.lite }), domain, legacy });
-      browser.storage.local.set({ dbg: { fulls, smalls } });
+      browser.storage.local.set({ dbg: { fulls, smalls, pages } });
       // Force the page colour scheme; the engine setting alone did not stop sites from going dark.
       try {
         const bs = browser.browserSettings && browser.browserSettings.overrideContentColorScheme;
