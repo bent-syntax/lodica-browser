@@ -1,6 +1,7 @@
 // Update check against the public GitHub releases of bent-syntax/lodica-browser.
-// Flow: check -> download (streamed, SHA-256 verified) -> install (Windows runs the
-// setup, Linux reveals the AppImage).
+// Flow: check -> download (streamed, SHA-256 verified) -> install. On Windows the install follows the download by itself: the
+// setup runs silently (no wizard), Lodica stays open with a progress bar, and the setup closes it and starts the new version.
+// A portable copy and Linux keep the manual step (the setup opens, the AppImage is revealed).
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -115,6 +116,7 @@ async function download() {
   job = ctl;
   const target = path.join(env.dir(), safeName(state.file));
   const part = target + ".part";
+  let sizeOk = false;
   set({ state: "downloading", received: 0 });
   try {
     const r = await fetch(state.url, { headers: HDR, signal: ctl.signal, redirect: "follow" });
@@ -138,18 +140,52 @@ async function download() {
     if (digest !== expect) throw new Error("Checksum mismatch; file discarded");
     fs.renameSync(part, target);
     set({ state: "ready", path: target, received: got, size: total });
+    sizeOk = true;
   } catch (e) {
     try { fs.unlinkSync(part); } catch {}
     set(ctl.signal.aborted ? { state: "available", received: 0 } : { state: "error", message: e.message || "Download failed" }, ctl.signal.aborted);
   } finally { job = null; }
+  // Windows installs by itself once the checksum is right.
+  if (sizeOk && env.platform === "win" && !portable()) await install();
   return state;
 }
 
 function cancel() { job?.abort(); return true; }
 
+// A portable copy is not what the setup installs, so it must not be updated through it.
+const portable = () => !!process.env.PORTABLE_EXECUTABLE_FILE;
+const INSTALL_ESTIMATE_MS = 12000, INSTALL_GIVE_UP_MS = 3 * 60 * 1000;
+let installTimer = null;
+// A silent setup reports nothing, so the bar for this part is an estimate: it slows down as it nears the end and never reaches it.
+function installProgress(started) {
+  clearInterval(installTimer);
+  installTimer = setInterval(() => {
+    const t = Date.now() - started;
+    if (t > INSTALL_GIVE_UP_MS) {
+      clearInterval(installTimer);
+      set({ state: "error", message: "The update did not finish. Run the downloaded setup file yourself: " + (state.path || "") }, true);
+      return;
+    }
+    set({ state: "installing", progress: Math.min(0.95, 1 - Math.exp(-t / INSTALL_ESTIMATE_MS)) });
+  }, 500);
+  installTimer.unref?.();
+}
+
 async function install() {
   if (state.state !== "ready" || !state.path || !fs.existsSync(state.path)) return false;
   const { app, shell } = require("electron");
+  if (env.platform === "win" && !portable()) {
+    // --updated keeps the settings, /S hides the wizard, --force-run starts the new Lodica when it is done (the same flags electron-updater uses).
+    try {
+      const child = require("child_process").spawn(state.path, ["--updated", "/S", "--force-run"], { detached: true, stdio: "ignore" });
+      child.on("error", (e) => set({ state: "error", message: "Could not start the setup: " + e.message }, true));
+      child.unref();
+    } catch (e) { set({ state: "error", message: "Could not start the setup: " + e.message }, true); return false; }
+    set({ state: "installing", progress: 0 });
+    installProgress(Date.now());
+    // The setup closes this window itself and starts the new version; this window stays open with the bar until then.
+    return true;
+  }
   if (env.platform === "win") {
     const err = await shell.openPath(state.path);
     if (err) { set({ state: "error", message: err }, true); return false; }

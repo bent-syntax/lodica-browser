@@ -35,7 +35,7 @@ function run(events) {
         const before = sent.filter((x) => x[1].dir).length;
         listeners.wheel({ deltaX: events[i][0], deltaY: events[i][1], ctrlKey: false, shiftKey: false, target: null });
         if (sent.filter((x) => x[1].dir).length > before) calls.push({ event: i, ms: Date.now() - started });
-        i++; setTimeout(tick, 5);
+        i++; setTimeout(tick, 5 + (events[i - 1][2] || 0));   // a third value is an extra pause after that step
       } else setTimeout(finish, 400);
     };
     setTimeout(tick, 20);
@@ -48,9 +48,9 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   [0, 0], ...Array.from({ length: momentum }, (_, k) => [sign * Math.round(58 * Math.pow(0.975, k)), 0])];
 
 (async () => {
-  let r = await run(burst(-14, 0, 12));
+  let r = await run([...burst(-14, 0, 12), [0, 0]]);
   check("fingers right (deltaX < 0) goes back, after the fingers stop", r.length === 1 && r[0] === "back", JSON.stringify(r));
-  r = await run(burst(14, 0, 12));
+  r = await run([...burst(14, 0, 12), [0, 0]]);
   check("fingers left (deltaX > 0) goes forward", r.length === 1 && r[0] === "forward", JSON.stringify(r));
   r = await run(burst(0, 40, 12));
   check("vertical scroll does nothing", r.length === 0, JSON.stringify(r));
@@ -60,7 +60,13 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   check("diagonal scroll does nothing", r.length === 0, JSON.stringify(r));
 
   r = await run(burst(-14, 0, 80));
-  check("it does not go while the fingers keep moving", r.length === 1 && r.at.length === 0, JSON.stringify(r.at));
+  check("it does not go while the fingers keep moving, or when they stop and stay on the pad", r.length === 0 && r.at.length === 0, JSON.stringify(r));
+  r = await run([...burst(-14, 0, 12), [-14, 0, 600], [0, 0]]);
+  check("pull, hold still for 600 ms with the fingers on the pad, then lift: goes only at the lift", r.length === 1 && r.at.length === 1 && r.at[0].ms > 600, JSON.stringify(r.at));
+  r = await run([...burst(-14, 0, 12), [-14, 0, 900]]);
+  check("pull, hold, never lift: nothing happens", r.length === 0, JSON.stringify(r));
+  r = await run([...burst(-14, 0, 10), ...[40, 36, 33, 30, 26, 22, 19, 16, 13, 10].map((v) => [-v, 0, 0])]);
+  check("slowing down by hand is not a lift", r.length === 0, JSON.stringify(r));
   check("the arrow is drawn on every step while the fingers move", r.arrows.length >= 8, "drawn " + r.arrows.length + " times");
 
   r = await run(swipe(-1));

@@ -253,6 +253,7 @@ fun SettingsScreen() {
             LanguagePicker()
             QualityPicker()
             SwitchRow("Smoother scrolling", "Faster page drawing. Takes effect after you restart the browser", Prefs.fastRender) { Prefs.updateFastRender(it) }
+            TiltRotateSection()
                     Section("Custom DNS")
                     DnsSection()
                 }
@@ -1094,6 +1095,30 @@ private fun AgentPicker() {
             }
         }
     }
+}
+
+/** Tilt rotate: the page turns against the phone. The switch, then how long nothing moves and how much of the screen the turned page fills. */
+@Composable
+private fun TiltRotateSection() {
+    val ctx = LocalContext.current
+    SwitchRow("Tilt rotate", "Turn your phone and the page turns the other way, so it stays upright. The screen stays in portrait. Needs the compatible page renderer: after you switch it on, restart the browser once", Prefs.tiltRotate) {
+        Prefs.updateTiltRotate(it)
+        be.syntaxya.lodica.engine.Tilt.update()
+        if (it && !be.syntaxya.lodica.engine.Tilt.textureBackend) Toast.makeText(ctx, "Restart the browser to switch the page renderer", Toast.LENGTH_LONG).show()
+    }
+    if (!Prefs.tiltRotate) return
+    Text("Dead zone ${Prefs.tiltDeadZone.toInt()}%", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, top = 4.dp))
+    Slider(
+        Prefs.tiltDeadZone, { Prefs.updateTiltDeadZone(it.toInt().toFloat()) }, valueRange = 0f..40f,
+        colors = SliderDefaults.colors(thumbColor = Amber, activeTrackColor = Amber, inactiveTrackColor = GraphiteHigh),
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
+    Text("Zoom ${(Prefs.tiltZoom * 100).toInt()}%: 0 shows the whole page with borders, 100 fills the screen and crops the edges", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp))
+    Slider(
+        Prefs.tiltZoom, { Prefs.updateTiltZoom(it) }, valueRange = 0f..1f,
+        colors = SliderDefaults.colors(thumbColor = Amber, activeTrackColor = Amber, inactiveTrackColor = GraphiteHigh),
+        modifier = Modifier.padding(horizontal = 16.dp),
+    )
 }
 
 @Composable

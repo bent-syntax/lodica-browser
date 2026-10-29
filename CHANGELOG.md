@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.5 (versionCode 165)
+- Added: Android Tilt rotate
+- Changed: Desktop updates install silently with a progress bar and restart by themselves
+- Fixed: Desktop swipe waits for the fingers to lift
+
 ## 1.14.4 (versionCode 164)
 - Added: Desktop Linked devices: choose what to share (10 categories) and a link key for passwords, authenticator keys and Wi-Fi passwords, moved by file plus one-time code or by cable
 - Changed: Desktop swipe cancels when pulled back to the start

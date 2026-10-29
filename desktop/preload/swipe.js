@@ -51,24 +51,27 @@ if (window === window.top) {
     if (e.ctrlKey) return;
     const now = Date.now(), gap = now - last, dx = e.deltaX;
     last = now;
-    // A quiet moment, or a turn around after a finished gesture, starts a new gesture.
-    if (gap > 250 || (done && dx && sum && Math.sign(dx) !== Math.sign(sum) && Math.abs(dx) > 8)) { reset(); askTheme(); }
+    // A finished gesture is over after a short quiet moment, or a turn around. One that has not finished (fingers still on the pad,
+    // maybe holding still) keeps its pull for a long while.
+    if (gap > (done ? 250 : 1500) || (done && dx && sum && Math.sign(dx) !== Math.sign(sum) && Math.abs(dx) > 8)) { reset(); askTheme(); }
     ipcRenderer.send("swipe", { dx: Math.round(dx), dy: Math.round(e.deltaY), sum: Math.round(sum), shift: e.shiftKey });
     if (done) return;
     clearTimeout(idle);
     if (dx && canScroll(e.target, dx)) { sum = 0; sy = 0; return; }
-    // A zero movement arrives when the fingers lift. After that the touchpad keeps sending smoothly shrinking steps
-    // (momentum): five steps in a row that each shrink a little, below the strongest step, also mean the fingers are up.
+    // The fingers have lifted when a zero movement arrives. After that the touchpad keeps sending smoothly shrinking steps
+    // (momentum): eight in a row, each a little smaller than the one before and well below the strongest step, are also taken as
+    // lifted. Holding still never counts: with the fingers on the pad nothing arrives at all, and that must not go back or forward.
     const a = Math.abs(dx);
     if (!dx && !e.deltaY && sum) { release(); return; }
-    run = prev && a <= prev * 1.03 && a >= prev * .78 ? run + 1 : 0;
+    run = prev && a <= prev && a >= prev * .93 ? run + 1 : 0;
     prev = a; peak = Math.max(peak, a);
     sum += dx; sy += e.deltaY;
     if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;
     draw(Math.abs(sum), sum < 0);
     // Momentum carries on in the direction of the pull. Steps that go back toward where the fingers started are not a release:
     // the arrow shrinks with them, and it only goes when the fingers lift while the pull is still far enough from the start.
-    if (run >= 5 && a < peak * .95 && Math.sign(dx) === Math.sign(sum)) { release(); return; }
-    idle = setTimeout(release, 130); // no more movement at all: fingers up with no momentum
+    if (run >= 8 && a < peak * .85 && Math.sign(dx) === Math.sign(sum)) { release(); return; }
+    // No more movement for a while and no lift seen: let the pull go without navigating.
+    idle = setTimeout(() => { done = true; gone(); }, 1500);
   }, { capture: true, passive: true });
 }

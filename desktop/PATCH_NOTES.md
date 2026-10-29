@@ -1,3 +1,8 @@
+## 1.14.5
+
+- Changed: Updates on Windows install by themselves after the download: no setup wizard, Lodica stays open with a progress bar and restarts when it is done
+- Fixed: Two-finger swipe no longer goes back or forward while your fingers stay on the touchpad; it only goes when you lift them
+
 ## 1.14.4
 
 - Changed: Tabs on PC is now Linked devices: link once, then tick what to share. Choices: open tabs, history, authenticator keys, passwords, name in the server chat, Bluetooth devices, Wi-Fi networks and passwords, start page shortcuts, settings and themes, and site lists

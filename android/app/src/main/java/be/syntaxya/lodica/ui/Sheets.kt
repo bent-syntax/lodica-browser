@@ -190,6 +190,11 @@ fun MenuSheet() {
                     })
                     if (WebApps.installable(tab)) add(MenuItem("install", Icons.Outlined.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
                 }
+                add(MenuItem("tilt", Icons.Outlined.ScreenRotation, if (Prefs.tiltRotate) "Tilt rotate on" else "Tilt rotate", if (Prefs.tiltRotate) Amber else Mist) {
+                    Prefs.updateTiltRotate(!Prefs.tiltRotate)
+                    be.syntaxya.lodica.engine.Tilt.update()
+                    Toast.makeText(ctx, if (!Prefs.tiltRotate) "Tilt rotate off" else if (be.syntaxya.lodica.engine.Tilt.textureBackend) "Tilt rotate on" else "Tilt rotate on after you restart the browser", Toast.LENGTH_SHORT).show()
+                })
                 add(MenuItem("speed", Icons.Outlined.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
                     if (Prefs.speed != 1f) Amber else Mist) { Ui.picker = Picker.Speed })
                 if (tab != null) {

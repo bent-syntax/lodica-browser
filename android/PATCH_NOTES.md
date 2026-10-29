@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.5
+
+- Added: Tilt rotate: turn your phone and the page turns the other way so it stays upright. Switch it on in Settings or the menu. Dead zone and zoom can be set. Restart the browser once after switching it on
+
 ## 1.14.4
 
 - Changed: Maintenance release, desktop only

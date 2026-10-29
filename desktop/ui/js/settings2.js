@@ -189,6 +189,7 @@ function updateRow() {
     case "available": if (u.older) return setRow("Go back to " + u.version, mb(u.size) + " · tap to download this older version", null, () => inv("update.download"));
       return setRow("Update " + u.version + " available", (u.notes ? u.notes.split("\n")[0] + " · " : "") + mb(u.size) + " · tap to download", null, () => inv("update.download"));
     case "downloading": return setRow("Downloading " + (u.version || ""), (u.size ? Math.round(100 * (u.received || 0) / u.size) + "% · " : "") + mb(u.received) + " · tap to cancel", null, () => inv("update.cancel"));
+    case "installing": return setRow("Installing " + (u.version || ""), "Lodica restarts by itself when it is done · " + Math.round(70 + 30 * (u.progress || 0)) + "%", null);
     case "ready": return setRow("Update ready", u.path ? "Checksum verified. Tap to install" : "", null, () => inv("update.install"));
     case "error": return setRow("Check for updates", u.message + " · tap to retry", null, () => inv("update.check"), "danger-row");
     default: return setRow("Check for updates", "Look for a newer Lodica", null, () => inv("update.check"));

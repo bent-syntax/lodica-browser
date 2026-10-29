@@ -62,6 +62,12 @@ body.vert.fold .mail::before{content:"@";font-size:14px}
 #grip{position:fixed;top:0;right:0;bottom:0;width:5px;cursor:col-resize}
 #grip:hover,#grip.on{background:var(--amber-bg)}
 .hidden{display:none!important}
+/* update progress: shown while Lodica downloads and installs an update, until it restarts */
+#upd{flex:none;display:flex;flex-direction:column;gap:3px;min-width:150px;margin-left:auto;padding:0 8px;font-size:11px;color:var(--muted)}
+#upd i{display:block;height:4px;border-radius:2px;background:var(--high);overflow:hidden}
+#upd b{display:block;height:100%;width:0;border-radius:2px;background:var(--amber);transition:width .4s ease-out}
+#upd.busy b{width:35%!important;animation:updslide 1.2s ease-in-out infinite alternate}
+@keyframes updslide{from{margin-left:0}to{margin-left:65%}}
 /* page 1: tab strip above the toolbar; the toolbar owns back/forward/reload */
 body.bt #back,body.bt #fwd,body.bt #rel{display:none}
 body.bt:not(.vert){padding:0 8px;gap:8px;align-items:flex-end;background:var(--bg)}
@@ -83,6 +89,7 @@ body.bt .t .x{border-radius:999px}
 </div>
 <div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab">+</button></div>
 <button id="mail" class="mail hidden" title="Fill the sign-up form with the dummy mail">Use dummy mail</button>
+<div id="upd" class="hidden" title="Updating Lodica"><span id="updt"></span><i><b id="updb"></b></i></div>
 <div id="grip" class="hidden"></div>
 <script src="js/customtheme.js"></script>
 <script src="js/drag.js"></script>

@@ -97,6 +97,8 @@ import be.syntaxya.lodica.engine.Mail
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.engine.WebApps
 import be.syntaxya.lodica.engine.Relay
+import be.syntaxya.lodica.engine.Tilt
+import androidx.compose.ui.layout.onSizeChanged
 import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
@@ -213,8 +215,13 @@ private fun BrowserScreen() {
 
     Box(
         Modifier.fillMaxSize()
+            // The borders of a turned page show this dark gradient (Tilt rotate).
+            .then(if (Tilt.active) Modifier.background(androidx.compose.ui.graphics.Brush.verticalGradient(
+                listOf(androidx.compose.ui.graphics.Color(0xFF0B0C12), androidx.compose.ui.graphics.Color(0xFF132052)))) else Modifier)
             .then(if (full) Modifier else Modifier.systemBarsPadding().imePadding())
             .clipToBounds()
+            // Size of the area the page fills; with the keyboard open (adjustResize) it shrinks and the turn follows.
+            .onSizeChanged { Tilt.size(it.width, it.height) }
     ) {
         val locked = tab?.locked == true
         PageGestures(tab?.takeUnless { locked }, Modifier.fillMaxSize()) {
@@ -223,7 +230,7 @@ private fun BrowserScreen() {
 
         val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
         AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
-            StartPage(Modifier.fillMaxSize())
+            StartPage(Modifier.fillMaxSize().tiltLayer())
         }
         if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
             modifier = Modifier.align(Alignment.TopStart).background(androidx.compose.ui.graphics.Color(0xAA000000)).padding(4.dp))
@@ -410,6 +417,11 @@ private fun MailBanner(m: Mail) {
     }
 }
 
+/** The start page turns with the page (Tilt rotate); the page view itself is turned directly in [Tilt]. */
+private fun Modifier.tiltLayer(): Modifier = graphicsLayer {
+    if (Tilt.active) { rotationZ = Tilt.angle; scaleX = Tilt.zoomed; scaleY = Tilt.zoomed }
+}
+
 /** Hosts the single GeckoView; swapping tabs swaps the session, not the view. */
 @Composable
 private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
@@ -426,19 +438,23 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
                 // GeckoView draws straight to a SurfaceView by default. Do not call setViewBackend(BACKEND_SURFACE_VIEW):
                 // re-creating the surface view leaves the compositor without a surface and every page stays blank.
                 // The TextureView option costs an extra GPU copy per frame and made scrolling choppy on 2-core GPUs.
-                if (!Prefs.fastRender) {
+                // Tilt rotate also needs the texture view: a surface view does not follow a rotated parent.
+                val texture = !Prefs.fastRender || Prefs.tiltRotate
+                Tilt.textureBackend = texture
+                if (texture) {
                     setViewBackend(GeckoView.BACKEND_TEXTURE_VIEW)
                     // 120Hz panels give a texture view an 8.3ms budget that mid-range GPUs miss on every frame; 60Hz fits.
                     if (android.os.Build.VERSION.SDK_INT >= 35) requestedFrameRate = 60f
                 }
                 coverUntilFirstPaint(bg)
                 Ui.gecko = this
+                Tilt.attach(this)
             }
         },
         update = { v ->
             Ui.gecko = v
             // A hidden SurfaceView loses its surface and can come back blank, so only texture views are hidden.
-            val hide = covered && !Prefs.fastRender
+            val hide = covered && Tilt.textureBackend
             val reveal = !hide && v.visibility != android.view.View.VISIBLE
             v.visibility = if (hide) android.view.View.INVISIBLE else android.view.View.VISIBLE
             // Some GPUs leave the texture view blank after it was hidden; wake the compositor again.
@@ -461,6 +477,7 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
         onRelease = { v ->
             v.releaseSession()
             if (Ui.gecko === v) Ui.gecko = null
+            Tilt.attach(null)
         },
         modifier = modifier,
     )

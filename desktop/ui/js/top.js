@@ -118,6 +118,21 @@ window.lodica.on("tab", t => {
   soon();
 });
 window.lodica.on("tabs", soon);
+// Update progress: the download is exact, the install is an estimate (the setup runs silently and restarts Lodica when done).
+{
+  const box = document.getElementById("upd"), label = document.getElementById("updt"), bar = document.getElementById("updb");
+  window.lodica.on("update", u => {
+    const st = u && u.state, v = u && u.version ? " " + u.version : "";
+    const down = st === "downloading", inst = st === "installing";
+    box.classList.toggle("hidden", !(down || inst));
+    if (!(down || inst)) return;
+    // download is the first 70% of the bar, the install the rest
+    const frac = down ? 0.7 * (u.size ? Math.min(1, (u.received || 0) / u.size) : 0) : 0.7 + 0.3 * (u.progress || 0);
+    box.classList.remove("busy");
+    bar.style.width = Math.round(frac * 100) + "%";
+    label.textContent = (down ? "Downloading" + v + " " : "Installing" + v + ", Lodica restarts when done ") + Math.round(frac * 100) + "%";
+  });
+}
 window.lodica.on("locked", soon);
 document.getElementById("add").addEventListener("click", () => inv("tab.new", {}));
 backBtn.addEventListener("click", () => inv("back"));
