@@ -1,3 +1,7 @@
+## 1.13.56
+
+- Changed: Swipe diagnostics also listen for wheel events directly in the page
+
 ## 1.13.55
 
 - Changed: Swipe diagnostics count every sideways and vertical wheel event the page sees

@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.13.56 (versionCode 157)
+- Changed: Swipe diagnostics also listen for wheel events directly in the page
+
 ## 1.13.55 (versionCode 156)
 - Changed: Swipe diagnostics count every sideways and vertical wheel event the page sees
 
