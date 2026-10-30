@@ -4,6 +4,7 @@ const { systemAccent } = require("./sysaccent");
 let sysAccentCache;
 const { app, clipboard, shell, session, net, WebContentsView, Menu, screen } = require("electron");
 
+const PANEL_W = 360;
 let d = null, preview = null, previewPrivate = false;
 
 const str = v => (v == null ? "" : String(v));
@@ -372,6 +373,20 @@ function init(deps) {
     pullTheme();
     return true;
   });
+  // Make a custom theme from a description (for example "Minecraft") with the linked AI.
+  on("theme.ai", async (idea) => {
+    const what = str(idea).trim().slice(0, 200);
+    if (!what) return { error: "Describe the theme first" };
+    let reply;
+    try { reply = await d.ai.complete([{ role: "user", content: "Theme: " + what }], require("./aitheme").SYSTEM); }
+    catch (e) { return { error: /connect/i.test(String(e && e.message)) ? "Connect the AI in Settings first" : "The AI could not answer" }; }
+    const t = require("./aitheme").parse(reply);
+    if (!t) return { error: "The AI gave no usable colours. Try again" };
+    d.prefs.set("customTheme", Object.assign(t, { at: Date.now() }));
+    d.prefs.set("theme", "custom");
+    pullTheme();
+    return { ok: true };
+  });
   // Community theme plugins (see themeplugins.js).
   const tp = require("./themeplugins");
   on("plugins.list", () => tp.list().map(({ css, ...p }) => p));
@@ -516,6 +531,18 @@ function init(deps) {
     return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, push: (p) => d.ui.push("agent", p) });
   });
   on("ai.agent.stop", () => require("./aiagent").stop());
+  on("ai.agent.active", () => require("./aiagent").active());
+  // Right-hand AI panel (phone-shaped). "open" shows it; "full" swaps it for the full chat page.
+  const panelShow = on_ => {
+    if (!d.ai.status().connected) { d.ui.push("toast", { text: "Ask AI isn't set up" }); return false; }
+    d.ui.setPanelWidth(on_ ? PANEL_W : 0); d.tabs.fit();
+    d.ui.push("aipanel", { open: !!on_ });
+    return !!on_;
+  };
+  on("ai.panel.toggle", () => panelShow(!d.ui.panelWidth()));
+  on("ai.panel.open", () => panelShow(true));
+  on("ai.panel.close", () => panelShow(false));
+  on("ai.panel.full", () => { panelShow(false); d.ui.push("sheet", { name: "aichat" }); return true; });
   on("ai.status", () => ai.status());
   on("ai.chats", () => ai.chats.get());
   on("ai.chat.send", (id, text) => ai.chats.send(str(id), str(text)));
@@ -540,7 +567,6 @@ function init(deps) {
 
   on("pctabs.link", () => pctabs.link());
   on("pctabs.reset", () => pctabs.reset());
-  on("pctabs.pair", text => pctabs.pair(str(text)));
   on("pctabs.code", () => pctabs.pairCode());
   on("pctabs.pairCode", code => pctabs.pairWithCode(str(code)));
   // Linked devices: what to share, and the link key that protects passwords, authenticator keys and Wi-Fi passwords.
@@ -609,11 +635,55 @@ function init(deps) {
       if (png.length <= 96 * 1024) break;
     }
     if (png.length > 96 * 1024) return { error: "Image too big" };
+    return uploadEmoji(n, png);
+  });
+  async function uploadEmoji(n, png) {
     try {
       const res = await fetch(`${relay.API}/api/emojis`, { method: "POST", headers: { Authorization: "Bearer " + relay.token, "Content-Type": "application/json" }, body: JSON.stringify({ name: n, png, at: Date.now() }), signal: AbortSignal.timeout(20000) });
       if (!res.ok) return { error: res.status === 409 ? "Emoji limit reached" : "Server said " + res.status };
     } catch { return { error: "Server not reachable" }; }
     return { ok: true, name: n };
+  }
+  // Same Apple-style prompt as the phone: the AI draws an SVG, a hidden window renders it to a 256 px PNG.
+  const EMOJI_STYLE = "You draw emoji in the style of Apple's emoji: polished, friendly, rounded 3D-looking shapes. " +
+    "Reply with one complete SVG and nothing else. viewBox=\"0 0 64 64\", the subject fills most of the canvas, centred, transparent background. " +
+    "Use defs with linearGradient and radialGradient for every main surface: a lighter top-left and a darker bottom-right shade of the same hue, " +
+    "a soft white highlight shape (opacity .35 to .6) near the top-left, a subtle darker rim or shadow shape at the bottom, " +
+    "a thin slightly darker outline (stroke-width 1 to 1.5) on the main shape, and rich saturated colours. " +
+    "Keep shapes smooth with curved paths. Add small details that make the subject recognisable. " +
+    "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 3500 characters.";
+  async function svgToPng(svg) {
+    const { BrowserWindow } = require("electron");
+    const w = new BrowserWindow({ show: false, width: 256, height: 256, transparent: true, frame: false, webPreferences: { sandbox: true, javascript: false, offscreen: true } });
+    try {
+      const html = '<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src \'none\'"><body style="margin:0;background:transparent">' +
+        svg.replace(/<svg\b/, '<svg width="256" height="256"') + "</body>";
+      await w.loadURL("data:text/html;base64," + Buffer.from(html).toString("base64"));
+      await new Promise(r => setTimeout(r, 150));
+      return (await w.webContents.capturePage()).toPNG().toString("base64");
+    } finally { w.destroy(); }
+  }
+  on("emojis.draw", async (name, idea) => {
+    const n = str(name).toLowerCase();
+    if (!/^[a-z0-9_]{1,32}$/.test(n)) return { error: "Name: 1 to 32 letters, digits or _" };
+    if (!relay.available) return { error: "Link a Lodica server first" };
+    const what = str(idea).slice(0, 80).trim();
+    if (!what) return { error: "Describe the emoji" };
+    let text;
+    try { text = await d.ai.complete([{ role: "user", content: "Emoji: " + what }], EMOJI_STYLE); } catch (e) { return { error: e?.message || "AI failed" }; }
+    const a = text.indexOf("<svg"), b = text.lastIndexOf("</svg>");
+    if (a < 0 || b < a) return { error: "No drawing returned" };
+    let svg = text.slice(a, b + 6);
+    if (/<\s*(script|foreignObject|image|style|iframe)\b|\bon\w+\s*=|href\s*=\s*["']?\s*(https?:|javascript:)/i.test(svg)) return { error: "The drawing used something not allowed" };
+    let png;
+    try { png = await svgToPng(svg); } catch { return { error: "Could not render the drawing" }; }
+    if (png.length > 96 * 1024) {
+      const { nativeImage } = require("electron");
+      png = nativeImage.createFromBuffer(Buffer.from(png, "base64")).resize({ width: 128, height: 128, quality: "best" }).toPNG().toString("base64");
+      if (png.length > 96 * 1024) return { error: "Image too big" };
+    }
+    const r = await uploadEmoji(n, png);
+    return r.ok ? { ok: true, name: n, png } : r;
   });
   on("pctabs.remote", async () => { await pctabs.refresh(); return pctabs.status(); });
   on("ext.list", () => extensions.list());

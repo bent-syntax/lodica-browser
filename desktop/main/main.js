@@ -31,7 +31,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: "lodica", privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
 
-let win = null, uiView = null, topView = null, dividerView = null, lastClip = "";
+let win = null, uiView = null, topView = null, dividerView = null, panelView = null, lastClip = "";
 let M = null; // feature modules, loaded after ready (safeStorage)
 const pendingArgs = [];
 
@@ -384,7 +384,13 @@ function createWindow() {
   });
   dividerView.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   dividerView.webContents.on("will-navigate", e => e.preventDefault());
+  panelView = new WebContentsView({
+    webPreferences: { preload: path.join(ROOT, "preload", "ui.js"), contextIsolation: true, sandbox: true },
+  });
+  panelView.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+  panelView.webContents.on("will-navigate", e => e.preventDefault());
   win.contentView.addChildView(topView);
+  win.contentView.addChildView(panelView);
   win.contentView.addChildView(uiView);
 }
 
@@ -468,6 +474,7 @@ app.whenReady().then(() => {
   m.ui.init(win, uiView);
   m.ui.initTop(topView);
   m.ui.initDivider(dividerView);
+  m.ui.initPanel(panelView);
   M = m;
   wire(m);
   applyOpacity();
@@ -475,6 +482,7 @@ app.whenReady().then(() => {
   require("./emojipicker").init(m.prefs);
   try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
   uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));
+  panelView.webContents.loadFile(path.join(ROOT, "ui", "aipanel.html")).catch(e => console.error("panel load", e.message));
   dividerView.webContents.loadFile(path.join(ROOT, "ui", "divider.html")).catch(e => console.error("divider load", e.message));
   topView.webContents.loadFile(path.join(ROOT, "ui", "top.html")).catch(e => console.error("top load", e.message));
   // A dying UI renderer must not leave a dead window: log it and reload the view.

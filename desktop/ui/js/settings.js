@@ -191,39 +191,18 @@ function secPcTabs() {
     SET.pcSub = true;
     window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; refreshSettings(); });
   }
-  if (SET.pcLink == null) {
-    SET.pcLink = "";
-    inv("pctabs.link").then((u) => { SET.pcLink = u || ""; refreshSettings(); });
-  }
   if (SET.pcRemote == null) {
     SET.pcRemote = false;
     inv("pctabs.remote").then((r) => { SET.pcRemote = r || { tabs: [], updated: 0 }; refreshSettings(); });
   }
-  const u = SET.pcLink;
-  out.push(setRow(u ? u : "Loading…", "Your link. Paste it on the other device to link", null));
+  out.push(setRow("Link a device", "Show a code here and type it on the other device, or type the code shown there", null));
   out.push(h("div", { class: "chips" },
-    u ? btn("Copy", () => { inv("copy", u); toast("Link copied"); }) : null,
-    u ? btn("Share", () => inv("share", u, true)) : null,
     btn("Show link code", async () => {
       const c = await inv("pctabs.code");
       if (!c) { toast("Could not make a code. Is the relay set up?"); return; }
       await textDialog({ title: "Link code", message: "Type this code on your other device within 10 minutes: Settings, Linked devices, Enter link code.", value: c, ok: "Done" });
     }),
-    enterCodeBtn(),
-    btn("Link with other device", async () => {
-      const v = await textDialog({ title: "Link with other device", message: "Paste the link shown on the other device.", placeholder: "https://…/t/…#…", ok: "Link" });
-      if (v == null) return;
-      const ok = await inv("pctabs.pair", v.trim());
-      if (!ok) { toast("Not a valid link"); return; }
-      SET.pcLink = null; SET.pcRemote = null;
-      toast("Linked");
-      refreshSettings();
-    }),
-    u ? btn("Reset link", async () => {
-      const ok = await confirmDialog({ title: "Reset link?", message: "The current link stops working and the other device must link again.", ok: "Reset" });
-      if (!ok) return;
-      SET.pcLink = (await inv("pctabs.reset")) || ""; SET.pcRemote = null; refreshSettings();
-    }, "muted") : null));
+    enterCodeBtn()));
   out.push(...linkRows());
   out.push(setRow("Control the phone", "Open a page on the linked phone. The phone must allow control in its settings", null));
   out.push(h("div", { class: "chips" },

@@ -8,6 +8,8 @@
     christmas: { n: 140, size: [1.5, 3.5], colors: ["#FFFFFF", "#E8F1FF"], fall: [20, 55], sway: 22, settle: true, shape: "dot" },
     "new-year": { n: 90, size: [3, 6], colors: ["#FFD700", "#FF4D8D", "#7DD3FC", "#86EFAC", "#FFFFFF"], fall: [40, 90], sway: 30, settle: true, shape: "rect" },
     halloween: { n: 36, size: [8, 14], colors: ["#FF7A18", "#9BE564", "#B49BD1"], fall: [-30, -8], sway: 40, settle: false, shape: "bat" },
+    "st-patrick": { n: 40, size: [9, 15], colors: ["#4CC96B", "#8EE6A0", "#F5D76E"], fall: [25, 55], sway: 36, settle: false, shape: "clover" },
+    "national-day": { n: 90, size: [4, 8], colors: ["#FDDA24", "#111111", "#EF3340"], fall: [35, 80], sway: 28, settle: true, shape: "rect" },
     valentine: { n: 34, size: [8, 16], colors: ["#FF5C8A", "#FF3B5C", "#FFB3C9"], fall: [-45, -15], sway: 24, settle: false, shape: "heart" },
   };
   let kind = "", cv, cx, W = 0, H = 0, raf = 0, last = 0, parts = [], ledges = [], floor = [], mx = -999, my = -999, vx = 0, vy = 0, lt = 0, ledgeTimer = 0;
@@ -113,7 +115,11 @@
     if (cfg.shape === "dot") { cx.beginPath(); cx.arc(p.x, p.y, p.s, 0, 6.283); cx.fill(); return; }
     cx.save(); cx.translate(p.x, p.y); cx.rotate(cfg.shape === "rect" ? p.rot : Math.sin(p.ph) * 0.3);
     if (cfg.shape === "rect") cx.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * 0.6);
-    else if (cfg.shape === "heart") {
+    else if (cfg.shape === "clover") {
+      const s = p.s / 2.2; cx.globalAlpha = 0.9;
+      for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { cx.beginPath(); cx.arc(ox * s * 0.6, oy * s * 0.6, s * 0.65, 0, 6.283); cx.fill(); }
+      cx.fillRect(-s * 0.1, s * 0.6, s * 0.2, s * 1.2); cx.globalAlpha = 1;
+    } else if (cfg.shape === "heart") {
       const s = p.s / 2; cx.globalAlpha = 0.85; cx.beginPath();
       cx.moveTo(0, s * 0.6); cx.bezierCurveTo(-s * 1.4, -s * 0.3, -s * 0.6, -s * 1.3, 0, -s * 0.5); cx.bezierCurveTo(s * 0.6, -s * 1.3, s * 1.4, -s * 0.3, 0, s * 0.6); cx.fill(); cx.globalAlpha = 1;
     } else {

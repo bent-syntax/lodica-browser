@@ -2,6 +2,17 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.7 (versionCode 167)
+- Added: AI side panel on the right in phone shape. It shows what the AI says and does, glows around the page while it navigates, can be minimized without stopping, lists older chats, and expands to full screen. The toolbar AI button opens it
+- Added: Make your own theme with the linked AI (for example a Minecraft theme) in the custom theme editor
+- Added: Holiday themes for St Patrick's Day and Belgian National Day, each with its own effect
+- Added: Draw server emojis with AI on desktop
+- Changed: Typing an IP address opens it over http unless the address redirects to https
+- Changed: The emoji picker keeps emojis at normal size; chat shows them at the size you set
+- Removed: The tabs link for linking devices; use the link code
+- Fixed: The server chat shortcut now loads server emojis
+- Fixed: The AI can read the Smartschool course list (vakmap)
+
 ## 1.14.6 (versionCode 166)
 - Added: Holiday themes (New Year, Valentine, Halloween, Christmas). Claim one from a week before to a week after the holiday, then keep it for good. Each has its own effect: snow and confetti pile up and can be pushed off, bats and hearts drift past. Toggle in Settings > Appearance
 - Added: Selecting two or more functions graphs them together; with two, the points where they meet are marked

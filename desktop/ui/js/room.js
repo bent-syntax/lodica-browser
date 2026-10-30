@@ -48,7 +48,7 @@ function openRoom() {
       const list = await inv("emojis.list") || [];
       if (list.length) ROOM.emojis = new Map(list.map((e) => [e.name, e.png]));
       for (const e of list) {
-        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(36px * var(--chat-scale, 1) * var(--emoji-scale, 1));height:calc(36px * var(--chat-scale, 1) * var(--emoji-scale, 1))" }));
+        const b = h("button", { class: "ib", title: ":" + e.name + ":" }, h("img", { src: "data:image/png;base64," + e.png, alt: e.name, style: "width:calc(36px * var(--chat-scale, 1));height:calc(36px * var(--chat-scale, 1))" }));
         b.addEventListener("click", () => put(":" + e.name + ":"));
         L.pick.prepend(b);
       }
@@ -174,7 +174,6 @@ function roomRender() {
   L.pick.style.setProperty("--chat-scale", scale);
   const emo = (S.prefs.chatEmojiScale || 150) / 100;
   L.thread.style.setProperty("--emoji-scale", emo);
-  L.pick.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(15 * scale) + "px";
   const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
   if (L.sig === sig) return;

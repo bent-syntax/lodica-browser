@@ -4,6 +4,8 @@ const WINDOW = 7;
 const HOLIDAYS = [
   { id: "new-year", label: "New Year", month: 1, day: 1 },
   { id: "valentine", label: "Valentine's Day", month: 2, day: 14 },
+  { id: "st-patrick", label: "St Patrick's Day", month: 3, day: 17 },
+  { id: "national-day", label: "Belgian National Day", month: 7, day: 21 },
   { id: "halloween", label: "Halloween", month: 10, day: 31 },
   { id: "christmas", label: "Christmas", month: 12, day: 25 },
 ];

@@ -6,7 +6,7 @@ const TOP = 36; // tab strip above the page
 const COLLAPSED = 44; // vertical panel when collapsed
 const handlers = new Map();
 const waits = new Map(); // id -> resolve
-let win = null, view = null, top = null, divider = null, mode = "bar", seq = 0, ready = false, topReady = false;
+let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", seq = 0, ready = false, topReady = false;
 let refocus = () => {};
 let full = false; // page (e.g. a video) is fullscreen: hide the tab strip and bar
 const queue = [];
@@ -19,7 +19,7 @@ function init(window, uiView) {
     while (queue.length) push(...queue.shift());
   });
   ipcMain.handle("ui", async (e, cmd, ...args) => {
-    if (e.sender !== view.webContents && e.sender !== top?.webContents && e.sender !== divider?.webContents) throw new Error("Forbidden");
+    if (e.sender !== view.webContents && e.sender !== top?.webContents && e.sender !== divider?.webContents && e.sender !== panel?.webContents) throw new Error("Forbidden");
     const fn = handlers.get(cmd);
     if (!fn) throw new Error("Unknown command " + cmd);
     return fn(...args);
@@ -38,6 +38,12 @@ function initTop(topView) {
 /** Register the split-view divider (same bridge, receives every event once loaded). */
 function initDivider(v) { divider = v; }
 
+/** Register the AI side panel view (same bridge, receives every event). */
+function initPanel(v) { panel = v; }
+/** Width reserved on the right of the page for the AI panel; 0 = hidden. */
+function setPanelWidth(w) { panelW = Math.max(0, Math.round(w) || 0); fit(); }
+const panelWidth = () => panelW;
+
 function handle(cmd, fn) { handlers.set(cmd, fn); }
 
 function push(event, data) {
@@ -47,6 +53,7 @@ function push(event, data) {
   wc.send("ui-event", event, data);
   if (top && topReady && !top.webContents.isDestroyed()) top.webContents.send("ui-event", event, data);
   if (divider && !divider.webContents.isDestroyed() && !divider.webContents.isLoading()) divider.webContents.send("ui-event", event, data);
+  if (panel && panelW && !panel.webContents.isDestroyed() && !panel.webContents.isLoading()) panel.webContents.send("ui-event", event, data);
 }
 
 function size() {
@@ -56,6 +63,11 @@ function size() {
 
 /** Page area: the window minus the tab strip and the bar. */
 function pageBounds() {
+  const r = pageRect();
+  return panelW && !full ? { ...r, width: Math.max(0, r.width - panelW) } : r;
+}
+
+function pageRect() {
   const { width, height } = size();
   if (full) return { x: 0, y: 0, width, height };
   const left = sideWidth();
@@ -87,6 +99,14 @@ function fit() {
   const bt = barTop();
   view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - BAR), width: Math.max(0, width - (bt ? left : 0)), height: BAR });
+  placePanel();
+}
+
+/** The AI panel sits on the right edge of the page area, as tall as the page. */
+function placePanel() {
+  if (!panel || panel.webContents.isDestroyed()) return;
+  const r = pageRect();
+  panel.setBounds(panelW && !full ? { x: r.x + r.width - panelW, y: r.y, width: panelW, height: r.height } : { x: 0, y: 0, width: 0, height: 0 });
 }
 
 /** Hide or restore the tab strip and bar while a page is fullscreen. */
@@ -140,4 +160,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };

@@ -25,10 +25,12 @@ const T = [
 ];
 
 // Holiday themes: claimable for a week either side of the holiday (see main/holidays.js), then usable for ever.
-const HOLIDAY_IDS = ["new-year", "valentine", "halloween", "christmas"];
+const HOLIDAY_IDS = ["new-year", "valentine", "st-patrick", "national-day", "halloween", "christmas"];
 T.push(
   ["new-year", "New Year", "dark", "#0B0F2A", "#151B45", "#232B66", "#F1F3FF", "#A5ADE0", "#FFD700", "#FF4D8D", "#7DD3FC", "#86EFAC"],
   ["valentine", "Valentine", "dark", "#2A0F1C", "#3A1527", "#52203A", "#FFE9F0", "#E0A9BE", "#FF5C8A", "#FF3B5C", "#FFB3C9", "#9BE7B8"],
+  ["st-patrick", "St Patrick's Day", "dark", "#0C1F12", "#13301C", "#1E4A2C", "#F1FAF0", "#A8C9AE", "#4CC96B", "#FF8A5B", "#F5D76E", "#8EE6A0"],
+  ["national-day", "Belgian National Day", "dark", "#14110D", "#211C14", "#362D1F", "#FFF8E5", "#CDBB92", "#FDDA24", "#EF3340", "#FFE680", "#9BE7B8"],
   ["halloween", "Halloween", "dark", "#120A1A", "#1F1430", "#33224A", "#F3E8FF", "#B49BD1", "#FF7A18", "#FF4D6D", "#FFB454", "#9BE564"],
   ["christmas", "Christmas", "dark", "#0B1F17", "#123524", "#1E4D35", "#F5F7F2", "#A9C4B3", "#E63946", "#FF6B6B", "#FFD166", "#7BE0A0"],
 );

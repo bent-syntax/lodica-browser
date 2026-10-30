@@ -49,9 +49,9 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | Path | What it is |
 | --- | --- |
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
-| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `keys.js`, `prefs.js`. |
+| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`. |
 | `preload/` | Preload scripts exposing IPC to the UI. |
-| `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `js/`. |
+| `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
 | `pdf/` | Built-in PDF viewer. |
 | `search/` | Search support. |
 | `linux/`, `flatpak/` | Linux packaging (AppImage, deb, Flatpak). |

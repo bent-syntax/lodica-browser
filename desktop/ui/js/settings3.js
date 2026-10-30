@@ -134,6 +134,17 @@ function themeEditor() {
       h("button", { class: "ct-btn" + (on ? " sel" : ""), text: on ? "Using your theme" : "Use my theme", act: () => inv("theme.custom", cur, true) }),
       h("button", { class: "ct-btn", text: "Edit the applied theme", title: "Copy the colours of the theme in use into your custom theme", act: () => inv("theme.custom", appliedColours(), true) }),
       S.prefs.customTheme ? h("button", { class: "ct-btn", text: "Remove", act: () => { inv("theme.custom", null); if (on) setPref("theme", "system"); } }) : null),
+    S.prefs.ai ? h("div", { class: "ct-row" },
+      h("input", { class: "ct-idea", type: "text", placeholder: "Describe a theme, like Minecraft", maxlength: "200" }),
+      h("button", { class: "ct-btn", text: "Make with AI", act: async (ev, b) => {
+        const e = { target: b };
+        const box = e.target.parentNode.querySelector(".ct-idea"), msg = e.target.parentNode.nextSibling;
+        e.target.disabled = true; if (msg) msg.textContent = "Designing…";
+        const r = await inv("theme.ai", box.value);
+        e.target.disabled = false;
+        if (r && r.ok) { if (msg) msg.textContent = "Done. Your theme is in use"; } else if (msg) msg.textContent = (r && r.error) || "Failed";
+      } })) : null,
+    S.prefs.ai ? h("div", { class: "set-note", text: "" }) : null,
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }
 function secTheme() {
@@ -425,8 +436,20 @@ function emojiAdder() {
   };
   const go = h("button", { text: "Choose image", style: "white-space:nowrap;flex:none;padding:8px 16px", on: { click: pick } });
   name.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); pick(); } });
+  const idea = h("input", { placeholder: "or describe it for the AI", maxlength: 80, style: "width:200px;min-width:0" });
+  const draw = async () => {
+    if (!name.value.trim() || !idea.value.trim()) { msg.textContent = "Fill in a name and a description"; return; }
+    msg.textContent = "Drawing…"; dg.disabled = true;
+    const r = await inv("emojis.draw", name.value.trim(), idea.value.trim());
+    dg.disabled = false;
+    msg.textContent = r?.error || (r?.ok ? "Added :" + r.name + ":" : "");
+    if (r?.ok) idea.value = "";
+  };
+  const dg = h("button", { text: "Draw with AI", style: "white-space:nowrap;flex:none;padding:8px 16px", on: { click: draw } });
+  idea.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); draw(); } });
   return h("div", { style: "display:flex;flex-direction:column;align-items:flex-end;gap:8px" }, [
-    h("div", { style: "display:flex;gap:8px;align-items:center" }, [name, go]), msg]);
+    h("div", { style: "display:flex;gap:8px;align-items:center" }, [name, go]),
+    S.prefs.ai ? h("div", { style: "display:flex;gap:8px;align-items:center" }, [idea, dg]) : null, msg]);
 }
 
 function notesPicker() {

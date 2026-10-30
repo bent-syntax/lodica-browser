@@ -400,3 +400,4 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .ib.dlp.on::after{opacity:1}
 .ib.dlp.ind::after{background:conic-gradient(var(--amber) 25%,transparent 0);animation:dlspin 1s linear infinite}
 @keyframes dlspin{to{transform:rotate(360deg)}}
+.ct-idea{flex:1;min-width:160px;padding:6px 12px;border-radius:999px;background:var(--raised);border:1px solid var(--high);color:var(--text);font-size:13px}

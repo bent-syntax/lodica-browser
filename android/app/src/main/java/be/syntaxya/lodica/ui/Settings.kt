@@ -152,11 +152,9 @@ import be.syntaxya.lodica.ui.theme.ThemeChoices
 fun SettingsScreen() {
     val ctx = LocalContext.current
     var confirm by remember { mutableStateOf<Confirm?>(null) }
-    var pairing by remember { mutableStateOf(false) }
     var codeShown by remember { mutableStateOf<String?>(null) }
     var enterCode by remember { mutableStateOf(false) }
     var codeText by remember { mutableStateOf("") }
-    var pairText by remember { mutableStateOf("") }
     var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
     val scroll = Ui.settingsPageScroll
@@ -340,11 +338,10 @@ fun SettingsScreen() {
                         }) { Text("Reset link", color = Coral) }
                     }
                     Text(
-                        "Tabs sync both ways. Paste the link from your other device to share tabs once; no code needed again.",
+                        "Tabs sync both ways. Use Show link code here and Enter link code on your other device.",
                         color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
                     )
                     Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = { pairText = ""; pairing = true }) { Text("Link with other device", color = Amber) }
                         TextButton(onClick = { codeText = ""; enterCode = true }) { Text("Enter link code", color = Amber) }
                         TextButton(onClick = { PcTabs.refresh() }) { Text("Refresh", color = Amber) }
                     }
@@ -612,35 +609,6 @@ fun SettingsScreen() {
                 }) { Text("Link") }
             },
             dismissButton = { DlgSecondary(onClick = { enterCode = false }) { Text("Cancel") } },
-        )
-    }
-    if (pairing) {
-        AlertDialog(
-            onDismissRequest = { pairing = false },
-            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            title = { Text("Link with other device") },
-            text = {
-                Column {
-                    Text("Paste the tabs link shown on your other Lodica. Both devices then share one key and see each other's tabs.", fontSize = 13.sp)
-                    OutlinedTextField(
-                        pairText, { pairText = it },
-                        Modifier.fillMaxWidth().padding(top = 8.dp),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
-                            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
-                        ),
-                    )
-                }
-            },
-            confirmButton = {
-                DlgPrimary(onClick = {
-                    val ok = PcTabs.pair(pairText)
-                    pairing = false
-                    Toast.makeText(ctx, if (ok) "Linked" else "Not a valid tabs link", Toast.LENGTH_SHORT).show()
-                }) { Text("Link") }
-            },
-            dismissButton = { DlgSecondary(onClick = { pairing = false }) { Text("Cancel") } },
         )
     }
 }

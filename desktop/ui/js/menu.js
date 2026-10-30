@@ -50,7 +50,7 @@ function openMenu() {
       cell("chat", "Server chat", () => openRoom(), "", !S.relayAvail),
       cell("edit", "Notebook", () => openNotebook(), "", !S.relayAvail),
       cell("phone", "Phone screen", () => openPhoneScreen(), "", !S.relayAvail),
-      cell("ai", "AI chat", () => openAiChat(), "", !(S.prefs.ai && S.ai && S.ai.connected)),
+      cell("ai", "AI chat", () => inv("ai.panel.toggle"), "", !(S.prefs.ai && S.ai && S.ai.connected)),
       cell("settings", "Settings", () => openSettings()),
     ];
     if (S.relayAvail && !home) cells.push(cell("email", "Hidden email", () => inv("email.fill"), "amber"));

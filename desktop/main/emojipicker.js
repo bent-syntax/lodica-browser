@@ -5,6 +5,17 @@ const path = require("path");
 const KEY = "CommandOrControl+Alt+E";
 let win = null, source = async () => [], registered = false;
 
+// The shortcut works without the chat ever being opened: keep the last good list, and retry once when a fetch comes back empty.
+let cache = [];
+async function fetchList() {
+  for (let i = 0; i < 2; i++) {
+    const l = await source().catch(() => []);
+    if (l && l.length) { cache = l; return l; }
+    if (i === 0) await new Promise(r => setTimeout(r, 1500));
+  }
+  return cache;
+}
+
 function setSource(fn) { source = fn; }
 
 function hide() { if (win && !win.isDestroyed()) win.hide(); }
@@ -44,10 +55,10 @@ function apply(on) {
 }
 
 function init(prefs) {
-  ipcMain.handle("emojipicker:list", async (e) => (win && e.sender === win.webContents ? source() : []));
+  ipcMain.handle("emojipicker:list", async (e) => (win && e.sender === win.webContents ? fetchList() : []));
   ipcMain.handle("emojipicker:copy", async (e, name) => {
     if (!win || e.sender !== win.webContents) return false;
-    const x = (await source()).find(v => v.name === String(name));
+    const x = (cache.length ? cache : await fetchList()).find(v => v.name === String(name));
     if (!x) return false;
     clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(x.png, "base64")));
     hide();

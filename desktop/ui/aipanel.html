@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:">
+<title>Lodica AI</title>
+<link rel="stylesheet" href="themes.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+body{display:flex;flex-direction:column;border-left:1px solid var(--high)}
+header{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 12px;border-bottom:1px solid var(--high);position:relative}
+header h1{flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ib{width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
+.ib:hover{background:var(--raised);color:var(--text)}
+.ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#hist{position:absolute;top:48px;left:8px;right:8px;max-height:60%;overflow:auto;background:var(--raised);border-radius:20px;padding:8px;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#hist[hidden]{display:none}
+#hist button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);padding:8px 12px;border-radius:12px;font:13px system-ui,sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hist button:hover,#hist button.on{background:var(--high)}
+#hist .none{color:var(--muted);font-size:13px;padding:8px 12px}
+#thread{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+.empty{color:var(--muted);font-size:13px;text-align:center;margin:auto;padding:0 16px}
+.q{align-self:flex-end;max-width:85%;background:var(--high);padding:8px 12px;border-radius:20px 20px 4px 20px;white-space:pre-wrap;word-break:break-word}
+.a{max-width:95%;white-space:pre-wrap;word-break:break-word}
+.step{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.step:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);flex:none}
+.err{color:var(--coral)}
+footer{padding:8px 12px 12px;border-top:1px solid var(--high);display:flex;flex-direction:column;gap:8px}
+.row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;resize:none;max-height:120px;border:0;outline:0;border-radius:20px;background:var(--raised);color:var(--text);padding:8px 16px;font:15px/1.4 system-ui,sans-serif}
+.go{background:var(--amber);color:#111827}
+.go:hover{background:var(--amber);color:#111827;filter:brightness(1.1)}
+.mode{display:flex;gap:4px;font-size:12px}
+.mode button{border:0;border-radius:999px;padding:4px 12px;background:var(--raised);color:var(--muted);cursor:pointer;font:12px system-ui,sans-serif}
+.mode button.on{background:var(--amber);color:#111827}
+.mode .sp{flex:1}
+.working{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)}
+.working[hidden]{display:none}
+.working button{margin-left:auto;border:0;border-radius:999px;padding:4px 12px;background:var(--coral-bg);color:var(--coral);cursor:pointer;font:12px system-ui,sans-serif}
+</style>
+</head>
+<body>
+<header>
+  <button class="ib" id="hb" title="Older chats" aria-label="Older chats"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 8v4l3 2"/></svg></button>
+  <h1 id="title">Lodica AI</h1>
+  <button class="ib" id="nb" title="New chat" aria-label="New chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button class="ib" id="fb" title="Full screen" aria-label="Full screen"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  <button class="ib" id="mb" title="Minimize (the AI keeps working)" aria-label="Minimize"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button>
+  <div id="hist" hidden></div>
+</header>
+<div id="thread"></div>
+<footer>
+  <div class="working" id="working" hidden><span id="wtext">Working in the browser…</span><button id="stop">Stop</button></div>
+  <div class="mode"><button id="mchat" class="on">Chat</button><button id="mbrowse" title="Let the AI use the browser for you">Browse</button></div>
+  <div class="row"><textarea id="ta" rows="1" placeholder="Message Claude"></textarea><button class="ib go" id="send" title="Send" aria-label="Send"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div>
+</footer>
+<script src="js/aipanel.js"></script>
+</body>
+</html>

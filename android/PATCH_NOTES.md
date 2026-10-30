@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.7
+
+- Removed: The tabs link for linking devices; use the link code
+
 ## 1.14.6
 
 - Added: Holiday themes (New Year, Valentine, Halloween, Christmas). Claim one from a week before to a week after the holiday, then keep it for good. Each has its own effect: snow and confetti pile up and can be pushed off, bats and hearts drift past. Toggle in Settings > Appearance

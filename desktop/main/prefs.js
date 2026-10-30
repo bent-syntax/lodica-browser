@@ -122,7 +122,7 @@ function resolve(input, lodicaAvailable) {
   const t = (input || "").trim();
   if (!t) return "about:blank";
   if (SCHEMES.some(s => t.toLowerCase().startsWith(s))) return t;
-  const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || t.startsWith("localhost"));
+  const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || /^\[[0-9a-f:]+\](:\d+)?(\/.*)?$/i.test(t) || t.startsWith("localhost"));
   if (host) return withLanguage((t.startsWith("localhost") || isBareIp(t.split("/")[0]) ? "http://" : "https://") + t);
   const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");
   let engine = ENGINES[want];

@@ -33,7 +33,7 @@
     }
     msg.textContent = all.length ? "Click one to copy it, then paste" : "No server emojis. Link a Lodica server first";
   }
-  async function load() { q.value = ""; all = (await picker.list()) || []; draw(); q.focus(); }
+  async function load() { q.value = ""; msg.textContent = "Loading server emojis…"; all = (await picker.list()) || []; draw(); q.focus(); }
   q.oninput = draw;
   document.onkeydown = e => { if (e.key === "Escape") window.blur(); };
   picker.onShow(load);
