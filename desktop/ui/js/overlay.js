@@ -63,11 +63,11 @@ function escTop() {
 }
 function closeAll(exceptModal) { for (const L of STACK.slice().reverse()) if (!(exceptModal && L.modal)) L.close(); }
 
-// Bottom sheet. opts: {title, cls, head:[nodes], key, onClose, tall, wide}. body(el, L) fills content.
+// Bottom sheet. opts: {title, cls, head:[nodes], key, onClose, tall, wide, full}. body(el, L) fills content.
 function sheet(opts, body) {
   return openLayer({ key: opts.key, onClose: opts.onClose, cls: opts.layerCls }, (L) => {
     const b = h("div", { class: "sh-body" });
-    const s = h("div", { class: "sheet" + (opts.tall ? " tall" : "") + (opts.wide ? " wide" : "") + (opts.cls ? " " + opts.cls : "") },
+    const s = h("div", { class: "sheet" + (opts.tall ? " tall" : "") + (opts.wide ? " wide" : "") + (opts.full ? " full" : "") + (opts.cls ? " " + opts.cls : "") },
       h("div", { class: "grip" }),
       opts.title != null ? h("div", { class: "sh-head" }, h("h2", { text: opts.title }), opts.head || null, ib("close", "Close", () => L.close())) : null,
       b);

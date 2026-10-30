@@ -33,6 +33,7 @@ import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.engine.Notifier
 import be.syntaxya.lodica.engine.Relay
+import be.syntaxya.lodica.engine.TestSession
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.tabs.TabStore
 import be.syntaxya.lodica.ui.theme.LodicaTheme
@@ -50,6 +51,8 @@ class MainActivity : HostActivity() {
         super.onCreate(savedInstanceState)
         CrashLog.pending(this)?.let { showingReport = true; showCrashReport(it); return }
         Engine.runtime(this)
+        TestSession.recover(this)
+        TestSession.activity = this
         Relay.loadSetup(this)
         Prompts.init(this)
         TabManager.init(this)
@@ -75,7 +78,7 @@ class MainActivity : HostActivity() {
                     c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 } else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
-            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } } }
+            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() }; TestSessionBar() } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */
@@ -219,6 +222,7 @@ class MainActivity : HostActivity() {
 
     override fun onDestroy() {
         Ui.gecko = null
+        if (TestSession.activity === this) TestSession.activity = null
         super.onDestroy()
     }
 

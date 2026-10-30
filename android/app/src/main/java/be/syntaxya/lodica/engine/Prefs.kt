@@ -138,6 +138,8 @@ object Prefs {
     var fastRender by mutableStateOf(true); private set
     /** Tilt rotate: the page turns against the phone so it stays upright. The screen stays in portrait. */
     var tiltRotate by mutableStateOf(false); private set
+    /** Lets support start a visible test session (see TestSession). Off by default. */
+    var remoteTest by mutableStateOf(false); private set
     /** Percent of a 90 degree turn that does nothing before the page starts to follow. */
     var tiltDeadZone by mutableStateOf(15f); private set
     /** 0 shows the whole page with borders while it is turned, 1 fills the screen and crops the edges. */
@@ -147,8 +149,8 @@ object Prefs {
 
     private var appCtx: Context? = null
 
-    fun init(ctx: Context) {
-        if (::sp.isInitialized) return
+    fun init(ctx: Context, force: Boolean = false) {
+        if (::sp.isInitialized && !force) return
         sp = ctx.getSharedPreferences("prefs", Context.MODE_PRIVATE)
         // Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
         Secret.init(ctx); Secret.put("deviceGate", null); sp.edit().remove("gatedHosts").apply()
@@ -220,6 +222,7 @@ object Prefs {
         gestureBarHide = sp.getBoolean("gestureBarHide", true)
         fastRender = sp.getBoolean("fastRender4", true)
         tiltRotate = sp.getBoolean("tiltRotate", false)
+        remoteTest = sp.getBoolean("remoteTest", false)
         tiltDeadZone = sp.getFloat("tiltDeadZone", 15f)
         tiltZoom = sp.getFloat("tiltZoom", 0.5f)
         gestureActions = sp.getString("gestureActions", "")!!.split(',').mapNotNull { e ->
@@ -269,6 +272,7 @@ object Prefs {
         sp.edit().putString("gestureActions", gestureActions.entries.joinToString(",") { "${it.key}=${it.value}" }).apply()
     }
     fun updateFastRender(v: Boolean) { fastRender = v; sp.edit().putBoolean("fastRender4", v).apply() }
+    fun updateRemoteTest(v: Boolean) { remoteTest = v; sp.edit().putBoolean("remoteTest", v).apply() }
     fun updateTiltRotate(v: Boolean) { tiltRotate = v; sp.edit().putBoolean("tiltRotate", v).apply() }
     fun updateTiltDeadZone(v: Float) { tiltDeadZone = v; sp.edit().putFloat("tiltDeadZone", v).apply() }
     fun updateTiltZoom(v: Float) { tiltZoom = v; sp.edit().putFloat("tiltZoom", v).apply() }

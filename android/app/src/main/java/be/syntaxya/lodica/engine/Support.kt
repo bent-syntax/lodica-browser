@@ -12,7 +12,7 @@ import org.json.JSONObject
  * answers and questions arrive as notifications (see [Notifier]) and show up in the support dialog.
  */
 object Support {
-    data class Msg(val fromUser: Boolean, val text: String, val images: Int = 0)
+    data class Msg(val fromUser: Boolean, val text: String, val images: List<String> = emptyList())
 
     var messages by mutableStateOf<List<Msg>>(emptyList())
         private set
@@ -57,7 +57,7 @@ object Support {
     }
 
     /** Sends [text] as a new ticket, or as a reply when a ticket is open. Returns an error message, or null on success. */
-    fun send(ctx: Context, text: String, images: List<Uri> = emptyList(), resolved: Boolean = false): String? {
+    fun send(ctx: Context, text: String, images: List<Uri> = emptyList(), resolved: Boolean = false, category: String = ""): String? {
         Relay.init(ctx)
         if (!Relay.available) return "No relay is set up. Pair this browser with your server first."
         val id = ticketId(ctx)?.takeIf { status != "closed" && status != "done" }
@@ -66,7 +66,9 @@ object Support {
         if (images.isNotEmpty()) body.put("images", org.json.JSONArray(images.mapNotNull { encode(ctx, it) }))
         if (resolved && id != null) body.put("resolved", true)
         prefs(ctx).getString("link", null)?.let { body.put("link", it) }   // every message, so the desk can mail the answer
+        if (id == null && category !in listOf("bug", "question", "idea", "other")) return "Pick a reason first."
         val path = if (id == null) {
+            body.put("category", category)
             val v = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""
             body.put("name", Room.name(ctx)).put("app", "android").put("version", v)
                 .put("platform", "Android " + android.os.Build.VERSION.RELEASE + " " + android.os.Build.MODEL)
@@ -77,7 +79,7 @@ object Support {
         } catch (e: java.io.IOException) {
             return "Can't reach the server. Try again later."
         }
-        if (code == 404 && id != null) { prefs(ctx).edit().remove("ticket").apply(); messages = emptyList(); return send(ctx, text, images, resolved) }
+        if (code == 404 && id != null) { prefs(ctx).edit().remove("ticket").apply(); messages = emptyList(); return send(ctx, text, images, resolved, category) }
         if (code != 200) return resp.ifBlank { "Support refused the message ($code)" }
         apply(ctx, JSONObject(resp), notifyTeam = false)
         Notifier.supportSent(ctx)
@@ -112,7 +114,11 @@ object Support {
 
     private fun apply(ctx: Context, t: JSONObject, notifyTeam: Boolean) {
         val arr = t.optJSONArray("messages")
-        val list = (0 until (arr?.length() ?: 0)).map { val m = arr!!.getJSONObject(it); Msg(m.optString("from") == "user", m.optString("text"), m.optJSONArray("images")?.length() ?: 0) }
+        val list = (0 until (arr?.length() ?: 0)).map {
+            val m = arr!!.getJSONObject(it)
+            val imgs = m.optJSONArray("images")
+            Msg(m.optString("from") == "user", m.optString("text"), (0 until (imgs?.length() ?: 0)).map { i -> imgs!!.getString(i) })
+        }
         val p = prefs(ctx)
         val seen = p.getInt("seen", 0)
         val st = t.optString("status")
@@ -121,12 +127,27 @@ object Support {
             val fresh = list.drop(seen).filter { !it.fromUser }
             if (fresh.isNotEmpty()) Notifier.supportReply(ctx, fresh.last().text, st)
         }
-        messages = list
+        // A fixed or closed request ends the session: drop the old chat and keep only the last message from the team.
+        val ended = st == "done" || st == "closed"
+        messages = if (ended) listOfNotNull(list.lastOrNull { !it.fromUser }) else list
         status = st
     }
 
     /** Called when the dialog opens: shows what is stored and marks everything as read. */
     fun open(ctx: Context) {
         runCatching { refresh(ctx, notify = false) }
+    }
+
+    /** Fetches one attached image's bytes through the authenticated relay client. Null on any failure. */
+    fun image(ctx: Context, name: String): ByteArray? {
+        val id = ticketId(ctx) ?: return null
+        Relay.init(ctx)
+        if (!Relay.available) return null
+        return try {
+            val (code, bytes) = Relay.requestBytes("GET", "/api/support/${Uri.encode(id)}/img/${Uri.encode(name)}")
+            if (code == 200 && bytes.isNotEmpty()) bytes else null
+        } catch (e: java.io.IOException) {
+            null
+        }
     }
 }

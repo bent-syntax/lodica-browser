@@ -41,8 +41,10 @@ server.listen(0, '127.0.0.1', async () => {
   const port = server.address().port;
   const ADMIN = 'a-long-admin-token-for-tests';
   try {
-    assert.strictEqual((await call(port, 'POST', '/api/support', { text: '  ' })).status, 400);
-    const c = await call(port, 'POST', '/api/support', { text: 'tabs crash', name: 'Sam', app: 'android', version: '1.12.9' });
+    assert.strictEqual((await call(port, 'POST', '/api/support', { text: '  ', category: 'bug' })).status, 400);
+    assert.strictEqual((await call(port, 'POST', '/api/support', { text: 'x' })).status, 400);
+    assert.strictEqual((await call(port, 'POST', '/api/support', { text: 'x', category: 'nope' })).status, 400);
+    const c = await call(port, 'POST', '/api/support', { text: 'tabs crash', category: 'bug', name: 'Sam', app: 'android', version: '1.12.9' });
     assert.strictEqual(c.status, 200);
     const id = c.json.id;
     assert.match(id, /^[0-9a-f]{16}$/);

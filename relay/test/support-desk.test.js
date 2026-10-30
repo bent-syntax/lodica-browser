@@ -42,14 +42,14 @@ desk.listen(0, '127.0.0.1', async () => {
   api.listen(0, '127.0.0.1', async () => {
     const port = api.address().port;
     try {
-      const refused = await call(port, '/api/support', { text: 'no email linked' });
+      const refused = await call(port, '/api/support', { text: 'no email linked', category: 'bug' });
       assert.strictEqual(refused.status, 403);
       const link = 'a'.repeat(64);
-      const t = await call(port, '/api/support', { text: 'tabs crash', name: 'Sam', app: 'android', version: '1.13.1', platform: 'Android 15', link });
+      const t = await call(port, '/api/support', { text: 'tabs crash', category: 'bug', name: 'Sam', app: 'android', version: '1.13.1', platform: 'Android 15', link });
       await wait(1);
       assert.strictEqual(got[0].url, '/relay/ticket');
       assert.strictEqual(got[0].auth, 'Bearer desk-secret-for-tests');
-      assert.deepStrictEqual(got[0].body, { relayId: t.id, text: 'tabs crash', name: 'Sam', app: 'android', version: '1.13.1', platform: 'Android 15', link });
+      assert.deepStrictEqual(got[0].body, { relayId: t.id, text: 'tabs crash', name: 'Sam', app: 'android', version: '1.13.1', platform: 'Android 15', category: 'bug', link });
       await call(port, '/api/support/' + t.id, { text: 'still crashing' });
       await wait(2);
       assert.strictEqual(got[1].body.text, 'still crashing');

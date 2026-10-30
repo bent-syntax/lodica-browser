@@ -1,3 +1,13 @@
+## 1.14.10
+
+- Added: Remote test session. Turn on "Let support connect for testing" in Settings, press Start and read the code to support. Support can then click, type, scroll, emulate touchpad and touch, and change a few settings inside the app. A bar stays on screen with a Stop button, your settings are saved first and put back after, and it ends by itself after 15 minutes. No vault, passwords or files
+- Added: Attach images to support tickets
+- Added: The contact form asks for a reason (bug, idea, question, other)
+- Added: The support window is full screen
+- Changed: New download animation
+- Changed: When support marks your request fixed, the old support chat clears and closes, and the last message stays visible
+- Fixed: Swipe has no dead zone and the charging arrow shows
+
 ## 1.14.9
 
 - Changed: Maintenance release, Android only

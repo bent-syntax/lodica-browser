@@ -66,6 +66,9 @@ body.ov #layers{z-index:60}
 .layer.out .sheet{transform:translate(-50%,24px);transition-duration:.12s}
 .sheet.tall{height:calc(100% - 40px)}
 .sheet.wide{max-width:720px}
+.sheet.full{max-width:none;width:100%;height:100%;max-height:100%;border-radius:0}
+.sheet.full .sup{max-width:760px;margin:0 auto;width:100%}
+.sheet.full .sup-log{max-height:none}
 .grip{width:36px;height:4px;border-radius:2px;background:var(--high);margin:8px auto 2px;flex:none}
 .sh-head{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 20px;flex:none;min-height:52px}
 .sh-head h2{flex:1;font-size:18px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -387,10 +390,14 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .sup-msg.me{align-self:flex-end;background:color-mix(in srgb,var(--amber) 16%,var(--raised));border-radius:12px 12px 4px 12px}
 .sup-who{font-size:11px;color:var(--muted);margin-bottom:2px}
 .sup-txt{font-size:14px;white-space:pre-wrap;word-break:break-word}
+.sup-pics{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sup-pic{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--high);cursor:zoom-in;background:var(--surface)}
 .sup-note{font-size:13px;color:var(--amber)}
 .sup-ta{width:100%;resize:vertical;min-height:84px}
 .sup-row{display:flex;gap:8px;justify-content:flex-end;align-items:center}
 .sup-ghost{background:transparent;border:1px solid var(--high)}
+.sup-cats{justify-content:flex-start;flex-wrap:wrap}
+.sup-cat.on{background:var(--amber);color:#111827;border-color:var(--amber)}
 .sup-err{color:var(--coral);font-size:13px}
 .sup-err:empty{display:none}
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
@@ -400,4 +407,15 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .ib.dlp.on::after{opacity:1}
 .ib.dlp.ind::after{background:conic-gradient(var(--amber) 25%,transparent 0);animation:dlspin 1s linear infinite}
 @keyframes dlspin{to{transform:rotate(360deg)}}
+.dlf .dlf-sheet{opacity:0;transform:translateY(-6px)}
+.dlf .dlf-lid{transform-box:fill-box;transform-origin:50% 100%;transition:transform .25s ease}
+.ib.dlp.on .dlf-lid{animation:dlflid 1.6s ease-in-out infinite}
+.ib.dlp.on .dlf-sheet{animation:dlfsheet 1.6s ease-in infinite}
+.ib.dlp.done .dlf-lid{animation:dlfclose .5s ease-out}
+@keyframes dlflid{0%,100%{transform:perspective(40px) rotateX(0)}20%,80%{transform:perspective(40px) rotateX(-38deg)}}
+@keyframes dlfsheet{0%,15%{opacity:0;transform:translateY(-6px)}35%{opacity:1;transform:translateY(-2px)}80%{opacity:1;transform:translateY(5px)}100%{opacity:0;transform:translateY(6px)}}
+@keyframes dlfclose{0%{transform:perspective(40px) rotateX(-38deg)}60%{transform:perspective(40px) rotateX(6deg)}100%{transform:perspective(40px) rotateX(0)}}
+@media (prefers-reduced-motion:reduce){.ib.dlp.on .dlf-lid,.ib.dlp.on .dlf-sheet,.ib.dlp.done .dlf-lid{animation:none}}
 .ct-idea{flex:1;min-width:160px;padding:6px 12px;border-radius:999px;background:var(--raised);border:1px solid var(--high);color:var(--text);font-size:13px}
+
+#banner .testbar{background:var(--danger,#F43F5E);color:#fff}

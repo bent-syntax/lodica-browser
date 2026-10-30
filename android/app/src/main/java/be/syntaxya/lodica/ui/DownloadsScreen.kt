@@ -27,7 +27,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +56,28 @@ import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
 
 /** Files being downloaded now and the ones saved earlier; tap a finished one to open it. */
+/** Folder on the Downloads header: while a file downloads the lid opens and a sheet drops in, then the lid closes. */
+@Composable
+private fun FolderAnim(active: Boolean) {
+    val t = rememberInfiniteTransition(label = "folder")
+    val k by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1600, easing = LinearEasing), RepeatMode.Restart), label = "k")
+    val p = if (active) k else 0f
+    // lid opens 0..0.2, stays open to 0.8, closes after; the sheet falls between 0.15 and 0.85
+    val open = when { p < 0.2f -> p / 0.2f; p < 0.8f -> 1f; else -> (1f - p) / 0.2f }
+    val fall = ((p - 0.15f) / 0.7f).coerceIn(0f, 1f)
+    Canvas(Modifier.padding(end = 12.dp).size(32.dp)) {
+        val u = size.width / 24f
+        val st = Stroke(1.8f * u, cap = StrokeCap.Round)
+        drawRoundRect(Amber, Offset(3.5f * u, 5f * u), Size(17f * u, 14f * u), CornerRadius(1.5f * u), style = st)
+        if (active && fall > 0f && fall < 1f) {
+            val y = (4f + 8f * fall) * u
+            drawRect(Mist, Offset(8f * u, y), Size(8f * u, 6f * u), alpha = 1f - fall * 0.6f, style = st)
+        }
+        val lidTop = 9.5f * u + open * 5f * u
+        drawRoundRect(Amber, Offset(3.5f * u, lidTop), Size(17f * u, 9.5f * u - open * 5f * u + 0.0f), CornerRadius(1.5f * u), style = st)
+    }
+}
+
 @Composable
 fun DownloadsScreen() {
     val ctx = LocalContext.current
@@ -51,6 +86,7 @@ fun DownloadsScreen() {
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { TopBar("Downloads") { Ui.back() } }
+            FolderAnim(items.any { it.status == Dl.ACTIVE })
             if (items.any { it.status != Dl.ACTIVE }) TextButton(onClick = { Downloads.clearFinished(ctx) }) {
                 Text("Clear list", color = Coral)
             }

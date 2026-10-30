@@ -2,6 +2,17 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.10 (versionCode 170)
+- Added: Remote test session. Turn on "Let support connect for testing" in Settings, press Start and read the code to support. Support can then tap, swipe, scroll and flip a few settings inside the app. A bar stays on screen with a Stop button, your settings are saved first and put back after, and it ends by itself after 15 minutes. No vault, passwords or files
+- Added: Android emoji size setting
+- Added: Attach images to support tickets
+- Added: The contact form asks for a reason (bug, idea, question, other)
+- Added: The support window is full screen
+- Added: Android toolbar AI button opens the agent
+- Changed: New download animation
+- Changed: When support marks your request fixed, the old support chat clears and closes, and the last message stays visible
+- Fixed: Desktop swipe has no dead zone and the charging arrow shows
+
 ## 1.14.9 (versionCode 169)
 - Added: AI browser agent on Android. The toolbar AI button opens a phone-shaped panel on the right. The AI opens pages, clicks, types and scrolls for you, the page glows while it works, risky clicks ask first, and you can minimize it without stopping, open older chats or go full screen
 - Changed: Every holiday theme now has its own look: snowflakes, tumbling confetti, flapping bats, floating hearts, clovers and fluttering Belgian flags

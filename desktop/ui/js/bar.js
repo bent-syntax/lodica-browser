@@ -44,7 +44,7 @@ function mainBar() {
   const tc = h("span", { class: "tc" + (t.private ? " priv" : ""), text: cap(S.tabs.count || 0, ":D") });
   return [h("div", { class: "navg" }, nav), pill,
     S.prefs.ai ? h("button", { class: "ib tile", title: "Ask AI", act: () => inv("ai.panel.toggle") }, ico("ai")) : null,
-    ib("download", "Downloads", () => openDownloads(), "dlp"),
+    dlButton(),
     h("button", { class: "ib", title: "Tabs", act: () => openSwitcher() }, tc),
     ib("more", "Menu", () => openMenu())];
 }

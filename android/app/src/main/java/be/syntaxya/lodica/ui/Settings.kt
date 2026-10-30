@@ -107,6 +107,7 @@ import be.syntaxya.lodica.engine.History
 import be.syntaxya.lodica.engine.Language
 import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.TestSession
 import be.syntaxya.lodica.engine.Meter
 import be.syntaxya.lodica.engine.UserAgent
 import be.syntaxya.lodica.engine.Relay
@@ -526,6 +527,17 @@ fun SettingsScreen() {
             }
             var older by remember { mutableStateOf(false) }
             var support by remember { mutableStateOf(false) }
+            SwitchRow("Let support connect for testing", "Off by default. Support can test this app with a code you read out, only inside Lodica, never the vault, passwords or files. Your settings are saved first and put back after. A red bar shows while it runs and you can stop it any time. Ends by itself after 15 minutes", Prefs.remoteTest) {
+                Prefs.updateRemoteTest(it); if (!it) TestSession.stop(ctx)
+            }
+            if (Prefs.remoteTest) {
+                var err by remember { mutableStateOf("") }
+                if (TestSession.state == "off") LinkRow("Start a test session") { err = TestSession.start(ctx) ?: "" }
+                else LinkRow("Stop test session", color = Coral) { TestSession.stop(ctx) }
+                if (TestSession.state != "off") Text("Code: ${TestSession.code}", color = Amber, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                val msg = err.ifBlank { TestSession.note }
+                if (msg.isNotBlank()) Text(msg, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            }
             LinkRow("Contact support") { support = true }
             if (support) SupportDialog { support = false }
             LinkRow("Go back to an older version") { older = true; Updater.loadVersions() }
@@ -640,6 +652,27 @@ private fun EmojiKeyboardSection() {
     LinkRow("Sync server emojis") {
         if (!Relay.available) Toast.makeText(ctx, "No server linked", Toast.LENGTH_SHORT).show()
         else { Emojis.syncNow(); Toast.makeText(ctx, "Syncing emojis", Toast.LENGTH_SHORT).show() }
+    }
+    var sizing by remember { mutableStateOf(false) }
+    LinkRow("Emoji size in chat: ${Emojis.scale}%") { sizing = true }
+    if (sizing) {
+        var pct by remember { mutableStateOf(Emojis.scale.toString()) }
+        val n = pct.toIntOrNull()
+        AlertDialog(
+            onDismissRequest = { sizing = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Emoji size") },
+            text = {
+                OutlinedTextField(
+                    pct, { pct = it.filter(Char::isDigit).take(3) }, Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Percent, 50 to 400", color = Muted) },
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber),
+                )
+            },
+            confirmButton = { DlgPrimary({ if (n != null && n in 50..400) { Emojis.setScale(n); sizing = false } }) { Text("Save") } },
+            dismissButton = { DlgSecondary({ sizing = false }) { Text("Cancel") } },
+        )
     }
     LinkRow("Import emoji from image") { pick.launch("image/*") }
     LinkRow(if (busy) "Generating…" else "Generate emoji with Claude") {

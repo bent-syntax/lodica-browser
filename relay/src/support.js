@@ -1,7 +1,7 @@
 'use strict';
 // Support tickets. A user sends a message from the app; the maintainer's private bridge
 // picks it up over the admin API, talks to the user through the same ticket and reports progress.
-//   POST /api/support {text, name, app, version, platform}  -> {id}              (client token)
+//   POST /api/support {text, category, name, app, version, platform}  -> {id}              (client token)
 //   GET  /api/support/<id>                                   -> ticket           (client token)
 //   POST /api/support/<id> {text, images?, resolved?}        -> ticket           (client token, user reply; resolved:true closes it)
 //   POST /api/support/<id>/push {token}                      -> {}               (client token, FCM device token for instant alerts)
@@ -109,11 +109,12 @@ function limited(ip) {
 const DESK_URL = process.env.LODICA_DESK_URL || '';
 const DESK_SECRET_PATH = process.env.LODICA_DESK_SECRET_PATH || '/etc/lodica-relay/desk-secret';
 const deskSecret = () => { try { return fs.readFileSync(DESK_SECRET_PATH, 'utf8').trim(); } catch { return ''; } };
+const CATEGORIES = ['bug', 'question', 'idea', 'other'];
 function forward(t, text) {
   if (!DESK_URL) return;
   const secret = deskSecret();
   if (!secret) return;
-  const payload = JSON.stringify({ relayId: t.id, text, name: t.name, app: t.app, version: t.version, platform: t.platform, link: t.link || undefined });
+  const payload = JSON.stringify({ relayId: t.id, text, name: t.name, app: t.app, version: t.version, platform: t.platform, category: t.category, link: t.link || undefined });
   fetch(DESK_URL.replace(/\/$/, '') + '/relay/ticket', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + secret }, body: payload, signal: AbortSignal.timeout(10000),
   }).then((r) => { if (!r.ok) console.error('support desk refused ticket:', r.status); }).catch((e) => console.error('support desk unreachable:', e.message));
@@ -144,13 +145,14 @@ async function create(req, res, ip, h) {
   const b = await body(req, h);
   const text = clean(b && b.text, TEXT_MAX);
   if (!text) return h.sendText(req, res, 400, 'text required');
+  if (!CATEGORIES.includes(b.category)) return h.sendText(req, res, 400, 'category required');
   // with a desk, a new request needs a linked email so answers can reach the user
   if (DESK_URL && !(typeof b.link === 'string' && LINK_RE.test(b.link))) return h.sendText(req, res, 403, 'Link your email first.');
   if (limited(ip)) return h.sendText(req, res, 429, 'too many messages, try again later');
   if (tickets.size >= MAX_TICKETS) sweep();
   if (tickets.size >= MAX_TICKETS) return h.sendText(req, res, 503, 'support is full');
   const t = {
-    id: crypto.randomBytes(8).toString('hex'), at: Date.now(), status: 'new',
+    id: crypto.randomBytes(8).toString('hex'), at: Date.now(), status: 'new', category: b.category,
     name: clean(b.name, NAME_MAX), app: clean(b.app, 20), version: clean(b.version, 20), platform: clean(b.platform, 40),
     messages: [],
   };
@@ -243,4 +245,4 @@ async function adminPost(req, res, id, h) {
   h.sendJson(req, res, 200, view(t));
 }
 
-module.exports = { load, create, link, get, reply, push, image, adminList, adminPost, sweep };
+module.exports = { load, create, link, get, reply, push, image, adminList, adminPost, adminOk, sweep };

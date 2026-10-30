@@ -160,4 +160,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { chrome: () => view && !view.webContents.isDestroyed() ? view.webContents : null, setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };

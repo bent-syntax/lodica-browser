@@ -400,7 +400,7 @@ function loadModules() {
     store: r("store"), prefs: r("prefs"), relay: r("relay"), history: r("history"), vault: r("vault"),
     meter: r("meter"), helper: r("helper"), ai: r("ai"), search: r("search"), net: r("net"),
     room: r("room"), pctabs: r("pctabs"), downloads: r("downloads"), remind: r("remind"), webapps: r("webapps"),
-    perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), support: r("support"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
+    perms: r("perms"), extensions: r("extensions"), serial: r("serial"), updater: r("updater"), support: r("support"), testsession: r("testsession"), commands: r("commands"), tabs: r("tabs"), ui: r("ui"),
   };
 }
 
@@ -425,6 +425,7 @@ function wire(m) {
   m.perms.init({ ui, tabs, sessions: ses });
   m.serial.init({ ui, sessions: ses });
   m.updater.init({ ui });
+  m.testsession.init({ ui, tabs });
   m.extensions.init();
   m.commands.init({ ...m, win: () => win });
   m.search.init({ ai: m.ai, sessions: ses, suggest: m.commands.suggest, topSites: m.commands.topSitesFor });

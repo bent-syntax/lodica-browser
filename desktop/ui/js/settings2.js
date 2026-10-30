@@ -144,6 +144,12 @@ function secAbout() {
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
     updateRow(),
     setRow("Contact support", "Report a bug or ask for a feature. You get a notification when it is sent and when there is news", null, openSupport),
+    setToggle("remoteTest", "Let support connect for testing", "Off by default. Lets support test the app with you, only inside Lodica. No vault, passwords or files, and no secret access. A badge shows while it runs and you can stop it any time. Your settings are put back afterwards"),
+    S.prefs.remoteTest ? setRow(S.testsession && S.testsession.on ? "Test session running" : "Start a test session", S.testsession && S.testsession.on ? "Code to read to support: " + S.testsession.code : "You get a code to read out to support", null, async () => {
+      if (S.testsession && S.testsession.on) return inv("testsession.stop");
+      const r = await inv("testsession.start");
+      if (r && r.error) toast(r.error);
+    }) : null,
     setRow("Go back to an older version", "Pick a previous release if an update causes problems", null, openVersions),
     S.prefs.betaUnlocked ? setToggle("betaEnabled", "Beta tester", "Get new features early from pre-releases. They may be unstable") : null,
     setRow("What's new", "Patch notes for every version", null, openNotes)];
@@ -208,7 +214,7 @@ async function shrink(f) {
 }
 // Support: one open conversation with the team; answers and questions also arrive as notifications.
 function openSupport() {
-  return sheet({ title: "Contact support", key: "support", tall: true }, async (b, L) => {
+  return sheet({ title: "Contact support", key: "support", tall: true, full: true }, async (b, L) => {
     const draw = (st) => {
       b.textContent = "";
       const ta = h("textarea", { class: "field sup-ta", rows: "3", maxlength: "4000", placeholder: st.open ? "Write a reply..." : "What went wrong, or what would you like added?" });
@@ -222,6 +228,9 @@ function openSupport() {
         b.append(wrap);
         return;
       }
+      if (!st.open && st.last) wrap.append(h("div", { class: "sup-msg" },
+        h("div", { class: "sup-who", text: "Last update from support" }),
+        h("div", { class: "sup-txt", text: st.last.text })));
       if (!st.open) wrap.append(h("div", { class: "sup-intro" },
         h("div", { class: "sup-h", text: "How can we help?" }),
         h("div", { class: "t2", text: "Report a bug or ask for a feature. You get a notification when it is sent and when there is news." })));
@@ -230,9 +239,21 @@ function openSupport() {
         const at = { new: 0, seen: 1, "needs-info": 2, fixing: 3, "awaiting-confirm": 4, done: 5, closed: 5 }[st.status] ?? 0;
         wrap.append(h("div", { class: "sup-steps" }, steps.map((x, i) => h("span", { class: "sup-step" + (i < at ? " past" : i === at ? " now" : ""), text: x }))));
         const log = h("div", { class: "sup-log" });
-        for (const m of st.messages) log.append(h("div", { class: "sup-msg" + (m.fromUser ? " me" : "") },
-          h("div", { class: "sup-who", text: m.fromUser ? "You" : "Support" }),
-          h("div", { class: "sup-txt", text: m.text + (m.images ? " [" + m.images + " image" + (m.images > 1 ? "s" : "") + "]" : "") })));
+        for (const m of st.messages) {
+          const row = h("div", { class: "sup-msg" + (m.fromUser ? " me" : "") },
+            h("div", { class: "sup-who", text: m.fromUser ? "You" : "Support" }),
+            h("div", { class: "sup-txt", text: m.text }));
+          if (m.images && m.images.length) {
+            const pics = h("div", { class: "sup-pics" });
+            for (const name of m.images) {
+              const img = h("img", { class: "sup-pic", alt: "attached image", act: () => { if (img.src) window.open(img.src, "_blank"); } });
+              inv("support.image", name).then((d) => { if (d) img.src = d; });
+              pics.append(img);
+            }
+            row.append(pics);
+          }
+          log.append(row);
+        }
         wrap.append(log);
         const note = { "needs-info": "Support needs more information. Reply below.", fixing: "A fix is being built and tested.", "awaiting-confirm": "Is it fixed or working now?", done: "Fixed. Update the browser to get it." }[st.status];
         if (note) wrap.append(h("div", { class: "sup-note", text: note }));
@@ -247,10 +268,21 @@ function openSupport() {
       if (st.open && st.status === "awaiting-confirm") wrap.append(h("div", { class: "sup-row" },
         h("button", { class: "btn", text: "Yes, fixed", act: async () => draw(await inv("support.send", "Yes, it is fixed.", { resolved: true })) }),
         h("button", { class: "btn sup-ghost", text: "No", act: () => { ta.value = "No, it is still not fixed: "; ta.focus(); } })));
+      const fresh = !st.open || st.status === "closed" || st.status === "done";
+      let cat = "";
+      if (fresh) {
+        const chips = h("div", { class: "sup-row sup-cats" });
+        for (const [k, label] of [["bug", "Bug"], ["question", "Question"], ["idea", "Idea"], ["other", "Other"]]) {
+          const c = h("button", { class: "btn sup-ghost sup-cat", text: label, act: () => { cat = k; for (const x of chips.children) x.classList.toggle("on", x === c); err.textContent = ""; } });
+          chips.append(c);
+        }
+        wrap.append(h("div", { class: "t2", text: "What is this about? (required)" }), chips);
+      }
       const btn = h("button", { class: "btn", text: "Send", act: async () => {
         const text = ta.value.trim(); if (!text) return;
+        if (fresh && !cat) { err.textContent = "Pick a reason first."; return; }
         btn.disabled = true; btn.textContent = "Sending...";
-        const r = await inv("support.send", text, { images: pics });
+        const r = await inv("support.send", text, { images: pics, category: cat });
         if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
       } });
       wrap.append(ta, h("div", { class: "sup-row" }, addBtn, file, btn), err);

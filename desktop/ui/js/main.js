@@ -73,6 +73,7 @@ function subscribe() {
   on("clipboard", onClipboard);
   on("mail", onMail);
   on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: d.sysAccent || (S.prefs && S.prefs.sysAccent) }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
+  on("testsession", onTestSession);
   on("relay", (d) => { S.relay = Object.assign({}, S.relay, d || {}); refreshInbox(); refreshSettings(); });
   on("downloads", (list) => { dlRing(list); refreshDownloads(list); });
   on("openRoom", (r) => { openRoom(); if (r) inv("room.select", r); });
@@ -178,6 +179,24 @@ async function start() {
 }
 start();
 
+// Toolbar Downloads button: a folder. While a file downloads the lid opens and a sheet drops in; when it finishes the lid closes.
+function dlButton() {
+  const NS = "http://www.w3.org/2000/svg";
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "ico dlf"); s.setAttribute("aria-hidden", "true");
+  const part = (cls, d) => {
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", d); p.setAttribute("class", cls);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", "currentColor"); p.setAttribute("stroke-width", "1.8");
+    p.setAttribute("stroke-linecap", "round"); p.setAttribute("stroke-linejoin", "round");
+    s.appendChild(p);
+  };
+  part("dlf-back", "M3.5 8V6.5a1.5 1.5 0 0 1 1.5-1.5h4l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V8");
+  part("dlf-sheet", "M8 13V4.5h8V13");
+  part("dlf-lid", "M3.5 9.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z");
+  return h("button", { class: "ib dlp", title: "Downloads", "aria-label": "Downloads", act: () => openDownloads() }, s);
+}
+
 // Progress ring around the toolbar Downloads button.
 let DLP = { on: false, pct: 0, ind: false };
 function dlRing(list) {
@@ -189,8 +208,22 @@ function dlRing(list) {
   }
   const b = document.querySelector('button.dlp');
   if (!b) return;
+  if (b.classList.contains("on") && !DLP.on) { b.classList.add("done"); setTimeout(() => b.classList.remove("done"), 1400); }
   b.classList.toggle("on", DLP.on);
   b.classList.toggle("ind", DLP.ind);
   b.style.setProperty("--p", DLP.pct);
 }
 new MutationObserver(() => dlRing()).observe(document.body, { childList: true, subtree: true });
+
+/** Persistent, always visible pill while a support test session runs. It cannot be dismissed except by stopping the session. */
+let testBar = null;
+function onTestSession(d) {
+  if (testBar) { testBar.remove(); testBar = null; }
+  S.testsession = d;
+  refreshSettings();
+  if (!d || !d.on) return;
+  const text = d.state === "active" ? "Support is testing this app" : "Support test session. Read this code to support: " + d.code;
+  testBar = h("div", { class: "toast on testbar", role: "status" }, ico("shield"), h("div", { class: "t", text, title: text }),
+    h("button", { class: "act danger", act: () => inv("testsession.stop") }, "Stop"));
+  $("#banner").append(testBar);
+}

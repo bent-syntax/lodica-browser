@@ -14,6 +14,7 @@ const adblock = require('./adblock');
 const updates = require('./updates');
 const chat = require('./chat');
 const support = require('./support');
+const testsession = require('./testsession');
 const chatfile = require('./chatfile');
 const notebook = require('./notebook');
 const screen = require('./screen');
@@ -441,6 +442,28 @@ async function route(req, res) {
     if (m !== 'POST') return not('POST');
     if (!authed(req, res)) return;
     return support.link(req, res, r[1], clientIp(req), { sendJson, sendText, readBody });
+  }
+  if (p === '/api/support/test') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return testsession.start(req, res, clientIp(req), { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/test\/([0-9a-f]{16})$/.exec(p))) {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? testsession.clientGet(req, res, r[1], h) : testsession.clientPost(req, res, r[1], h);
+  }
+  if (p === '/api/support/admin/test/join') {
+    if (m !== 'POST') return not('POST');
+    if (!support.adminOk(req)) return sendText(req, res, 401, 'unauthorized');
+    return testsession.join(req, res, { sendJson, sendText, readBody });
+  }
+  if ((r = /^\/api\/support\/admin\/test\/([0-9a-f]{16})$/.exec(p))) {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!support.adminOk(req)) return sendText(req, res, 401, 'unauthorized');
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? testsession.adminGet(req, res, r[1], h) : testsession.command(req, res, r[1], h);
   }
   if (p === '/api/support/admin') {
     if (m !== 'GET') return not('GET, HEAD');

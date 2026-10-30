@@ -318,7 +318,7 @@ private fun EmojiText(t: String) {
         append(t.substring(at))
     }
     val inline = used.associateWith { n ->
-        InlineTextContent(Placeholder(40.sp, 40.sp, PlaceholderVerticalAlign.TextCenter)) {
+        InlineTextContent(Placeholder((27 * Emojis.scale / 100f).sp, (27 * Emojis.scale / 100f).sp, PlaceholderVerticalAlign.TextCenter)) {
             val bmp = remember(n) { android.graphics.BitmapFactory.decodeFile(Emojis.file(n).path)?.asImageBitmap() }
             if (bmp != null) Image(bmp, n, Modifier.fillMaxSize())
         }

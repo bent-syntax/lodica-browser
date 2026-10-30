@@ -51,7 +51,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | Path | What it is |
 | --- | --- |
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
-| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`. |
+| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`. |
 | `preload/` | Preload scripts exposing IPC to the UI. |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
 | `pdf/` | Built-in PDF viewer. |
@@ -70,6 +70,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `src/proxy.js`, `src/ssrf.js` | Page proxy and SSRF guard. |
 | `src/search.js` | Search backend. |
 | `src/support.js` | Support tickets: `POST /api/support`, `GET` and `POST /api/support/<id>`. |
+| `src/testsession.js` | Remote test session: `/api/support/test` (client) and `/api/support/admin/test` (support). Code, 15 minute expiry, command allowlist. |
 | `src/chat.js`, `src/chatfile.js` | Chat rooms and files. |
 | `src/notebook.js` | The shared notebook notes (`/api/notebook`). |
 | `src/enroll.js`, `src/fcm.js` | Device enrollment and push messages. |

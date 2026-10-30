@@ -6,8 +6,10 @@ if (window === window.top) {
   // Two fingers sideways on a touchpad: an arrow is pulled out of the side while you move, and history goes back/forward
   // when you let go, if the arrow was pulled far enough.
   let sum = 0, sy = 0, last = 0, done = false, arrow = null, idle = 0, theme = null;
-  let prev = 0, run = 0, peak = 0;
+  let prev = 0, run = 0, peak = 0, armed = false;
   const LIMIT = 100;
+  // Near the start position small jitter or overshoot on the way back must not count as a pull.
+  const DEAD = 15;
   // Arrow colours follow the browser theme (main keeps the last colours the bar reported).
   const askTheme = () => { try { ipcRenderer.invoke("lodica-theme").then((t) => { theme = t; }, () => {}); } catch (e) { /* no theme */ } };
   askTheme();
@@ -21,7 +23,7 @@ if (window === window.top) {
     return false;
   };
   const gone = () => { if (arrow) arrow.remove(); };
-  const reset = () => { clearTimeout(idle); sum = 0; sy = 0; prev = 0; run = 0; peak = 0; done = false; gone(); };
+  const reset = () => { clearTimeout(idle); sum = 0; sy = 0; prev = 0; run = 0; peak = 0; done = false; armed = false; gone(); };
   const draw = (p, back) => {
     if (!document.documentElement) return;
     const bg = (theme && theme.bg) || "#1F2937", fg = (theme && theme.amber) || "#F59E0B", full = p >= LIMIT;
@@ -29,11 +31,15 @@ if (window === window.top) {
       arrow = document.createElement("div");
       arrow.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
     }
+    const e = Math.min(1, p / LIMIT);
+    // The pull "charges up" purely as a visual cue (no extra function): it grows and glows more the farther it goes.
+    const glow = Math.round(4 + 22 * e), scale = (1 + 0.22 * e).toFixed(2);
     // Past the limit the arrow fills in: letting go now goes back (or forward).
     arrow.setAttribute("style", "position:fixed;top:50%;z-index:2147483647;width:44px;height:44px;margin-top:-22px;border-radius:50%;box-sizing:border-box;background:" + (full ? fg : bg) +
-      ";color:" + (full ? bg : fg) + ";border:1.5px solid " + fg + ";display:flex;align-items:center;justify-content:center;pointer-events:none;box-shadow:0 4px 12px rgba(0,0,0,.4)");
+      ";color:" + (full ? bg : fg) + ";border:1.5px solid " + fg + ";display:flex;align-items:center;justify-content:center;pointer-events:none;transform:scale(" + scale + ");" +
+      "box-shadow:0 4px 12px rgba(0,0,0,.4), 0 0 " + glow + "px " + fg);
     if (!arrow.isConnected) document.documentElement.appendChild(arrow);
-    const e = Math.min(1, p / LIMIT), off = Math.round(-44 + 72 * e);
+    const off = Math.round(-44 + 72 * e);
     arrow.style.left = back ? off + "px" : "auto";
     arrow.style.right = back ? "auto" : off + "px";
     arrow.firstChild.style.transform = back ? "" : "scaleX(-1)";
@@ -66,6 +72,14 @@ if (window === window.top) {
     run = prev && a <= prev && a >= prev * .93 ? run + 1 : 0;
     prev = a; peak = Math.max(peak, a);
     sum += dx; sy += e.deltaY;
+    // Back inside the dead zone around the start: drop the pull so a return-and-overshoot starts a fresh count
+    // instead of carrying old momentum into the other direction.
+    if (Math.abs(sum) < DEAD) {
+      if (armed) { sum = 0; sy = 0; peak = 0; run = 0; prev = 0; gone(); }
+      armed = false;
+      return;
+    }
+    armed = true;
     if (Math.abs(sum) <= Math.abs(sy) * 1.5) return;
     draw(Math.abs(sum), sum < 0);
     // Momentum carries on in the direction of the pull. Steps that go back toward where the fingers started are not a release:

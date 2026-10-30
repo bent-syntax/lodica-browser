@@ -249,6 +249,13 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         IconButton(onClick = { TabManager.open(TabManager.HOME, private = tab?.private == true); Ui.editing = false }) {
             Icon(Icons.Rounded.Add, "New tab", tint = Mist)
         }
+        if (be.syntaxya.lodica.engine.Ai.connected) {
+            IconButton(onClick = {
+                be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false
+            }) {
+                Icon(Icons.Rounded.AutoAwesome, "AI assistant", tint = Amber)
+            }
+        }
         TabCount(tab)
         IconButton(onClick = { Ui.menuOpen = true }) { Icon(Icons.Rounded.MoreVert, "Menu", tint = Mist) }
     }

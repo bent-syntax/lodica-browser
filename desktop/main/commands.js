@@ -189,7 +189,7 @@ function initPayload() {
 
 function init(deps) {
   d = deps;
-  const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support } = d;
+  const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support, testsession } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
   const host = () => cur()?.host || "";
 
@@ -496,7 +496,11 @@ function init(deps) {
   on("support.linkStart", (email) => support.linkStart(str(email).slice(0, 120).trim()));
   on("support.linkVerify", (email, code) => support.linkVerify(str(email).slice(0, 120).trim(), str(code).slice(0, 12).trim()));
   on("support.unlink", () => support.unlink());
-  on("support.send", (text, o) => support.send(str(text).slice(0, 4000).trim(), o && Array.isArray(o.images) ? o.images.filter(x => typeof x === "string").slice(0, 3) : [], !!(o && o.resolved)));
+  on("testsession.start", () => testsession.start());
+  on("testsession.stop", () => testsession.stop());
+  on("testsession.status", () => testsession.info());
+  on("support.send", (text, o) => support.send(str(text).slice(0, 4000).trim(), o && Array.isArray(o.images) ? o.images.filter(x => typeof x === "string").slice(0, 3) : [], !!(o && o.resolved), o && typeof o.category === "string" ? o.category : ""));
+  on("support.image", (name) => support.image(str(name)));
   on("update.status", () => updater.status());
   on("notes.get", () => { try { return require("fs").readFileSync(require("path").join(app.getAppPath(), "PATCH_NOTES.md"), "utf8"); } catch { return ""; } });
   on("update.check", () => updater.check());

@@ -5,7 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.util.Base64
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.setValue
 import com.caverock.androidsvg.SVG
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -33,8 +36,14 @@ object Emojis {
         if (::app.isInitialized) return
         app = ctx.applicationContext
         dir = File(app.filesDir, "emojis").apply { mkdirs() }
+        scale = meta.getInt("scale", 150)
         load()
     }
+
+    /** Chat emoji size in percent of the base size, same meaning as the desktop chatEmojiScale. */
+    var scale by mutableIntStateOf(150)
+        private set
+    fun setScale(pct: Int) { scale = pct.coerceIn(50, 400); meta.edit().putInt("scale", scale).apply() }
 
     var keyboardPromptSeen: Boolean
         get() = meta.getBoolean("promptSeen", false)
