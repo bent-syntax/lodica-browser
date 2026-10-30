@@ -137,7 +137,7 @@ object TestSession {
         run++
         main.post {
             runCatching { restore(ctx) }
-            state = "off"; code = ""; id = ""; note = "Test session ended: $why. Your settings are back as they were." }
+            state = "off"; code = ""; id = ""; note = "Test session ended: $why. Your settings are back as they were."
         }
     }
 
