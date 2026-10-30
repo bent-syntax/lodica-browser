@@ -1,4 +1,9 @@
 # Patch notes
+## 1.14.8
+
+- Added: Make your own theme with the linked AI (for example a Minecraft theme) in the custom theme editor
+- Added: Holiday themes for St Patrick's Day and Belgian National Day, each with its own effect
+
 ## 1.14.7
 
 - Removed: The tabs link for linking devices; use the link code

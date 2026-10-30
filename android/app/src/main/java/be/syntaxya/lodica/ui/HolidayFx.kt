@@ -29,6 +29,8 @@ private val FX = mapOf(
     "new-year" to Fx(70, 4f..9f, listOf(0xFFFFD700, 0xFFFF4D8D, 0xFF7DD3FC, 0xFF86EFAC, 0xFFFFFFFF), 60f..120f, 36f, true, true),
     "halloween" to Fx(26, 10f..18f, listOf(0xFFFF7A18, 0xFF9BE564, 0xFFB49BD1), -45f..-12f, 48f, false, false),
     "valentine" to Fx(26, 10f..20f, listOf(0xFFFF5C8A, 0xFFFF3B5C, 0xFFFFB3C9), -60f..-20f, 28f, false, false),
+    "st-patrick" to Fx(40, 9f..15f, listOf(0xFF4CC96B, 0xFF8EE6A0, 0xFFF5D76E), 25f..55f, 36f, false, false),
+    "national-day" to Fx(90, 4f..8f, listOf(0xFFFDDA24, 0xFF111111, 0xFFEF3340), 35f..80f, 28f, true, true),
 )
 
 private class P(var x: Float, var y: Float, var vx: Float, var vy: Float, val s: Float, val c: Color, var ph: Float)
@@ -92,6 +94,11 @@ private var viewH = 1920f
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawShape(kind: String, cfg: Fx, p: P) {
     if (cfg.rect) drawRect(p.c, Offset(p.x - p.s / 2, p.y - p.s / 3), Size(p.s, p.s * 0.6f))
     else if (kind == "christmas") drawCircle(p.c, p.s, Offset(p.x, p.y))
+    else if (kind == "st-patrick") {
+        val r = p.s * 0.32f
+        for (d in arrayOf(Offset(-r, 0f), Offset(r, 0f), Offset(0f, -r), Offset(0f, r))) drawCircle(p.c, r, Offset(p.x + d.x, p.y + d.y))
+        drawLine(p.c, Offset(p.x, p.y), Offset(p.x + r, p.y + p.s * 0.9f), strokeWidth = 2f)
+    }
     else drawCircle(p.c.copy(alpha = 0.85f), p.s * 0.6f, Offset(p.x, p.y)) // bats and hearts are drawn as soft glows on Android
 }
 

@@ -229,6 +229,41 @@ object Ai {
         }
     }
 
+    private const val THEME_SYSTEM =
+        "You design colour themes for a browser. Reply with one JSON object and nothing else: " +
+        "{\"bg\":\"#rrggbb\",\"text\":\"#rrggbb\",\"accent\":\"#rrggbb\",\"accent2\":\"#rrggbb\"}. " +
+        "bg is a dark or light page background, text is readable on it, accent and accent2 are two vivid colours that fit the theme the user names."
+
+    private fun lum(hex: String): Double {
+        fun ch(i: Int): Double { val v = hex.substring(1 + i * 2, 3 + i * 2).toInt(16) / 255.0; return if (v <= 0.03928) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4) }
+        return 0.2126 * ch(0) + 0.7152 * ch(1) + 0.0722 * ch(2)
+    }
+    private fun contrast(a: String, b: String): Double { val x = lum(a); val y = lum(b); return (maxOf(x, y) + 0.05) / (minOf(x, y) + 0.05) }
+
+    /** Asks Claude for a four-colour theme for [idea], e.g. "Minecraft". [done] gets it on the main thread. Needs an API key. */
+    fun makeTheme(idea: String, done: (Result<CustomTheme>) -> Unit) {
+        val key = apiKey ?: return done(Result.failure(IllegalStateException("Add an Anthropic API key first")))
+        io.execute {
+            val r = runCatching {
+                val body = JSONObject().put("model", MODEL).put("max_tokens", 300).put("system", THEME_SYSTEM)
+                    .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Theme: ${idea.take(80)}")))
+                val (code, j) = post(key, body)
+                if (code !in 200..299) throw apiError(code, j)
+                val a = j.optJSONArray("content") ?: throw IllegalStateException("Empty reply")
+                val text = (0 until a.length()).mapNotNull { a.optJSONObject(it)?.optString("text") }.joinToString("")
+                val s = text.indexOf('{'); val e = text.lastIndexOf('}')
+                if (s < 0 || e < s) throw IllegalStateException("No theme returned")
+                val o = JSONObject(text.substring(s, e + 1))
+                fun c(k: String) = o.optString(k).uppercase().also { if (!CustomTheme.valid(it)) throw IllegalStateException("Bad colour in reply") }
+                val bg = c("bg"); val accent = c("accent"); val accent2 = c("accent2")
+                var t = c("text")
+                if (contrast(t, bg) < 4.5) t = if (contrast("#111111", bg) >= contrast("#F5F5F5", bg)) "#111111" else "#F5F5F5"
+                CustomTheme(bg, t, accent, accent2, System.currentTimeMillis())
+            }
+            main.post { done(r) }
+        }
+    }
+
     private fun post(key: String, body: JSONObject): Pair<Int, JSONObject> {
         val c = URL(API_URL).openConnection() as HttpURLConnection
         try {

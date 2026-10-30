@@ -1587,6 +1587,24 @@ private fun CustomThemeEditor() {
             if (Relay.available) "Syncs to your other devices." else "Connect a relay to sync it to your other devices.",
             color = Muted, fontSize = 13.sp,
         )
+        var idea by remember { mutableStateOf("") }
+        var busy by remember { mutableStateOf(false) }
+        val ctx = LocalContext.current
+        OutlinedTextField(
+            value = idea, onValueChange = { idea = it.take(80) }, label = { Text("Describe a theme, e.g. Minecraft") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            enabled = idea.isNotBlank() && !busy,
+            onClick = {
+                busy = true
+                Ai.makeTheme(idea.trim()) { r ->
+                    busy = false
+                    r.onSuccess { bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2 }
+                        .onFailure { Toast.makeText(ctx, it.message ?: "Could not make a theme", Toast.LENGTH_SHORT).show() }
+                }
+            },
+        ) { Text(if (busy) "Making theme..." else "Make with AI") }
         listOf(
             Triple("Background", bg) { v: String -> bg = v },
             Triple("Text", text) { v: String -> text = v },

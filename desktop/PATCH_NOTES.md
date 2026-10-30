@@ -1,3 +1,7 @@
+## 1.14.8
+
+- Changed: Maintenance release, Android only
+
 ## 1.14.7
 
 - Added: AI side panel on the right in phone shape. It shows what the AI says and does, glows around the page while it navigates, can be minimized without stopping, lists older chats, and expands to full screen. The toolbar AI button opens it

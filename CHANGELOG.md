@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.8 (versionCode 168)
+- Added: Make your own theme with the linked AI (for example a Minecraft theme) in the custom theme editor
+- Added: Holiday themes for St Patrick's Day and Belgian National Day, each with its own effect
+
 ## 1.14.7 (versionCode 167)
 - Added: AI side panel on the right in phone shape. It shows what the AI says and does, glows around the page while it navigates, can be minimized without stopping, lists older chats, and expands to full screen. The toolbar AI button opens it
 - Added: Make your own theme with the linked AI (for example a Minecraft theme) in the custom theme editor
