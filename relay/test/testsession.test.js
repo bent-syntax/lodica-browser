@@ -2,6 +2,10 @@
 // Remote test session: code join, allowlist, results, user stop. Run: node test/testsession.test.js (loopback only)
 const http = require('http');
 const assert = require('assert');
+const fs = require('fs'), os = require('os'), path = require('path');
+const keyFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ts-')), 'unlock');
+fs.writeFileSync(keyFile, 'open-sesame\n');
+process.env.LODICA_TEST_UNLOCK_PATH = keyFile;
 const ts = require('../src/testsession');
 
 const send = (res, status, body, headers = {}) => { res.writeHead(status, headers); res.end(body); };
@@ -12,6 +16,7 @@ const h = {
 };
 const api = http.createServer((req, res) => {
   const p = req.url.split('?')[0]; let r;
+  if (p === '/unlock') return ts.unlock(req, res, '9.9.9.8', h);
   if (p === '/start') return ts.start(req, res, '9.9.9.9', h);
   if (p === '/join') return ts.join(req, res, h);
   if ((r = /^\/c\/(\w+)$/.exec(p))) return req.method === 'GET' ? ts.clientGet(req, res, r[1], h) : ts.clientPost(req, res, r[1], h);
@@ -27,7 +32,11 @@ api.listen(0, '127.0.0.1', async () => {
     r.on('error', bad); r.end(body === undefined ? undefined : JSON.stringify(body));
   });
   try {
-    const s = await call('POST', '/start', {});
+    assert.equal((await call('POST', '/start', {})).status, 403, 'start needs the unlock code');
+    assert.equal((await call('POST', '/start', { unlock: 'nope' })).status, 403);
+    assert.equal((await call('POST', '/unlock', { unlock: 'nope' })).status, 403);
+    assert.deepEqual(await call('POST', '/unlock', { unlock: 'open-sesame' }), {});
+    const s = await call('POST', '/start', { unlock: 'open-sesame' });
     assert.match(s.code, /^\d{8}$/);
     assert.equal((await call('POST', '/a/' + s.id, { action: 'click', args: {} })).status, 409, 'no commands before join');
     assert.equal((await call('POST', '/join', { code: '00000000' })).status, 404);

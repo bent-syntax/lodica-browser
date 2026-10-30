@@ -35,11 +35,25 @@ function end(why) {
   try { ui.toast("Test session ended" + (why ? ": " + why : "") + ". Your settings are back as they were."); } catch {}
 }
 
+const saved = () => String(store.loadSecret("testUnlock", "") || "");
+/** Checks the code with the server. A good code is kept encrypted on this PC. */
+async function unlock(code) {
+  code = String(code || "").trim().slice(0, 200);
+  if (!code) return { error: "Enter the code." };
+  if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
+  const [st] = await relay.request("POST", "/api/support/test/unlock", 15000, { unlock: code }).catch(() => [0]);
+  if (st === 200) { store.saveSecret("testUnlock", code); prefs.set("remoteTest", true); return { ok: true }; }
+  return { error: st === 403 ? "Wrong code." : st === 429 ? "Too many tries. Try again later." : "Support is not reachable right now." };
+}
+
 async function start() {
   if (!prefs.p.remoteTest) return { error: "Turn on 'Let support connect for testing' first." };
+  const code = saved();
+  if (!code) { prefs.set("remoteTest", false); return { error: "Enter the support code first." }; }
   if (s.state !== "off") return info();
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
-  const [st, r] = await relay.request("POST", "/api/support/test", 15000, {}).catch(() => [0, null]);
+  const [st, r] = await relay.request("POST", "/api/support/test", 15000, { unlock: code }).catch(() => [0, null]);
+  if (st === 403) { store.saveSecret("testUnlock", ""); prefs.set("remoteTest", false); return { error: "The support code is no longer valid. Enter it again." }; }
   if (st !== 200 || !r || !r.id) return { error: st === 429 ? "Too many tries. Try again later." : "Support is not reachable right now." };
   backup = clone(prefs.p);
   store.save("testBackup", () => backup);
@@ -140,4 +154,4 @@ async function exec(action, a) {
   }
 }
 
-module.exports = { init, start, stop, info };
+module.exports = { init, start, stop, info, unlock };

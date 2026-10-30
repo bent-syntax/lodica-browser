@@ -1,3 +1,12 @@
+## 1.14.11
+
+- Added: Windows installer removes older Lodica installs and adds a Start menu entry so Windows search finds Lodica
+- Changed: Settings use the same pages, groups and order on desktop and Android
+- Changed: "Let support connect for testing" is a hidden setting and needs a code kept on the server
+- Fixed: Two-finger swipe no longer overshoots, and a swipe that returns to its start cancels
+- Fixed: Pages no longer flash white when going back or forward with force dark on
+- Fixed: The tab logo no longer flickers during the first seconds after start
+
 ## 1.14.10
 
 - Added: Remote test session. Turn on "Let support connect for testing" in Settings, press Start and read the code to support. Support can then click, type, scroll, emulate touchpad and touch, and change a few settings inside the app. A bar stays on screen with a Stop button, your settings are saved first and put back after, and it ends by itself after 15 minutes. No vault, passwords or files

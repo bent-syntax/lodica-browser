@@ -497,6 +497,7 @@ function init(deps) {
   on("support.linkVerify", (email, code) => support.linkVerify(str(email).slice(0, 120).trim(), str(code).slice(0, 12).trim()));
   on("support.unlink", () => support.unlink());
   on("testsession.start", () => testsession.start());
+  on("testsession.unlock", (code) => testsession.unlock(str(code)));
   on("testsession.stop", () => testsession.stop());
   on("testsession.status", () => testsession.info());
   on("support.send", (text, o) => support.send(str(text).slice(0, 4000).trim(), o && Array.isArray(o.images) ? o.images.filter(x => typeof x === "string").slice(0, 3) : [], !!(o && o.resolved), o && typeof o.category === "string" ? o.category : ""));

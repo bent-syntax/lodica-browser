@@ -1,18 +1,23 @@
 "use strict";
 // Settings tabs: Appearance, Keybinds & controls, Identity & mail, plus the tab bar itself.
 
-// [id, label, group]: the sidebar shows one heading per group, then its pages. Same pages and order as Android.
+// [id, label, group]: the sidebar shows one heading per group, then its pages. Same pages, groups and order as Android.
 const SET_TABS = [
-  ["general", "General", ""], ["privacy", "Privacy", ""], ["passwords", "Passwords", ""], ["server", "Your VPS", ""], ["ai", "Ask AI", ""],
-  ["search", "Search", ""], ["theme", "Appearance", ""], ["downloads", "Downloads", ""], ["data", "Data use", ""], ["about", "Updates & About", ""]];
+  ["search", "Search", "Browsing"], ["sites", "Sites & domains", "Browsing"], ["ai", "Ask AI", "Browsing"],
+  ["theme", "Theme", "Look & tabs"], ["start", "Start page", "Look & tabs"], ["tabs", "Tabs", "Look & tabs"],
+  ["privacy", "Privacy & history", "Privacy & security"], ["security", "Security & blocking", "Privacy & security"],
+  ["data", "Data, apps & extensions", "Data & controls"], ["controls", "Keybinds & controls", "Data & controls"],
+  ["server", "Server & mail", "Account"], ["identity", "Identity & passwords", "Account"],
+  ["about", "Updates & About", "About"]];
 // Section ids that other code passes to openSettings() -> the page that holds them.
-const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "general", dns: "general", ai: "ai", theme: "theme", appearance: "theme", pages: "theme",
-  background: "general", shortcuts: "general", planner: "general", start: "general", tabs: "general", pctabs: "general", layout: "general", privacy: "privacy", https: "privacy", blocking: "privacy",
-  security: "privacy", vps: "server", server: "server", mail: "server", data: "data", apps: "general", extensions: "general", keys: "general", keybinds: "general",
-  identity: "passwords", auth: "passwords", authenticator: "passwords", passwords: "passwords", downloads: "downloads", about: "about", updates: "about" };
+const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", identity: "identity", ai: "ai", emojis: "ai", theme: "theme", appearance: "theme",
+  pages: "theme", layout: "theme", transparency: "theme", holidays: "theme", plugins: "theme", background: "start", shortcuts: "start", planner: "start", start: "start",
+  tabs: "tabs", pctabs: "tabs", privacy: "privacy", https: "privacy", blocking: "security", spelling: "security", translate: "security", security: "security",
+  vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", downloads: "data", keys: "controls", keybinds: "controls", mouse: "controls",
+  osk: "controls", auth: "identity", authenticator: "identity", passwords: "identity", about: "about", updates: "about" };
 
-const SET_ICONS = { general: "settings", privacy: "shield", passwords: "key", server: "vpn", ai: "ai", search: "search", theme: "palette",
-  downloads: "download", data: "data", about: "reader" };
+const SET_ICONS = { search: "search", sites: "globe", ai: "ai", theme: "palette", start: "home", tabs: "tabs", privacy: "shield", security: "shield",
+  data: "data", controls: "settings", server: "vpn", identity: "key", about: "reader" };
 function setTabBar() {
   const out = []; let last = "";
   for (const [id, label, group] of SET_TABS) {
@@ -49,17 +54,23 @@ function setFindList(q) {
 }
 function setTabBody(tab) {
   switch (tab) {
-    case "general": return [secBrowsing(), secDns(), secStart(), secLayout(), secTabs(), secPcTabs(), secEmojis(), secKeys(), secApps(), secExtensions()];
-    case "passwords": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
-    case "downloads": return [secHead("Downloads", "downloads"), setRow("Open downloads", "Files saved from the web", ico("chevron", "chev"), () => openDownloads())];
-    case "ai": return secAi();
-    case "theme": return [secTheme(), secDarkPages()];
-    case "privacy": return [secPrivacy(), secHttps(), secBlocking(), secSpell(), secTranslate()];
-    case "data": return secData();
+    case "sites": return [secBrowsing(), secDns()];
+    case "ai": return [secAi(), secEmojis()].flat();
+    case "theme": return [secTheme(), secDarkPages(), secLayout()];
+    case "start": return [secStart()];
+    case "tabs": return [secTabs(), secPcTabs()];
+    case "privacy": return [secPrivacy(), secHttps()];
+    case "security": return [secBlocking(), secSpell(), secTranslate()];
+    case "data": return [secData(), secApps(), secExtensions(), secDownloads()].flat();
+    case "controls": return [secKeys()];
     case "server": return secServer();
+    case "identity": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
     case "about": return secAbout();
     default: return [secSearch(), secSuggest()];
   }
+}
+function secDownloads() {
+  return [secHead("Downloads", "downloads"), setRow("Open downloads", "Files saved from the web", ico("chevron", "chev"), () => openDownloads())];
 }
 
 // Appearance

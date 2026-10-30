@@ -983,8 +983,11 @@
     if (!TOP) return;
     let st = document.getElementById("lodica-dark");
     const want = !!page.dark;
+    const pre = document.getElementById("lodica-predark");
+    // The early style would make every page look dark, so measure without it and put it back if the site is dark.
+    if (pre) pre.remove();
     if (want && !st) {
-      if (pageIsDark()) return; // the site brings its own dark mode
+      if (pageIsDark()) return; // the site brings its own dark mode, so the early style stays removed
       st = document.createElement("style");
       st.id = "lodica-dark";
       st.textContent = "html{color-scheme:dark!important}";

@@ -136,9 +136,8 @@ object Tilt : SensorEventListener {
         }
         val c = abs(cos(Math.toRadians(deg)))
         val s = abs(sin(Math.toRadians(deg)))
-        val fit = min(1.0, min(w / (w * c + h * s), h / (w * s + h * c)))        // whole page visible, with borders
-        val fill = max((w * c + h * s) / w, (w * s + h * c) / h)                // fills the screen, crops the edges
-        val scale = (fit + Prefs.tiltZoom * (fill - fit)).toFloat()
+        // Always fills the screen, so no border shows; the turned page crops its edges.
+        val scale = max((w * c + h * s) / w, (w * s + h * c) / h).toFloat()
         // Positive deg is a clockwise page rotation (checked on a phone).
         angle = deg.toFloat()
         zoomed = scale

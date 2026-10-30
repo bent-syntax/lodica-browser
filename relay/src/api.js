@@ -443,6 +443,11 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return support.link(req, res, r[1], clientIp(req), { sendJson, sendText, readBody });
   }
+  if (p === '/api/support/test/unlock') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return testsession.unlock(req, res, clientIp(req), { sendJson, sendText, readBody });
+  }
   if (p === '/api/support/test') {
     if (m !== 'POST') return not('POST');
     if (!authed(req, res)) return;

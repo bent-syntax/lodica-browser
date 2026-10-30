@@ -1,7 +1,10 @@
 'use strict';
 // Remote test session. The user turns it on in Settings, reads out a code, and a maintainer
 // joins with that code to run a short allowlist of in-app UI actions. Nothing is stored on disk.
-//   POST /api/support/test {}                          -> {id, code, expires}  (client token)
+//   POST /api/support/test/unlock {unlock}             -> {}                   (client token) checks the unlock code
+//   POST /api/support/test {unlock}                    -> {id, code, expires}  (client token)
+// The unlock code lives only on this server, in a file (LODICA_TEST_UNLOCK_PATH, default /etc/lodica-relay/test-unlock).
+// Without that file the feature is off for everyone.
 //   GET  /api/support/test/<id>?after=<seq>&wait=<s>   -> {state, cmds, expires} (client token)
 //   POST /api/support/test/<id> {stop} | {result}      -> {}                   (client token)
 //   POST /api/support/admin/test/join {code}           -> {id, expires}        (admin token)
@@ -9,6 +12,7 @@
 //   GET  /api/support/admin/test/<id>?after=<seq>&wait=<s> -> {state, results} (admin token)
 // The app only runs the actions below inside its own window. No files, vault, credentials or system access.
 const crypto = require('crypto');
+const fs = require('fs');
 
 const ACTIONS = new Set(['click', 'type', 'key', 'scroll', 'tap', 'swipe', 'pointer', 'setting', 'open', 'snapshot']);
 const TTL = 15 * 60e3, JOIN_WAIT = 10 * 60e3, WAIT_MAX = 25, MAX_CMDS = 300, ARGS_MAX = 2000, RESULT_MAX = 200 * 1024;
@@ -40,8 +44,25 @@ async function body(req, h, max = 256 * 1024) {
 function view(s) { return { state: s.state, expires: s.expires, why: s.why || null }; }
 function code() { return String(crypto.randomInt(0, 1e8)).padStart(8, '0'); }
 
+function unlockOk(given) {
+  let want = '';
+  try { want = fs.readFileSync(process.env.LODICA_TEST_UNLOCK_PATH || '/etc/lodica-relay/test-unlock', 'utf8').trim(); } catch { return false; }
+  if (!want || typeof given !== 'string') return false;
+  const a = crypto.createHash('sha256').update(want).digest(), b = crypto.createHash('sha256').update(given.trim()).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+async function unlock(req, res, ip, h) {
+  if (limited(ip)) return h.sendText(req, res, 429, 'too many tries, try again later');
+  const b = await body(req, h, 2048);
+  if (!b || !unlockOk(b.unlock)) return h.sendText(req, res, 403, 'wrong code');
+  h.sendJson(req, res, 200, {});
+}
+
 async function start(req, res, ip, h) {
   if (limited(ip)) return h.sendText(req, res, 429, 'too many tries, try again later');
+  const b = await body(req, h, 2048);
+  if (!b || !unlockOk(b.unlock)) return h.sendText(req, res, 403, 'wrong code');
   const open = [...sessions.values()].filter((s) => s.state !== 'stopped').length;
   if (open >= 50) return h.sendText(req, res, 503, 'busy');
   let c; do { c = code(); } while ([...sessions.values()].some((s) => s.code === c && s.state !== 'stopped'));
@@ -116,4 +137,4 @@ function adminGet(req, res, id, h) {
   longpoll(req, res, h, () => ({ list: s.results.filter((r) => r.seq > after), stop: s.state === 'stopped' }), (results) => ({ ...view(s), results }));
 }
 
-module.exports = { start, clientGet, clientPost, join, command, adminGet, ACTIONS, sweep };
+module.exports = { start, unlock, clientGet, clientPost, join, command, adminGet, ACTIONS, sweep };

@@ -139,12 +139,22 @@ function secPrivacy() {
 function secAbout() {
   return [secHead("About"),
     h("div", { class: "about" }, aboutLogo(),
-      h("div", null, h("div", { class: "t1", text: "Lodica " + (S.version || "") }),
+      h("div", null, h("div", { class: "t1", text: "Lodica " + (S.version || ""), on: { click: () => {
+          if (S.prefs.testUnlocked || ++verTaps < 7) return;
+          S.prefs.testUnlocked = true; inv("prefs.set", "testUnlocked", true); refreshSettings();
+        } } }),
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
     updateRow(),
     setRow("Contact support", "Report a bug or ask for a feature. You get a notification when it is sent and when there is news", null, openSupport),
-    setToggle("remoteTest", "Let support connect for testing", "Off by default. Lets support test the app with you, only inside Lodica. No vault, passwords or files, and no secret access. A badge shows while it runs and you can stop it any time. Your settings are put back afterwards"),
+    !S.prefs.testUnlocked ? null : S.prefs.remoteTest ? setToggle("remoteTest", "Let support connect for testing", "Off by default. Lets support test the app with you, only inside Lodica. No vault, passwords or files, and no secret access. A badge shows while it runs and you can stop it any time. Your settings are put back afterwards")
+      : setRow("Let support connect for testing", "Needs the support code", null, async () => {
+        const c = await textDialog({ title: "Support code", message: "Ask support for the code. It is checked with your server and stored encrypted on this PC only.", placeholder: "Code", secret: true, ok: "Turn on" });
+        if (c == null) return;
+        const r = await inv("testsession.unlock", c);
+        if (r && r.ok) S.prefs.remoteTest = true; else toast((r && r.error) || "Failed");
+        refreshSettings();
+      }),
     S.prefs.remoteTest ? setRow(S.testsession && S.testsession.on ? "Test session running" : "Start a test session", S.testsession && S.testsession.on ? "Code to read to support: " + S.testsession.code : "You get a code to read out to support", null, async () => {
       if (S.testsession && S.testsession.on) return inv("testsession.stop");
       const r = await inv("testsession.start");
@@ -155,7 +165,7 @@ function secAbout() {
     setRow("What's new", "Patch notes for every version", null, openNotes)];
 }
 // Seven quick clicks on the logo unlock Beta tester mode.
-let logoTaps = 0;
+let logoTaps = 0, verTaps = 0;
 function aboutLogo() {
   const k = kite(40);
   k.addEventListener("click", () => {

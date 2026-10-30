@@ -28,6 +28,7 @@ object TestSession {
     var note by mutableStateOf(""); private set
     var activity: Activity? = null
 
+    @Volatile private var live = false
     private var id = ""
     private var seq = 0
     private var run = 0
@@ -72,41 +73,78 @@ object TestSession {
     /** After a crash in the middle of a session the backup is still on disk. Put it back at launch. */
     fun recover(ctx: Context) { if (store(ctx).contains("all")) restore(ctx) }
 
-    /** Returns an error message, or null when the session started and [code] is showing. */
-    fun start(ctx: Context): String? {
-        if (!Prefs.remoteTest) return "Turn on 'Let support connect for testing' first."
-        if (state != "off") return null
+    /** Starts a session without blocking the caller. [done] gets an error message on the main thread, or null when started and [code] is showing. */
+    fun start(ctx: Context, done: (String?) -> Unit) {
+        if (!Prefs.remoteTest) { done("Turn on 'Let support connect for testing' first."); return }
+        if (live) { done(null); return }
+        val app = ctx.applicationContext
+        thread(name = "test-start") {
+            val err = begin(app)
+            main.post { done(err) }
+        }
+    }
+
+    /** Checks the support code with the server. A good code is kept and the setting turns on. */
+    fun unlock(ctx: Context, code: String, done: (String?) -> Unit) {
+        val app = ctx.applicationContext
+        thread(name = "test-unlock") {
+            val c = code.trim().take(200)
+            val err = if (c.isEmpty()) "Enter the code." else {
+                Relay.init(app)
+                if (!Relay.available) "No relay is set up. Pair this browser with your server first."
+                else try {
+                    val body = JSONObject().put("unlock", c).toString().toByteArray()
+                    when (Relay.request("POST", "/api/support/test/unlock", body, "application/json").first) {
+                        200 -> null
+                        403 -> "Wrong code."
+                        429 -> "Too many tries. Try again later."
+                        else -> "Support is not reachable right now."
+                    }
+                } catch (e: Exception) { "Support is not reachable right now." }
+            }
+            main.post {
+                if (err == null) { Prefs.updateTestCode(c); Prefs.updateRemoteTest(true) }
+                done(err)
+            }
+        }
+    }
+
+    private fun begin(ctx: Context): String? {
         Relay.init(ctx)
         if (!Relay.available) return "No relay is set up. Pair this browser with your server first."
-        val (st, body) = try { Relay.request("POST", "/api/support/test", "{}".toByteArray(), "application/json") } catch (e: java.io.IOException) { return "Support is not reachable right now." }
+        val (st, body) = try { Relay.request("POST", "/api/support/test", JSONObject().put("unlock", Prefs.testCode).toString().toByteArray(), "application/json") } catch (e: Exception) { return "Support is not reachable right now." }
+        if (st == 403) { main.post { Prefs.updateTestCode(""); Prefs.updateRemoteTest(false) }; return "The support code is no longer valid. Enter it again." }
         val j = runCatching { JSONObject(body) }.getOrNull()
         if (st != 200 || j == null || !j.has("id")) return if (st == 429) "Too many tries. Try again later." else "Support is not reachable right now."
         backup(ctx)
-        id = j.getString("id"); code = j.getString("code"); expires = j.optLong("expires"); seq = 0; run++
-        state = "waiting"; note = ""
+        live = true; id = j.getString("id"); expires = j.optLong("expires"); seq = 0; run++
         val me = run
-        thread(name = "test-session") { poll(ctx.applicationContext, me) }
+        main.post { code = j.optString("code"); state = "waiting"; note = "" }
+        thread(name = "test-session") { poll(ctx, me) }
         return null
     }
 
     fun stop(ctx: Context, why: String = "stopped by you") {
-        if (state == "off") return
+        if (!live) return
         val old = id
-        thread { runCatching { Relay.request("POST", "/api/support/test/$old", """{"stop":true}""".toByteArray(), "application/json") } }
+        thread { runCatching { Relay.init(ctx.applicationContext); Relay.request("POST", "/api/support/test/$old", """{"stop":true}""".toByteArray(), "application/json") } }
         end(ctx, why)
     }
 
     private fun end(ctx: Context, why: String) {
-        if (state == "off") return
+        if (!live) return
+        live = false
         run++
-        restore(ctx)
-        main.post { state = "off"; code = ""; id = ""; note = "Test session ended: $why. Your settings are back as they were." }
+        main.post {
+            runCatching { restore(ctx) }
+            state = "off"; code = ""; id = ""; note = "Test session ended: $why. Your settings are back as they were." }
+        }
     }
 
     private fun poll(ctx: Context, me: Int) {
-        while (run == me && state != "off") {
+        while (run == me && live) {
             if (System.currentTimeMillis() > expires) { end(ctx, "expired"); return }
-            val (st, body) = try { Relay.request("GET", "/api/support/test/$id?after=$seq&wait=20", readTimeoutMs = 30_000) } catch (e: java.io.IOException) { 0 to "" }
+            val (st, body) = try { Relay.request("GET", "/api/support/test/$id?after=$seq&wait=20", readTimeoutMs = 30_000) } catch (e: Exception) { 0 to "" }
             if (run != me) return
             val j = runCatching { JSONObject(body) }.getOrNull()
             if (st == 404 || j?.optString("state") == "stopped") { end(ctx, j?.optString("why")?.ifBlank { null } ?: "closed"); return }

@@ -2,6 +2,17 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.11 (versionCode 171)
+- Added: Android has the link settings: what to share, link key, passwords and authenticator
+- Changed: "Let support connect for testing" is a hidden setting and needs a code kept on the server
+- Changed: Settings use the same pages, groups and order on desktop and Android
+- Changed: Tilt fills the whole screen with no border
+- Fixed: The test session no longer crashes the phone
+- Fixed: Pages no longer flash white when going back or forward with force dark on
+- Added: Windows installer removes older Lodica installs and adds a Start menu entry so Windows search finds Lodica
+- Fixed: Two-finger swipe no longer overshoots, and a swipe that returns to its start cancels
+- Fixed: The tab logo no longer flickers during the first seconds after start
+
 ## 1.14.10 (versionCode 170)
 - Added: Remote test session. Turn on "Let support connect for testing" in Settings, press Start and read the code to support. Support can then tap, swipe, scroll and flip a few settings inside the app. A bar stays on screen with a Stop button, your settings are saved first and put back after, and it ends by itself after 15 minutes. No vault, passwords or files
 - Added: Android emoji size setting

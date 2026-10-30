@@ -57,6 +57,17 @@
         "https://*/*"
       ],
       "js": [
+        "predark.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
         "nfc.js"
       ],
       "run_at": "document_start",

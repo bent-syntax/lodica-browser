@@ -12,6 +12,8 @@ const HOME = "lodica://search/search.html";
 /** Last good favicons per host, so a navigation never blanks the icon while the page loads its own. */
 const iconCache = new Map();
 let LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(__dirname, "..", "ui", "logo.png")).toString("base64");
+// The themed logo of the last run, so the tab icon does not swap from the stock mark to the themed one after start.
+try { LOGO = "data:image/png;base64," + require("fs").readFileSync(path.join(require("electron").app.getPath("userData"), "theme-icon.png")).toString("base64"); } catch {}
 const PRELOAD = path.join(__dirname, "..", "preload", "content.js");
 const IDLE_MS = 10 * 60 * 1000;
 const MAX_CLOSED = 10;

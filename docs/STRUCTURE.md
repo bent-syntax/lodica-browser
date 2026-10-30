@@ -24,7 +24,7 @@ Where things live and what they do. Start here.
 | `app/src/main/AndroidManifest.xml` | Manifest, activities, permissions. |
 | `app/src/main/java/be/syntaxya/lodica/ui/` | All Compose UI (see below). |
 | `app/src/main/java/be/syntaxya/lodica/ui/theme/` | `Theme.kt` (colour palettes, dark and light, wallpaper and custom themes) and `LauncherIcon.kt`. |
-| `app/src/main/assets/extensions/` | Bundled WebExtensions: `helper/` (search, theme, mobile and NFC helpers) and `ubo/` (uBlock Origin with filter lists). |
+| `app/src/main/assets/extensions/` | Bundled WebExtensions: `helper/` (search, theme, mobile and NFC helpers; `predark.js` paints the page dark before it shows) and `ubo/` (uBlock Origin with filter lists). |
 | `app/src/main/assets/ai/bridge.js` | AI page bridge. |
 | `app/src/main/res/` | Resources (xml, icons, strings). |
 | `app/proguard-rules.pro` | R8 keep rules. |
@@ -53,6 +53,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
 | `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`. |
 | `preload/` | Preload scripts exposing IPC to the UI. |
+| `installer.nsh` | NSIS include (: removes older Lodica installs, adds the Start menu entry). |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
 | `pdf/` | Built-in PDF viewer. |
 | `search/` | Search support. |

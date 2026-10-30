@@ -937,6 +937,16 @@ const lodicaMain = () => {
     if (!TOP) return;
     let st = document.getElementById("lodica-dark");
     const want = !!page.dark;
+    // While the page is still loading it starts dark, so back and forward never flash a white page.
+    // Once it has loaded the style is removed, so the site's own dark mode can be measured without it.
+    let pre = document.getElementById("lodica-predark");
+    if (want && !pre && !st && document.readyState === "loading") {
+      pre = document.createElement("style");
+      pre.id = "lodica-predark";
+      pre.textContent = "html{background:#111827!important;color-scheme:dark!important}";
+      (document.head || document.documentElement).appendChild(pre);
+    } else if (pre && document.readyState !== "loading") pre.remove();
+    if (pre && document.readyState === "loading") { document.addEventListener("DOMContentLoaded", applyDark, { once: true }); return; }
     if (want && !st) {
       if (pageIsDark()) return; // the site brings its own dark mode
       st = document.createElement("style");

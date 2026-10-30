@@ -1,7 +1,7 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.14.10",
+  "version": "1.14.11",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
@@ -62,6 +62,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "Lodica",
+      "createStartMenuShortcut": true,
+      "include": "installer.nsh",
       "artifactName": "Lodica-Setup-${version}.exe"
     },
     "portable": {

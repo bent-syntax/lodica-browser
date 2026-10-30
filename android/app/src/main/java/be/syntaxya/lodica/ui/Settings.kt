@@ -105,6 +105,7 @@ import be.syntaxya.lodica.engine.UpdateState
 import be.syntaxya.lodica.engine.Updater
 import be.syntaxya.lodica.engine.History
 import be.syntaxya.lodica.engine.Language
+import be.syntaxya.lodica.engine.LinkKey
 import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.engine.TestSession
@@ -156,6 +157,33 @@ fun SettingsScreen() {
     var codeShown by remember { mutableStateOf<String?>(null) }
     var enterCode by remember { mutableStateOf(false) }
     var codeText by remember { mutableStateOf("") }
+    var keyFileCable by remember { mutableStateOf(false) }
+    var keyCodeText by remember { mutableStateOf("") }
+    val saveKey = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { u ->
+        if (u == null) return@rememberLauncherForActivityResult
+        val text = PcTabs.makeKeyFile(keyFileCable)
+        val ok = runCatching { ctx.contentResolver.openOutputStream(u)?.use { it.write(text.toByteArray()) } }.isSuccess
+        Toast.makeText(ctx, if (!ok) "Could not save the file" else if (keyFileCable) "Saved. Copy it over the cable, then insert it on the desktop" else "Key file saved. On the new device choose Insert key file. A code appears here", Toast.LENGTH_LONG).show()
+    }
+    val openKey = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u ->
+        if (u == null) return@rememberLauncherForActivityResult
+        val text = runCatching { ctx.contentResolver.openInputStream(u)?.use { it.readBytes().take(65536).toByteArray().decodeToString() } }.getOrNull()
+        if (text == null) { Toast.makeText(ctx, "Could not read the file", Toast.LENGTH_SHORT).show(); return@rememberLauncherForActivityResult }
+        PcTabs.insertKeyFile(text) { st ->
+            Toast.makeText(ctx, when (st.step) { "done" -> "Key inserted"; "wait" -> "Asking the other device for a code…"; else -> st.error }, Toast.LENGTH_LONG).show()
+        }
+    }
+    val step = PcTabs.linkStep
+    LaunchedEffect(step) {
+        when (step?.step) {
+            "done" -> { Toast.makeText(ctx, "Key inserted", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
+            "sent" -> { Toast.makeText(ctx, "The new device has the key", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
+            "bad" -> { Toast.makeText(ctx, if (step.error == "too many tries") "Too many wrong codes. Start again" else if (step.error == "expired") "The code expired. Start again" else "Wrong code", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
+            "unknown" -> { Toast.makeText(ctx, "That device did not make this key file", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
+            "expired" -> { Toast.makeText(ctx, "Waited too long. Start again", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
+            "enter" -> keyCodeText = ""
+        }
+    }
     var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
     val scroll = Ui.settingsPageScroll
@@ -353,7 +381,50 @@ fun SettingsScreen() {
                             }
                         }) { Text("Show link code", color = Amber) }
                     }
-                    SwitchRow("Share history", "Browsing history is shared with the linked device, encrypted", PcTabs.shareHistory) { PcTabs.updateShareHistory(it) }
+                    Text("What to share", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 12.dp))
+                    Text("Switch on what this device sends to the linked device and takes in from it", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                    listOf(
+                        Triple("tabs", "Open tabs", "Shown in Settings on the other device"),
+                        Triple("history", "History", "Pages you visit appear on the other device too"),
+                        Triple("totp", "Authenticator keys", "Needs the link key"),
+                        Triple("passwords", "Passwords", "Needs the link key"),
+                        Triple("bluetooth", "Bluetooth devices", "The names of paired devices, shown on the other device"),
+                        Triple("shortcuts", "Start page shortcuts", "The tiles under the search bar"),
+                        Triple("settings", "Settings and themes", "Look, language, search and blocking choices. Not links or keys"),
+                        Triple("sites", "Site lists", "Sites you allowed, sites that go direct, sites without the hidden-email button"),
+                    ).forEach { (id, label, note) ->
+                        val locked = (id == "totp" || id == "passwords") && !LinkKey.hasKey
+                        SwitchRow(label, if (locked) "$note. Create or insert the link key below first" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }
+                    }
+                    if (PcTabs.remoteBluetooth.isNotEmpty()) {
+                        Text("Bluetooth devices on the other device", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                        Text(PcTabs.remoteBluetooth.joinToString(", "), color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                    }
+                    if (PcTabs.keyMissing) {
+                        Text("The other device shares passwords or keys", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                        Text("Insert the link key on this device to receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                    }
+                    Text("Link key", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                    Text(
+                        if (LinkKey.hasKey) "This device has the link key. Make a key file to put it on another device"
+                        else "No key on this device yet. Create one, or insert a key file made on the other device",
+                        color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                    )
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (!LinkKey.hasKey) TextButton(onClick = { PcTabs.createKey() }) { Text("Create key", color = Amber) }
+                        TextButton(onClick = { keyFileCable = false; saveKey.launch("lodica-key.lkey") }) { Text("Save key file (code)", color = Amber) }
+                    }
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = {
+                            confirm = Confirm("File for a cable", "This file holds the key itself. Copy it over the USB cable to the desktop, insert it there, then delete it. Anyone who gets the file gets the key.", "Save the file") {
+                                keyFileCable = true; saveKey.launch("lodica-key.lkey")
+                            }
+                        }) { Text("Save key file for a cable", color = Amber) }
+                        TextButton(onClick = { openKey.launch(arrayOf("*/*")) }) { Text("Insert key file", color = Amber) }
+                    }
+                    if (LinkKey.hasKey) TextButton(onClick = {
+                        confirm = Confirm("Forget the link key?", "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you insert a key again.", "Forget") { PcTabs.forgetKey() }
+                    }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Forget key", color = Coral) }
                     SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.updateAllowControl(it) }
                     PcTabs.status?.let {
                         Text(it, color = Coral, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
@@ -484,7 +555,8 @@ fun SettingsScreen() {
             val version = remember {
                 runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: "?"
             }
-            InfoRow("Lodica", version)
+            var verTaps by remember { mutableIntStateOf(0) }
+            Box(Modifier.clickable { if (!Prefs.testUnlocked && ++verTaps >= 7) Prefs.unlockTest() }) { InfoRow("Lodica", version) }
             InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: if (Engine.ublockFailed) "not loaded" else "loading…")
             InfoRow("Engine", "GeckoView")
             var diagTaps by remember { mutableIntStateOf(0) }
@@ -527,12 +599,45 @@ fun SettingsScreen() {
             }
             var older by remember { mutableStateOf(false) }
             var support by remember { mutableStateOf(false) }
-            SwitchRow("Let support connect for testing", "Off by default. Support can test this app with a code you read out, only inside Lodica, never the vault, passwords or files. Your settings are saved first and put back after. A red bar shows while it runs and you can stop it any time. Ends by itself after 15 minutes", Prefs.remoteTest) {
-                Prefs.updateRemoteTest(it); if (!it) TestSession.stop(ctx)
+            var testCodeAsk by remember { mutableStateOf(false) }
+            var testCodeText by remember { mutableStateOf("") }
+            var testCodeErr by remember { mutableStateOf("") }
+            if (Prefs.testUnlocked) SwitchRow("Let support connect for testing", "Off by default. Support can test this app with a code you read out, only inside Lodica, never the vault, passwords or files. Your settings are saved first and put back after. A red bar shows while it runs and you can stop it any time. Ends by itself after 15 minutes", Prefs.remoteTest) {
+                if (it) { testCodeText = ""; testCodeErr = ""; testCodeAsk = true }
+                else { Prefs.updateRemoteTest(false); TestSession.stop(ctx) }
             }
-            if (Prefs.remoteTest) {
+            if (testCodeAsk) {
+                AlertDialog(
+                    onDismissRequest = { testCodeAsk = false },
+                    containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+                    title = { Text("Support code") },
+                    text = {
+                        Column {
+                            Text("Ask support for the code. It is checked with your server.", fontSize = 13.sp)
+                            OutlinedTextField(
+                                testCodeText, { testCodeText = it.take(200) },
+                                Modifier.fillMaxWidth().padding(top = 8.dp),
+                                singleLine = true,
+                                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                                    focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                                ),
+                            )
+                            if (testCodeErr.isNotBlank()) Text(testCodeErr, color = Coral, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                        }
+                    },
+                    confirmButton = {
+                        DlgPrimary(onClick = {
+                            TestSession.unlock(ctx, testCodeText) { e -> if (e == null) testCodeAsk = false else testCodeErr = e }
+                        }) { Text("Turn on") }
+                    },
+                    dismissButton = { DlgSecondary(onClick = { testCodeAsk = false }) { Text("Cancel") } },
+                )
+            }
+            if (Prefs.testUnlocked && Prefs.remoteTest) {
                 var err by remember { mutableStateOf("") }
-                if (TestSession.state == "off") LinkRow("Start a test session") { err = TestSession.start(ctx) ?: "" }
+                if (TestSession.state == "off") LinkRow("Start a test session") { TestSession.start(ctx) { err = it ?: "" } }
                 else LinkRow("Stop test session", color = Coral) { TestSession.stop(ctx) }
                 if (TestSession.state != "off") Text("Code: ${TestSession.code}", color = Amber, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
                 val msg = err.ifBlank { TestSession.note }
@@ -578,6 +683,44 @@ fun SettingsScreen() {
         }
     }
     confirm?.let { c -> ConfirmDialog(c) { confirm = null } }
+    if (step?.step == "code") {
+        AlertDialog(
+            onDismissRequest = { PcTabs.dismissLinkStep() },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Code for the new device") },
+            text = {
+                Column {
+                    Text(step.code, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace, letterSpacing = 4.sp)
+                    Text("Type this code on the new device within 30 seconds. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                }
+            },
+            confirmButton = { DlgPrimary(onClick = { PcTabs.dismissLinkStep() }) { Text("Done") } },
+        )
+    }
+    if (step?.step == "enter") {
+        AlertDialog(
+            onDismissRequest = { PcTabs.dismissLinkStep() },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Enter the code") },
+            text = {
+                Column {
+                    Text("Type the 6-digit code shown on the device that made the key file. It is valid for 30 seconds.", fontSize = 13.sp)
+                    OutlinedTextField(
+                        keyCodeText, { keyCodeText = it.filter { c -> c.isDigit() }.take(6) },
+                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                        singleLine = true,
+                        placeholder = { Text("123456", color = Muted) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+                            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+                        ),
+                    )
+                }
+            },
+            confirmButton = { DlgPrimary(onClick = { PcTabs.enterKeyCode(keyCodeText); PcTabs.dismissLinkStep() }) { Text("Send") } },
+            dismissButton = { DlgSecondary(onClick = { PcTabs.dismissLinkStep() }) { Text("Cancel") } },
+        )
+    }
     codeShown?.let { c ->
         AlertDialog(
             onDismissRequest = { codeShown = null },
@@ -1114,12 +1257,6 @@ private fun TiltRotateSection() {
         colors = SliderDefaults.colors(thumbColor = Amber, activeTrackColor = Amber, inactiveTrackColor = GraphiteHigh),
         modifier = Modifier.padding(horizontal = 16.dp),
     )
-    Text("Zoom ${(Prefs.tiltZoom * 100).toInt()}%: 0 shows the whole page with borders, 100 fills the screen and crops the edges", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp))
-    Slider(
-        Prefs.tiltZoom, { Prefs.updateTiltZoom(it) }, valueRange = 0f..1f,
-        colors = SliderDefaults.colors(thumbColor = Amber, activeTrackColor = Amber, inactiveTrackColor = GraphiteHigh),
-        modifier = Modifier.padding(horizontal = 16.dp),
-    )
 }
 
 @Composable
@@ -1543,6 +1680,8 @@ private val SettingsIndex = listOf(
     SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
+    SettingsEntry("What to share", 5, "sync share history passwords authenticator bluetooth shortcuts settings sites"),
+    SettingsEntry("Link key", 5, "sync key file passwords authenticator code insert forget"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
     SettingsEntry("Reject cookie banners", 7, "consent popups"),
     SettingsEntry("Spell check", 7, "autocorrect languages dictionary"),

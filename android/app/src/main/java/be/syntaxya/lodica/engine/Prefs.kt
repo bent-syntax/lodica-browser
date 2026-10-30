@@ -140,6 +140,8 @@ object Prefs {
     var tiltRotate by mutableStateOf(false); private set
     /** Lets support start a visible test session (see TestSession). Off by default. */
     var remoteTest by mutableStateOf(false); private set
+    var testUnlocked by mutableStateOf(false); private set
+    var testCode = ""; private set
     /** Percent of a 90 degree turn that does nothing before the page starts to follow. */
     var tiltDeadZone by mutableStateOf(15f); private set
     /** 0 shows the whole page with borders while it is turned, 1 fills the screen and crops the edges. */
@@ -223,6 +225,8 @@ object Prefs {
         fastRender = sp.getBoolean("fastRender4", true)
         tiltRotate = sp.getBoolean("tiltRotate", false)
         remoteTest = sp.getBoolean("remoteTest", false)
+        testUnlocked = sp.getBoolean("testUnlocked", false)
+        testCode = sp.getString("testCode", "") ?: ""
         tiltDeadZone = sp.getFloat("tiltDeadZone", 15f)
         tiltZoom = sp.getFloat("tiltZoom", 0.5f)
         gestureActions = sp.getString("gestureActions", "")!!.split(',').mapNotNull { e ->
@@ -272,6 +276,8 @@ object Prefs {
         sp.edit().putString("gestureActions", gestureActions.entries.joinToString(",") { "${it.key}=${it.value}" }).apply()
     }
     fun updateFastRender(v: Boolean) { fastRender = v; sp.edit().putBoolean("fastRender4", v).apply() }
+    fun unlockTest() { testUnlocked = true; sp.edit().putBoolean("testUnlocked", true).apply() }
+    fun updateTestCode(v: String) { testCode = v; sp.edit().putString("testCode", v).apply() }
     fun updateRemoteTest(v: Boolean) { remoteTest = v; sp.edit().putBoolean("remoteTest", v).apply() }
     fun updateTiltRotate(v: Boolean) { tiltRotate = v; sp.edit().putBoolean("tiltRotate", v).apply() }
     fun updateTiltDeadZone(v: Float) { tiltDeadZone = v; sp.edit().putFloat("tiltDeadZone", v).apply() }
