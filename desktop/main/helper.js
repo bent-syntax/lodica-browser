@@ -134,6 +134,9 @@ function dictText(lang) {
   return dictCache.get(lang);
 }
 
+/** The holiday effect that goes with the current theme, or empty. */
+function fxKind() { const p = prefs.p; return p.holidayFx && require("./holidays").find(p.theme) ? p.theme : ""; }
+
 function pageState(tab) {
   const host = tab?.host || "";
   const p = prefs.p;
@@ -144,6 +147,7 @@ function pageState(tab) {
     dark: !!p.forceDark,
     spell: { on: !!p.spell, auto: !!p.spellAuto, langs: p.spellLangs },
     selTranslate: !!p.selTranslate,
+    fx: fxKind(),
     speed: p.speed,
     quality: prefs.qualityFor(host) ?? p.quality,
     qualities: p.qualities,
@@ -309,6 +313,7 @@ function init(d) {
   });
   ipcMain.on("siteOverride", (e, host) => { e.returnValue = overrideFor(host); });
   ipcMain.handle("page", e => pageState(deps.tabs.byContents(e.sender)));
+  ipcMain.handle("fxSrc", () => { try { return require("fs").readFileSync(require("path").join(__dirname, "..", "search", "fx.js"), "utf8"); } catch { return ""; } });
   // Smartschool sign-in: true when this tab's session already holds a Microsoft sign-in cookie (names only, values never read).
   ipcMain.handle("msSession", async e => {
     try {

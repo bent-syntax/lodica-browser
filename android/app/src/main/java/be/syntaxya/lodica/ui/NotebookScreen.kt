@@ -34,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
@@ -172,8 +173,10 @@ fun NotebookScreen() {
         val lineEnd = text.indexOf('\n', from).let { if (it < 0) text.length else it }
         val picked = if (from == to) text.substring(lineStart, lineEnd).trim() else text.substring(minOf(from, to), maxOf(from, to))
         // A function of x ("y = x^2", "sin(x)") shows its graph instead.
-        val curve = if (picked.isEmpty()) null else MathSolver.graph(picked)
-        if (curve != null) Graph(curve, Modifier.fillMaxWidth().height(160.dp).padding(start = 12.dp, end = 12.dp, bottom = 8.dp))
+        // Several selected lines that are each a function share one graph.
+        val curves = if (picked.isEmpty()) emptyList() else picked.split("\n").mapNotNull { MathSolver.graph(it) }.take(GRAPH_COLORS.size)
+        val curve = if (curves.size > 1) curves[0] else if (picked.isEmpty()) null else MathSolver.graph(picked)
+        if (curve != null) Graph(if (curves.size > 1) curves else listOf(curve), Modifier.fillMaxWidth().height(160.dp).padding(start = 12.dp, end = 12.dp, bottom = 8.dp))
         val answer = if (curve != null || picked.isEmpty()) null else MathSolver.answer(picked)
         if (answer != null) {
             val add = (if (answer.contains("=")) "\n" else " = ") + answer
@@ -226,27 +229,33 @@ fun NotebookScreen() {
     }
 }
 
+private val GRAPH_COLORS = listOf(Amber, Color(0xFF38BDF8), Color(0xFF34D399), Color(0xFFF43F5E), Color(0xFFA78BFA))
+
 /**
- * Graph of [f]: axes and the curve, zoomed so the points where it crosses y = 0 and x = 0 are both in view and labelled.
+ * Graph of [fs]: axes and the curves, zoomed so the points where one crosses y = 0 and x = 0 are both in view and labelled.
+ * With several curves they share the graph; with exactly two their meeting points are marked instead.
  * Same as drawGraph in desktop/ui/js/mathsolve.js.
  */
 @Composable
-private fun Graph(f: (Double) -> Double, modifier: Modifier = Modifier) {
+private fun Graph(fs: List<(Double) -> Double>, modifier: Modifier = Modifier) {
+    val f = fs[0]; val multi = fs.size > 1
     val measurer = rememberTextMeasurer()
     Canvas(modifier.background(GraphiteRaised, RoundedCornerShape(12.dp))) {
         val w = size.width; val h = size.height
         val roots = MathSolver.graphRoots(f)
         val y0 = f(0.0)
-        val marks = if (roots.size <= 4) roots else emptyList()
+        fun few(a: List<Double>) = if (a.size <= 4) a else emptyList()
+        val marks = if (multi) emptyList() else few(roots)
+        val meet = if (fs.size == 2) few(MathSolver.graphRoots { fs[0](it) - fs[1](it) }) else emptyList()
         val at0 = y0.isFinite() && abs(y0) < 1e9
         // x range: the origin and every x-intercept, with some room around them
-        val xs = listOf(0.0) + marks
+        val xs = listOf(0.0) + marks + meet + (if (multi) fs.flatMap { few(MathSolver.graphRoots(it)) } else emptyList())
         var lo = xs.min(); var hi = xs.max()
         if (hi - lo < 1e-6) { lo = -10.0; hi = 10.0 } else { val p = (hi - lo) * 0.4; lo -= p; hi += p }
         val n = w.toInt().coerceAtLeast(1)
-        val ys = DoubleArray(n + 1) { f(lo + (hi - lo) * it / n) }
+        val yl = fs.map { g -> DoubleArray(n + 1) { g(lo + (hi - lo) * it / n) } }
         var ymin = Double.POSITIVE_INFINITY; var ymax = Double.NEGATIVE_INFINITY
-        for (y in ys) if (y.isFinite() && abs(y) < 1e6) { ymin = minOf(ymin, y); ymax = maxOf(ymax, y) }
+        for (ys in yl) for (y in ys) if (y.isFinite() && abs(y) < 1e6) { ymin = minOf(ymin, y); ymax = maxOf(ymax, y) }
         if (!ymin.isFinite()) { ymin = -10.0; ymax = 10.0 }
         if (ymax - ymin < 1e-6) { ymin -= 1; ymax += 1 }
         val pad = (ymax - ymin) * 0.1
@@ -263,15 +272,17 @@ private fun Graph(f: (Double) -> Double, modifier: Modifier = Modifier) {
         val stroke = Stroke(1.8.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
         if (ymin < 0 && ymax > 0) drawLine(Muted, Offset(0f, py(0.0)), Offset(w, py(0.0)), stroke.width, StrokeCap.Round)
         if (lo < 0 && hi > 0) drawLine(Muted, Offset(px(0.0), 0f), Offset(px(0.0), h), stroke.width, StrokeCap.Round)
-        val path = Path()
-        var pen = false
-        ys.forEachIndexed { i, y ->
-            if (!y.isFinite() || y < ymin - span || y > ymax + span) { pen = false; return@forEachIndexed }
-            val x = i.toFloat() * w / n
-            if (pen) path.lineTo(x, py(y)) else path.moveTo(x, py(y))
-            pen = true
+        yl.forEachIndexed { k, ys ->
+            val path = Path()
+            var pen = false
+            ys.forEachIndexed { i, y ->
+                if (!y.isFinite() || y < ymin - span || y > ymax + span) { pen = false; return@forEachIndexed }
+                val x = i.toFloat() * w / n
+                if (pen) path.lineTo(x, py(y)) else path.moveTo(x, py(y))
+                pen = true
+            }
+            drawPath(path, if (multi) GRAPH_COLORS[k] else Amber, style = stroke)
         }
-        drawPath(path, Amber, style = stroke)
 
         // Labelled dots at the x-intercepts and at (0, y), kept inside the canvas and apart from each other.
         val style = TextStyle(color = Muted, fontSize = 12.sp)
@@ -298,5 +309,6 @@ private fun Graph(f: (Double) -> Double, modifier: Modifier = Modifier) {
             for (r in marks) mark(r, 0.0, true)
             if (at0 && abs(y0) > 1e-9) mark(0.0, y0, false)
         }
+        for (x in meet) mark(x, fs[0](x), false)
     }
 }

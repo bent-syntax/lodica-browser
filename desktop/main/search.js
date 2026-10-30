@@ -37,7 +37,7 @@ function positions() {
 
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
-  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, pos: positions() };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, fx: prefs.p.holidayFx && require("./holidays").find(prefs.p.theme) ? prefs.p.theme : "", custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, pos: positions() };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "hide") {
     const h = String(msg.host || "").slice(0, 253);

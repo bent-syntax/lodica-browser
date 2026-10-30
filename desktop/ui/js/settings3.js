@@ -138,15 +138,40 @@ function themeEditor() {
 }
 function secTheme() {
   return [secHead("Theme", "theme"),
-    h("div", { class: "swatches" }, THEMES.map(([id, label, back, raised, accent]) =>
+    h("div", { class: "swatches" }, THEMES.filter(([id]) => !HOLIDAY_IDS.includes(id)).map(([id, label, back, raised, accent]) =>
       h("button", { class: "theme-sw" + ((S.prefs.theme || "system") === id ? " sel" : ""), title: label, act: () => setPref("theme", id),
         on: { pointerenter: () => paintPreview(presetColours(id)), pointerleave: () => paintPreview(currentColours()) } },
         h("span", { class: "theme-chip", style: "background:" + back + ";border-color:" + raised },
           h("i", { style: "background:" + raised }), h("i", { style: "background:" + accent })),
         h("span", { class: "theme-name", text: label })))),
     h("div", { class: "set-note", text: "Themes colour the browser, start page and settings. Websites keep their own colours." }),
+    secHead("Holidays", "holidays"), holidayList(),
     secHead("Preview", "preview"), themePreviewBox(), secHead("Custom theme", "custom"), themeEditor(),
     secHead("Theme plugins", "plugins"), pluginList()];
+}
+/** Holiday themes: claim one in the week either side of its holiday, then use it whenever you like. */
+function holidayList() {
+  const box = h("div", { class: "ct" });
+  const when = (r) => r.days > 0 ? "Claimable in " + (r.days - 7) + (r.days - 7 === 1 ? " day" : " days") : "Missed this year";
+  const draw = (list) => {
+    const th = Object.fromEntries(THEMES.map((t) => [t[0], t]));
+    box.replaceChildren(
+      ...list.map((r) => {
+        const t = th[r.id], using = (S.prefs.theme || "system") === r.id;
+        const btn = r.claimed ? h("button", { class: "ct-btn" + (using ? " sel" : ""), text: using ? "Using" : "Use", act: () => setPref("theme", using ? "system" : r.id) })
+          : r.claimable ? h("button", { class: "ct-btn", text: "Claim", act: async () => { if (await inv("holiday.claim", r.id)) { await setPref("theme", r.id); load(); } } })
+          : h("button", { class: "ct-btn", text: "Locked", disabled: true, title: when(r) });
+        return h("div", { class: "ct-row" },
+          h("span", { class: "theme-chip", style: "width:32px;flex:none;background:" + t[2] + ";border-color:" + t[3] },
+            h("i", { style: "background:" + t[3] }), h("i", { style: "background:" + t[4] })),
+          h("span", { style: "flex:1", text: r.label + (r.claimed ? "" : r.claimable ? " (claim it now)" : " (" + when(r) + ")") }), btn);
+      }),
+      h("div", { class: "set-note", text: "Each holiday theme can be claimed from a week before to a week after its holiday. Once claimed it is yours for good, with its own effects." }),
+      setToggle("holidayFx", "Holiday effects", "Falling snow, hearts and more over the start page and every tab. Move the mouse to push them."));
+  };
+  const load = () => inv("holiday.list").then((l) => draw(l || []));
+  load();
+  return box;
 }
 let pluginRows = null;
 function pluginList() {

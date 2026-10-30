@@ -208,23 +208,30 @@ function graphRoots(f) {
   return out;
 }
 
-/** Draws f on canvas [cv]: axes, the curve and the points where it crosses the axes. Zoomed so the x-intercept and the y-intercept both show, with their labels apart. */
-function drawGraph(cv, f) {
+const GRAPH_COLORS = ["#F59E0B", "#38BDF8", "#34D399", "#F43F5E", "#A78BFA"];
+
+/** Draws f (or a list of functions, all on one graph) on canvas [cv]: axes, the curves and the points where they cross the axes. Zoomed so the x-intercept and the y-intercept both show, with their labels apart. With exactly two functions the points where they meet are marked instead. Keep in step with the Graph composable in the Android app. */
+function drawGraph(cv, fl) {
+  const fs = (Array.isArray(fl) ? fl : [fl]).slice(0, GRAPH_COLORS.length), multi = fs.length > 1, f = fs[0];
   const w = cv.width, hh = cv.height, c = cv.getContext("2d");
   const css = getComputedStyle(cv);
   const muted = css.getPropertyValue("--muted").trim() || "#9CA3AF", amber = css.getPropertyValue("--amber").trim() || "#F59E0B";
   const roots = graphRoots(f), y0 = f(0);
-  const marks = roots.length <= 4 ? roots : [];
+  const few = (a) => (a.length <= 4 ? a : []);
+  const marks = multi ? [] : few(roots);
+  const meet = fs.length === 2 ? few(graphRoots((x) => fs[0](x) - fs[1](x))) : [];
   const at0 = isFinite(y0) && Math.abs(y0) < 1e9;
-  const near = [0].concat(marks);
+  const near = [0].concat(marks, meet, multi ? fs.flatMap((g) => few(graphRoots(g))) : []);
   let lo = Math.min(...near), hi = Math.max(...near);
   if (hi - lo < 1e-6) { lo = -10; hi = 10; } else { const g = (hi - lo) * 0.4; lo -= g; hi += g; }
   let ymin = Infinity, ymax = -Infinity;
-  const ys = [];
+  const yl = fs.map(() => []);
   for (let px = 0; px <= w; px++) {
-    const y = f(lo + (hi - lo) * px / w);
-    ys.push(y);
-    if (isFinite(y) && Math.abs(y) < 1e6) { ymin = Math.min(ymin, y); ymax = Math.max(ymax, y); }
+    fs.forEach((g, k) => {
+      const y = g(lo + (hi - lo) * px / w);
+      yl[k].push(y);
+      if (isFinite(y) && Math.abs(y) < 1e6) { ymin = Math.min(ymin, y); ymax = Math.max(ymax, y); }
+    });
   }
   if (!isFinite(ymin)) { ymin = -10; ymax = 10; }
   if (ymax - ymin < 1e-6) { ymin -= 1; ymax += 1; }
@@ -243,17 +250,19 @@ function drawGraph(cv, f) {
   if (ymin < 0 && ymax > 0) { c.moveTo(0, Y(0)); c.lineTo(w, Y(0)); }
   c.moveTo(X(0), 0); c.lineTo(X(0), hh);
   c.stroke();
-  c.strokeStyle = amber; c.beginPath();
-  let pen = false;
-  ys.forEach((y, px) => {
-    if (!isFinite(y) || y < ymin - (ymax - ymin) || y > ymax + (ymax - ymin)) { pen = false; return; }
-    if (pen) c.lineTo(px, Y(y)); else c.moveTo(px, Y(y));
-    pen = true;
+  yl.forEach((ys, k) => {
+    c.strokeStyle = multi ? GRAPH_COLORS[k] : amber; c.beginPath();
+    let pen = false;
+    ys.forEach((y, px) => {
+      if (!isFinite(y) || y < ymin - (ymax - ymin) || y > ymax + (ymax - ymin)) { pen = false; return; }
+      if (pen) c.lineTo(px, Y(y)); else c.moveTo(px, Y(y));
+      pen = true;
+    });
+    c.stroke();
   });
-  c.stroke();
   // intercept points with labels; a label that would overlap an earlier one moves up (or down at the top edge)
-  const pts = marks.map((x) => ({ x, y: 0 }));
-  if (at0 && y0 >= ymin && y0 <= ymax && !pts.some((p) => Math.abs(p.x) < (hi - lo) * 0.01 && Math.abs(y0) < (ymax - ymin) * 0.01)) pts.push({ x: 0, y: y0 });
+  const pts = marks.map((x) => ({ x, y: 0 })).concat(meet.map((x) => ({ x, y: fs[0](x), meet: true })));
+  if (!multi && at0 && y0 >= ymin && y0 <= ymax && !pts.some((p) => Math.abs(p.x) < (hi - lo) * 0.01 && Math.abs(y0) < (ymax - ymin) * 0.01)) pts.push({ x: 0, y: y0 });
   c.font = "12px sans-serif"; c.textBaseline = "alphabetic";
   const boxes = [];
   for (const p of pts) {
@@ -261,8 +270,9 @@ function drawGraph(cv, f) {
     c.fillStyle = amber; c.beginPath(); c.arc(px, py, 3, 0, Math.PI * 2); c.fill();
     const text = "(" + mathFrac(p.x, 6) + ", " + mathFrac(p.y, 6) + ")", tw = c.measureText(text).width;
     // on the x axis the label sits under the point, on the y axis it sits right of it
-    let bx = p.y === 0 ? px - tw / 2 : px + 8, by = p.y === 0 ? py + 18 : py - 8;
-    if (p.y !== 0 && bx + tw > w - 2) bx = px - 8 - tw;
+    const low = p.y === 0 && !p.meet;
+    let bx = low ? px - tw / 2 : px + 8, by = low ? py + 18 : py - 8;
+    if (!low && bx + tw > w - 2) bx = px - 8 - tw;
     bx = Math.max(2, Math.min(bx, w - tw - 2));
     const hit = () => boxes.some((r) => bx < r.x + r.w + 4 && bx + tw + 4 > r.x && by - 12 < r.y + 2 && by + 2 > r.y - 12);
     for (let k = 0; k < 4 && hit(); k++) by += by - 12 > 14 ? -14 : 14;

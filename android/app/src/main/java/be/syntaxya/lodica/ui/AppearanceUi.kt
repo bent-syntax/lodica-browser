@@ -184,3 +184,43 @@ internal fun StartPreview() {
         )
     }
 }
+
+/** Holiday themes: claimable for a week either side of the holiday, usable for ever once claimed. */
+@Composable
+internal fun HolidayThemes() {
+    val claimed = Prefs.claimedThemes
+    Text(
+        "Holiday themes", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+    )
+    be.syntaxya.lodica.ui.theme.Holidays.forEach { h ->
+        val days = be.syntaxya.lodica.ui.theme.daysTo(h)
+        val have = h.id in claimed
+        val can = be.syntaxya.lodica.ui.theme.canClaim(h.id)
+        val status = when {
+            Prefs.theme == h.id -> "In use"
+            have -> "Claimed"
+            can -> if (days > 0) "Claimable, $days days to go" else if (days == 0L) "Claimable, today" else "Claimable, ${-days} days ago"
+            else -> "Claimable one week before to one week after"
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(GraphiteRaised)
+                .clickable(enabled = have || can) { if (have) Prefs.updateTheme(h.id) else Prefs.claimTheme(h.id) }.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(Modifier.size(24.dp).clip(CircleShape).background(Color(h.palette.accent)))
+            Column(Modifier.weight(1f)) {
+                Text(h.label, color = Mist, fontSize = 15.sp)
+                Text(status, color = Muted, fontSize = 13.sp)
+            }
+            Text(if (have) (if (Prefs.theme == h.id) "" else "Use") else if (can) "Claim" else "", color = Amber, fontSize = 13.sp)
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth().clickable { Prefs.updateHolidayFx(!Prefs.holidayFx) }.padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Holiday effects", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
+        Text(if (Prefs.holidayFx) "On" else "Off", color = Amber, fontSize = 13.sp)
+    }
+}

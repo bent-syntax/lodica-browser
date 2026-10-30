@@ -22,7 +22,9 @@ function openNotebook() {
         end = v.indexOf("\n", end); if (end < 0) end = v.length;
       }
       const sel = v.slice(from, end).trim();
-      const f = sel ? mathGraph(sel) : null;
+      // Several selected lines that are each a function share one graph.
+      const fl = sel ? sel.split("\n").map((l) => mathGraph(l)).filter(Boolean) : [];
+      const f = fl.length > 1 ? fl : sel ? mathGraph(sel) : null;
       L.graph.style.display = f ? "block" : "none";
       if (f) drawGraph(L.graph, f);
       const a = !sel || f ? null : mathAnswer(sel);

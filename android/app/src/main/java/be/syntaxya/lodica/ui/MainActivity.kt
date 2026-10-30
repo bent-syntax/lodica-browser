@@ -75,7 +75,7 @@ class MainActivity : HostActivity() {
                     c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 } else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
-            LodicaTheme { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } }
+            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() } } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */

@@ -1,3 +1,8 @@
+## 1.14.6
+
+- Added: Holiday themes (New Year, Valentine, Halloween, Christmas). Claim one from a week before to a week after the holiday, then keep it for good. Each has its own effect: snow and confetti pile up and can be pushed off, bats and hearts drift past. Toggle in Settings > Appearance
+- Added: Selecting two or more functions graphs them together; with two, the points where they meet are marked
+
 ## 1.14.5
 
 - Changed: Updates on Windows install by themselves after the download: no setup wizard, Lodica stays open with a progress bar and restarts when it is done

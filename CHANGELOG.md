@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.6 (versionCode 166)
+- Added: Holiday themes (New Year, Valentine, Halloween, Christmas). Claim one from a week before to a week after the holiday, then keep it for good. Each has its own effect: snow and confetti pile up and can be pushed off, bats and hearts drift past. Toggle in Settings > Appearance
+- Added: Selecting two or more functions graphs them together; with two, the points where they meet are marked
+
 ## 1.14.5 (versionCode 165)
 - Added: Android Tilt rotate
 - Changed: Desktop updates install silently with a progress bar and restart by themselves

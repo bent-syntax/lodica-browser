@@ -117,6 +117,10 @@ object Prefs {
     var language by mutableStateOf(Language.EN); private set
     /** UI theme key: "system" or a palette key from ui.theme.Palettes. */
     var theme by mutableStateOf("dark"); private set
+    /** Holiday themes the user claimed (ids from ui.theme.Holidays). A claim is permanent. */
+    var claimedThemes by mutableStateOf<Set<String>>(emptySet()); private set
+    /** Falling snow, confetti, bats or hearts while a claimed holiday theme is active. */
+    var holidayFx by mutableStateOf(true); private set
     /** Suggest history pages and past searches in the address bar. Local only. */
     var historySuggest by mutableStateOf(true); private set
     var autoCorrect by mutableStateOf(false); private set
@@ -204,6 +208,8 @@ object Prefs {
         compat = sp.getStringSet("compat", emptySet())!!.toSet()
         language = runCatching { Language.valueOf(sp.getString("language", "")!!) }.getOrDefault(Language.EN)
         theme = sp.getString("theme", "dark")!!
+        claimedThemes = sp.getStringSet("claimedThemes", emptySet())!!.toSet()
+        holidayFx = sp.getBoolean("holidayFx", true)
         historySuggest = sp.getBoolean("historySuggest", true)
         autoCorrect = sp.getBoolean("autoCorrect", false)
         startBg = sp.getString("startBg", "none")!!
@@ -228,7 +234,17 @@ object Prefs {
         be.syntaxya.lodica.ui.SitesWidget.refresh(c)
         be.syntaxya.lodica.ui.PlannerWidget.refresh(c)
     }
-    fun updateTheme(v: String) { theme = v; sp.edit().putString("theme", v).apply(); Helper.push(); appCtx?.let { refreshWidgets(it) } }
+    fun claimTheme(id: String): Boolean {
+        if (id !in claimedThemes) {
+            if (!be.syntaxya.lodica.ui.theme.canClaim(id)) return false
+            claimedThemes = claimedThemes + id; sp.edit().putStringSet("claimedThemes", claimedThemes).apply()
+        }
+        updateTheme(id); return true
+    }
+    fun updateHolidayFx(v: Boolean) { holidayFx = v; sp.edit().putBoolean("holidayFx", v).apply() }
+    fun updateTheme(v: String) {
+        if (be.syntaxya.lodica.ui.theme.holiday(v) != null && v !in claimedThemes) return
+        theme = v; sp.edit().putString("theme", v).apply(); Helper.push(); appCtx?.let { refreshWidgets(it) } }
     fun updateWidget(text: String, shape: String) {
         widgetText = text.take(40); widgetShape = shape
         sp.edit().putString("widgetText", widgetText).putString("widgetShape", shape).apply()

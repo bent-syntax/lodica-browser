@@ -1533,10 +1533,26 @@ const lodicaMain = () => {
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
     watchCookies();
     msLogin();
+    holidayFx();
   }
 
   // Late retries: the page options can arrive after the first paint.
   for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) applyDark(); }, t);
+
+  // Holiday theme effect (snow, hearts...) drawn over the page in an isolated world, so the page cannot see it.
+  let fxSrc = null, fxKind = null;
+  async function holidayFx() {
+    if (window !== window.top || /^lodica:/.test(location.protocol)) return;
+    const kind = page.fx || "";
+    if (kind === fxKind) return;
+    fxKind = kind;
+    if (!kind && fxSrc == null) return;
+    if (fxSrc == null) fxSrc = await ipcRenderer.invoke("fxSrc").catch(() => "");
+    if (!fxSrc || fxKind !== kind) return;
+    const run = () => webFrame.executeJavaScriptInIsolatedWorld(1999, [{ code: "window.__lodicaFxKind=" + JSON.stringify(kind) + ";" + fxSrc }]).catch(() => {});
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run, { once: true }); else run();
+  }
+
 
   // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
   let msTried = false;

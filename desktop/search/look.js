@@ -21,6 +21,8 @@
     root.classList.toggle("hasbg", !!img);
     root.style.setProperty("--bgimg", img || "none");
     root.style.setProperty("--bgdim", Math.min(100, Math.max(0, +b.dim || 0)) + "%");
+    window.__lodicaFxKind = l.fx || "";
+    if (window.__lodicaFx) window.__lodicaFx.set(l.fx || "");
     root.style.setProperty("--bgblur", Math.min(40, Math.max(0, +b.blur || 0)) + "px");
   }
 
@@ -28,7 +30,7 @@
   if (typeof browser === "undefined") return;
   browser.runtime.sendMessage({ type: "state" }).then((s) => {
     if (!s) return;
-    const look = { theme: s.theme, custom: s.custom, bg: s.bg };
+    const look = { theme: s.theme, custom: s.custom, bg: s.bg, fx: s.fx };
     apply(look);
     try { localStorage.setItem(KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
   }, () => {});

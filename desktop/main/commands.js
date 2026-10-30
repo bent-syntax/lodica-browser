@@ -378,6 +378,16 @@ function init(deps) {
   on("plugins.active", () => tp.get(d.prefs.p.themePlugin));
   on("plugins.use", (id) => { d.prefs.set("themePlugin", id && tp.get(id) ? String(id) : ""); return true; });
   on("plugins.open", () => shell.openPath(tp.folder()));
+  // Holiday themes: claimable for a week either side of the holiday, then yours for good.
+  const holidays = require("./holidays");
+  on("holiday.list", () => holidays.list(d.prefs.p.claimedThemes));
+  on("holiday.claim", (id) => {
+    const have = d.prefs.p.claimedThemes;
+    if (have.includes(id)) return true;
+    if (!holidays.canClaim(id)) return false;
+    d.prefs.set("claimedThemes", have.concat(id));
+    return true;
+  });
   on("email.fill", () => (cur() ? helper.fill(cur()) : false));
   on("reader", () => (cur() ? helper.reader(cur()) : null));
 

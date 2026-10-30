@@ -32,13 +32,14 @@ const DEFAULTS = {
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, startNotes: true, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
-  emojiPicker: true,
+  emojiPicker: true, claimedThemes: [], holidayFx: true,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,
   theme: "system", vertTabs: false, barBottom: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,
   bg: { type: "none", value: "", dim: 0, blur: 0 }, keybinds: {}, mouse: { middle: "closeTab", back: "back", forward: "forward" },
 };
 
+const HOLIDAY_IDS = require("./holidays").HOLIDAYS.map(h => h.id);
 const events = new EventEmitter();
 const p = Object.assign({}, DEFAULTS, store.load("prefs", {}));
 // Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
@@ -55,6 +56,8 @@ function persist() { store.save("prefs", () => p); }
 /** Sets one pref and tells listeners (net, helper, ui) about it. */
 function set(key, value) {
   if (!(key in DEFAULTS)) return;
+  // A holiday theme only applies once it has been claimed.
+  if (key === "theme" && HOLIDAY_IDS.includes(value) && !p.claimedThemes.includes(value)) return;
   p[key] = value;
   persist();
   events.emit("change", key, value);

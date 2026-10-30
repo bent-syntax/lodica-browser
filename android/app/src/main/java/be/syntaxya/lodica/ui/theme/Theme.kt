@@ -114,6 +114,7 @@ object ThemeState {
                 "system", "dynamic" -> if (systemDark) "dark" else "light"
                 else -> k
             }
+            holiday(key)?.let { if (key in Prefs.claimedThemes) return it.palette }
             return Palettes.firstOrNull { it.key == key } ?: Palettes[0]
         }
 }

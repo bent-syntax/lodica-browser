@@ -1573,6 +1573,7 @@ private fun ThemePicker() {
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
     )
     ThemeSwatches()
+    HolidayThemes()
     ThemePreview()
     CustomThemeEditor()
 }
