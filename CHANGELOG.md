@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.12 (versionCode 172)
+- Fixed: The Windows installer no longer hangs while removing older Lodica installs
+
 ## 1.14.11 (versionCode 171)
 - Added: Android has the link settings: what to share, link key, passwords and authenticator
 - Changed: "Let support connect for testing" is a hidden setting and needs a code kept on the server

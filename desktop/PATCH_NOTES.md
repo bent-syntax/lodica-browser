@@ -1,3 +1,7 @@
+## 1.14.12
+
+- Fixed: The installer no longer hangs while removing older Lodica installs
+
 ## 1.14.11
 
 - Added: Windows installer removes older Lodica installs and adds a Start menu entry so Windows search finds Lodica

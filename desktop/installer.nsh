@@ -12,8 +12,8 @@
     StrCmp $3 "Lodica" 0 lodicaEnum
     ReadRegStr $4 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$1" "QuietUninstallString"
     StrCmp $4 "" lodicaEnum
+    ; each entry once: an uninstaller can return before its key is gone, so never rescan from the start
     ExecWait '$4'
-    StrCpy $0 0
     Goto lodicaEnum
   lodicaEnumDone:
 !macroend

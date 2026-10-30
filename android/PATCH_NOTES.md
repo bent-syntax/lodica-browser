@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.12
+
+- Fixed: The Windows installer no longer hangs while removing older Lodica installs
+
 ## 1.14.11
 
 - Added: Android has the link settings: what to share, link key, passwords and authenticator
