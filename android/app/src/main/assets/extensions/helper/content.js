@@ -177,6 +177,72 @@
     if (port) port.postMessage({ type: "email", focused: isEmailField(active()), signup: isSignup() });
   }
 
+
+  // ---- AI agent: numbers visible elements, clicks, types and shows a glow while the agent works. Top frame only. ----
+  const AG_SEL = 'a[href],button,input,textarea,select,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=treeitem],[role=option],[onclick],[tabindex]:not([tabindex="-1"]),li[class*=menu],li[class*=nav]';
+  let agEls = [];
+  function agentOp(raw) {
+    let o; try { o = JSON.parse(raw); } catch { return; }
+    const reply = (extra) => port && port.postMessage({ type: "agent", value: JSON.stringify(Object.assign({ op: o.op, rid: o.rid }, extra)) });
+    try {
+      if (o.op === "glow") {
+        const ID = "__lodica_agent_glow";
+        for (const id of [ID, ID + "_s"]) document.getElementById(id)?.remove();
+        if (o.on && document.documentElement) {
+          const st = document.createElement("style");
+          st.id = ID + "_s";
+          st.textContent = "@keyframes lodglow{0%,100%{box-shadow:inset 0 0 18px 4px rgba(245,158,11,.55),inset 0 0 60px 8px rgba(245,158,11,.25)}50%{box-shadow:inset 0 0 28px 8px rgba(245,158,11,.85),inset 0 0 90px 16px rgba(245,158,11,.4)}}";
+          const d = document.createElement("div");
+          d.id = ID;
+          d.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;animation:lodglow 2s ease-in-out infinite";
+          document.documentElement.append(st, d);
+        }
+        return;
+      }
+      if (o.op === "snap") {
+        const docs = [document];
+        for (const f of document.querySelectorAll("iframe")) { try { if (f.contentDocument && f.contentDocument.body) docs.push(f.contentDocument); } catch (e) {} }
+        const vis = (e) => { const r = e.getBoundingClientRect(), s = (e.ownerDocument.defaultView || window).getComputedStyle(e); return r.width > 4 && r.height > 4 && s.visibility !== "hidden" && s.display !== "none"; };
+        const all = [];
+        for (const d of docs) {
+          const fr = d === document ? null : [...document.querySelectorAll("iframe")].find((f) => { try { return f.contentDocument === d; } catch (e) { return false; } });
+          const off = fr ? fr.getBoundingClientRect() : { top: 0 };
+          for (const e of d.querySelectorAll(AG_SEL)) {
+            if (!vis(e)) continue;
+            const y = e.getBoundingClientRect().top + off.top;
+            all.push({ e, y, inView: y > -20 && y < innerHeight + 20 });
+          }
+        }
+        all.sort((a, b) => (b.inView - a.inView) || (a.y - b.y));
+        agEls = all.slice(0, 140).map((x) => x.e);
+        const els = agEls.map((e, i) => {
+          const t = (e.getAttribute("aria-label") || e.innerText || e.value || e.placeholder || e.title || e.alt || "").replace(/\s+/g, " ").trim().slice(0, 80);
+          const kind = e.tagName.toLowerCase() + (e.type && e.tagName === "INPUT" ? ":" + e.type : "") + (e.ownerDocument !== document ? " (frame)" : "");
+          return "[" + i + "] " + kind + (t ? " " + JSON.stringify(t) : "");
+        }).join("\n");
+        const txt = (document.body ? document.body.innerText : "") + docs.slice(1).map((d) => "\n" + d.body.innerText).join("");
+        reply({ url: location.href, title: document.title, text: txt.replace(/\n{3,}/g, "\n\n").slice(0, 3000), els });
+        return;
+      }
+      const e = agEls[Number(o.id)];
+      if (o.op === "label") { reply({ label: e ? String(e.getAttribute("aria-label") || e.innerText || e.value || e.title || "").slice(0, 80) : "" }); return; }
+      if (o.op === "scroll") { window.scrollBy(0, (o.dir === "up" ? -1 : 1) * innerHeight * 0.8); reply({ result: "ok" }); return; }
+      if (!e) { reply({ result: "no such element" }); return; }
+      if (o.op === "click") { e.scrollIntoView({ block: "center" }); e.click(); reply({ result: "ok" }); return; }
+      if (o.op === "type") {
+        if (e.type === "password") { reply({ result: "refused: password field" }); return; }
+        e.scrollIntoView({ block: "center" }); e.focus();
+        const proto = e.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const set = Object.getOwnPropertyDescriptor(proto, "value");
+        const text = String(o.text || "").slice(0, 500);
+        if (set && set.set && "value" in e) set.set.call(e, text); else e.textContent = text;
+        e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true }));
+        if (o.enter) { if (e.form && e.form.requestSubmit) e.form.requestSubmit(); else e.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true })); }
+        reply({ result: "ok" });
+      }
+    } catch (err) { reply({ result: "failed: " + err.message }); }
+  }
+
   function connect() {
     if (port) return;
     try {
@@ -193,6 +259,7 @@
       }
       if (msg.type === "signup") startSignup(msg);
       if (msg.type === "reader" && TOP) port.postMessage(article());
+      if (msg.type === "agent" && TOP) agentOp(msg.value);
       if (msg.type === "code") {
         code = { value: msg.value, until: Date.now() + 120000 };
         tryCode();

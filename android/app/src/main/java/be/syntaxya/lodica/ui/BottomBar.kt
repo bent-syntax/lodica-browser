@@ -359,12 +359,14 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 },
             )
         }
-        if (query.text.isNotEmpty()) {
-            if (Ai.connected) {
-                IconButton(onClick = { askAi(query.text.trim()); Ui.editing = false }) {
-                    Icon(Icons.Rounded.AutoAwesome, "Ask AI", tint = Amber)
-                }
+        if (Ai.connected) {
+            IconButton(onClick = {
+                be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false; Ui.editing = false
+            }) {
+                Icon(Icons.Rounded.AutoAwesome, "AI assistant", tint = Amber)
             }
+        }
+        if (query.text.isNotEmpty()) {
             if (query.text.length > 28) {
                 // Long links need no manual scrolling: jump the text marker to the end.
                 IconButton(onClick = { onQuery(query.copy(selection = TextRange(query.text.length))); focus.requestFocus() }) {

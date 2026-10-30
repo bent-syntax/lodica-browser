@@ -130,6 +130,7 @@ fun LodicaRoot() {
         Ui.preview?.let { PreviewSheet(it) }
         Ui.reader?.let { ReaderSheet(it.first, it.second) }
         Ui.answer?.let { AnswerSheet(it) }
+        AgentPanel()
         Ui.picker?.let { PickerDialog(it) }
         Ui.totpAsk?.let { TotpAskDialog(it) }
     }

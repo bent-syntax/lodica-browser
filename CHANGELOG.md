@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.9 (versionCode 169)
+- Added: AI browser agent on Android. The toolbar AI button opens a phone-shaped panel on the right. The AI opens pages, clicks, types and scrolls for you, the page glows while it works, risky clicks ask first, and you can minimize it without stopping, open older chats or go full screen
+- Changed: Every holiday theme now has its own look: snowflakes, tumbling confetti, flapping bats, floating hearts, clovers and fluttering Belgian flags
+
 ## 1.14.8 (versionCode 168)
 - Added: Make your own theme with the linked AI (for example a Minecraft theme) in the custom theme editor
 - Added: Holiday themes for St Patrick's Day and Belgian National Day, each with its own effect

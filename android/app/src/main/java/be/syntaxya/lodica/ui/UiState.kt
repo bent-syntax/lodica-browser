@@ -74,6 +74,7 @@ object Ui {
         finding = false
         reader = null
         answer = null
+        if (be.syntaxya.lodica.engine.AiAgent.open) be.syntaxya.lodica.engine.AiAgent.minimized = true
         picker = null
         totpAsk = null
         preview = null
@@ -86,6 +87,7 @@ object Ui {
         Prompts.visible != null -> { Prompts.visible?.cancel(); true }
         reader != null -> { reader = null; true }
         answer != null -> { answer = null; true }
+        be.syntaxya.lodica.engine.AiAgent.let { it.open && !it.minimized } -> { be.syntaxya.lodica.engine.AiAgent.minimized = true; true }
         picker != null -> { picker = null; true }
         totpAsk != null -> { totpAsk?.onPick?.invoke(null); totpAsk = null; true }
         preview != null -> { preview = null; true }

@@ -11,12 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.withFrameNanos
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.ui.theme.holiday
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -26,11 +29,11 @@ private class Fx(val n: Int, val size: ClosedFloatingPointRange<Float>, val colo
 
 private val FX = mapOf(
     "christmas" to Fx(110, 2f..5f, listOf(0xFFFFFFFF, 0xFFE8F1FF), 30f..80f, 28f, true, false),
-    "new-year" to Fx(70, 4f..9f, listOf(0xFFFFD700, 0xFFFF4D8D, 0xFF7DD3FC, 0xFF86EFAC, 0xFFFFFFFF), 60f..120f, 36f, true, true),
-    "halloween" to Fx(26, 10f..18f, listOf(0xFFFF7A18, 0xFF9BE564, 0xFFB49BD1), -45f..-12f, 48f, false, false),
-    "valentine" to Fx(26, 10f..20f, listOf(0xFFFF5C8A, 0xFFFF3B5C, 0xFFFFB3C9), -60f..-20f, 28f, false, false),
+    "new-year" to Fx(80, 5f..10f, listOf(0xFFFFD700, 0xFFFF4D8D, 0xFF7DD3FC, 0xFF86EFAC, 0xFFFFFFFF), 50f..100f, 40f, false, true),
+    "halloween" to Fx(22, 14f..24f, listOf(0xFFFF7A18, 0xFF9BE564, 0xFFB49BD1), -45f..-12f, 48f, false, false),
+    "valentine" to Fx(26, 12f..22f, listOf(0xFFFF5C8A, 0xFFFF3B5C, 0xFFFFB3C9), -60f..-20f, 28f, false, false),
     "st-patrick" to Fx(40, 9f..15f, listOf(0xFF4CC96B, 0xFF8EE6A0, 0xFFF5D76E), 25f..55f, 36f, false, false),
-    "national-day" to Fx(90, 4f..8f, listOf(0xFFFDDA24, 0xFF111111, 0xFFEF3340), 35f..80f, 28f, true, true),
+    "national-day" to Fx(45, 10f..18f, listOf(0xFFFDDA24, 0xFF111111, 0xFFEF3340), 30f..60f, 36f, false, true),
 )
 
 private class P(var x: Float, var y: Float, var vx: Float, var vy: Float, val s: Float, val c: Color, var ph: Float)
@@ -92,14 +95,65 @@ private var viewW = 1080f
 private var viewH = 1920f
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawShape(kind: String, cfg: Fx, p: P) {
-    if (cfg.rect) drawRect(p.c, Offset(p.x - p.s / 2, p.y - p.s / 3), Size(p.s, p.s * 0.6f))
-    else if (kind == "christmas") drawCircle(p.c, p.s, Offset(p.x, p.y))
-    else if (kind == "st-patrick") {
-        val r = p.s * 0.32f
-        for (d in arrayOf(Offset(-r, 0f), Offset(r, 0f), Offset(0f, -r), Offset(0f, r))) drawCircle(p.c, r, Offset(p.x + d.x, p.y + d.y))
-        drawLine(p.c, Offset(p.x, p.y), Offset(p.x + r, p.y + p.s * 0.9f), strokeWidth = 2f)
+    val s = p.s
+    when (kind) {
+        // Snowflakes: a dot, with six arms on the bigger ones.
+        "christmas" -> {
+            drawCircle(p.c, s * 0.6f, Offset(p.x, p.y))
+            if (s > 3.5f) for (k in 0 until 3) {
+                val a = p.ph * 0.3f + k * 1.0472f
+                val dx = cos(a) * s * 1.6f; val dy = sin(a) * s * 1.6f
+                drawLine(p.c.copy(alpha = 0.8f), Offset(p.x - dx, p.y - dy), Offset(p.x + dx, p.y + dy), strokeWidth = 1.2f)
+            }
+        }
+        // Confetti strips that spin as they fall: the width follows the spin so they look like they tumble.
+        "new-year" -> {
+            val w = s * (0.25f + 0.75f * abs(cos(p.ph * 2f)))
+            rotate(sin(p.ph) * 40f, Offset(p.x, p.y)) { drawRect(p.c, Offset(p.x - w / 2, p.y - s * 0.8f), Size(w, s * 1.6f)) }
+        }
+        // Bats: two wings that flap, a body and two ears.
+        "halloween" -> {
+            val flap = sin(p.ph * 5f) * 0.55f
+            val body = Color(0xFF1B1030)
+            val path = Path().apply {
+                for (side in intArrayOf(-1, 1)) {
+                    moveTo(p.x, p.y)
+                    cubicTo(p.x + side * s * 0.6f, p.y - s * (0.9f + flap), p.x + side * s * 1.3f, p.y - s * (0.5f + flap), p.x + side * s * 1.6f, p.y - s * (0.1f - flap))
+                    quadraticTo(p.x + side * s * 1.1f, p.y + s * 0.15f, p.x + side * s * 0.8f, p.y + s * 0.35f)
+                    quadraticTo(p.x + side * s * 0.4f, p.y + s * 0.1f, p.x, p.y + s * 0.5f)
+                    close()
+                }
+            }
+            drawPath(path, body)
+            drawCircle(body, s * 0.3f, Offset(p.x, p.y))
+            drawCircle(p.c, s * 0.07f, Offset(p.x - s * 0.1f, p.y - s * 0.03f)); drawCircle(p.c, s * 0.07f, Offset(p.x + s * 0.1f, p.y - s * 0.03f))
+        }
+        // Hearts: two lobes and a point.
+        "valentine" -> {
+            val path = Path().apply {
+                moveTo(p.x, p.y + s * 0.9f)
+                cubicTo(p.x - s * 1.5f, p.y - s * 0.1f, p.x - s * 0.7f, p.y - s * 1.1f, p.x, p.y - s * 0.35f)
+                cubicTo(p.x + s * 0.7f, p.y - s * 1.1f, p.x + s * 1.5f, p.y - s * 0.1f, p.x, p.y + s * 0.9f)
+                close()
+            }
+            rotate(sin(p.ph) * 14f, Offset(p.x, p.y)) { drawPath(path, p.c.copy(alpha = 0.9f)) }
+        }
+        "st-patrick" -> {
+            val r = s * 0.32f
+            for (d in arrayOf(Offset(-r, 0f), Offset(r, 0f), Offset(0f, -r), Offset(0f, r))) drawCircle(p.c, r, Offset(p.x + d.x, p.y + d.y))
+            drawLine(p.c, Offset(p.x, p.y), Offset(p.x + r, p.y + s * 0.9f), strokeWidth = 2f)
+        }
+        // Small Belgian flags: black, yellow and red stripes on a flutter.
+        else -> {
+            val w = s * 1.2f; val h = s * 0.8f
+            val wave = sin(p.ph * 3f) * h * 0.12f
+            val cols = arrayOf(Color(0xFF111111), Color(0xFFFDDA24), Color(0xFFEF3340))
+            rotate(sin(p.ph) * 12f, Offset(p.x, p.y)) {
+                for (i in 0 until 3) drawRect(cols[i], Offset(p.x - w / 2 + i * w / 3, p.y - h / 2 + (if (i == 1) wave else 0f)), Size(w / 3 + 0.5f, h))
+                drawLine(Color(0xFF8A8A8A), Offset(p.x - w / 2, p.y - h / 2), Offset(p.x - w / 2, p.y + h * 1.2f), strokeWidth = 1.5f)
+            }
+        }
     }
-    else drawCircle(p.c.copy(alpha = 0.85f), p.s * 0.6f, Offset(p.x, p.y)) // bats and hearts are drawn as soft glows on Android
 }
 
 private fun stepFx(cfg: Fx, parts: ArrayList<P>, heights: FloatArray, touch: FloatArray, dt: Float) {

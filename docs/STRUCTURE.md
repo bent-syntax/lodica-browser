@@ -40,6 +40,8 @@ Key UI files in `ui/`:
 - `Sheets.kt`, `Pickers.kt`, `PromptDialogs.kt`, `Prompts.kt`: bottom sheets, pickers and dialogs.
 - `Widgets.kt`, `BottomBar.kt`, `SearchWidget.kt`: reusable widgets, bottom bar, search.
 - `Gestures.kt`: gesture handling.
+- `AgentPanel.kt`: right-side phone-shaped AI browser agent panel (minimize, older chats, full screen). Its engine is `engine/AiAgent.kt`.
+- `HolidayFx.kt`: per-holiday particle effects.
 - `Preview.kt`: Compose previews.
 
 Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`, etc.) and contrast logic. Change colours there, not in individual screens.

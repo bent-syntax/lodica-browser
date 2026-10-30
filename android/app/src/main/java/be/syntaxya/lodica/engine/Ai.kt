@@ -159,6 +159,35 @@ object Ai {
     /** A chat turn: [turns] is the whole thread, the last one is the user's new message. */
     fun chat(turns: List<Pair<String, String>>, done: (Result<String>) -> Unit) = run(turns, done)
 
+    /** One browser-agent step: the caller's own system prompt, no search, no memory, the reply is raw text. */
+    fun agentStep(turns: List<Pair<String, String>>, system: String, done: (Result<String>) -> Unit) {
+        val key = apiKey
+        io.execute {
+            val r = runCatching {
+                var input = 0L; var output = 0L
+                val text = if (key != null) {
+                    val msgs = JSONArray().apply { turns.forEach { put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", it.second)) } }
+                    val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", 600).put("system", system).put("messages", msgs))
+                    if (code !in 200..299) throw apiError(code, j)
+                    j.optJSONObject("usage")?.let { u ->
+                        input = u.optLong("input_tokens") + u.optLong("cache_creation_input_tokens") + u.optLong("cache_read_input_tokens")
+                        output = u.optLong("output_tokens")
+                    }
+                    val a = j.optJSONArray("content") ?: throw IllegalStateException("Empty reply")
+                    (0 until a.length()).mapNotNull { a.optJSONObject(it)?.takeIf { b -> b.optString("type") == "text" }?.optString("text") }.joinToString("")
+                } else {
+                    val prompt = system + "\n\n" + turns.joinToString("\n\n") { (if (it.first == "user") "User: " else "Assistant: ") + it.second } + "\n\nAssistant:"
+                    val res = call(JSONObject().put("token", token).put("prompt", prompt.take(24000)), 120_000)
+                    res.optString("error").takeIf { it.isNotEmpty() }?.let { throw IllegalStateException(it) }
+                    res.optString("text")
+                }
+                main.post { record(input, output) }
+                text.trim().ifEmpty { throw IllegalStateException("Empty answer") }
+            }
+            main.post { done(r) }
+        }
+    }
+
     private fun run(all: List<Pair<String, String>>, done: (Result<String>) -> Unit) {
         // A first message may search (one search). Follow-ups never search and send only a short tail of the thread:
         // old answers are clipped, so remembering the conversation costs few tokens.

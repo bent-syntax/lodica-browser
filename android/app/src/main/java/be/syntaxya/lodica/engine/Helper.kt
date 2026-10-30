@@ -213,6 +213,14 @@ object Helper {
         }, { })
     }
 
+    /** Sends one agent operation (JSON text) to the tab's frames; only the top frame acts on it. */
+    fun agent(tab: Tab, op: JSONObject): Boolean {
+        val list = frames[tab]?.takeIf { it.isNotEmpty() } ?: return false
+        val msg = JSONObject().put("type", "agent").put("value", op.toString())
+        for (f in list) f.port.postMessage(msg)
+        return true
+    }
+
     /** Asks the tab's top frame for its main text; the answer arrives as an "article" message. */
     fun reader(tab: Tab): Boolean {
         Log.i(TAG, "reader tab=${System.identityHashCode(tab)} frames=${frames.size}")
@@ -383,6 +391,7 @@ object Helper {
                         "user" -> remember(tab, m.optString("host"), m.optString("value"))
                         "creds" -> creds(tab, m)
                         "signed" -> signed(tab, m)
+                        "agent" -> AiAgent.onReply(tab, m.optString("value"))
                         "article" -> be.syntaxya.lodica.ui.Ui.reader = m.optString("title") to m.optString("text")
                         "data" -> if (!tab.private) Meter.used(m.optString("host"), m.optLong("used"))
                         "challenge" -> challenge(tab)
