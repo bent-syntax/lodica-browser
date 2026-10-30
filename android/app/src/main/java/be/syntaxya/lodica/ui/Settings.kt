@@ -670,7 +670,7 @@ private fun EmojiKeyboardSection() {
                     colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber),
                 )
             },
-            confirmButton = { DlgPrimary({ if (n != null && n in 50..400) { Emojis.setScale(n); sizing = false } }) { Text("Save") } },
+            confirmButton = { DlgPrimary({ if (n != null && n in 50..400) { Emojis.changeScale(n); sizing = false } }) { Text("Save") } },
             dismissButton = { DlgSecondary({ sizing = false }) { Text("Cancel") } },
         )
     }

@@ -43,7 +43,7 @@ object Emojis {
     /** Chat emoji size in percent of the base size, same meaning as the desktop chatEmojiScale. */
     var scale by mutableIntStateOf(150)
         private set
-    fun setScale(pct: Int) { scale = pct.coerceIn(50, 400); meta.edit().putInt("scale", scale).apply() }
+    fun changeScale(pct: Int) { scale = pct.coerceIn(50, 400); meta.edit().putInt("scale", scale).apply() }
 
     var keyboardPromptSeen: Boolean
         get() = meta.getBoolean("promptSeen", false)
