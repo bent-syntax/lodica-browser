@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.13 (versionCode 173)
+- Added: Unlock the passwords on the PC with the PIN, the link key, your phone, or the key and phone together
+- Added: Open a .lkey file on the phone and confirm to inject the key
+- Added: Turn the planner off on the start page
+- Fixed: Passwords from the phone show on the PC, and the other way, without switching on the share toggle first
+- Fixed: Inserting a key refreshes the link at once
+- Fixed: What's new no longer cuts off long lines
+- Fixed: Two-finger swipe back and forward on Linux
+- Fixed: Black page when the browser opens on Android
+
 ## 1.14.12 (versionCode 172)
 - Fixed: The Windows installer no longer hangs while removing older Lodica installs
 

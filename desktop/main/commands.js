@@ -465,6 +465,7 @@ function init(deps) {
   on("vault.state", () => vault.state());
   on("vault.setPin", pin => vault.setPin(str(pin)));
   on("vault.unlock", pin => vault.unlock(str(pin)));
+  on("vault.unlockLink", () => pctabs.unlockVault());
   on("vault.list", () => vault.list());
   on("vault.delete", (origin, user) => vault.delete(str(origin), str(user)));
   on("vault.copy", (origin, user) => {

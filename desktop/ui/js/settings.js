@@ -258,6 +258,9 @@ function linkRows() {
   }
   if (L.bluetooth && L.bluetooth.length) out.push(setRow("Bluetooth devices on the other device", L.bluetooth.join(", "), null));
   if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Insert the link key on this device to receive them", null));
+  const mode = S.prefs.pcUnlock || "pin";
+  out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
+    [["pin", "PIN only"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
   out.push(setRow("Link key", hasKey ? "This device has the link key. Make a key file to put it on another device" : "No key on this device yet. Create one, or insert a key file made on the other device", null));
   out.push(h("div", { class: "chips" },
     !hasKey ? btn("Create key", async () => { await inv("link.key.create"); reload(); }) : null,

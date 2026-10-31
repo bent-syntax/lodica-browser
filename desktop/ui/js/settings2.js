@@ -184,7 +184,7 @@ function openNotes() {
     for (const part of md.split(/^## /m).slice(1)) {
       const lines = part.split("\n");
       const items = lines.slice(1).map((l) => l.replace(/^\s*-\s*/, "").trim()).filter(Boolean);
-      b.append(h("div", { class: "row" }, h("div", { class: "main" },
+      b.append(h("div", { class: "row notes-row" }, h("div", { class: "main" },
         h("div", { class: "t1", text: lines[0].trim() }),
         ...items.map((t) => h("div", { class: "t2", text: "• " + t })))));
     }

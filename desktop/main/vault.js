@@ -42,6 +42,8 @@ function unlock(p) {
 
 const unlocked = () => !pin || Date.now() < unlockedUntil;
 function state() { return { pinSet: pinSet(), unlocked: unlocked() }; }
+/** Opens the vault without the PIN after the linked phone and/or the link key vouched for this PC (pctabs.unlockVault). */
+function grant() { unlockedUntil = Date.now() + UNLOCK_MS; }
 function lock() { unlockedUntil = 0; }
 
 function list() {
@@ -85,4 +87,4 @@ function importMany(list) {
   return r.changed;
 }
 
-module.exports = { exportAll, importMany, state, pinSet, setPin, check, unlock, lock, list, save, remove, delete: remove, find, copy };
+module.exports = { exportAll, importMany, state, pinSet, setPin, check, unlock, grant, lock, list, save, remove, delete: remove, find, copy };

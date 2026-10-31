@@ -247,6 +247,7 @@ function secStart() {
   }
   out.push(secHead("Shortcuts", "shortcuts"),
     setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
+    setToggle("startPlanner", "Show planner", "Show your Smartschool planner on the start page."),
     setToggle("startNotes", "Show notes", "Show your newest notes from the shared Notebook on the start page."),
     setRow("Add a server emoji", "Pick a PNG or JPEG. It is shrunk and shared with everyone on your server. Names use a to z, 0 to 9 and _.", emojiAdder()),
     setRow("Notes notebook", "Which note the start page shows and adds to. Empty shows your newest notes.", notesPicker()),

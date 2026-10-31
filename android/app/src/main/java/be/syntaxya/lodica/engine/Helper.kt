@@ -95,6 +95,7 @@ object Helper {
                 .put("planner", Prefs.plannerIcs)
                 .put("plannerOpts", JSONObject().put("colors", Prefs.plannerColors).put("tz", Prefs.plannerTz).put("slots", Prefs.plannerSlots))
                 .put("notes", Prefs.startNotes && Relay.available)
+                .put("showPlan", Prefs.startPlanner)
                 .put("pos", JSONObject().put("plan", Prefs.plannerPos).put("notes", Prefs.notesPos))
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
                 .put("engine", if (Prefs.search != SearchEngine.LODICA) Prefs.search.query else if (Relay.available) "" else Prefs.searchFallback.query)

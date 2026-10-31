@@ -123,12 +123,12 @@ async function applyData(d) {
     if (Array.isArray(d.hidden)) { const r = linkdata.union(prefs.p.quickHidden, d.hidden); if (r.changed) prefs.set("quickHidden", r.list); }
     out.applied.push("sites");
   }
-  if (typeof d.sealed === "string" && (sel("passwords") || sel("totp") || sel("wifi"))) {
+  if (typeof d.sealed === "string") {
     const secret = linkkey.openData(d.sealed);
     if (!secret) out.keyMissing = true;
     else if (markNew("sealed", d.sealed)) {
-      if (sel("passwords") && Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
-      if (sel("totp") && Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
+      if (Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
+      if (Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
       if (sel("wifi") && Array.isArray(secret.wifi) && (await linkdata.wifiApply(secret.wifi))) out.applied.push("wifi");
     }
   }
@@ -355,11 +355,33 @@ async function exTick() {
       else if (m.type === "bad") note({ step: "bad", error: m.error });
       else if (m.type === "ok" && ex.code) {
         const w = linkkey.unwrapAnswer(m.wrap, key, ex.session, ex.code);
-        if (w && linkkey.adopt(ex.file, w)) { note({ step: "done" }); stopFast(); slow.at = 0; schedule(); fetchRemote(); }
+        if (w && linkkey.adopt(ex.file, w)) { markSeen("sealed", ""); note({ step: "done" }); stopFast(); slow.at = 0; schedule(); fetchRemote(); }
         else note({ step: "bad", error: "wrong code" });
       }
     }
   } finally { exBusy = false; }
+}
+
+// ---- Unlocking the PC passwords with the phone and/or the link key (pref pcUnlock: pin, phone, key, both) ----
+// "ur" (this PC asks) and "ua" (the phone answers) ride on the link like the key exchange. The phone shows a confirm
+// dialog and checks the fingerprint or screen lock first. The key check means this PC holds the link key.
+async function unlockVault() {
+  const mode = prefs.p.pcUnlock || "pin";
+  if (mode === "pin") return { error: "Unlocking with the PIN only" };
+  if (!enabled()) return { error: "Turn on linking first" };
+  if (mode !== "phone" && !linkkey.hasKey()) return { error: "Insert the link key first" };
+  if (mode === "key") { require("./vault").grant(); return { ok: true }; }
+  const id = crypto.randomBytes(8).toString("hex"), t = Date.now();
+  if (!(await put("ur", { id, t }))) return { error: "Could not reach the phone" };
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const a = await get("ua");
+    if (a && a.id === id) {
+      if (a.ok) { require("./vault").grant(); return { ok: true }; }
+      return { error: "The phone said no" };
+    }
+  }
+  return { error: "The phone did not answer" };
 }
 
 /** A key file for this device's link key. With [cable] the file carries its own file key; otherwise this device waits to show a code. */
@@ -372,7 +394,7 @@ function makeKeyFile(cable) {
 async function insertKeyFile(text) {
   const f = linkkey.readFile(text);
   if (!f) return { error: "That is not a key file" };
-  if (f.w) return linkkey.adopt(f, f.w) ? (slow.at = 0, schedule(), { ok: true }) : { error: "The key file is damaged" };
+  if (f.w) { if (!linkkey.adopt(f, f.w)) return { error: "The key file is damaged" }; markSeen("sealed", ""); slow.at = 0; schedule(); fetchRemote(); return { ok: true }; }
   if (!enabled()) return { error: "Link the device that made this file first" };
   const session = crypto.randomBytes(8).toString("hex");
   if (!(await put("kq", { session, type: "req", id: f.id, t: Date.now() }))) return { error: "Could not reach the server" };
@@ -411,4 +433,4 @@ function init(deps) {
   keepalive.unref();
 }
 
-module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, makeKeyFile, insertKeyFile, enterKeyCode, keyStatus, createKey, forgetKey };
+module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, makeKeyFile, insertKeyFile, enterKeyCode, keyStatus, unlockVault, createKey, forgetKey };

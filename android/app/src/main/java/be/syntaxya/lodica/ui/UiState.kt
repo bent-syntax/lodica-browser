@@ -27,6 +27,9 @@ object Ui {
     var editing by mutableStateOf(false)
     /** otpauth-migration:// link waiting for the import dialog in Settings. */
     var pendingMigration by mutableStateOf<String?>(null)
+    /** Text of a link key file opened from a file manager, waiting for the confirm dialog. */
+    var pendingKeyFile by mutableStateOf<String?>(null)
+    var pendingUnlock by mutableStateOf<String?>(null)
     var finding by mutableStateOf(false)
     var findQuery by mutableStateOf("")
     var findCount by mutableStateOf("")

@@ -320,6 +320,7 @@ fun SettingsScreen() {
                     SwitchRow("Show notes", "Show your newest Notebook notes on the start page", Prefs.startNotes) { Prefs.updateStartNotes(it) }
                     PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
                     Section("Smartschool planner")
+                    SwitchRow("Show planner", "Show your Smartschool planner on the start page", Prefs.startPlanner) { Prefs.updateStartPlanner(it) }
                     PlannerSetting()
                     SwitchRow("Colour tasks and tests", "Huistaak, Meebrengen and Afwerkingsopdracht in yellow, Toets in red", Prefs.plannerColors) { Prefs.updatePlannerColors(it) }
                     PlannerTextSetting(
@@ -1677,6 +1678,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Planner time zone", 4, "brussels local clock now marker"),
     SettingsEntry("Subject per time slot", 4, "planner lesson hour subject schedule"),
     SettingsEntry("Planner widget", 4, "smartschool home screen lock screen transparent transparency full tasks tests"),
+    SettingsEntry("Show planner", 4, "smartschool start page hide planner"),
     SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),

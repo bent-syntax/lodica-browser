@@ -55,12 +55,14 @@ if (window === window.top) {
   };
   window.addEventListener("wheel", e => {
     if (e.ctrlKey) return;
-    const now = Date.now(), gap = now - last, dx = e.deltaX;
+    const now = Date.now(), gap = now - last;
+    // Line and page units (some Wayland setups) become pixels so the pull distance is comparable everywhere.
+    const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerWidth : 1, dx = e.deltaX * unit, dyy = e.deltaY * unit;
     last = now;
     // A finished gesture is over after a short quiet moment, or a turn around. One that has not finished (fingers still on the pad,
     // maybe holding still) keeps its pull for a long while.
     if (gap > (done ? 250 : 1500) || (done && dx && sum && Math.sign(dx) !== Math.sign(sum) && Math.abs(dx) > 8)) { reset(); askTheme(); }
-    ipcRenderer.send("swipe", { dx: Math.round(dx), dy: Math.round(e.deltaY), sum: Math.round(sum), shift: e.shiftKey });
+    ipcRenderer.send("swipe", { dx: Math.round(dx), dy: Math.round(dyy), sum: Math.round(sum), shift: e.shiftKey });
     if (done) return;
     clearTimeout(idle);
     if (dx && canScroll(e.target, dx)) { sum = 0; sy = 0; return; }
@@ -68,10 +70,10 @@ if (window === window.top) {
     // (momentum): eight in a row, each a little smaller than the one before and well below the strongest step, are also taken as
     // lifted. Holding still never counts: with the fingers on the pad nothing arrives at all, and that must not go back or forward.
     const a = Math.abs(dx);
-    if (!dx && !e.deltaY && sum) { release(); return; }
+    if (!dx && !dyy && sum) { release(); return; }
     run = prev && a <= prev && a >= prev * .93 ? run + 1 : 0;
     prev = a; peak = Math.max(peak, a);
-    sum += dx; sy += e.deltaY;
+    sum += dx; sy += dyy;
     // Back inside the dead zone around the start: drop the pull so a return-and-overshoot starts a fresh count
     // instead of carrying old momentum into the other direction.
     if (Math.abs(sum) < DEAD) {
@@ -86,6 +88,8 @@ if (window === window.top) {
     // the arrow shrinks with them, and it only goes when the fingers lift while the pull is still far enough from the start.
     if (run >= 8 && a < peak * .85 && Math.sign(dx) === Math.sign(sum)) { release(); return; }
     // No more movement for a while and no lift seen: let the pull go without navigating.
-    idle = setTimeout(() => { done = true; gone(); }, 1500);
+    // Linux (X11 and Wayland) sends no zero step and no momentum when the fingers lift: the events simply stop. A short quiet
+    // moment after a long enough pull is the lift there.
+    idle = process.platform === "linux" ? setTimeout(release, 140) : setTimeout(() => { done = true; gone(); }, 1500);
   }, { capture: true, passive: true });
 }

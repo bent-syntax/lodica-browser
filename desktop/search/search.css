@@ -225,3 +225,4 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #top a.add .fav { width: 36px; height: 36px; margin-top: 10px; font-size: 20px; }
 .addf { width: 200px; }
 .addf input { height: 30px; }
+#plan[hidden]{display:none!important}

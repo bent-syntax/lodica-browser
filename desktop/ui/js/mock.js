@@ -75,6 +75,7 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     "update.check": () => ({ state: "latest", version: "1.0.0" }),
     "vault.state": () => ({ pinSet: true, unlocked: false }),
     "vault.unlock": (pin) => pin === "1234",
+    "vault.unlockLink": () => ({ error: "Mock" }),
     "vault.list": () => vault,
     "meter.list": () => ({ total: { blocked: 1832, saved: 48e6 }, hosts: [
       { host: "news.example.com", blocked: 640, saved: 21e6 }, { host: "en.wikipedia.org", blocked: 12, saved: 0.4e6 }] }),

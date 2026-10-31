@@ -296,3 +296,5 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .set-range,.set-range:focus{-webkit-appearance:none;appearance:none;height:20px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;cursor:pointer}
 .set-range::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--amber) var(--fill,100%),var(--high) var(--fill,100%))}
 .set-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border-radius:50%;background:var(--amber);border:2px solid var(--bg);box-shadow:0 0 0 1px color-mix(in srgb,var(--amber) 60%,transparent)}
+.row.notes-row .t1,.row.notes-row .t2{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+.row.notes-row .t2{line-height:1.4;margin-top:4px}

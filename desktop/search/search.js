@@ -131,12 +131,13 @@ function topSites() {
     quick = st && Array.isArray(st.quick) ? st.quick : [];
     hidden = st && Array.isArray(st.hidden) ? st.hidden : [];
     auto = !st || st.auto !== false;
-    placeWidgets(st && st.pos);
+    placeWidgets(st && st.pos, st && st.showPlan);
     drawTop(auto && Array.isArray(items) ? items : []);
   });
 }
 // Planner and notes: left, right or below the search bar (Settings). Main already keeps them apart.
-function placeWidgets(pos) {
+function placeWidgets(pos, showPlan) {
+  $("plan").hidden = showPlan === false;
   $("plan").dataset.pos = (pos && pos.plan) || "below";
   $("notes").dataset.pos = (pos && pos.notes) || "left";
 }
@@ -663,6 +664,7 @@ function resizable(box, key) {
 }
 // The last planner answer is kept so a new tab draws it at once, then refreshes when the fetch returns.
 async function planner() {
+  if ($("plan").hidden) return;
   if (!plannerData) {
     try { const c = JSON.parse(localStorage.getItem("plannerCache") || "null"); if (c && c.url) drawPlanner(c.text, c.url, c.opts); } catch (e) { /* bad cache */ }
   }

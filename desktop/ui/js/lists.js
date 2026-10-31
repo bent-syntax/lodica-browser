@@ -69,7 +69,12 @@ async function refreshDownloads(list) {
 
 // Passwords: PIN gate (set or unlock), then list.
 async function openPasswords() {
-  const st = (await inv("vault.state")) || {};
+  let st = (await inv("vault.state")) || {};
+  if (st.pinSet && !st.unlocked && ((S.prefs && S.prefs.pcUnlock) || "pin") !== "pin") {
+    toast("Waiting for your phone…");
+    const r = await inv("vault.unlockLink");
+    if (r && r.ok) st = (await inv("vault.state")) || {}; else if (r && r.error) toast(r.error);
+  }
   if (!st.pinSet) {
     const pin = await pinDialog({ title: "Set a PIN", message: "Protects saved passwords on this PC.", confirm: true });
     if (pin == null) return;

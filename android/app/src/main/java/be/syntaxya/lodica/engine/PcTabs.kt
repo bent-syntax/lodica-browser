@@ -360,6 +360,27 @@ object PcTabs {
             }
         }
         pollCommands()
+        pollUnlock()
+    }
+
+    /** The desktop asks (channel "ur") to unlock its passwords. Shows a confirm dialog; [answerUnlock] replies on "ua". */
+    private fun pollUnlock() {
+        if (!enabled) return
+        val k = key ?: return
+        Relay.scope.launch {
+            val raw = getChan(k, "ur") ?: return@launch
+            val o = runCatching { json.parseToJsonElement(raw) as kotlinx.serialization.json.JsonObject }.getOrNull() ?: return@launch
+            val id = (o["id"] as? JsonPrimitive)?.content ?: return@launch
+            val t = (o["t"] as? JsonPrimitive)?.content?.toLongOrNull() ?: return@launch
+            if (System.currentTimeMillis() - t > 60_000L || id == sp.getString("unlockSeen", "")) return@launch
+            sp.edit().putString("unlockSeen", id).apply()
+            withContext(Dispatchers.Main) { be.syntaxya.lodica.ui.Ui.pendingUnlock = id }
+        }
+    }
+
+    fun answerUnlock(id: String, ok: Boolean) {
+        val k = key ?: return
+        Relay.scope.launch { putChan(k, "ua", """{"id":"$id","ok":$ok}""") }
     }
 
     // ---- what to share: collect and apply --------------------------------------------------
@@ -448,7 +469,7 @@ object PcTabs {
     /** Merges received passwords and authenticator keys. Adds what is missing; replaces a password only when the other side marks it newer. */
     private fun applySecret(s: PcSecret) {
         val pw = s.passwords
-        if (linkShare["passwords"] == true && !pw.isNullOrEmpty()) {
+        if (!pw.isNullOrEmpty()) {
             Vault.all().accept({ cur ->
                 val have = cur.orEmpty().associateBy { it.origin + "\n" + it.username }
                 for (e in pw.take(500)) {
@@ -460,7 +481,7 @@ object PcTabs {
             }, { e -> Log.w(TAG, "vault unavailable", e) })
         }
         val tk = s.totp
-        if (linkShare["totp"] == true && !tk.isNullOrEmpty()) {
+        if (!tk.isNullOrEmpty()) {
             Vault.totpAll().accept({ cur ->
                 val have = cur.orEmpty().map { it.secret }.toMutableSet()
                 for (t in tk.take(200)) {

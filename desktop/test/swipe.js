@@ -16,13 +16,13 @@ check("packaged files include preload/", read("package.json").includes('"preload
 
 // Plays wheel events (dx, dy) 5 ms apart. Returns what was sent to main: the back/forward calls with their time since the
 // start, the arrow styles drawn, and the index of the last event sent when each call happened.
-function run(events) {
+function run(events, platform = "win32") {
   const sent = [], listeners = {}, made = [];
   const win = { addEventListener: (t, fn) => (listeners[t] = fn) };
   win.top = win;
   const doc = { documentElement: { appendChild() {} }, createElement: () => { const el = { setAttribute(_, v) { made.push(v); }, style: {}, firstChild: { style: {} }, remove() {}, isConnected: false }; return Object.defineProperty(el, "innerHTML", { set() {}, get: () => "" }); } };
   const ctx = vm.createContext({
-    window: win, document: doc, getComputedStyle: () => ({ overflowX: "visible" }), setTimeout, clearTimeout, Date, Math, String, Number,
+    process: { platform }, window: win, document: doc, getComputedStyle: () => ({ overflowX: "visible" }), setTimeout, clearTimeout, Date, Math, String, Number,
     require: (m) => { if (m === "electron") return { ipcRenderer: { send: (c, m2) => sent.push([c, m2, Date.now()]), invoke: () => Promise.resolve({ bg: "#112233", amber: "#aabbcc", text: "#ffffff" }) } }; throw new Error(m); },
   });
   vm.runInContext(read("preload/swipe.js"), ctx);
@@ -52,6 +52,15 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   check("fingers right (deltaX < 0) goes back, after the fingers stop", r.length === 1 && r[0] === "back", JSON.stringify(r));
   r = await run([...burst(14, 0, 12), [0, 0]]);
   check("fingers left (deltaX > 0) goes forward", r.length === 1 && r[0] === "forward", JSON.stringify(r));
+  // Linux sends no zero step and no momentum: the events just stop when the fingers lift.
+  r = await run(burst(-14, 0, 12), "linux");
+  check("linux: a long pull that just stops goes back", r.length === 1 && r[0] === "back", JSON.stringify(r));
+  r = await run(burst(-3, 0, 5), "linux");
+  check("linux: a short nudge that just stops does nothing", r.length === 0, JSON.stringify(r));
+  r = await run(burst(0, 40, 12), "linux");
+  check("linux: vertical scroll does nothing", r.length === 0, JSON.stringify(r));
+  r = await run(burst(-14, 0, 12).map(([x, y]) => [x / 16, y]).concat([]), "linux");
+  check("linux: a tiny pull does nothing", r.length === 0, JSON.stringify(r));
   r = await run(burst(0, 40, 12));
   check("vertical scroll does nothing", r.length === 0, JSON.stringify(r));
   r = await run(burst(-3, 0, 5));

@@ -472,6 +472,14 @@ private fun GeckoHost(session: GeckoSession?, modifier: Modifier) {
                     // compositor resumes on the new surface.
                     if (TabManager.current?.locked != true) { session.setActive(true); session.setFocused(true) }
                     v.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt())
+                    // At launch the first frame can stay black until a touch makes the compositor draw: once the view has a
+                    // size, wake the compositor again, and once more after the first layout settles.
+                    for (wait in longArrayOf(0L, 300L, 900L)) v.postDelayed({
+                        if (v.session === session && v.isAttachedToWindow && v.width > 0 && TabManager.current?.locked != true && Ui.screen == Screen.Browser) {
+                            session.setActive(true); session.setFocused(true)
+                            v.requestLayout(); v.invalidate()
+                        }
+                    }, wait)
                 }
             }
         },
@@ -566,7 +574,7 @@ private fun StartPage(modifier: Modifier) {
                 repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
             }
         }
-        if (!priv) {
+        if (!priv && Prefs.startPlanner) {
             Spacer(Modifier.height(20.dp))
             PlannerCard(Modifier.fillMaxWidth())
         }
