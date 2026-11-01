@@ -11,21 +11,24 @@ const path = require("path");
 const CATS = [
   { id: "tabs", label: "Open tabs", note: "Shown in Settings on the other device" },
   { id: "history", label: "History", note: "Pages you visit appear on the other device too" },
-  { id: "totp", label: "Authenticator keys", note: "Needs the link key", locked: true },
-  { id: "passwords", label: "Passwords", note: "Needs the link key", locked: true },
+  { id: "totp", label: "Authenticator keys", note: "Both devices end up with all of them", locked: true },
+  { id: "passwords", label: "Passwords", note: "Both devices end up with all of them", locked: true },
   { id: "chatName", label: "Name in the server chat", note: "Both devices use the same chat name" },
   { id: "bluetooth", label: "Bluetooth devices", note: "The names of paired devices, shown on the other device" },
-  { id: "wifi", label: "Wi-Fi networks and passwords", note: "Needs the link key. Windows only", locked: true, platform: "win32" },
+  { id: "wifi", label: "Wi-Fi networks and passwords", note: "Windows only. Both devices end up with all of them", locked: true, platform: "win32" },
   { id: "shortcuts", label: "Start page shortcuts", note: "The tiles under the search bar" },
   { id: "settings", label: "Settings and themes", note: "Look, language, search and blocking choices. Not links or keys" },
   { id: "sites", label: "Site lists", note: "Sites you allowed, sites that go direct, sites without the hidden-email button" },
 ];
-/** On for a fresh link, until the user switches it off. Passwords, keys, Wi-Fi, history and Bluetooth stay off. */
-const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true };
+/** On for a fresh link, until the user switches it off. Passwords and keys still only travel once the link key is on both devices. Wi-Fi, history and Bluetooth stay off. */
+const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true, passwords: true, totp: true };
 const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
 const SETTINGS = ["theme", "customTheme", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
   "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg",
   "searchWords", "shortcutNames", "autoTop", "startNotes", "startPlanner", "plannerPos", "notesPos"];
+/** Where the theme comes from: the newest change on either device, this device only, or the other device. */
+const THEME_KEYS = ["theme", "customTheme"];
+const THEME_FROM = ["newest", "this", "other"];
 const LISTS = ["trusted", "compat", "direct", "noDummy"];
 
 const str = (v, n = 300) => String(v == null ? "" : v).slice(0, n);
@@ -126,4 +129,4 @@ async function bluetoothCollect() {
   return [...new Set(String(out || "").split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !/enumerator|radio|adapter|generic|service|transport|protocol|attribute|avrcp|a2dp|handsfree|hands-free|headset gateway|rfcomm|device information/i.test(s)))].slice(0, 50).map((s) => s.slice(0, 80));
 }
 
-module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, mergePasswords, mergeTotp, union, mergeShortcuts, pickSettings, wifiCollect, wifiApply, bluetoothCollect };
+module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, THEME_KEYS, THEME_FROM, mergePasswords, mergeTotp, union, mergeShortcuts, pickSettings, wifiCollect, wifiApply, bluetoothCollect };

@@ -39,3 +39,14 @@ test("forget removes the key", () => {
   const A = device(); A.create(); assert.ok(A.hasKey());
   A.forget(); assert.ok(!A.hasKey());
 });
+
+test("key id matches after linking and differs for another key", () => {
+  const A = device(), B = device(), C = device();
+  assert.strictEqual(A.keyId(), null);
+  const pair = B.newPair(), w = A.wrapFor(pair.pub);
+  assert.ok(B.adoptWrapped(pair.priv, w.pub, w.wrap));
+  assert.match(A.keyId(), /^\d{4}$/);
+  assert.strictEqual(A.keyId(), B.keyId());
+  C.create();
+  assert.strictEqual(C.openData(A.sealData({ a: 1 })), null);
+});

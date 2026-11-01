@@ -141,6 +141,16 @@ object LinkKey {
         return (n % 10000).toString().padStart(4, '0')
     }
 
+    /** Four digits that name the key, so two devices can see they hold the same one. Null without a key. */
+    fun keyId(): String? {
+        val k = keyBytes() ?: return null
+        val md = MessageDigest.getInstance("SHA-256")
+        md.update("lodica-keyid|".toByteArray())
+        val h = md.digest(k)
+        val n = ((h[0].toLong() and 0xff) shl 24) or ((h[1].toLong() and 0xff) shl 16) or ((h[2].toLong() and 0xff) shl 8) or (h[3].toLong() and 0xff)
+        return (n % 10000).toString().padStart(4, '0')
+    }
+
     @Synchronized
     fun forget() { save(State()) }
 }

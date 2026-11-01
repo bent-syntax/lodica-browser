@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.17 (versionCode 177)
+- Added: Choose which device the theme comes from in Settings > Linked devices: the newest change, this device or the other device
+- Changed: Passwords and authenticator keys are shared by default and merged both ways, so both devices show the ones from the PC and the phone
+- Fixed: When the two devices hold different link keys, Settings now says so instead of asking for a key this device already has
+- Added: The link key row shows a four-digit key number. Both devices show the same number when they share the key
+
 ## 1.14.16 (versionCode 176)
 - Fixed: Starting a support test session on PC no longer says support is not reachable
 

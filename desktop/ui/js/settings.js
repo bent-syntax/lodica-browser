@@ -263,16 +263,20 @@ function linkRows() {
   const reload = () => { SET.linkCats = null; refreshSettings(); };
   const out = [setRow("What to share", "Switch on what this device sends to the linked device and takes in from it", null)];
   for (const c of L.cats) {
-    out.push(setRow(c.label, c.note + (c.locked && !hasKey ? ". Link with a code first to get the link key" : ""), toggleEl(c.on), async () => {
+    out.push(setRow(c.label, c.note + (c.locked ? (hasKey ? ". Protected by the link key" : ". Link with a code first to get the link key") : ""), toggleEl(c.on), async () => {
       await inv("link.sel", c.id, !c.on); reload();
     }));
   }
+  const from = S.prefs.themeFrom || "newest";
+  out.push(setRow("Theme comes from", "Which device decides the theme. The other settings follow the newest change", h("select", { on: { change: async (e) => { S.prefs.themeFrom = e.target.value; await inv("prefs.set", "themeFrom", e.target.value); } } },
+    [["newest", "The newest change"], ["this", "This device"], ["other", "The other device"]].map(([value, text]) => h("option", { value, text, selected: from === value })))));
   if (L.bluetooth && L.bluetooth.length) out.push(setRow("Bluetooth devices on the other device", L.bluetooth.join(", "), null));
-  if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Link with a code to get the link key and receive them", null));
+  if (L.keyDiffers) out.push(setRow("The link key differs from the other device", "This device has a different link key" + (L.otherKeyId ? " (the other device has key " + L.otherKeyId + ")" : "") + ". Link again with a code to share passwords and keys", null));
+  else if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Link with a code to get the link key and receive them", null));
   const mode = S.prefs.pcUnlock || "pin";
   out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
     [["pin", "PIN only"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
-  out.push(setRow("Link key", hasKey ? "This device has the link key. It came from linking with a code" : "No key on this device yet. Link with a code to get one", null));
+  out.push(setRow("Link key", hasKey ? "This device has link key " + (L.key.keyId || "") + ". Both devices show the same number when they share it" : "No key on this device yet. Link with a code to get one", null));
   if (hasKey) out.push(h("div", { class: "chips" }, btn("Forget key", async () => {
     const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you link with a code again.", ok: "Forget" });
     if (ok) { await inv("link.key.forget"); reload(); }

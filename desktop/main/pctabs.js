@@ -74,7 +74,7 @@ async function collectPlain() {
 }
 async function collectData() {
   const { d, secret } = await collectPlain();
-  if (Object.keys(secret).length && linkkey.hasKey()) d.sealed = linkkey.sealData(secret);
+  if (Object.keys(secret).length && linkkey.hasKey()) { d.sealed = linkkey.sealData(secret); d.sealedKey = linkkey.keyId(); }
   return d;
 }
 // Did anything this device would send change? Checked with every poll, so edits to passwords, keys, settings and lists go out
@@ -102,7 +102,7 @@ const markSeen = (k, v) => { const s = seen(); s[k] = v; require("./store").save
 const fingerprint = (v) => crypto.createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 16);
 
 async function applyData(d) {
-  const out = { keyMissing: false, applied: [] };
+  const out = { keyMissing: false, keyDiffers: false, otherKeyId: null, applied: [] };
   if (!d || typeof d !== "object") return out;
   if (sel("chatName") && typeof d.chatName === "string" && d.chatName && markNew("chatName", d.chatName)) {
     try { const room = require("./room"); if (room.state.name !== d.chatName) await room.setName(d.chatName); out.applied.push("chatName"); } catch { /* chat not set up */ }
@@ -111,12 +111,19 @@ async function applyData(d) {
     const r = linkdata.mergeShortcuts(prefs.p.quickSites, d.shortcuts);
     if (r.changed) { prefs.set("quickSites", r.list); out.applied.push("shortcuts"); }
   }
-  if (sel("settings") && d.settings && typeof d.settings === "object" && Number(d.settingsAt) > linkAt("settings")) {
-    const got = linkdata.pickSettings(d.settings, prefs.p);
-    applying = true;
-    try { for (const k of Object.keys(got)) prefs.set(k, got[k]); } finally { applying = false; }
-    linkAt("settings", Number(d.settingsAt));
-    out.applied.push("settings");
+  if (sel("settings") && d.settings && typeof d.settings === "object") {
+    const from = linkdata.THEME_FROM.includes(prefs.p.themeFrom) ? prefs.p.themeFrom : "newest";
+    const got = linkdata.pickSettings(d.settings, prefs.p), newer = Number(d.settingsAt) > linkAt("settings");
+    const theme = {};
+    for (const k of linkdata.THEME_KEYS) if (k in got) { theme[k] = got[k]; delete got[k]; }
+    // The theme follows the choice. Everything else in the block follows the newest change.
+    const take = Object.assign({}, newer ? got : {}, from === "other" ? (markNew("theme", theme) ? theme : {}) : from === "newest" && newer ? theme : {});
+    if (Object.keys(take).length) {
+      applying = true;
+      try { for (const k of Object.keys(take)) if (JSON.stringify(prefs.p[k]) !== JSON.stringify(take[k])) prefs.set(k, take[k]); } finally { applying = false; }
+      out.applied.push("settings");
+    }
+    if (newer) linkAt("settings", Number(d.settingsAt));
   }
   if (sel("sites") && d.sites && typeof d.sites === "object" && markNew("sites", d.sites)) {
     for (const k of linkdata.LISTS) { const r = linkdata.union(prefs.p[k], d.sites[k]); if (r.changed) prefs.set(k, r.list); }
@@ -125,10 +132,14 @@ async function applyData(d) {
   }
   if (typeof d.sealed === "string") {
     const secret = linkkey.openData(d.sealed);
-    if (!secret) out.keyMissing = true;
+    if (!secret) {
+      // Without a key we need one; with a key the two devices hold different keys.
+      if (linkkey.hasKey()) { out.keyDiffers = true; out.otherKeyId = typeof d.sealedKey === "string" ? d.sealedKey.slice(0, 8) : null; }
+      else out.keyMissing = true;
+    }
     else if (markNew("sealed", d.sealed)) {
-      if (Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
-      if (Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
+      if (sel("passwords") && Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
+      if (sel("totp") && Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
       if (sel("wifi") && Array.isArray(secret.wifi) && (await linkdata.wifiApply(secret.wifi))) out.applied.push("wifi");
     }
   }
@@ -213,6 +224,8 @@ async function fetchRemote() {
           .map(t => ({ title: String(t.title || t.url).slice(0, 300), url: String(t.url) })),
         bluetooth: sel("bluetooth") && j.data && Array.isArray(j.data.bluetooth) ? j.data.bluetooth.slice(0, 50).map(s => String(s).slice(0, 80)) : [],
         keyMissing: applied.keyMissing,
+        keyDiffers: applied.keyDiffers,
+        otherKeyId: applied.otherKeyId,
       };
     } else if (r.status !== 404) return remote;
   } catch (e) { console.error("pctabs fetch failed:", e.message); return remote; }

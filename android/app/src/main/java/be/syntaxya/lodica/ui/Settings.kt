@@ -60,6 +60,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -425,27 +426,40 @@ fun SettingsScreen() {
                     listOf(
                         Triple("tabs", "Open tabs", "Shown in Settings on the other device"),
                         Triple("history", "History", "Pages you visit appear on the other device too"),
-                        Triple("totp", "Authenticator keys", "Needs the link key"),
-                        Triple("passwords", "Passwords", "Needs the link key"),
+                        Triple("totp", "Authenticator keys", "Both devices end up with all of them"),
+                        Triple("passwords", "Passwords", "Both devices end up with all of them"),
                         Triple("bluetooth", "Bluetooth devices", "The names of paired devices, shown on the other device"),
                         Triple("shortcuts", "Start page shortcuts", "The tiles under the search bar"),
                         Triple("settings", "Settings and themes", "Look, language, search and blocking choices. Not links or keys"),
                         Triple("sites", "Site lists", "Sites you allowed, sites that go direct, sites without the hidden-email button"),
                     ).forEach { (id, label, note) ->
                         val locked = (id == "totp" || id == "passwords") && !LinkKey.hasKey
-                        SwitchRow(label, if (locked) "$note. Link with a code first to get the link key" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }
+                        SwitchRow(label, if (locked) "$note. Link with a code first to get the link key" else if (id == "totp" || id == "passwords") "$note. Protected by the link key" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }
+                    }
+                    Text("Theme comes from", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                    Row(Modifier.padding(horizontal = 20.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("newest" to "Newest change", "this" to "This device", "other" to "Other device").forEach { (id, label) ->
+                            FilterChip(selected = PcTabs.themeFrom == id, onClick = { PcTabs.updateThemeFrom(id) }, label = { Text(label, fontSize = 12.sp) })
+                        }
                     }
                     if (PcTabs.remoteBluetooth.isNotEmpty()) {
                         Text("Bluetooth devices on the other device", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                         Text(PcTabs.remoteBluetooth.joinToString(", "), color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }
-                    if (PcTabs.keyMissing) {
+                    if (PcTabs.keyDiffers) {
+                        Text("The link key differs from the other device", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                        Text(
+                            "This device has a different link key" + (PcTabs.otherKeyId?.let { " (the other device has key $it)" } ?: "") +
+                                ". Link again with a code to share passwords and keys",
+                            color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                        )
+                    } else if (PcTabs.keyMissing) {
                         Text("The other device shares passwords or keys", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                         Text("Link with a code to get the link key and receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }
                     Text("Link key", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                     Text(
-                        if (LinkKey.hasKey) "This device has the link key. It came from linking with a code"
+                        if (LinkKey.hasKey) "This device has link key ${LinkKey.keyId() ?: ""}. Both devices show the same number when they share it"
                         else "No key on this device yet. Link with a code to get one",
                         color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
                     )

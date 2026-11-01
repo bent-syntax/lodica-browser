@@ -75,7 +75,15 @@ function fingerprint(joinerPub, originPub) {
   return String(h.readUInt32BE(0) % 10000).padStart(4, "0");
 }
 
-const status = () => ({ hasKey: hasKey() });
+/** Four digits that name the key, so two devices can see they hold the same one. Null without a key. */
+function keyId() {
+  const k = keyBuf();
+  if (!k) return null;
+  const h = crypto.createHash("sha256").update("lodica-keyid|").update(k).digest();
+  return String(h.readUInt32BE(0) % 10000).padStart(4, "0");
+}
+
+const status = () => ({ hasKey: hasKey(), keyId: keyId() });
 function forget() { state = { key: null }; save(); }
 
-module.exports = { hasKey, create, sealData, openData, set, newPair, wrapFor, adoptWrapped, fingerprint, status, forget };
+module.exports = { hasKey, create, sealData, openData, set, newPair, wrapFor, adoptWrapped, fingerprint, keyId, status, forget };

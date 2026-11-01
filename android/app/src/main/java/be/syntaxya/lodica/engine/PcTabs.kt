@@ -82,6 +82,7 @@ private data class PcData(
     val hidden: List<String>? = null,
     val bluetooth: List<String>? = null,
     val sealed: String? = null,
+    val sealedKey: String? = null,
 )
 
 @Serializable
@@ -117,7 +118,7 @@ object PcTabs {
     private const val POLL_MS = 30_000L
     private const val KEEPALIVE_MS = 12L * 3600 * 1000
     /** On for a fresh link until switched off. Passwords, codes, history and Bluetooth stay off. */
-    private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites")
+    private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp")
     private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites")
     private val LINK = Regex("([A-Za-z0-9_-]{22})#([A-Za-z0-9_-]{43})")
 
@@ -139,6 +140,9 @@ object PcTabs {
     var linkShare by mutableStateOf<Map<String, Boolean>>(emptyMap()); private set
     /** The other device sent passwords or keys this device cannot open yet. */
     var keyMissing by mutableStateOf(false); private set
+    /** This device has a link key, but the other device sealed its data under another one. */
+    var keyDiffers by mutableStateOf(false); private set
+    var otherKeyId by mutableStateOf<String?>(null); private set
     /** Names of the other device's Bluetooth devices. */
     var remoteBluetooth by mutableStateOf<List<String>>(emptyList()); private set
     /** Latest step of the key exchange, or null when none runs. */
@@ -189,6 +193,7 @@ object PcTabs {
         shareHistory = sp.getBoolean("shareHistory", false)
         if (shareHistory && !sp.contains("share.history")) sp.edit().putBoolean("share.history", true).putBoolean("shareHistory", false).apply()
         shareHistory = sp.getBoolean("share.history", false)
+        themeFrom = sp.getString("themeFrom", "newest").takeIf { it in listOf("newest", "this", "other") } ?: "newest"
         linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it in DEFAULT_SHARE) }
         LinkKey.init()
         allowControl = sp.getBoolean("allowControl", false)
@@ -437,10 +442,18 @@ object PcTabs {
         return sp.getLong("linkat.settings", 0L)
     }
 
-    private fun applySettings(m: Map<String, JsonElement>) {
+    /** Where the theme comes from: "newest" change, "this" device or "other" device. */
+    var themeFrom by mutableStateOf("newest"); private set
+    fun updateThemeFrom(v: String) {
+        if (v !in listOf("newest", "this", "other")) return
+        themeFrom = v
+        sp.edit().putString("themeFrom", v).apply()
+    }
+
+    private fun applySettings(m: Map<String, JsonElement>, theme: Boolean = true, rest: Boolean = true) {
         fun str(k: String) = (m[k] as? JsonPrimitive)?.takeIf { it.isString }?.content
         fun bool(k: String) = (m[k] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
-        (m["customTheme"] as? JsonObject)?.let { o ->
+        if (theme) (m["customTheme"] as? JsonObject)?.let { o ->
             fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
             val at = (o["at"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: System.currentTimeMillis()
             if (CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2"))) {
@@ -448,10 +461,11 @@ object PcTabs {
                 if (t != Prefs.customTheme) Prefs.updateCustomTheme(t)
             }
         }
-        str("theme")?.let { v ->
+        if (theme) str("theme")?.let { v ->
             val known = v == "custom" || be.syntaxya.lodica.ui.theme.ThemeChoices.any { it.first == v }
             if (known && v != Prefs.theme && !(v == "system" && Prefs.theme == "dynamic")) Prefs.updateTheme(v)
         }
+        if (!rest) return
         str("language")?.let { n -> Language.values().firstOrNull { it.name == n }?.let { if (it != Prefs.language) Prefs.updateLanguage(it) } }
         str("search")?.let { n -> SearchEngine.values().firstOrNull { it.name == n }?.let { if (it != Prefs.searchPicked) Prefs.updateSearch(it) } }
         str("searchFallback")?.let { n -> SearchEngine.values().firstOrNull { it.name == n }?.let { if (it != Prefs.searchFallback) Prefs.updateSearchFallback(it) } }
@@ -483,9 +497,12 @@ object PcTabs {
     private fun applyData(d: PcData) {
         if (linkShare["settings"] == true && d.settings != null) {
             val local = settingsStamp()
-            if (d.settingsAt > local) {
-                applySettings(d.settings)
-                sp.edit().putString("settingsSig", fp(settingsMap().toString())).putLong("linkat.settings", d.settingsAt).apply()
+            val newer = d.settingsAt > local
+            val themeJson = (d.settings["theme"]?.toString().orEmpty() + d.settings["customTheme"]?.toString().orEmpty())
+            val takeTheme = when (themeFrom) { "other" -> markNew("theme", themeJson); "this" -> false; else -> newer }
+            if (newer || takeTheme) {
+                applySettings(d.settings, takeTheme, newer)
+                sp.edit().putString("settingsSig", fp(settingsMap().toString())).putLong("linkat.settings", if (newer) d.settingsAt else local).apply()
             }
         }
         val s = d.sites
@@ -512,9 +529,13 @@ object PcTabs {
         if (linkShare["bluetooth"] == true) remoteBluetooth = d.bluetooth.orEmpty().take(50).map { it.take(100) }
         if (d.sealed != null && (linkShare["passwords"] == true || linkShare["totp"] == true)) {
             val plain = LinkKey.openData(d.sealed)
-            if (plain == null) keyMissing = true
-            else {
+            if (plain == null) {
+                // Without a key we need one; with a key the two devices hold different keys.
+                if (LinkKey.hasKey) { keyMissing = false; keyDiffers = true; otherKeyId = d.sealedKey?.take(8) }
+                else { keyMissing = true; keyDiffers = false }
+            } else {
                 keyMissing = false
+                keyDiffers = false
                 if (markNew("sealed", plain)) runCatching { applySecret(json.decodeFromString<PcSecret>(plain)) }
             }
         }
@@ -651,6 +672,7 @@ object PcTabs {
     /** The link key changed here: send and fetch again. */
     private fun gotKey() {
         keyMissing = false
+        keyDiffers = false
         sp.edit().remove("linkseen.sealed").apply()
         lastSent = null
         lastKeep = 0L
@@ -700,6 +722,7 @@ object PcTabs {
         linkStep = null
         LinkKey.forget()
         keyMissing = false
+        keyDiffers = false
         lastSent = null
         if (enabled) upload()
     }
@@ -760,7 +783,7 @@ object PcTabs {
             PcSites(emptyList(), Prefs.compat.toList(), Prefs.direct.toList(), Prefs.noDummy.toList()) else null
         val hidden = if (linkShare["sites"] == true) Prefs.quickHidden.lines().filter { it.isNotBlank() } else null
         val shortcuts = if (linkShare["shortcuts"] == true) Prefs.quickList().map { PcShortcut(it.first, it.second) } else null
-        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed)
+        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed, if (sealed != null) LinkKey.keyId() else null)
         val dataSig = fp(json.encodeToString(data))
         val sig = list.joinToString("\n") { it.url + "\t" + it.title } + "\n@" + (hist?.size ?: -1) + "\n#" +
             chats.joinToString(",") { it.id + ":" + it.updated } + "\n$" + dataSig

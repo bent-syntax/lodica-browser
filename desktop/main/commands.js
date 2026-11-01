@@ -580,6 +580,7 @@ function init(deps) {
   on("link.cats", () => ({
     cats: ld.CATS.filter(c => !c.platform || c.platform === process.platform).map(c => ({ id: c.id, label: c.label, note: c.note, locked: !!c.locked, on: ld.isShared(prefs.p.linkShare, c.id) })),
     key: pctabs.keyStatus(), bluetooth: pctabs.status().bluetooth || [], keyMissing: !!pctabs.status().keyMissing,
+    keyDiffers: !!pctabs.status().keyDiffers, otherKeyId: pctabs.status().otherKeyId || null,
   }));
   on("link.sel", (id, v) => { if (!ld.CATS.some(c => c.id === str(id))) return false; prefs.set("linkShare", { ...prefs.p.linkShare, [str(id)]: !!v }); return true; });
   on("link.key.confirm", (session, yes) => pctabs.confirmKey(str(session), !!yes));
