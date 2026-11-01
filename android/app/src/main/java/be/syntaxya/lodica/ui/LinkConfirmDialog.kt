@@ -21,6 +21,8 @@ fun LinkConfirmDialog() {
             "sent" -> "Key sent. Check code ${step.fp} matches the other device"
             "no" -> "The other device did not confirm the link"
             "bad" -> "Could not read the key. Link again"
+            "nokey" -> "The other device has no key yet. This device keeps its key: tap Get key on the other device"
+            "nokey-sent" -> "This device has no key yet. Tap Get key here to take the other device's key"
             "expired" -> "Waited too long. Link again"
             else -> null
         }

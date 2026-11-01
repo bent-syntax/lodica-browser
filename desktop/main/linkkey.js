@@ -57,10 +57,10 @@ function wrapKeyOf(priv, peerPub) {
   const shared = crypto.diffieHellman({ privateKey: priv, publicKey: pk });
   return crypto.createHmac("sha256", shared).update("lodica-link-key").digest();
 }
-/** Origin: wraps the link key for the device that sent [peerPub]. Makes the key when there is none. */
+/** Origin: wraps the link key for the device that sent [peerPub]. Null when this device has no key. */
 function wrapFor(peerPub) {
   try {
-    create();
+    if (!hasKey()) return null;
     const mine = newPair();
     return { pub: mine.pub, wrap: b64(seal(keyBuf(), wrapKeyOf(mine.priv, peerPub))) };
   } catch { return null; }

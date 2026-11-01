@@ -1,4 +1,10 @@
 # Patch notes
+## 1.14.22
+
+- Fixed: Linking no longer makes a new link key on the device that confirms. A device without a key now tells the other one, which keeps or makes its own key
+- Fixed: A different link key on the two devices is now always shown, also when nothing protected was sent yet
+- Fixed: On the phone, a link key that cannot be read right after start is no longer replaced by a new one
+
 ## 1.14.21
 
 - Changed: Version kept in step with the desktop app. No changes on the phone in this release

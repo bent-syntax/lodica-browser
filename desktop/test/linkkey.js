@@ -12,6 +12,7 @@ function device() {
 
 test("confirmed exchange: both devices end up with the same key", () => {
   const A = device(), B = device();
+  A.create();
   const pair = B.newPair();
   const w = A.wrapFor(pair.pub);
   assert.ok(A.hasKey() && !B.hasKey());
@@ -23,6 +24,7 @@ test("confirmed exchange: both devices end up with the same key", () => {
 
 test("another device cannot open the wrapped key", () => {
   const A = device(), B = device(), E = device();
+  A.create();
   const pair = B.newPair(), other = E.newPair();
   const w = A.wrapFor(pair.pub);
   assert.ok(!E.adoptWrapped(other.priv, w.pub, w.wrap));
@@ -35,6 +37,12 @@ test("a device with no key seals and opens nothing", () => {
   assert.strictEqual(A.openData("AAAA"), null);
 });
 
+test("a device without a key wraps nothing and does not make one", () => {
+  const A = device(), B = device();
+  assert.strictEqual(A.wrapFor(B.newPair().pub), null);
+  assert.ok(!A.hasKey());
+});
+
 test("forget removes the key", () => {
   const A = device(); A.create(); assert.ok(A.hasKey());
   A.forget(); assert.ok(!A.hasKey());
@@ -43,6 +51,7 @@ test("forget removes the key", () => {
 test("key id matches after linking and differs for another key", () => {
   const A = device(), B = device(), C = device();
   assert.strictEqual(A.keyId(), null);
+  A.create();
   const pair = B.newPair(), w = A.wrapFor(pair.pub);
   assert.ok(B.adoptWrapped(pair.priv, w.pub, w.wrap));
   assert.match(A.keyId(), /^\d{4}$/);

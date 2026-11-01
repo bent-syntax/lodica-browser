@@ -31,6 +31,9 @@ object Secret {
         String(c.doFinal(Base64.decode(ct, Base64.NO_WRAP)), Charsets.UTF_8)
     }.onFailure { Log.w(TAG, "unreadable: ${it.javaClass.simpleName}") }.getOrNull()
 
+    /** True when a value is stored under [name], readable or not. */
+    fun has(name: String) = sp().contains("$name.ct")
+
     fun put(name: String, value: String?) {
         val e = sp().edit()
         if (value == null) { e.remove("$name.ct").remove("$name.iv").apply(); return }
@@ -41,7 +44,10 @@ object Secret {
                 .putString("$name.iv", Base64.encodeToString(c.iv, Base64.NO_WRAP)).apply()
         }
         // Some Samsung StrongBox keys generate fine but fail on use; drop the key and make a plain one.
-        runCatching { seal() }.recoverCatching {
+        // Only when no other secret is sealed with it, or dropping it would make those unreadable (link key lost).
+        runCatching { seal() }.recoverCatching { err ->
+            val others = sp().all.keys.any { it.endsWith(".ct") && it != "$name.ct" }
+            if (others) throw err
             KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(KEY_ALIAS)
             seal()
         }.onFailure { Log.w(TAG, "not saved: ${it.javaClass.simpleName}") }

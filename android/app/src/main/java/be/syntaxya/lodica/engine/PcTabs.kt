@@ -83,6 +83,8 @@ private data class PcData(
     val bluetooth: List<String>? = null,
     val sealed: String? = null,
     val sealedKey: String? = null,
+    /** Four digits naming the sender's link key, sent always so a mismatch shows even with nothing sealed. Not secret. */
+    val keyId: String? = null,
 )
 
 @Serializable
@@ -542,6 +544,11 @@ object PcTabs {
                 keyDiffers = false
                 if (markNew("sealed", plain)) runCatching { applySecret(json.decodeFromString<PcSecret>(plain)) }
             }
+        } else if (d.keyId != null && (linkShare["passwords"] == true || linkShare["totp"] == true)) {
+            val mine = LinkKey.keyId()
+            if (mine == null) { keyMissing = true; keyDiffers = false }
+            else if (mine != d.keyId) { keyMissing = false; keyDiffers = true; otherKeyId = d.keyId.take(8) }
+            else { keyMissing = false; keyDiffers = false }
         }
     }
 
@@ -701,6 +708,8 @@ object PcTabs {
         val pair = e.pair ?: return
         when (m.type) {
             "no" -> { note(LinkStep("no")); stopEx(e) }
+            // The other device has no key yet: keep ours, or make one, so the other device can ask for it.
+            "nokey" -> { LinkKey.create(); stopEx(e); main.post { linkStep = LinkStep("nokey"); gotKey() } }
             "ok" -> if (LinkKey.adoptWrapped(pair.priv, m.pub, m.wrap)) {
                 val fp = LinkKey.fingerprint(pair.pub, m.pub)
                 stopEx(e)
@@ -748,7 +757,14 @@ object PcTabs {
         linkStep = null
         Relay.scope.launch {
             if (!yes) { putChan(k, "ka", json.encodeToString(PcKa(session, "no", "", "", System.currentTimeMillis()))); return@launch }
-            val w = LinkKey.wrapFor(asking.second) ?: return@launch
+            val w = LinkKey.wrapFor(asking.second)
+            if (w == null) {
+                if (putChan(k, "ka", json.encodeToString(PcKa(session, "nokey", "", "", System.currentTimeMillis())))) {
+                    stopEx(e)
+                    main.post { linkStep = LinkStep("nokey-sent") }
+                }
+                return@launch
+            }
             val ok = putChan(k, "ka", json.encodeToString(PcKa(session, "ok", w.first, w.second, System.currentTimeMillis())))
             if (ok) {
                 stopEx(e)
@@ -827,7 +843,7 @@ object PcTabs {
             PcSites(emptyList(), Prefs.compat.toList(), Prefs.direct.toList(), Prefs.noDummy.toList()) else null
         val hidden = if (linkShare["sites"] == true) Prefs.quickHidden.lines().filter { it.isNotBlank() } else null
         val shortcuts = if (linkShare["shortcuts"] == true) Prefs.quickList().map { PcShortcut(it.first, it.second) } else null
-        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed, if (sealed != null) LinkKey.keyId() else null)
+        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed, if (sealed != null) LinkKey.keyId() else null, LinkKey.keyId())
         val dataSig = fp(json.encodeToString(data))
         val sig = list.joinToString("\n") { it.url + "\t" + it.title } + "\n@" + (hist?.size ?: -1) + "\n#" +
             chats.joinToString(",") { it.id + ":" + it.updated } + "\n$" + dataSig

@@ -45,8 +45,12 @@ object LinkKey {
     @Synchronized
     private fun load(): State {
         if (loaded) return state
+        val text = Secret.get("linkkey")
+        // A stored key that cannot be read right now (keystore busy after boot) must not look like "no key",
+        // or create() would replace it. Try again on the next call.
+        if (text == null && Secret.has("linkkey")) return state
         loaded = true
-        state = try { Secret.get("linkkey")?.let { json.decodeFromString<State>(it) } ?: State() } catch (_: Exception) { State() }
+        state = try { text?.let { json.decodeFromString<State>(it) } ?: State() } catch (_: Exception) { State() }
         hasKey = state.key != null
         return state
     }
@@ -86,10 +90,10 @@ object LinkKey {
 
     private fun keyBytes(): ByteArray? = load().key?.let { unb64(it) }
 
-    /** Makes a key when there is none. */
+    /** Makes a key when there is none. Never when a stored key is only unreadable for now. */
     fun create() {
         val s = load()
-        if (s.key == null) save(s.copy(key = b64(random(32))))
+        if (loaded && s.key == null) save(s.copy(key = b64(random(32))))
     }
 
     /** Protected data: JSON text sealed under the link key, base64. Null without a key. */
@@ -121,9 +125,9 @@ object LinkKey {
         return hmac(ka.generateSecret(), "lodica-link-key")
     }
 
-    /** Origin: wraps the link key for the device that sent [peerPub]. Makes the key when there is none. Returns (pub, wrap) or null. */
+    /** Origin: wraps the link key for the device that sent [peerPub]. Returns (pub, wrap), or null when this device has no key. */
     fun wrapFor(peerPub: String): kotlin.Pair<String, String>? = try {
-        create()
+        keyBytes() ?: throw IllegalStateException("no key")
         val mine = newPair()
         mine.pub to b64(seal(keyBytes()!!, wrapKeyOf(mine.priv, peerPub)))
     } catch (_: Exception) { null }

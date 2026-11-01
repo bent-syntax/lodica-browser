@@ -75,6 +75,8 @@ async function collectPlain() {
 async function collectData() {
   const { d, secret } = await collectPlain();
   if (Object.keys(secret).length && linkkey.hasKey()) { d.sealed = linkkey.sealData(secret); d.sealedKey = linkkey.keyId(); }
+  // Not secret: four digits naming the key, so the other device sees a mismatch even when nothing is sealed.
+  if (linkkey.hasKey()) d.keyId = linkkey.keyId();
   return d;
 }
 // Did anything this device would send change? Checked with every poll, so edits to passwords, keys, settings and lists go out
@@ -104,6 +106,26 @@ const fingerprint = (v) => crypto.createHash("sha256").update(JSON.stringify(v))
 async function applyData(d) {
   const out = { keyMissing: false, keyDiffers: false, otherKeyId: null, applied: [] };
   if (!d || typeof d !== "object") return out;
+  // Keys first, so a failing category below cannot hide a key mismatch.
+  try {
+    if (typeof d.sealed === "string") {
+      const secret = linkkey.openData(d.sealed);
+      if (!secret) {
+        // Without a key we need one; with a key the two devices hold different keys.
+        if (linkkey.hasKey()) { out.keyDiffers = true; out.otherKeyId = typeof d.sealedKey === "string" ? d.sealedKey.slice(0, 8) : null; }
+        else out.keyMissing = true;
+      }
+      else if (markNew("sealed", d.sealed)) {
+        if (sel("passwords") && Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
+        if (sel("totp") && Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
+        if (sel("wifi") && Array.isArray(secret.wifi) && (await linkdata.wifiApply(secret.wifi))) out.applied.push("wifi");
+      }
+    } else if (typeof d.keyId === "string" && (sel("passwords") || sel("totp"))) {
+      const mine = linkkey.keyId();
+      if (!mine) out.keyMissing = true;
+      else if (mine !== d.keyId) { out.keyDiffers = true; out.otherKeyId = d.keyId.slice(0, 8); }
+    }
+  } catch (e) { console.warn("link keys:", e && e.message); }
   if (sel("chatName") && typeof d.chatName === "string" && d.chatName && markNew("chatName", d.chatName)) {
     try { const room = require("./room"); if (room.state.name !== d.chatName) await room.setName(d.chatName); out.applied.push("chatName"); } catch { /* chat not set up */ }
   }
@@ -129,19 +151,6 @@ async function applyData(d) {
     for (const k of linkdata.LISTS) { const r = linkdata.union(prefs.p[k], d.sites[k]); if (r.changed) prefs.set(k, r.list); }
     if (Array.isArray(d.hidden)) { const r = linkdata.union(prefs.p.quickHidden, d.hidden); if (r.changed) prefs.set("quickHidden", r.list); }
     out.applied.push("sites");
-  }
-  if (typeof d.sealed === "string") {
-    const secret = linkkey.openData(d.sealed);
-    if (!secret) {
-      // Without a key we need one; with a key the two devices hold different keys.
-      if (linkkey.hasKey()) { out.keyDiffers = true; out.otherKeyId = typeof d.sealedKey === "string" ? d.sealedKey.slice(0, 8) : null; }
-      else out.keyMissing = true;
-    }
-    else if (markNew("sealed", d.sealed)) {
-      if (sel("passwords") && Array.isArray(secret.passwords) && require("./vault").importMany(secret.passwords)) out.applied.push("passwords");
-      if (sel("totp") && Array.isArray(secret.totp) && require("./totp").importMany(secret.totp)) out.applied.push("totp");
-      if (sel("wifi") && Array.isArray(secret.wifi) && (await linkdata.wifiApply(secret.wifi))) out.applied.push("wifi");
-    }
   }
   return out;
 }
@@ -391,6 +400,13 @@ async function exTick() {
       if (!m || m.session !== ex.session || m.t === ex.lastT) return;
       ex.lastT = m.t;
       if (m.type === "no") { note({ step: "no" }); stopFast(); }
+      else if (m.type === "nokey") {
+        // The other device has no key yet: keep ours, or make one, so the other device can ask for it.
+        linkkey.create();
+        markSeen("sealed", "");
+        note({ step: "nokey" });
+        stopFast(); slow.at = 0; schedule(); fetchRemote();
+      }
       else if (m.type === "ok" && linkkey.adoptWrapped(ex.pair.priv, m.pub, m.wrap)) {
         const fp = linkkey.fingerprint(ex.pair.pub, m.pub);
         markSeen("sealed", "");
@@ -424,7 +440,7 @@ async function confirmKey(session, yes) {
   ex.asking = null;
   if (!yes) { await put("ka", { session, type: "no", t: Date.now() }); return true; }
   const w = linkkey.wrapFor(pub);
-  if (!w) return false;
+  if (!w) { await put("ka", { session, type: "nokey", t: Date.now() }); note({ step: "nokey-sent" }); stopFast(); return true; }
   const ok = await put("ka", { session, type: "ok", pub: w.pub, wrap: w.wrap, t: Date.now() });
   if (ok) { note({ step: "sent", fp: linkkey.fingerprint(pub, w.pub) }); stopFast(); }
   return ok;

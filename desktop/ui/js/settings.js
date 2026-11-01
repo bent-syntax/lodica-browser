@@ -299,6 +299,8 @@ async function linkKeyStep(m) {
   else if (m.step === "sent") { toast("Key sent. Check code " + m.fp + " matches on both devices"); SET.linkCats = null; refreshSettings(); }
   else if (m.step === "no") toast("The other device refused the link");
   else if (m.step === "bad") toast("The key could not be opened. Link again");
+  else if (m.step === "nokey") { toast("The other device has no key yet. This device keeps its key: tap Get key on the other device"); SET.linkCats = null; refreshSettings(); }
+  else if (m.step === "nokey-sent") toast("This device has no key yet. Tap Get key here to take the other device's key");
   else if (m.step === "expired") toast("Waited too long. Link again");
 }
 if (window.lodica && window.lodica.on) window.lodica.on("link.key", (m) => linkKeyStep(m || {}));
