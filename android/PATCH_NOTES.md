@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.21
+
+- Changed: Version kept in step with the desktop app. No changes on the phone in this release
+
 ## 1.14.20
 
 - Changed: Version kept in step with the desktop app. No changes on the phone in this release

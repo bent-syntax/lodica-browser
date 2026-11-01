@@ -1,3 +1,7 @@
+## 1.14.21
+
+- Fixed: Support can now read the screen text during a test session (it failed with a script error)
+
 ## 1.14.20
 
 - New: "Always allow support" in Settings > Updates & About, under the test session. It keeps a test session open whenever Lodica runs, so you do not need to read out a new code every 10 minutes. The badge stays on screen and Stop turns it off
