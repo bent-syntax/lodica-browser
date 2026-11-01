@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.30 (versionCode 190)
+- Changed: Saved themes and holiday themes now show as swatches like the other themes (background with two colour dots). Holiday themes moved to the bottom of the theme settings
+
 ## 1.14.29 (versionCode 189)
 - Added: Saved themes: name and keep your own and AI-made themes, use or delete them later, synced between phone and PC
 

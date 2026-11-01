@@ -162,11 +162,6 @@ function themeEditor() {
         const box = b.parentNode.querySelector(".ct-name");
         if (box.value.trim() && await inv("theme.save", box.value, cur)) box.value = "";
       } })),
-    ...(S.prefs.savedThemes || []).map((t) => h("div", { class: "ct-row" },
-      h("span", { class: "ct-dot", style: "display:inline-block;width:16px;height:16px;border-radius:50%;background:" + t.accent + ";border:2px solid " + t.bg }),
-      h("span", { text: t.name }),
-      h("button", { class: "ct-btn", text: "Use", act: () => inv("theme.useSaved", t.name) }),
-      h("button", { class: "ct-btn", text: "Delete", act: () => inv("theme.unsave", t.name) }))),
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }
 function secTheme() {
@@ -178,15 +173,30 @@ function secTheme() {
           h("i", { style: "background:" + raised }), h("i", { style: "background:" + accent })),
         h("span", { class: "theme-name", text: label })))),
     h("div", { class: "set-note", text: "Themes colour the browser, start page and settings. Websites keep their own colours." }),
-    secHead("Holidays", "holidays"), holidayList(),
+    ...savedSwatches(),
     secHead("Preview", "preview"), themePreviewBox(), secHead("Custom theme", "custom"), themeEditor(),
-    secHead("Theme plugins", "plugins"), pluginList()];
+    secHead("Theme plugins", "plugins"), pluginList(),
+    secHead("Holidays", "holidays"), holidayList()];
+}
+/** Saved custom themes as swatches like the built-in ones. Click to use, right-click to delete. */
+function savedSwatches() {
+  const list = S.prefs.savedThemes || [], cur = S.prefs.customTheme || {};
+  if (!list.length) return [];
+  return [h("div", { class: "set-note", text: "Saved themes. Click to use, right-click to delete." }),
+    h("div", { class: "swatches" }, list.map((t) => {
+      const on = (S.prefs.theme || "system") === "custom" && ["bg", "text", "accent", "accent2"].every((k) => (cur[k] || "").toLowerCase() === t[k].toLowerCase());
+      return h("button", { class: "theme-sw" + (on ? " sel" : ""), title: t.name + " (right-click to delete)", act: () => inv("theme.useSaved", t.name),
+        on: { contextmenu: (e) => { e.preventDefault(); inv("theme.unsave", t.name); } } },
+        h("span", { class: "theme-chip", style: "background:" + t.bg + ";border-color:" + t.text },
+          h("i", { style: "background:" + t.accent }), h("i", { style: "background:" + t.accent2 })),
+        h("span", { class: "theme-name", text: t.name }));
+    }))];
 }
 /** Holiday themes: claim one in the week either side of its holiday, then use it whenever you like. */
 function holidayList() {
-  const box = h("div", { class: "ct" });
+  const box = h("div", { class: "swatches" });
   const wrap = h("div", {}, box,
-    h("div", { class: "set-note", text: "Each holiday theme can be claimed from a week before to a week after its holiday. Once claimed it is yours for good, with its own effects." }),
+    h("div", { class: "set-note", text: "Each holiday theme can be claimed from a week before to a week after its holiday. Tap a locked one to see when. Once claimed it is yours for good, with its own effects." }),
     setToggle("holidayFx", "Holiday effects", "Falling snow, hearts and more over the start page and every tab. Move the mouse to push them."));
   const when = (r) => r.days > 0 ? "Claimable in " + (r.days - 7) + (r.days - 7 === 1 ? " day" : " days") : "Missed this year";
   const draw = (list) => {
@@ -194,13 +204,15 @@ function holidayList() {
     box.replaceChildren(
       ...list.map((r) => {
         const t = th[r.id], using = (S.prefs.theme || "system") === r.id;
-        const btn = r.claimed ? h("button", { class: "ct-btn" + (using ? " sel" : ""), text: using ? "Using" : "Use", act: () => setPref("theme", using ? "system" : r.id) })
-          : r.claimable ? h("button", { class: "ct-btn", text: "Claim", act: async () => { if (await inv("holiday.claim", r.id)) { await setPref("theme", r.id); load(); } } })
-          : h("button", { class: "ct-btn", text: "Locked", disabled: true, title: when(r) });
-        return h("div", { class: "ct-row" },
-          h("span", { class: "theme-chip", style: "width:32px;flex:none;background:" + t[2] + ";border-color:" + t[3] },
+        const act = r.claimed ? () => setPref("theme", using ? "system" : r.id)
+          : r.claimable ? async () => { if (await inv("holiday.claim", r.id)) { await setPref("theme", r.id); load(); } }
+          : null;
+        return h("button", { class: "theme-sw" + (using ? " sel" : ""), title: r.claimed ? r.label : r.claimable ? "Claim " + r.label : r.label + ": " + when(r),
+          style: act ? "" : "opacity:.5;cursor:default", act: act || (() => {}) },
+          h("span", { class: "theme-chip", style: "background:" + t[2] + ";border-color:" + t[3] },
             h("i", { style: "background:" + t[3] }), h("i", { style: "background:" + t[4] })),
-          h("span", { style: "flex:1;min-width:120px", text: r.label + (r.claimed ? "" : r.claimable ? " (claim it now)" : " (" + when(r) + ")") }), btn);
+          h("span", { class: "theme-name", text: r.label }),
+          h("span", { class: "theme-name", style: "font-size:11px", text: r.claimed ? (using ? "In use" : "Claimed") : r.claimable ? "Claim" : "Locked" }));
       }));
   };
   const load = () => inv("holiday.list").then((l) => draw(l || []));

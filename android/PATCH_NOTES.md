@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.30
+
+- Changed: Saved themes and holiday themes now show as swatches like the other themes (background with two colour dots). Holiday themes moved to the bottom of the theme settings
+
 ## 1.14.29
 
 - Added: Saved themes: name and keep your own and AI-made themes, use or delete them later, synced between phone and PC

@@ -1691,9 +1691,10 @@ private fun ThemePicker() {
         modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
     )
     ThemeSwatches()
-    HolidayThemes()
+    SavedThemeSwatches()
     ThemePreview()
     CustomThemeEditor()
+    HolidayThemes()
 }
 
 /** Four hex colours and save. Saved themes sync to the relay and to other devices. */
@@ -1785,20 +1786,6 @@ private fun CustomThemeEditor() {
             enabled = ok && name.isNotBlank(),
             onClick = { Prefs.saveTheme(name, bg, text, accent, accent2); name = ""; Relay.syncThemeNow() },
         ) { Text("Save theme") }
-        Prefs.savedThemes.forEach { t ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Box(Modifier.size(24.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(t.accent))).border(2.dp, Color(android.graphics.Color.parseColor(t.bg)), CircleShape))
-                Text(t.name, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f), maxLines = 1)
-                androidx.compose.material3.TextButton(onClick = {
-                    Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis()))
-                    Prefs.updateTheme("custom")
-                    Relay.syncThemeNow()
-                }) { Text("Use") }
-                androidx.compose.material3.TextButton(onClick = {
-                    Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow()
-                }) { Text("Delete") }
-            }
-        }
     }
 }
 

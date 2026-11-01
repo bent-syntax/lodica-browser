@@ -4,7 +4,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -40,7 +43,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import be.syntaxya.lodica.engine.CustomTheme
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -51,12 +56,15 @@ import be.syntaxya.lodica.ui.theme.Palettes
 import be.syntaxya.lodica.ui.theme.ThemeState
 
 /** A round swatch with a label underneath; the ring shows the current choice. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun RoundChoice(label: String, selected: Boolean, size: Dp = 52.dp, onClick: () -> Unit, content: @Composable () -> Unit) {
+internal fun RoundChoice(
+    label: String, selected: Boolean, size: Dp = 52.dp, onLongClick: (() -> Unit)? = null, onClick: () -> Unit, content: @Composable () -> Unit,
+) {
     val ring by animateColorAsState(if (selected) Amber else GraphiteHigh, tween(180), label = "ring")
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(size + 12.dp)) {
         Box(
-            Modifier.size(size).clip(CircleShape).border(if (selected) 2.dp else 1.dp, ring, CircleShape).clickable(onClick = onClick),
+            Modifier.size(size).clip(CircleShape).border(if (selected) 2.dp else 1.dp, ring, CircleShape).combinedClickable(onLongClick = onLongClick, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) { content() }
         Text(
@@ -83,6 +91,42 @@ private fun ThemeDot(p: Palette?) {
             Box(Modifier.size(12.dp).clip(CircleShape).background(Color(p.accent)))
         }
     }
+}
+
+/** Circle with [bg] as the base and two dots in the other colours of a theme. */
+@Composable
+private fun ColourDot(bg: Long, a: Long, b: Long) {
+    Box(Modifier.fillMaxWidth().fillMaxHeight().background(Color(bg)), contentAlignment = Alignment.Center) {
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(12.dp).clip(CircleShape).background(Color(a)))
+            Box(Modifier.size(12.dp).clip(CircleShape).background(Color(b)))
+        }
+    }
+}
+
+private fun px(h: String) = 0xFF000000 or h.removePrefix("#").toLong(16)
+
+/** Saved custom themes as round swatches. Tap to use, long-press to delete. */
+@Composable
+internal fun SavedThemeSwatches() {
+    if (Prefs.savedThemes.isEmpty()) return
+    Text("Saved themes", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        val cur = Prefs.customTheme
+        Prefs.savedThemes.forEach { t ->
+            val on = Prefs.theme == "custom" && cur != null && cur.bg.equals(t.bg, true) && cur.text.equals(t.text, true) &&
+                cur.accent.equals(t.accent, true) && cur.accent2.equals(t.accent2, true)
+            RoundChoice(t.name, on, onLongClick = { Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow() }, onClick = {
+                Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis()))
+                Prefs.updateTheme("custom")
+                Relay.syncThemeNow()
+            }) { ColourDot(px(t.bg), px(t.accent), px(t.accent2)) }
+        }
+    }
+    Text("Long-press a saved theme to delete it.", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp))
 }
 
 /** Scrollable row of round theme swatches, "System" first. */
@@ -185,33 +229,29 @@ internal fun StartPreview() {
     }
 }
 
-/** Holiday themes: claimable for a week either side of the holiday, usable for ever once claimed. */
+/** Holiday themes as round swatches: tap a claimed one to use it, tap a claimable one to claim it. */
 @Composable
 internal fun HolidayThemes() {
     val claimed = Prefs.claimedThemes
     Section("Holiday themes")
-    be.syntaxya.lodica.ui.theme.Holidays.forEach { h ->
-        val days = be.syntaxya.lodica.ui.theme.daysTo(h)
-        val have = h.id in claimed
-        val can = be.syntaxya.lodica.ui.theme.canClaim(h.id)
-        val status = when {
-            Prefs.theme == h.id -> "In use"
-            have -> "Claimed"
-            can -> if (days > 0) "Claimable, $days days to go" else if (days == 0L) "Claimable, today" else "Claimable, ${-days} days ago"
-            else -> "Claimable one week before to one week after"
-        }
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clip(RoundedCornerShape(12.dp)).background(GraphiteRaised)
-                .clickable(enabled = have || can) { if (have) Prefs.updateTheme(h.id) else Prefs.claimTheme(h.id) }.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(Modifier.size(24.dp).clip(CircleShape).background(Color(h.palette.accent)))
-            Column(Modifier.weight(1f)) {
-                Text(h.label, color = Mist, fontSize = 15.sp)
-                Text(status, color = Muted, fontSize = 13.sp)
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        be.syntaxya.lodica.ui.theme.Holidays.forEach { h ->
+            val have = h.id in claimed
+            val can = be.syntaxya.lodica.ui.theme.canClaim(h.id)
+            Box(Modifier.alpha(if (have || can) 1f else 0.45f)) {
+                RoundChoice(h.label, Prefs.theme == h.id, onClick = {
+                    if (have) Prefs.updateTheme(h.id) else if (can) Prefs.claimTheme(h.id)
+                }) { ColourDot(h.palette.bg, h.palette.accent, h.palette.accent2) }
             }
-            Text(if (have) (if (Prefs.theme == h.id) "" else "Use") else if (can) "Claim" else "", color = Amber, fontSize = 13.sp)
         }
     }
+    val next = be.syntaxya.lodica.ui.theme.Holidays.filter { it.id !in claimed }.minByOrNull { be.syntaxya.lodica.ui.theme.daysTo(it).let { d -> if (d < -7) d + 365 else d } }
+    val hint = next?.let {
+        if (be.syntaxya.lodica.ui.theme.canClaim(it.id)) "${it.label} can be claimed now. Tap it." else "Next: ${it.label}, claimable a week before."
+    } ?: "All holiday themes claimed."
+    Text(hint, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
     SwitchRow("Holiday effects", "Falling snow, confetti and similar effects on holiday themes", Prefs.holidayFx) { Prefs.updateHolidayFx(it) }
 }
