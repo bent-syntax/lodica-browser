@@ -132,6 +132,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
@@ -1748,8 +1749,11 @@ private fun CustomThemeEditor() {
                 busy = true
                 Ai.makeTheme(idea.trim()) { r ->
                     busy = false
-                    r.onSuccess { bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2 }
-                        .onFailure { Toast.makeText(ctx, it.message ?: "Could not make a theme", Toast.LENGTH_SHORT).show() }
+                    r.onSuccess {
+                        bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2
+                        Prefs.saveTheme(idea.trim(), it.bg, it.text, it.accent, it.accent2)
+                        Relay.syncThemeNow()
+                    }.onFailure { Toast.makeText(ctx, it.message ?: "Could not make a theme", Toast.LENGTH_SHORT).show() }
                 }
             },
         ) { Text(if (busy) "Making theme..." else "Make with AI") }
@@ -1772,6 +1776,29 @@ private fun CustomThemeEditor() {
                 Relay.syncThemeNow()
             },
         ) { Text("Save and use") }
+        var name by remember { mutableStateOf("") }
+        OutlinedTextField(
+            value = name, onValueChange = { name = it.take(40) }, label = { Text("Name to save this theme") },
+            singleLine = true, modifier = Modifier.fillMaxWidth(),
+        )
+        Button(
+            enabled = ok && name.isNotBlank(),
+            onClick = { Prefs.saveTheme(name, bg, text, accent, accent2); name = ""; Relay.syncThemeNow() },
+        ) { Text("Save theme") }
+        Prefs.savedThemes.forEach { t ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(24.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(t.accent))).border(2.dp, Color(android.graphics.Color.parseColor(t.bg)), CircleShape))
+                Text(t.name, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f), maxLines = 1)
+                androidx.compose.material3.TextButton(onClick = {
+                    Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis()))
+                    Prefs.updateTheme("custom")
+                    Relay.syncThemeNow()
+                }) { Text("Use") }
+                androidx.compose.material3.TextButton(onClick = {
+                    Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow()
+                }) { Text("Delete") }
+            }
+        }
     }
 }
 

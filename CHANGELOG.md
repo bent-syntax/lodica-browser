@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.29 (versionCode 189)
+- Added: Saved themes: name and keep your own and AI-made themes, use or delete them later, synced between phone and PC
+
 ## 1.14.28 (versionCode 188)
 - Changed: Settings tidied: one-item sections merged, search widget moved to Start page, holiday themes use a normal switch row
 

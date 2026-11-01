@@ -23,7 +23,7 @@ const CATS = [
 /** On for a fresh link, until the user switches it off. Passwords and keys still only travel once the link key is on both devices. Wi-Fi, history and Bluetooth stay off. */
 const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true, passwords: true, totp: true };
 const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
-const SETTINGS = ["theme", "customTheme", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
+const SETTINGS = ["theme", "customTheme", "savedThemes", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
   "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg",
   "searchWords", "shortcutNames", "autoTop", "startNotes", "startPlanner", "plannerPos", "notesPos"];
 /** Where the theme comes from: the newest change on either device, this device only, or the other device. */
@@ -83,6 +83,12 @@ function pickSettings(source, current) {
     if (!Array.isArray(out.searchWords)) delete out.searchWords;
     else out.searchWords = out.searchWords.filter((r) => r && typeof r.word === "string" && typeof r.url === "string" && r.word.trim() && r.url.trim())
       .slice(0, 200).map((r) => ({ word: str(r.word, 40).trim(), url: str(r.url, 2000).trim() }));
+  }
+  if ("savedThemes" in out) {
+    const HEX = /^#[0-9a-f]{6}$/i;
+    if (!Array.isArray(out.savedThemes)) delete out.savedThemes;
+    else out.savedThemes = out.savedThemes.filter((t) => t && typeof t.name === "string" && t.name.trim() && ["bg", "text", "accent", "accent2"].every((k) => HEX.test(t[k]))).slice(0, 50)
+      .map((t) => { const o = { name: str(t.name, 40).trim() }; for (const k of ["bg", "text", "accent", "accent2", "raised", "high", "muted"]) if (HEX.test(t[k])) o[k] = t[k]; return o; });
   }
   for (const k of ["plannerPos", "notesPos"]) if (k in out && !["left", "right", "below"].includes(out[k])) delete out[k];
   return out;

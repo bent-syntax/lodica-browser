@@ -156,6 +156,17 @@ function themeEditor() {
         if (r && r.ok) { if (msg) msg.textContent = "Done. Your theme is in use"; } else if (msg) msg.textContent = (r && r.error) || "Failed";
       } })) : null,
     S.prefs.ai ? h("div", { class: "set-note", text: "" }) : null,
+    h("div", { class: "ct-row" },
+      h("input", { class: "ct-name", type: "text", placeholder: "Name to save this theme", maxlength: "40" }),
+      h("button", { class: "ct-btn", text: "Save theme", act: async (ev, b) => {
+        const box = b.parentNode.querySelector(".ct-name");
+        if (box.value.trim() && await inv("theme.save", box.value, cur)) box.value = "";
+      } })),
+    ...(S.prefs.savedThemes || []).map((t) => h("div", { class: "ct-row" },
+      h("span", { class: "ct-dot", style: "display:inline-block;width:16px;height:16px;border-radius:50%;background:" + t.accent + ";border:2px solid " + t.bg }),
+      h("span", { text: t.name }),
+      h("button", { class: "ct-btn", text: "Use", act: () => inv("theme.useSaved", t.name) }),
+      h("button", { class: "ct-btn", text: "Delete", act: () => inv("theme.unsave", t.name) }))),
     h("div", { class: "set-note", text: S.relayAvail ? "Your theme syncs to every device connected to your server." : "Your theme syncs to other devices once a server is connected." }));
 }
 function secTheme() {

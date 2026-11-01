@@ -37,6 +37,9 @@ data class CustomTheme(val bg: String, val text: String, val accent: String, val
     }
 }
 
+/** A named custom theme kept in the saved list. */
+data class SavedTheme(val name: String, val bg: String, val text: String, val accent: String, val accent2: String)
+
 /** App preferences, observable from Compose. */
 object Prefs {
     private lateinit var sp: SharedPreferences
@@ -102,6 +105,7 @@ object Prefs {
     /** Sites where the "use dummy mail" chip is hidden. */
     /** The user-made theme, or null until one is saved. Used when [theme] is "custom". */
     var customTheme by mutableStateOf<CustomTheme?>(null); private set
+    var savedThemes by mutableStateOf<List<SavedTheme>>(emptyList()); private set
     /** Menu items pinned to the quick menu (keys from MenuSheet). */
     var menuPins by mutableStateOf(setOf("find", "downloads", "history", "passwords", "settings")); private set
     var noDummy by mutableStateOf<Set<String>>(emptySet()); private set
@@ -202,6 +206,10 @@ object Prefs {
         spell = sp.getBoolean("spell", true)
         spellAuto = sp.getBoolean("spellAuto", false)
         spellLangs = sp.getStringSet("spellLangs", null) ?: setOf("en")
+        savedThemes = sp.getString("savedThemes", null).orEmpty().lines().mapNotNull { l ->
+            l.split('|').takeIf { it.size == 5 && it[0].isNotBlank() && CustomTheme.valid(it[1], it[2], it[3], it[4]) }
+                ?.let { SavedTheme(it[0], it[1], it[2], it[3], it[4]) }
+        }.take(50)
         customTheme = sp.getString("customTheme", null)?.split(',')?.takeIf { it.size == 5 && CustomTheme.valid(it[0], it[1], it[2], it[3]) }
             ?.let { CustomTheme(it[0], it[1], it[2], it[3], it[4].toLongOrNull() ?: 0L) }
         noDummy = sp.getStringSet("noDummy", emptySet())!!.toSet()
@@ -265,6 +273,21 @@ object Prefs {
         widgetText = text.take(40); widgetShape = shape
         sp.edit().putString("widgetText", widgetText).putString("widgetShape", shape).apply()
     }
+    fun updateSavedThemes(list: List<SavedTheme>) {
+        val clean = list.filter { it.name.isNotBlank() && CustomTheme.valid(it.bg, it.text, it.accent, it.accent2) }
+            .distinctBy { it.name.lowercase() }.take(50)
+        if (clean == savedThemes) return
+        savedThemes = clean
+        sp.edit().putString("savedThemes", clean.joinToString("\n") { "${it.name}|${it.bg}|${it.text}|${it.accent}|${it.accent2}" }).apply()
+    }
+
+    /** Adds or replaces a saved theme by name; newest first. */
+    fun saveTheme(name: String, bg: String, text: String, accent: String, accent2: String) {
+        val n = name.replace('|', ' ').replace('\n', ' ').trim().take(40)
+        if (n.isEmpty()) return
+        updateSavedThemes(listOf(SavedTheme(n, bg, text, accent, accent2)) + savedThemes.filter { !it.name.equals(n, true) })
+    }
+
     fun updateCustomTheme(c: CustomTheme?) {
         customTheme = c
         sp.edit().apply { if (c == null) remove("customTheme") else putString("customTheme", "${c.bg},${c.text},${c.accent},${c.accent2},${c.at}") }.apply()

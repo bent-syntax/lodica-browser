@@ -373,6 +373,27 @@ function init(deps) {
     pullTheme();
     return true;
   });
+  // Saved themes: a named list of custom themes, kept and synced with the other devices.
+  const saveTheme = (name, c) => {
+    name = str(name).trim().slice(0, 40);
+    if (!name || !c || !["bg", "text", "accent", "accent2"].every(k => HEX.test(c[k]))) return false;
+    const t = { name };
+    for (const k of ["bg", "text", "accent", "accent2", "raised", "high", "muted"]) if (HEX.test(c[k])) t[k] = c[k];
+    const list = (d.prefs.p.savedThemes || []).filter(x => x.name.toLowerCase() !== name.toLowerCase());
+    d.prefs.set("savedThemes", [t, ...list].slice(0, 50));
+    return true;
+  };
+  on("theme.save", (name, c) => saveTheme(name, c || d.prefs.p.customTheme));
+  on("theme.unsave", (name) => { d.prefs.set("savedThemes", (d.prefs.p.savedThemes || []).filter(x => x.name !== name)); return true; });
+  on("theme.useSaved", (name) => {
+    const t = (d.prefs.p.savedThemes || []).find(x => x.name === name);
+    if (!t) return false;
+    const { name: _n, ...c } = t;
+    d.prefs.set("customTheme", Object.assign(c, { at: Date.now() }));
+    d.prefs.set("theme", "custom");
+    pullTheme();
+    return true;
+  });
   // Make a custom theme from a description (for example "Minecraft") with the linked AI.
   on("theme.ai", async (idea) => {
     const what = str(idea).trim().slice(0, 200);
@@ -382,6 +403,7 @@ function init(deps) {
     catch (e) { return { error: /connect/i.test(String(e && e.message)) ? "Connect the AI in Settings first" : "The AI could not answer" }; }
     const t = require("./aitheme").parse(reply);
     if (!t) return { error: "The AI gave no usable colours. Try again" };
+    saveTheme(what.slice(0, 40), t);
     d.prefs.set("customTheme", Object.assign(t, { at: Date.now() }));
     d.prefs.set("theme", "custom");
     pullTheme();

@@ -479,6 +479,8 @@ object PcTabs {
         "theme" to JsonPrimitive(if (Prefs.theme == "dynamic") "system" else Prefs.theme),
         "customTheme" to (Prefs.customTheme?.let { c -> JsonObject(mapOf("bg" to JsonPrimitive(c.bg), "text" to JsonPrimitive(c.text),
             "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at))) } ?: JsonNull),
+        "savedThemes" to JsonArray(Prefs.savedThemes.map { t -> JsonObject(mapOf("name" to JsonPrimitive(t.name), "bg" to JsonPrimitive(t.bg),
+            "text" to JsonPrimitive(t.text), "accent" to JsonPrimitive(t.accent), "accent2" to JsonPrimitive(t.accent2))) }),
         "language" to JsonPrimitive(Prefs.language.name),
         "darkPages" to JsonPrimitive(Prefs.darkPages),
         "httpsOnly" to JsonPrimitive(Prefs.httpsOnly),
@@ -523,6 +525,15 @@ object PcTabs {
                 if (t != Prefs.customTheme) Prefs.updateCustomTheme(t)
             }
         }
+        if (theme) (m["savedThemes"] as? JsonArray)?.let { arr ->
+            val list = arr.mapNotNull { e ->
+                val o = e as? JsonObject ?: return@mapNotNull null
+                fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+                if (c("name").isNotBlank() && CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2")))
+                    SavedTheme(c("name").replace('|', ' ').replace('\n', ' ').trim().take(40), c("bg"), c("text"), c("accent"), c("accent2")) else null
+            }
+            Prefs.updateSavedThemes(list)
+        }
         if (theme) str("theme")?.let { v ->
             val known = v == "custom" || be.syntaxya.lodica.ui.theme.ThemeChoices.any { it.first == v }
             if (known && v != Prefs.theme && !(v == "system" && Prefs.theme == "dynamic")) Prefs.updateTheme(v)
@@ -560,7 +571,7 @@ object PcTabs {
         if (linkShare["settings"] == true && d.settings != null) {
             val local = settingsStamp()
             val newer = d.settingsAt > local
-            val themeJson = (d.settings["theme"]?.toString().orEmpty() + d.settings["customTheme"]?.toString().orEmpty())
+            val themeJson = (d.settings["theme"]?.toString().orEmpty() + d.settings["customTheme"]?.toString().orEmpty() + d.settings["savedThemes"]?.toString().orEmpty())
             val takeTheme = when (themeFrom) { "other" -> markNew("theme", themeJson); "this" -> false; else -> newer }
             if (newer || takeTheme) {
                 applySettings(d.settings, takeTheme, newer)
