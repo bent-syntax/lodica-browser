@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.27 (versionCode 187)
+- Fixed: Launcher icon now matches the app theme, also for custom and wallpaper themes
+
 ## 1.14.26 (versionCode 186)
 - Fixed: Link watcher no longer polls in a loop when the server is older
 

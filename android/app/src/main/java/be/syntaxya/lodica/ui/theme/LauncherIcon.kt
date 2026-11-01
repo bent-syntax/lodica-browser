@@ -18,10 +18,11 @@ object LauncherIcon {
         return d(16) + d(8) + d(0)
     }
 
-    /** Built-in palette closest to the active one; a custom theme has no icon of its own. */
+    /** Built-in palette closest to the active one; a custom theme has no icon of its own. The tile background dominates because it fills most of the icon. */
     private fun nearest(p: Palette): String =
         if (entries.containsKey(p.key)) p.key
-        else Palettes.minBy { dist(it.bg, p.bg) + dist(it.accent, p.accent) }.key
+        else Palettes.filter { it.dark == p.dark }.ifEmpty { Palettes }
+            .minBy { 3 * dist(it.bg, p.bg) + dist(it.accent, p.accent) }.key
 
     @Volatile private var pending: Palette? = null
 
