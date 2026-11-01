@@ -1,3 +1,10 @@
+## 1.14.19
+
+- Fixed: The link key now moves to a new device however it was linked, also with a pasted link, not only with a code
+- Fixed: An old request for the link key on the server no longer blocks a new one
+- New: "Get key from the other device" in Settings > Linked devices. Every linked device can answer it, not only the one that showed a code
+- Fixed: When sending to the linked device fails or there is too much to send, Settings now says so instead of stopping silently
+
 ## 1.14.18
 
 - Fixed: Authenticator keys and passwords from the phone now show on the PC. Sharing them was switched off on phones that linked before 1.14.17, so it is switched on once

@@ -271,22 +271,28 @@ function linkRows() {
   out.push(setRow("Theme comes from", "Which device decides the theme. The other settings follow the newest change", h("select", { on: { change: async (e) => { S.prefs.themeFrom = e.target.value; await inv("prefs.set", "themeFrom", e.target.value); } } },
     [["newest", "The newest change"], ["this", "This device"], ["other", "The other device"]].map(([value, text]) => h("option", { value, text, selected: from === value })))));
   if (L.bluetooth && L.bluetooth.length) out.push(setRow("Bluetooth devices on the other device", L.bluetooth.join(", "), null));
-  if (L.keyDiffers) out.push(setRow("The link key differs from the other device", "This device has a different link key" + (L.otherKeyId ? " (the other device has key " + L.otherKeyId + ")" : "") + ". Link again with a code to share passwords and keys", null));
-  else if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Link with a code to get the link key and receive them", null));
+  if (L.keyDiffers) out.push(setRow("The link key differs from the other device", "This device has a different link key" + (L.otherKeyId ? " (the other device has key " + L.otherKeyId + ")" : "") + ". Get the key from the other device to share passwords and keys", null));
+  else if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Get the link key from the other device to receive them", null));
+  if (L.error) out.push(setRow("Sharing stopped", L.error, null));
   const mode = S.prefs.pcUnlock || "pin";
   out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
     [["pin", "PIN only"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
-  out.push(setRow("Link key", hasKey ? "This device has link key " + (L.key.keyId || "") + ". Both devices show the same number when they share it" : "No key on this device yet. Link with a code to get one", null));
-  if (hasKey) out.push(h("div", { class: "chips" }, btn("Forget key", async () => {
-    const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you link with a code again.", ok: "Forget" });
+  out.push(setRow("Link key", hasKey ? "This device has link key " + (L.key.keyId || "") + ". Both devices show the same number when they share it" : "No key on this device yet. Get it from the other device", null));
+  const keyBtns = [];
+  if (!hasKey || L.keyMissing || L.keyDiffers) keyBtns.push(btn("Get key from the other device", async () => {
+    if (!(await inv("link.key.ask"))) toast("Link with the other device first");
+  }));
+  if (hasKey) keyBtns.push(btn("Forget key", async () => {
+    const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you get the key again.", ok: "Forget" });
     if (ok) { await inv("link.key.forget"); reload(); }
-  }, "muted")));
+  }, "muted"));
+  if (keyBtns.length) out.push(h("div", { class: "chips" }, keyBtns));
   return out;
 }
 // Steps of moving the key, from the main process.
 async function linkKeyStep(m) {
   if (m.step === "confirm") {
-    const ok = await confirmDialog({ title: "Link a new device?", message: "A device entered the linking code " + m.code + ". If that was you, confirm to share the secret key with it.", ok: "Confirm" });
+    const ok = await confirmDialog({ title: "Link a new device?", message: (m.code ? "A device entered the linking code " + m.code : "A linked device asked for the link key") + ". If that was you, confirm to share the secret key with it.", ok: "Confirm" });
     inv("link.key.confirm", m.session, !!ok);
   } else if (m.step === "wait") toast("Waiting for the other device to confirm");
   else if (m.step === "done") { toast("Linked. Check code " + m.fp + " matches on both devices"); SET.linkCats = null; refreshSettings(); }

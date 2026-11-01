@@ -450,21 +450,24 @@ fun SettingsScreen() {
                         Text("The link key differs from the other device", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                         Text(
                             "This device has a different link key" + (PcTabs.otherKeyId?.let { " (the other device has key $it)" } ?: "") +
-                                ". Link again with a code to share passwords and keys",
+                                ". Get the key from the other device to share passwords and keys",
                             color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
                         )
                     } else if (PcTabs.keyMissing) {
                         Text("The other device shares passwords or keys", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
-                        Text("Link with a code to get the link key and receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                        Text("Get the link key from the other device to receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }
                     Text("Link key", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                     Text(
                         if (LinkKey.hasKey) "This device has link key ${LinkKey.keyId() ?: ""}. Both devices show the same number when they share it"
-                        else "No key on this device yet. Link with a code to get one",
+                        else "No key on this device yet. Get it from the other device",
                         color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
                     )
+                    if (!LinkKey.hasKey || PcTabs.keyMissing || PcTabs.keyDiffers) TextButton(onClick = {
+                        if (!PcTabs.askKey()) Toast.makeText(ctx, "Link with the other device first", Toast.LENGTH_SHORT).show()
+                    }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Get key from the other device", color = Amber) }
                     if (LinkKey.hasKey) TextButton(onClick = {
-                        confirm = Confirm("Forget the link key?", "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you link with a code again.", "Forget") { PcTabs.forgetKey() }
+                        confirm = Confirm("Forget the link key?", "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you get the key again.", "Forget") { PcTabs.forgetKey() }
                     }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Forget key", color = Coral) }
                     SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.updateAllowControl(it) }
                     PcTabs.status?.let {

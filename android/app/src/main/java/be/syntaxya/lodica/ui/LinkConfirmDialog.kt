@@ -30,7 +30,7 @@ fun LinkConfirmDialog() {
     AlertDialog(
         onDismissRequest = { PcTabs.confirmKey(step.session, false) },
         title = { Text("Confirm the link") },
-        text = { Text("A device entered linking code ${step.code}. Only confirm if that was you. It then gets the key for passwords and authenticator codes.") },
+        text = { Text((if (step.code.isEmpty()) "A linked device asked for the link key" else "A device entered linking code ${step.code}") + ". Only confirm if that was you. It then gets the key for passwords and authenticator codes.") },
         confirmButton = { TextButton(onClick = { PcTabs.confirmKey(step.session, true) }) { Text("Confirm", color = Amber) } },
         dismissButton = { TextButton(onClick = { PcTabs.confirmKey(step.session, false) }) { Text("Deny", color = Amber) } },
     )

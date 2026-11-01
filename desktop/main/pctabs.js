@@ -185,14 +185,23 @@ async function upload() {
   if (!enabled() || !tabs) return;
   const { write, key } = sides();
   const body = encrypt(await payload(), key);
-  if (body.length > MAX) return;
+  if (body.length > MAX) { setError("Too much to send: passwords and keys are over 512 KB"); return; }
   try {
-    await fetch(`${relay.API}/api/tabs/${write}`, {
+    const r = await fetch(`${relay.API}/api/tabs/${write}`, {
       method: "PUT", body,
       headers: { ...auth(), "Content-Type": "application/octet-stream" },
       signal: AbortSignal.timeout(20000),
     });
-  } catch (e) { console.error("pctabs upload failed:", e.message); }
+    setError(r.ok ? null : "Sending failed (server answered " + r.status + ")");
+  } catch (e) { console.error("pctabs upload failed:", e.message); setError("Sending failed: " + e.message); }
+}
+// The last upload problem, shown in Settings so a stop is never silent.
+let lastError = null;
+function setError(e) {
+  if (e === lastError) return;
+  lastError = e;
+  if (e) console.error("pctabs:", e);
+  ui?.push("pctabs.remote", status());
 }
 
 function schedule() {
@@ -231,7 +240,7 @@ async function fetchRemote() {
   } catch (e) { console.error("pctabs fetch failed:", e.message); return remote; }
   if (JSON.stringify(next) !== JSON.stringify(remote)) {
     remote = next;
-    ui?.push("pctabs.remote", remote);
+    ui?.push("pctabs.remote", status());
   }
   return remote;
 }
@@ -254,8 +263,9 @@ async function pair(text) {
   state = { secret: Buffer.concat([id, key]), owner: false };
   save();
   remote = { tabs: [], updated: 0 };
-  ui?.push("pctabs.remote", remote);
+  ui?.push("pctabs.remote", status());
   if (enabled()) { await upload(); await fetchRemote(); }
+  askKey();
   return true;
 }
 
@@ -268,7 +278,7 @@ async function reset() {
   state = { secret: crypto.randomBytes(48), owner: true };
   save();
   remote = { tabs: [], updated: 0 };
-  ui?.push("pctabs.remote", remote);
+  ui?.push("pctabs.remote", status());
   if (enabled()) await upload();
   return viewLink();
 }
@@ -294,9 +304,7 @@ async function pairWithCode(code) {
   const j = await r.json().catch(() => null);
   if (!j || typeof j.link !== "string") return false;
   if (!prefs.p.pcTabs) prefs.set("pcTabs", true);
-  const ok = await pair(j.link);
-  if (ok) askKey();
-  return ok;
+  return pair(j.link);
 }
 
 // Phone control: commands for the linked phone ride in their own encrypted blob that only this side writes.
@@ -323,8 +331,10 @@ async function control(cmd) {
 
 // ---- Moving the link key to a new device (linkkey.js) ----
 // Two small encrypted messages ride on the link: "kq" (the new device asks, with a one-off public key) and "ka" (the answer).
-// The device that showed the linking code asks its user to confirm, then answers with the wrapped link key.
-// While an exchange is open both sides look every 2 seconds, for at most 10 minutes.
+// The other device asks its user to confirm, then answers with the wrapped link key. Every linked device answers, not only
+// the one that showed a code: it checks for new requests with every poll and every 2 seconds while a code is shown.
+// A request counts only once (its time is kept in linkseen) and only when it is under 10 minutes old, because the relay keeps
+// the last request for weeks and an old one must not take the place of a new device.
 const chanId = (name) => crypto.createHmac("sha256", sides().key).update("ch:" + name).digest().subarray(0, 16).toString("base64url");
 async function put(name, obj) {
   try {
@@ -342,6 +352,27 @@ let ex = null, fast = null, exBusy = false;
 const note = (o) => ui?.push("link.key", o);
 function stopFast() { clearInterval(fast); fast = null; ex = null; }
 function startFast(role, extra) { stopFast(); ex = { role, until: Date.now() + 10 * 60e3, lastT: 0, ...extra }; fast = setInterval(exTick, 2000); }
+const JOIN_AGE = 10 * 60e3;
+/** A join request no device here has seen yet, or null. Marks it seen. */
+async function freshJoin() {
+  const m = await get("kq");
+  if (!m || m.type !== "join" || !m.session || typeof m.pub !== "string" || typeof m.t !== "number") return null;
+  if (String(m.t) === seen().kq) return null;
+  markSeen("kq", String(m.t));
+  if (Math.abs(Date.now() - m.t) > JOIN_AGE) return null;
+  return m;
+}
+/** From the regular poll: a device asked for the key while no code was shown here. */
+async function checkJoin() {
+  if (ex || exBusy || !enabled()) return;
+  exBusy = true;
+  try {
+    const m = await freshJoin();
+    if (!m || ex) return;
+    startFast("origin", { code: "", asking: { session: String(m.session), pub: m.pub } });
+    note({ step: "confirm", code: "", session: String(m.session) });
+  } finally { exBusy = false; }
+}
 
 async function exTick() {
   if (!ex) return;
@@ -351,9 +382,8 @@ async function exTick() {
   try {
     if (ex.role === "origin") {
       if (ex.asking) return;
-      const m = await get("kq");
-      if (!m || m.type !== "join" || !m.session || m.t === ex.lastT || typeof m.pub !== "string") return;
-      ex.lastT = m.t;
+      const m = await freshJoin();
+      if (!m) return;
       ex.asking = { session: String(m.session), pub: m.pub };
       note({ step: "confirm", code: ex.code, session: ex.asking.session });
     } else {
@@ -371,16 +401,22 @@ async function exTick() {
   } finally { exBusy = false; }
 }
 
-/** The new device, right after the linking code was accepted: asks the other device for the link key. */
+/** The new device, right after linking, or later from Settings: asks the other device for the link key. */
 async function askKey() {
-  const pair = linkkey.newPair(), session = crypto.randomBytes(8).toString("hex");
-  if (!(await put("kq", { session, type: "join", pub: pair.pub, t: Date.now() }))) return false;
+  if (!enabled()) return false;
+  const pair = linkkey.newPair(), session = crypto.randomBytes(8).toString("hex"), t = Date.now();
+  markSeen("kq", String(t));
+  if (!(await put("kq", { session, type: "join", pub: pair.pub, t }))) return false;
   startFast("new", { session, pair });
   note({ step: "wait" });
   return true;
 }
-/** The device that showed [code]: waits for a new device to join. */
-function waitForJoin(code) { startFast("origin", { code: String(code), asking: null }); }
+/** The device that showed [code]: waits for a new device to join. Any request already on the relay counts as old. */
+async function waitForJoin(code) {
+  const m = await get("kq");
+  if (m && typeof m.t === "number") markSeen("kq", String(m.t));
+  startFast("origin", { code: String(code), asking: null });
+}
 /** The user answered the confirm popup. */
 async function confirmKey(session, yes) {
   if (!ex || ex.role !== "origin" || !ex.asking || ex.asking.session !== String(session)) return false;
@@ -419,7 +455,7 @@ async function unlockVault() {
 const keyStatus = () => linkkey.status();
 function forgetKey() { stopFast(); linkkey.forget(); }
 
-const status = () => ({ owner: load().owner, ...remote });
+const status = () => ({ owner: load().owner, ...remote, error: lastError });
 
 function init(deps) {
   tabs = deps.tabs;
@@ -434,10 +470,10 @@ function init(deps) {
   });
   schedule();
   fetchRemote();
-  poll = setInterval(async () => { if (enabled() && await outChanged()) upload(); fetchRemote(); }, POLL_MS);
+  poll = setInterval(async () => { if (enabled() && await outChanged()) upload(); fetchRemote(); checkJoin(); }, POLL_MS);
   keepalive = setInterval(() => { upload(); }, KEEPALIVE_MS);
   poll.unref();
   keepalive.unref();
 }
 
-module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, keyStatus, unlockVault, forgetKey };
+module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, forgetKey };

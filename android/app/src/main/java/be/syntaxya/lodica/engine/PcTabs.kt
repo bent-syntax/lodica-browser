@@ -177,6 +177,7 @@ object PcTabs {
             if (System.currentTimeMillis() - lastKeep > KEEPALIVE_MS) lastSent = null
             upload()
             refresh()
+            checkJoin()
             main.postDelayed(this, POLL_MS)
         }
     }
@@ -303,6 +304,7 @@ object PcTabs {
         Relay.scope.launch { io.withLock { if (old != null) remove(old) } }
         upload()
         refresh()
+        askKey()
         return true
     }
 
@@ -316,6 +318,8 @@ object PcTabs {
                 val (st, txt) = Relay.request("POST", "/api/pair", body, "application/json")
                 if (st == 200) Regex("\"code\"\\s*:\\s*\"([A-Za-z0-9]+)\"").find(txt)?.groupValues?.get(1) else null
             }.onFailure { Log.w(TAG, "pair code failed", it) }.getOrNull()
+            // A join request already on the relay is old: only one made after this code counts.
+            if (code != null) key?.let { k -> readKq(k)?.let { markKq(it.t) } }
             withContext(Dispatchers.Main) {
                 if (code != null) startEx(Exchange("origin", "", null, code, 0L, System.currentTimeMillis() + 10 * 60_000L))
                 onDone(code)
@@ -335,9 +339,7 @@ object PcTabs {
             withContext(Dispatchers.Main) {
                 if (found == null) { onDone(false); return@withContext }
                 if (!enabled) toggle(true)
-                val ok = enabled && pair(found)
-                if (ok) askKey()
-                onDone(ok)
+                onDone(enabled && pair(found))
             }
         }
     }
@@ -647,11 +649,47 @@ object PcTabs {
         }
     }
 
+    /*
+     * Every linked device answers a request for the link key, not only the one that showed a code: it checks with every
+     * poll and every 2 seconds while a code is shown. A request counts only once (its time is kept in linkseen) and only
+     * when it is under 10 minutes old, because the relay keeps the last request for weeks and an old one must not take
+     * the place of a new device.
+     */
+    private fun readKq(k: ByteArray): PcKq? =
+        getChan(k, "kq")?.let { runCatching { json.decodeFromString<PcKq>(it) }.getOrNull() }
+
+    private fun markKq(t: Long) { sp.edit().putString("linkseen.kq", t.toString()).apply() }
+
+    /** Blocking. A join request no one here has seen yet, or null. Marks it seen. */
+    private fun freshJoin(k: ByteArray): PcKq? {
+        val m = readKq(k) ?: return null
+        if (m.type != "join" || m.session.isEmpty() || m.pub.isEmpty() || m.t == 0L) return null
+        if (sp.getString("linkseen.kq", null) == m.t.toString()) return null
+        markKq(m.t)
+        return if (kotlin.math.abs(System.currentTimeMillis() - m.t) > 10 * 60_000L) null else m
+    }
+
+    /** From the regular poll: a device asked for the key while no code was shown here. */
+    private fun checkJoin() {
+        val k = key ?: return
+        if (ex != null || exBusy) return
+        exBusy = true
+        Relay.scope.launch {
+            val m = try { freshJoin(k) } catch (t: Exception) { null }
+            withContext(Dispatchers.Main) {
+                exBusy = false
+                if (m == null || ex != null || !enabled) return@withContext
+                val e = Exchange("origin", "", null, "", 0L, System.currentTimeMillis() + 10 * 60_000L)
+                e.asking = m.session to m.pub
+                startEx(e)
+                linkStep = LinkStep("confirm", code = "", session = m.session)
+            }
+        }
+    }
+
     private fun originStep(e: Exchange, k: ByteArray) {
         if (e.asking != null) return
-        val m = getChan(k, "kq")?.let { runCatching { json.decodeFromString<PcKq>(it) }.getOrNull() } ?: return
-        if (m.type != "join" || m.session.isEmpty() || m.pub.isEmpty() || m.t == e.lastT) return
-        e.lastT = m.t
+        val m = freshJoin(k) ?: return
         e.asking = m.session to m.pub
         note(LinkStep("confirm", code = e.code, session = m.session))
     }
@@ -681,19 +719,23 @@ object PcTabs {
         if (enabled) { upload(); refresh() }
     }
 
-    /** Right after a linking code was accepted: asks the device that showed it for the link key. */
-    private fun askKey() {
-        val k = key ?: return
+    /** Right after linking, or later from Settings: asks the other device for the link key. False when not linked. */
+    fun askKey(): Boolean {
+        val k = key ?: return false
+        if (!enabled) return false
         val pair = LinkKey.newPair()
         val session = ByteArray(8).also { rnd.nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        val t = System.currentTimeMillis()
+        markKq(t)
         Relay.scope.launch {
-            val ok = putChan(k, "kq", json.encodeToString(PcKq(session, "join", pair.pub, System.currentTimeMillis())))
+            val ok = putChan(k, "kq", json.encodeToString(PcKq(session, "join", pair.pub, t)))
             withContext(Dispatchers.Main) {
                 if (!ok) return@withContext
                 startEx(Exchange("new", session, pair, "", 0L, System.currentTimeMillis() + 10 * 60_000L))
                 linkStep = LinkStep("wait")
             }
         }
+        return true
     }
 
     /** The user answered the confirm popup. */
@@ -794,6 +836,7 @@ object PcTabs {
         lastKeep = System.currentTimeMillis()
         Relay.scope.launch {
             io.withLock {
+                var tooBig = false
                 val ok = runCatching {
                     var h = hist
                     var c = chats
@@ -806,14 +849,14 @@ object PcTabs {
                         ci.init(Cipher.ENCRYPT_MODE, SecretKeySpec(k, "AES"), GCMParameterSpec(128, iv))
                         payload = iv + ci.doFinal(body)
                         if (payload.size <= MAX_BODY) break
-                        if (++shrink > 8) throw IllegalStateException("too much to share")
+                        if (++shrink > 8) { tooBig = true; throw IllegalStateException("too much to share") }
                         if (!h.isNullOrEmpty()) h = h.take(h.size / 2) else c = c.take(c.size / 2)
                     }
                     Relay.request("PUT", "/api/tabs/$tid", payload).first
                 }.onFailure { Log.w(TAG, "upload failed", it) }.getOrNull()
                 withContext(Dispatchers.Main) {
                     if (ok == 204 || ok == 200) status = null
-                    else { status = "Last upload failed"; if (lastSent == sig) lastSent = null }
+                    else { status = if (tooBig) "Too much to send: passwords and keys are over 512 KB" else if (ok != null) "Sending failed (server answered $ok)" else "Sending failed, no connection to the server"; if (lastSent == sig) lastSent = null }
                 }
             }
         }
