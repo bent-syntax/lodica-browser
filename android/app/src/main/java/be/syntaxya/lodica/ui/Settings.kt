@@ -238,7 +238,6 @@ fun SettingsScreen() {
                 if (it == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             }
             if (Relay.available) EnginePicker("Fallback search engine", Prefs.searchFallback, SearchEngine.entries.filter { it != SearchEngine.LODICA }) { Prefs.updateSearchFallback(it) }
-            Section("Search words")
             DnsSection(wordsOnly = true)
             Section("Address bar suggestions")
             SwitchRow("Autocorrect in address bar", "Keyboard corrects and suggests words while you type a search. Off keeps URLs untouched", Prefs.autoCorrect) { Prefs.updateAutoCorrect(it) }
@@ -263,13 +262,14 @@ fun SettingsScreen() {
                 2 -> {
             Section("AI")
             AiSection()
+            LinkRow("AI chats (${Chats.list.size})") { Ui.go(Screen.Chats) }
             Section("Emoji keyboard")
             EmojiKeyboardSection()
-            LinkRow("AI chats (${Chats.list.size})") { Ui.go(Screen.Chats) }
                 }
                 8 -> {
-            Section("Data use")
+            Section("Data")
             DataMeter()
+            ChromeImportSection()
 
             Section("Web apps")
             SilentInstallSection()
@@ -277,8 +277,6 @@ fun SettingsScreen() {
             Section("Extensions")
             ExtensionsSection()
 
-            Section("Import from Chrome")
-            ChromeImportSection()
                 }
                 3 -> {
                     Section("Theme")
@@ -286,10 +284,10 @@ fun SettingsScreen() {
                     Section("Page colours")
             SwitchRow("Dark mode", "Sites that have a dark mode switch to it", Prefs.darkPages) { Prefs.updateDarkPages(it) }
             SwitchRow("Force dark", "Make every page dark, even sites with no dark mode", Prefs.forceDark) { Prefs.updateForceDark(it) }
-                    Section("Search widget")
-                    WidgetEditor()
                 }
                 4 -> {
+                    Section("Search widget")
+                    WidgetEditor()
                     Section("Background")
                     StartBackgroundSettings()
                     Section("Shortcuts")

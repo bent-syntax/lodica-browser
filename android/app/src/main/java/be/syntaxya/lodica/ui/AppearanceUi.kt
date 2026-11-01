@@ -189,10 +189,7 @@ internal fun StartPreview() {
 @Composable
 internal fun HolidayThemes() {
     val claimed = Prefs.claimedThemes
-    Text(
-        "Holiday themes", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-    )
+    Section("Holiday themes")
     be.syntaxya.lodica.ui.theme.Holidays.forEach { h ->
         val days = be.syntaxya.lodica.ui.theme.daysTo(h)
         val have = h.id in claimed
@@ -216,11 +213,5 @@ internal fun HolidayThemes() {
             Text(if (have) (if (Prefs.theme == h.id) "" else "Use") else if (can) "Claim" else "", color = Amber, fontSize = 13.sp)
         }
     }
-    Row(
-        Modifier.fillMaxWidth().clickable { Prefs.updateHolidayFx(!Prefs.holidayFx) }.padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Holiday effects", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Text(if (Prefs.holidayFx) "On" else "Off", color = Amber, fontSize = 13.sp)
-    }
+    SwitchRow("Holiday effects", "Falling snow, confetti and similar effects on holiday themes", Prefs.holidayFx) { Prefs.updateHolidayFx(it) }
 }

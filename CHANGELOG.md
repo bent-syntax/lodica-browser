@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.28 (versionCode 188)
+- Changed: Settings tidied: one-item sections merged, search widget moved to Start page, holiday themes use a normal switch row
+
 ## 1.14.27 (versionCode 187)
 - Fixed: Launcher icon now matches the app theme, also for custom and wallpaper themes
 
