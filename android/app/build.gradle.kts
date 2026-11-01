@@ -16,8 +16,8 @@ android {
         applicationId = "be.syntaxya.lodica"
         minSdk = 26
         targetSdk = 36
-        versionCode = 175
-        versionName = "1.14.15"
+        versionCode = 176
+        versionName = "1.14.16"
         ndk { abiFilters += "arm64-v8a" }
 
         // Shared secret for the Lodica VPS relay (proxy, mail, tabs). Lives in the gitignored keystore/

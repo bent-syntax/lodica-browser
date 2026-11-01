@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.16 (versionCode 176)
+- Fixed: Starting a support test session on PC no longer says support is not reachable
+
 ## 1.14.15 (versionCode 175)
 - Added: Start page shortcuts are circles with the site logo and the name below. A setting shows or hides the names
 - Added: Site notifications show as system notifications on Android and as desktop notifications on PC

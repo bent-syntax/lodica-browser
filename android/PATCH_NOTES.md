@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.16
+
+- Fixed: Starting a support test session on PC no longer says support is not reachable
+
 ## 1.14.15
 
 - Added: Start page shortcuts are circles with the site logo and the name below. A setting shows or hides the names

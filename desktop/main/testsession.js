@@ -36,6 +36,9 @@ function end(why) {
 }
 
 const saved = () => String(store.loadSecret("testUnlock", "") || "");
+/** The relay answers with text; parse it, or null when it is not JSON. */
+function json(text) { try { return JSON.parse(text); } catch { return null; } }
+
 /** Checks the code with the server. A good code is kept encrypted on this PC. */
 async function unlock(code) {
   code = String(code || "").trim().slice(0, 200);
@@ -52,7 +55,8 @@ async function start() {
   if (!code) { prefs.set("remoteTest", false); return { error: "Enter the support code first." }; }
   if (s.state !== "off") return info();
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
-  const [st, r] = await relay.request("POST", "/api/support/test", 15000, { unlock: code }).catch(() => [0, null]);
+  const [st, text] = await relay.request("POST", "/api/support/test", 15000, { unlock: code }).catch(() => [0, null]);
+  const r = json(text);
   if (st === 403) { store.saveSecret("testUnlock", ""); prefs.set("remoteTest", false); return { error: "The support code is no longer valid. Enter it again." }; }
   if (st !== 200 || !r || !r.id) return { error: st === 429 ? "Too many tries. Try again later." : "Support is not reachable right now." };
   backup = clone(prefs.p);
@@ -75,7 +79,7 @@ async function stop() {
 async function poll(run) {
   while (s.run === run && s.state !== "off") {
     let st, r;
-    try { [st, r] = await relay.request("GET", "/api/support/test/" + s.id + "?after=" + s.seq + "&wait=20", 30000); } catch { st = 0; }
+    try { const [code, text] = await relay.request("GET", "/api/support/test/" + s.id + "?after=" + s.seq + "&wait=20", 30000); st = code; r = json(text); } catch { st = 0; }
     if (s.run !== run) return;
     if (st === 404 || (r && r.state === "stopped")) return end(r && r.why ? r.why : "closed");
     if (st !== 200 || !r) { await new Promise((ok) => setTimeout(ok, 3000)); continue; }
