@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.23 (versionCode 183)
+- Fixed: The device that shows a link code now always becomes the owner of the link. Before, two devices could both end up reading data nobody wrote, so tabs, authenticator keys and passwords did not show on the other device
+- Fixed: Settings > Link refreshes the key status when the other device changes the link
+
 ## 1.14.22 (versionCode 182)
 - Fixed: Linking no longer makes a new link key on the device that confirms. A device without a key now tells the other one, which keeps or makes its own key
 - Fixed: A different link key on the two devices is now always shown, also when nothing protected was sent yet

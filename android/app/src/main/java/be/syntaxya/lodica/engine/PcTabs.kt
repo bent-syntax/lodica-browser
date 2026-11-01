@@ -323,10 +323,27 @@ object PcTabs {
             // A join request already on the relay is old: only one made after this code counts.
             if (code != null) key?.let { k -> readKq(k)?.let { markKq(it.t) } }
             withContext(Dispatchers.Main) {
-                if (code != null) startEx(Exchange("origin", "", null, code, 0L, System.currentTimeMillis() + 10 * 60_000L))
+                if (code != null) {
+                    // The device that takes the code becomes a peer, so this one must be the owner. A device
+                    // that was a peer of an older link would otherwise write and read the same blobs as the new one.
+                    becomeOwner()
+                    startEx(Exchange("origin", "", null, code, 0L, System.currentTimeMillis() + 10 * 60_000L))
+                }
                 onDone(code)
             }
         }
+    }
+
+    private fun becomeOwner() {
+        if (!peer) return
+        val i = id ?: return
+        val k = key ?: return
+        val idBytes = runCatching { Base64.decode(i, Base64.URL_SAFE) }.getOrNull() ?: return
+        runCatching { store(idBytes + k, false) }.onFailure { Log.w(TAG, "keystore", it); return }
+        remote = emptyList()
+        remoteUpdated = 0L
+        lastSent = null
+        upload()
     }
 
     /** Redeems a code made on another device, turns Tabs on PC on and adopts its secret. */

@@ -204,7 +204,7 @@ function secPcTabs() {
   if (!on) { out.push(h("div", { class: "chips" }, enterCodeBtn())); return out; }
   if (!SET.pcSub) {
     SET.pcSub = true;
-    window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; refreshSettings(); });
+    window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; SET.linkCats = null; refreshSettings(); });
   }
   if (SET.pcRemote == null) {
     SET.pcRemote = false;

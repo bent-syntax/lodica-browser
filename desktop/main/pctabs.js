@@ -301,6 +301,15 @@ async function pairCode() {
   }).catch(() => null);
   if (!r || !r.ok) return null;
   const code = (await r.json()).code || null;
+  // The device that takes the code becomes a peer, so this one must be the owner. A device that was a peer
+  // of an older link would otherwise write and read the same blobs as the new one.
+  if (code && !state.owner) {
+    state.owner = true;
+    save();
+    remote = { tabs: [], updated: 0 };
+    ui?.push("pctabs.remote", status());
+    if (enabled()) { upload(); fetchRemote(); }
+  }
   if (code) waitForJoin(code);
   return code;
 }
