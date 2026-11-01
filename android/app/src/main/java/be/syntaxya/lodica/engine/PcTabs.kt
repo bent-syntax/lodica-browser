@@ -478,9 +478,9 @@ object PcTabs {
     private fun settingsMap(): Map<String, JsonElement> = mapOf(
         "theme" to JsonPrimitive(if (Prefs.theme == "dynamic") "system" else Prefs.theme),
         "customTheme" to (Prefs.customTheme?.let { c -> JsonObject(mapOf("bg" to JsonPrimitive(c.bg), "text" to JsonPrimitive(c.text),
-            "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at))) } ?: JsonNull),
+            "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at)) + themeExtras(c.light, c.anim)) } ?: JsonNull),
         "savedThemes" to JsonArray(Prefs.savedThemes.map { t -> JsonObject(mapOf("name" to JsonPrimitive(t.name), "bg" to JsonPrimitive(t.bg),
-            "text" to JsonPrimitive(t.text), "accent" to JsonPrimitive(t.accent), "accent2" to JsonPrimitive(t.accent2))) }),
+            "text" to JsonPrimitive(t.text), "accent" to JsonPrimitive(t.accent), "accent2" to JsonPrimitive(t.accent2)) + themeExtras(t.light, t.anim)) }),
         "language" to JsonPrimitive(Prefs.language.name),
         "darkPages" to JsonPrimitive(Prefs.darkPages),
         "httpsOnly" to JsonPrimitive(Prefs.httpsOnly),
@@ -514,6 +514,19 @@ object PcTabs {
         sp.edit().putString("themeFrom", v).apply()
     }
 
+    private fun themeExtras(light: List<String>, anim: String): Map<String, JsonElement> = buildMap {
+        if (light.size == 4) put("light", JsonObject(mapOf("bg" to JsonPrimitive(light[0]), "text" to JsonPrimitive(light[1]),
+            "accent" to JsonPrimitive(light[2]), "accent2" to JsonPrimitive(light[3]))))
+        if (anim.isNotEmpty()) put("anim", JsonPrimitive(anim))
+    }
+
+    private fun readExtras(o: JsonObject): Pair<List<String>, String> {
+        val l = (o["light"] as? JsonObject)?.let { lo -> listOf("bg", "text", "accent", "accent2").map { (lo[it] as? JsonPrimitive)?.contentOrNull.orEmpty() } }
+            ?.takeIf { CustomTheme.validLight(it) }.orEmpty()
+        val a = (o["anim"] as? JsonPrimitive)?.contentOrNull?.takeIf { it in CustomTheme.ANIMS }.orEmpty()
+        return l to a
+    }
+
     private fun applySettings(m: Map<String, JsonElement>, theme: Boolean = true, rest: Boolean = true) {
         fun str(k: String) = (m[k] as? JsonPrimitive)?.takeIf { it.isString }?.content
         fun bool(k: String) = (m[k] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
@@ -521,7 +534,8 @@ object PcTabs {
             fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
             val at = (o["at"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: System.currentTimeMillis()
             if (CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2"))) {
-                val t = CustomTheme(c("bg"), c("text"), c("accent"), c("accent2"), at)
+                val (lo, an) = readExtras(o)
+                val t = CustomTheme(c("bg"), c("text"), c("accent"), c("accent2"), at, lo, an)
                 if (t != Prefs.customTheme) Prefs.updateCustomTheme(t)
             }
         }
@@ -530,7 +544,7 @@ object PcTabs {
                 val o = e as? JsonObject ?: return@mapNotNull null
                 fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
                 if (c("name").isNotBlank() && CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2")))
-                    SavedTheme(c("name").replace('|', ' ').replace('\n', ' ').trim().take(40), c("bg"), c("text"), c("accent"), c("accent2")) else null
+                    readExtras(o).let { (lo, an) -> SavedTheme(c("name").replace('|', ' ').replace('\n', ' ').trim().take(40), c("bg"), c("text"), c("accent"), c("accent2"), lo, an) } else null
             }
             Prefs.updateSavedThemes(list)
         }

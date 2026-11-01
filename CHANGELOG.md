@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.31 (versionCode 191)
+- Added: The AI theme maker can make a theme with a light and a dark version that follows the system theme, and can add an animation (pulse, glow, drift, float or shimmer) on the PC start page and search page. The phone keeps and syncs both, and follows the system light or dark; it does not play the animation yet
+
 ## 1.14.30 (versionCode 190)
 - Changed: Saved themes and holiday themes now show as swatches like the other themes (background with two colour dots). Holiday themes moved to the bottom of the theme settings
 

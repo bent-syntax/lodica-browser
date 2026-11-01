@@ -1,4 +1,5 @@
 "use strict";
+// A custom theme may carry a light variant (c.light) that is used when the system is light, and an animation preset (c.anim).
 // Turns the custom theme colours (four required, raised, high and muted optional) into the CSS variables the themes use. Shared by the browser UI and the start page.
 function customVars(c) {
   const lum = (hex) => { const n = parseInt(hex.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
@@ -10,9 +11,18 @@ function customVars(c) {
   };
 }
 function applyCustom(root, theme, c) {
-  const ok = c && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(c[k]));
-  const vars = ok && theme === "custom" ? customVars(c) : null;
+  const full = c && c.light && typeof c.light === "object" && typeof matchMedia === "function" && !matchMedia("(prefers-color-scheme: dark)").matches ? Object.assign({}, c, c.light) : c;
+  const ok = full && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(full[k]));
+  const vars = ok && theme === "custom" ? customVars(full) : null;
   for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "color-scheme"]) {
     if (vars) root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
+  }
+  const anim = vars && c && ["pulse", "glow", "drift", "float", "shimmer"].includes(c.anim) ? c.anim : "";
+  if (anim) root.setAttribute("data-theme-anim", anim); else root.removeAttribute("data-theme-anim");
+  // A light/dark theme re-applies itself when the system switches.
+  root.__customArgs = [root, theme, c, sys];
+  if (c && c.light && typeof matchMedia === "function" && !applyCustom.watching) {
+    applyCustom.watching = true;
+    matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { const a = root.__customArgs; if (a) applyCustom(...a); });
   }
 }

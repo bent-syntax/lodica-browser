@@ -21,3 +21,14 @@ test("drops hostile extra keys", () => {
   const t = parse('{"bg":"#101010","text":"#ffffff","accent":"#ff0000","accent2":"#00ff00","x":"url(javascript:1)"}');
   assert.deepStrictEqual(Object.keys(t).sort(), ["accent", "accent2", "bg", "text"]);
 });
+test("reads dark and light variants and an animation", () => {
+  const t = parse('{"dark":{"bg":"#101010","text":"#ffffff","accent":"#ff0000","accent2":"#00ff00"},"light":{"bg":"#ffffff","text":"#111111","accent":"#cc0000","accent2":"#00aa00"},"animation":"glow"}');
+  assert.strictEqual(t.bg, "#101010");
+  assert.strictEqual(t.light.bg, "#FFFFFF");
+  assert.strictEqual(t.anim, "glow");
+});
+test("ignores an unknown animation and a bad light variant", () => {
+  const t = parse('{"dark":{"bg":"#101010","text":"#ffffff","accent":"#ff0000","accent2":"#00ff00"},"light":{"bg":"red"},"animation":"explode"}');
+  assert.strictEqual(t.anim, undefined);
+  assert.strictEqual(t.light, undefined);
+});

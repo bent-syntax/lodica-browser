@@ -369,12 +369,16 @@ object Relay {
         val (code, body) = request("GET", "/api/theme")
         val remote = if (code == 200) runCatching {
             val o = org.json.JSONObject(body)
-            CustomTheme(o.getString("bg"), o.getString("text"), o.getString("accent"), o.getString("accent2"), o.optLong("at"))
+            val lo = o.optJSONObject("light")?.let { l -> listOf("bg", "text", "accent", "accent2").map { l.optString(it) } }?.takeIf { CustomTheme.validLight(it) }.orEmpty()
+            CustomTheme(o.getString("bg"), o.getString("text"), o.getString("accent"), o.getString("accent2"), o.optLong("at"), lo,
+                o.optString("anim").takeIf { it in CustomTheme.ANIMS }.orEmpty())
                 .takeIf { CustomTheme.valid(it.bg, it.text, it.accent, it.accent2) }
         }.getOrNull() else null
         if (remote != null && remote.at > (local?.at ?: 0L)) return remote
         if (local != null && local.at > (remote?.at ?: 0L)) {
             val o = org.json.JSONObject().put("bg", local.bg).put("text", local.text).put("accent", local.accent).put("accent2", local.accent2).put("at", local.at)
+            if (local.light.size == 4) o.put("light", org.json.JSONObject().put("bg", local.light[0]).put("text", local.light[1]).put("accent", local.light[2]).put("accent2", local.light[3]))
+            if (local.anim.isNotEmpty()) o.put("anim", local.anim)
             request("PUT", "/api/theme", o.toString().toByteArray(), "application/json")
         }
         return null

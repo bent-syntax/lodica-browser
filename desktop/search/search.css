@@ -240,3 +240,15 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 #top a.add .fav { width: 56px; height: 56px; margin-top: 0; font-size: 24px; color: var(--amber); }
 #top a.add span.n { color: var(--sub); }
 @media (prefers-reduced-motion: reduce) { #top a:hover .fav { transform: none; } }
+
+/* Theme animations from a custom theme (data-theme-anim). Soft accent glow behind the page; off with reduced motion. */
+html[data-theme-anim] body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.18}
+html[data-theme-anim=pulse] body::before{background:radial-gradient(circle at 50% 40%,var(--amber),transparent 60%);animation:tpulse 6s ease-in-out infinite}
+html[data-theme-anim=glow] body::before{background:radial-gradient(circle at 20% 80%,var(--amber),transparent 45%),radial-gradient(circle at 80% 20%,var(--coral),transparent 45%);animation:tpulse 9s ease-in-out infinite}
+html[data-theme-anim=drift] body::before{background:linear-gradient(120deg,var(--amber),transparent 40%,var(--coral));background-size:200% 200%;animation:tdrift 16s ease-in-out infinite}
+html[data-theme-anim=float] body::before{inset:-20%;background:radial-gradient(circle at 30% 30%,var(--amber),transparent 30%),radial-gradient(circle at 70% 70%,var(--coral),transparent 30%);animation:tfloat 14s ease-in-out infinite}
+html[data-theme-anim=shimmer] body::before{background:linear-gradient(100deg,transparent 30%,var(--amber) 50%,transparent 70%);background-size:300% 100%;animation:tdrift 8s linear infinite}
+@keyframes tpulse{0%,100%{opacity:.08}50%{opacity:.26}}
+@keyframes tdrift{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
+@keyframes tfloat{0%,100%{transform:translate(0,0)}50%{transform:translate(4%,-4%)}}
+@media (prefers-reduced-motion:reduce){html[data-theme-anim] body::before{animation:none}}

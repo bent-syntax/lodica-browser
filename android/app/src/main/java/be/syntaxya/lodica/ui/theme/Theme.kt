@@ -109,7 +109,7 @@ object ThemeState {
     val palette: Palette
         get() {
             if (Prefs.theme == "dynamic") dynamic?.let { return it }
-            if (Prefs.theme == "custom") Prefs.customTheme?.let { return customPalette(it) }
+            if (Prefs.theme == "custom") Prefs.customTheme?.let { return customPalette(if (systemDark) it else it.forLight()) }
             val key = when (val k = Prefs.theme) {
                 "system", "dynamic" -> if (systemDark) "dark" else "light"
                 else -> k

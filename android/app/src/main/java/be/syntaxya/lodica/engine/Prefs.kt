@@ -30,15 +30,34 @@ enum class Language(val label: String, val code: String, val accept: Array<Strin
 }
 
 /** User-made theme: four #RRGGBB colours plus the time they were last changed, so devices can sync newest-wins. */
-data class CustomTheme(val bg: String, val text: String, val accent: String, val accent2: String, val at: Long) {
+data class CustomTheme(
+    val bg: String, val text: String, val accent: String, val accent2: String, val at: Long,
+    /** Optional variant used while the system is light: bg, text, accent, accent2 (empty when none). */
+    val light: List<String> = emptyList(),
+    /** Optional animation preset, one of [ANIMS], or empty. */
+    val anim: String = "",
+) {
+    /** This theme with its light variant swapped in, when it has one. */
+    fun forLight() = if (light.size == 4) copy(bg = light[0], text = light[1], accent = light[2], accent2 = light[3], light = emptyList()) else this
     companion object {
         private val HEX = Regex("^#[0-9a-fA-F]{6}$")
+        val ANIMS = listOf("pulse", "glow", "drift", "float", "shimmer")
         fun valid(vararg c: String) = c.all { HEX.matches(it) }
+        fun validLight(l: List<String>) = l.size == 4 && valid(*l.toTypedArray())
+        fun pack(c: CustomTheme) = listOf(c.bg, c.text, c.accent, c.accent2, c.at.toString()) +
+            (if (c.light.size == 4 || c.anim.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList())
+        fun unpack(p: List<String>): CustomTheme? {
+            if ((p.size != 5 && p.size != 10) || !valid(p[0], p[1], p[2], p[3])) return null
+            val l = if (p.size == 10) p.subList(5, 9).takeIf { validLight(it) } ?: emptyList() else emptyList()
+            val a = if (p.size == 10 && p[9] in ANIMS) p[9] else ""
+            return CustomTheme(p[0], p[1], p[2], p[3], p[4].toLongOrNull() ?: 0L, l, a)
+        }
     }
 }
 
 /** A named custom theme kept in the saved list. */
-data class SavedTheme(val name: String, val bg: String, val text: String, val accent: String, val accent2: String)
+data class SavedTheme(val name: String, val bg: String, val text: String, val accent: String, val accent2: String,
+                      val light: List<String> = emptyList(), val anim: String = "")
 
 /** App preferences, observable from Compose. */
 object Prefs {
@@ -207,11 +226,14 @@ object Prefs {
         spellAuto = sp.getBoolean("spellAuto", false)
         spellLangs = sp.getStringSet("spellLangs", null) ?: setOf("en")
         savedThemes = sp.getString("savedThemes", null).orEmpty().lines().mapNotNull { l ->
-            l.split('|').takeIf { it.size == 5 && it[0].isNotBlank() && CustomTheme.valid(it[1], it[2], it[3], it[4]) }
-                ?.let { SavedTheme(it[0], it[1], it[2], it[3], it[4]) }
+            l.split('|').takeIf { (it.size == 5 || it.size == 10) && it[0].isNotBlank() && CustomTheme.valid(it[1], it[2], it[3], it[4]) }
+                ?.let { p ->
+                    SavedTheme(p[0], p[1], p[2], p[3], p[4],
+                        if (p.size == 10) p.subList(5, 9).takeIf { CustomTheme.validLight(it) } ?: emptyList() else emptyList(),
+                        if (p.size == 10 && p[9] in CustomTheme.ANIMS) p[9] else "")
+                }
         }.take(50)
-        customTheme = sp.getString("customTheme", null)?.split(',')?.takeIf { it.size == 5 && CustomTheme.valid(it[0], it[1], it[2], it[3]) }
-            ?.let { CustomTheme(it[0], it[1], it[2], it[3], it[4].toLongOrNull() ?: 0L) }
+        customTheme = sp.getString("customTheme", null)?.split(',')?.let { CustomTheme.unpack(it) }
         noDummy = sp.getStringSet("noDummy", emptySet())!!.toSet()
         totpSkip = sp.getStringSet("totpSkip", emptySet())!!.toSet()
         sp.getStringSet("menuPins", null)?.let { menuPins = it.toSet() }
@@ -278,19 +300,20 @@ object Prefs {
             .distinctBy { it.name.lowercase() }.take(50)
         if (clean == savedThemes) return
         savedThemes = clean
-        sp.edit().putString("savedThemes", clean.joinToString("\n") { "${it.name}|${it.bg}|${it.text}|${it.accent}|${it.accent2}" }).apply()
+        sp.edit().putString("savedThemes", clean.joinToString("\n") { t ->
+            (listOf(t.name, t.bg, t.text, t.accent, t.accent2) + (if (t.light.size == 4 || t.anim.isNotEmpty()) (if (t.light.size == 4) t.light else List(4) { "-" }) + t.anim else emptyList())).joinToString("|") }).apply()
     }
 
     /** Adds or replaces a saved theme by name; newest first. */
-    fun saveTheme(name: String, bg: String, text: String, accent: String, accent2: String) {
+    fun saveTheme(name: String, bg: String, text: String, accent: String, accent2: String, light: List<String> = emptyList(), anim: String = "") {
         val n = name.replace('|', ' ').replace('\n', ' ').trim().take(40)
         if (n.isEmpty()) return
-        updateSavedThemes(listOf(SavedTheme(n, bg, text, accent, accent2)) + savedThemes.filter { !it.name.equals(n, true) })
+        updateSavedThemes(listOf(SavedTheme(n, bg, text, accent, accent2, light, anim)) + savedThemes.filter { !it.name.equals(n, true) })
     }
 
     fun updateCustomTheme(c: CustomTheme?) {
         customTheme = c
-        sp.edit().apply { if (c == null) remove("customTheme") else putString("customTheme", "${c.bg},${c.text},${c.accent},${c.accent2},${c.at}") }.apply()
+        sp.edit().apply { if (c == null) remove("customTheme") else putString("customTheme", CustomTheme.pack(c).joinToString(",")) }.apply()
         Helper.push(); appCtx?.let { refreshWidgets(it) }
     }
     fun updateAutoCorrect(v: Boolean) { autoCorrect = v; sp.edit().putBoolean("autoCorrect", v).apply() }

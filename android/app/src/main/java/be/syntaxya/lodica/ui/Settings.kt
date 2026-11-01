@@ -1752,7 +1752,8 @@ private fun CustomThemeEditor() {
                     busy = false
                     r.onSuccess {
                         bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2
-                        Prefs.saveTheme(idea.trim(), it.bg, it.text, it.accent, it.accent2)
+                        Prefs.saveTheme(idea.trim(), it.bg, it.text, it.accent, it.accent2, it.light, it.anim)
+                        if (it.light.isNotEmpty() || it.anim.isNotEmpty()) Prefs.updateCustomTheme(it)
                         Relay.syncThemeNow()
                     }.onFailure { Toast.makeText(ctx, it.message ?: "Could not make a theme", Toast.LENGTH_SHORT).show() }
                 }
@@ -1772,7 +1773,8 @@ private fun CustomThemeEditor() {
         Button(
             enabled = ok,
             onClick = {
-                Prefs.updateCustomTheme(CustomTheme(bg, text, accent, accent2, System.currentTimeMillis()))
+                val same = saved?.takeIf { it.bg == bg && it.text == text && it.accent == accent && it.accent2 == accent2 }
+                Prefs.updateCustomTheme(CustomTheme(bg, text, accent, accent2, System.currentTimeMillis(), same?.light.orEmpty(), saved?.anim.orEmpty()))
                 Prefs.updateTheme("custom")
                 Relay.syncThemeNow()
             },

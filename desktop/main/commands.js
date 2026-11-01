@@ -363,11 +363,24 @@ function init(deps) {
   relay.setOnRefresh(pullTheme);
   setTimeout(pullTheme, 3000).unref?.();
   setInterval(pullTheme, 10 * 60 * 1000).unref?.();
+  // Optional extras on a custom theme: a light variant (follows the system) and an animation preset.
+  const ANIMS = ["pulse", "glow", "drift", "float", "shimmer"];
+  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted"];
+  const themeExtras = (c, out) => {
+    const l = c && c.light;
+    if (l && typeof l === "object" && ["bg", "text", "accent", "accent2"].every(k => HEX.test(l[k]))) {
+      out.light = {};
+      for (const k of THEME_KEYS) if (HEX.test(l[k])) out.light[k] = l[k];
+    }
+    if (c && ANIMS.includes(c.anim)) out.anim = c.anim;
+    return out;
+  };
   on("theme.custom", async (c, use) => {
     if (c === null) { d.prefs.set("customTheme", null); return true; }
     if (!c || !["bg", "text", "accent", "accent2"].every(k => HEX.test(c[k]))) return false;
     const out = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2, at: Date.now() };
     for (const k of ["raised", "high", "muted"]) if (HEX.test(c[k])) out[k] = c[k];
+    themeExtras(c, out);
     d.prefs.set("customTheme", out);
     if (use) d.prefs.set("theme", "custom"); // colour edits alone never switch the theme
     pullTheme();
@@ -378,7 +391,8 @@ function init(deps) {
     name = str(name).trim().slice(0, 40);
     if (!name || !c || !["bg", "text", "accent", "accent2"].every(k => HEX.test(c[k]))) return false;
     const t = { name };
-    for (const k of ["bg", "text", "accent", "accent2", "raised", "high", "muted"]) if (HEX.test(c[k])) t[k] = c[k];
+    for (const k of THEME_KEYS) if (HEX.test(c[k])) t[k] = c[k];
+    themeExtras(c, t);
     const list = (d.prefs.p.savedThemes || []).filter(x => x.name.toLowerCase() !== name.toLowerCase());
     d.prefs.set("savedThemes", [t, ...list].slice(0, 50));
     return true;
