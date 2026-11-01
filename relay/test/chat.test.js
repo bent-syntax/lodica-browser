@@ -16,8 +16,10 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/chat/file') return chat.postFile(req, res, '1.2.3.5', url, h);
   const fm = /^\/api\/chat\/file\/(.+)$/.exec(url.pathname);
   if (fm) return require('../src/chatfile').serve(req, res, fm[1], url.searchParams.get('dl') === '1');
+  if (url.pathname === '/api/chat/read') return chat.read(req, res, h);
   if (req.method === 'POST') return chat.post(req, res, '1.2.3.4', h);
   if (url.pathname === '/api/chat/users') return chat.users(req, res, url, h);
+  if (url.pathname === '/api/chat/reads') return chat.readsOf(req, res, url, h);
   chat.get(req, res, url, h);
 });
 
@@ -102,6 +104,13 @@ server.listen(0, '127.0.0.1', async () => {
     await call(port, 'GET', '/api/chat/users?name=Cy');
     const names = (await call(port, 'GET', '/api/chat/users')).json.users.map((u) => u.name);
     assert.ok(names.includes('Ann') && names.includes('Cy'));
+    // OS and online flag, read receipts.
+    await call(port, 'GET', '/api/chat/users?name=Cy&os=linux');
+    const cy = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
+    assert.ok(cy.os === 'linux' && cy.online === true);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 1 })).status, 200);
+    assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 400);
     // Rate limit: more than 20 posts in the window are refused.
     let limited = 0;
     for (let i = 0; i < 25; i++) if ((await call(port, 'POST', '/api/chat', { text: 'x' })).status === 429) limited++;

@@ -29,7 +29,7 @@ object SiteIcons {
         val h = key(host)
         if (h.isEmpty()) return null
         cached(h)?.let { return it }
-        synchronized(cache) { failed[h]?.let { if (System.currentTimeMillis() - it < 10 * 60_000) return null } }
+        synchronized(cache) { failed[h]?.let { if (System.currentTimeMillis() - it < 2 * 60_000) return null } }
         val origin = (if (http) "http://" else "https://") + host.lowercase()
         val fromTabs = runCatching {
             TabManager.tabs.toList().filter { key(it.host) == h && !it.private }.flatMap { it.icons }
@@ -45,13 +45,32 @@ object SiteIcons {
         return null
     }
 
+    /** Opens [u] and follows up to 4 redirects, including http to https and a changed host, which HttpURLConnection will not do. */
+    private fun open(u: URL): HttpURLConnection {
+        var cur = u
+        repeat(5) {
+            val c = cur.openConnection() as HttpURLConnection
+            c.connectTimeout = 4000; c.readTimeout = 4000; c.instanceFollowRedirects = false
+            c.setRequestProperty("User-Agent", "Mozilla/5.0 (Android 14; Mobile) Lodica")
+            val code = c.responseCode
+            val loc = c.getHeaderField("Location")
+            if (code in 300..399 && loc != null) {
+                c.disconnect()
+                cur = URL(cur, loc)
+                if (cur.protocol != "https" && cur.protocol != "http") throw java.io.IOException("redirect")
+                return@repeat
+            }
+            return c
+        }
+        throw java.io.IOException("too many redirects")
+    }
+
     private fun key(host: String) = host.lowercase().removePrefix("www.")
 
     /** `<link rel="icon">` and apple-touch-icon hrefs from the home page, plain icons first. */
     private fun declared(origin: String): List<String> = runCatching {
-        val c = URL("$origin/").openConnection() as HttpURLConnection
+        val c = open(URL("$origin/"))
         try {
-            c.connectTimeout = 4000; c.readTimeout = 4000
             if (c.responseCode != 200 || !c.contentType.orEmpty().contains("html")) return emptyList()
             val html = c.inputStream.bufferedReader().use { r -> val b = CharArray(256 * 1024); var n = 0
                 while (n < b.size) { val k = r.read(b, n, b.size - n); if (k < 0) break; n += k }
@@ -61,15 +80,14 @@ object SiteIcons {
             fun rel(t: String) = Regex("rel\\s*=\\s*[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE).find(t)?.groupValues?.get(1)?.lowercase().orEmpty()
             val plain = tags.filter { rel(it).split(' ').contains("icon") }.mapNotNull(::href)
             val apple = tags.filter { rel(it).startsWith("apple-touch-icon") }.mapNotNull(::href)
-            (plain + apple).filter { !it.startsWith("data:") }.mapNotNull { runCatching { URL(URL("$origin/"), it).toString() }.getOrNull() }
+            (plain + apple).filter { !it.startsWith("data:") }.mapNotNull { runCatching { URL(c.url, it).toString() }.getOrNull() }
         } finally { c.disconnect() }
     }.getOrDefault(emptyList())
 
     private fun fetch(u: URL): Bitmap? {
         if (u.protocol != "https" && u.protocol != "http") return null
-        val c = u.openConnection() as HttpURLConnection
+        val c = open(u)
         try {
-            c.connectTimeout = 4000; c.readTimeout = 4000
             if (c.responseCode != 200) return null
             val bytes = c.inputStream.use { ins ->
                 val out = ByteArrayOutputStream()

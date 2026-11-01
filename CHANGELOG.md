@@ -2,6 +2,20 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.24 (versionCode 184)
+- Added: Server chat shows who is online with their device and name, and a "Seen" line under your last message
+- Added: Themes refresh the start page when changed, and the Linux system theme follows the desktop
+- Added: The download animation uses the theme colours and starts at the cursor
+- Fixed: The mouse back button went back two pages
+- Fixed: The toolbar download button shows the download arrow again
+- Fixed: On Linux an update replaces the running AppImage instead of adding a new one
+- Fixed: Tabs flickering on desktop
+- Fixed: Phone shortcuts now show the site logo more often, and a hidden toolbar no longer blocks taps
+- Fixed: The phone settings show one theme preview
+- Fixed: The fallback search engine is available on Linux
+- Changed: The planner on the start page is off by default
+- Changed: AI server emojis are simpler and keep their shapes inside the picture
+
 ## 1.14.23 (versionCode 183)
 - Fixed: The device that shows a link code now always becomes the owner of the link. Before, two devices could both end up reading data nobody wrote, so tabs, authenticator keys and passwords did not show on the other device
 - Fixed: Settings > Link refreshes the key status when the other device changes the link

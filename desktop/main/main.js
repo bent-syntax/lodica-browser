@@ -456,6 +456,10 @@ function wire(m) {
     ui.push("prefs", m.prefs.p);
     tabs.refresh();
     if (key === "vertTabs" || key === "barBottom" || key === "vertWidth" || key === "vertCollapsed") { ui.fit(); tabs.fit(); }
+    if (["theme", "customTheme", "themePlugin", "holidayFx", "bg"].includes(key)) for (const t of tabs.all()) {
+      const wc = tabs.wcOf(t);
+      if (wc && !wc.isDestroyed() && /^lodica:\/\/search\/search\.html(\?(?!.*\bq=)[^#]*)?$/.test(wc.getURL())) wc.reload();
+    }
     if (key === "userAgent") for (const t of tabs.all()) { const wc = tabs.wcOf(t); if (wc) m.commands.applyAgent(t, wc); }
   });
 

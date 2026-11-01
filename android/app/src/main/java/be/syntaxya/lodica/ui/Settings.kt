@@ -5,7 +5,6 @@ import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import be.syntaxya.lodica.ui.theme.IconTile
 import android.text.format.DateUtils
-import be.syntaxya.lodica.ui.theme.customPalette
 import be.syntaxya.lodica.engine.Emojis
 import be.syntaxya.lodica.engine.CustomTheme
 import android.view.WindowManager
@@ -1698,7 +1697,7 @@ private fun ThemePicker() {
     CustomThemeEditor()
 }
 
-/** Four hex colours, a live preview, and save. Saved themes sync to the relay and to other devices. */
+/** Four hex colours and save. Saved themes sync to the relay and to other devices. */
 @Composable
 private fun WidgetEditor() {
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -1732,7 +1731,6 @@ private fun CustomThemeEditor() {
         saved?.let { bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2 }
     }
     val ok = CustomTheme.valid(bg, text, accent, accent2)
-    val preview = if (ok) customPalette(CustomTheme(bg, text, accent, accent2, 0)) else null
     Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Your own theme", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium)
         Text(
@@ -1767,23 +1765,6 @@ private fun CustomThemeEditor() {
                 value = value, onValueChange = { set(it.trim()) }, label = { Text(label) }, singleLine = true,
                 isError = !CustomTheme.valid(value), modifier = Modifier.fillMaxWidth(),
             )
-        }
-        if (preview != null) {
-            Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(preview.bg)).padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text("Preview", color = Color(preview.text), fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text("Muted text looks like this", color = Color(preview.muted), fontSize = 13.sp)
-                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(preview.raised)).padding(10.dp)) {
-                    Text("example.com", color = Color(preview.text), fontSize = 14.sp)
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(Color(preview.accent)))
-                    Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(Color(preview.accent2)))
-                    Box(Modifier.size(24.dp).clip(RoundedCornerShape(6.dp)).background(Color(preview.high)))
-                }
-            }
         }
         Button(
             enabled = ok,

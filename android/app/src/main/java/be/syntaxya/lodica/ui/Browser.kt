@@ -62,6 +62,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.composed
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -216,6 +219,7 @@ private fun BrowserScreen() {
     // Selecting or copying the address must never move the bar: pin it while editing or finding.
     LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.showBar() }
 
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     Box(
         Modifier.fillMaxSize()
             // The borders of a turned page show this dark gradient (Tilt rotate).
@@ -223,6 +227,26 @@ private fun BrowserScreen() {
                 listOf(androidx.compose.ui.graphics.Color(0xFF0B0C12), androidx.compose.ui.graphics.Color(0xFF132052)))) else Modifier)
             .then(if (full) Modifier else Modifier.systemBarsPadding().imePadding())
             .clipToBounds()
+            // Long-press where the hidden bar sat brings it back. Watches only (never consumes), so taps there still reach the page.
+            .pointerInput(Ui.barHidden) {
+                if (!Ui.barHidden) return@pointerInput
+                awaitEachGesture {
+                    val pass = androidx.compose.ui.input.pointer.PointerEventPass.Initial
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = pass)
+                    if (down.position.y < size.height - maxOf(Ui.barHeight, 58.dp.toPx())) return@awaitEachGesture
+                    // The timeout fires (null) only if the finger stays down and still.
+                    val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                        while (true) {
+                            val c = awaitPointerEvent(pass).changes.firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull true
+                            if (!c.pressed || (c.position - down.position).getDistance() > viewConfiguration.touchSlop) return@withTimeoutOrNull true
+                        }
+                    }
+                    if (released == null) {
+                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                        Ui.barHidden = false
+                    }
+                }
+            }
             // Size of the area the page fills; with the keyboard open (adjustResize) it shrinks and the turn follows.
             .onSizeChanged { Tilt.size(it.width, it.height) }
     ) {
@@ -260,19 +284,6 @@ private fun BrowserScreen() {
                 Relay.incoming?.let { MailBanner(it) }
             }
             BottomBar(query, { query = it }, Modifier.align(Alignment.BottomCenter))
-            if (Ui.barHidden) {
-                // Long-press where the bar sits to bring it back.
-                val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-                Box(
-                    Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp))
-                        .pointerInput(Unit) {
-                            detectTapGestures(onLongPress = {
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                                Ui.barHidden = false
-                            })
-                        },
-                )
-            }
         }
     }
 }

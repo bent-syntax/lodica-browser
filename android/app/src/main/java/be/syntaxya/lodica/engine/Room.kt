@@ -3,6 +3,7 @@ package be.syntaxya.lodica.engine
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.Job
@@ -84,8 +85,9 @@ object Room {
     /** Switches conversation and restarts the listener. */
     fun select(r: String) {
         stop()
-        main.post { messages.clear(); error = null }
+        main.post { messages.clear(); reads.clear(); error = null }
         last = -1L
+        readSent = 0L
         room = r
         start()
     }
@@ -93,6 +95,11 @@ object Room {
     /** Adds private chats others have started with this device's name. */
     /** Device names seen on this server (including this one), newest first. Filled by [loadUsers]. */
     val users = mutableStateListOf<String>()
+    data class Peer(val name: String, val os: String, val online: Boolean)
+    val peers = mutableStateListOf<Peer>()
+    /** name -> id of the last message that person has read in the open room. */
+    val reads = mutableStateMapOf<String, Long>()
+    private var readSent = 0L
 
     /** Registers this device by name and fetches the list of names to pick a private chat from. */
     fun loadUsers(ctx: Context) {
@@ -101,12 +108,42 @@ object Room {
             runCatching {
                 settleName(ctx)
                 val me = name(ctx)
-                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8"))
+                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8") + "&os=android")
                 if (code != 200) return@runCatching
                 val arr = JSONObject(body).optJSONArray("users") ?: return@runCatching
-                val names = (0 until arr.length()).map { arr.getJSONObject(it).optString("name") }
-                    .filter { it.isNotBlank() && clean(it) != clean(me) }
-                main.post { users.clear(); users.addAll(names) }
+                val list = (0 until arr.length()).map { arr.getJSONObject(it) }
+                    .map { Peer(it.optString("name"), it.optString("os"), it.optBoolean("online")) }
+                    .filter { it.name.isNotBlank() && clean(it.name) != clean(me) }
+                main.post { users.clear(); users.addAll(list.map { it.name }); peers.clear(); peers.addAll(list) }
+            }
+        }
+    }
+
+    /** Tells the server how far this device has read in the open room, so others see "Seen". */
+    fun markRead(ctx: Context) {
+        if (!Relay.available) return
+        val id = messages.lastOrNull { it.room == room }?.id ?: return
+        if (id <= readSent) return
+        readSent = id
+        val r = room
+        Relay.scope.launch {
+            runCatching {
+                val b = JSONObject().put("name", name(ctx)).put("room", r).put("id", id).toString().toByteArray()
+                Relay.request("POST", "/api/chat/read", b, "application/json")
+            }
+        }
+    }
+
+    fun loadReads() {
+        if (!Relay.available) return
+        val r = room
+        Relay.scope.launch {
+            runCatching {
+                val (code, body) = Relay.request("GET", "/api/chat/reads?room=" + java.net.URLEncoder.encode(r, "UTF-8"))
+                if (code != 200) return@runCatching
+                val o = JSONObject(body).optJSONObject("reads") ?: return@runCatching
+                val m = o.keys().asSequence().associateWith { o.optLong(it) }
+                main.post { if (r == room) { reads.clear(); reads.putAll(m) } }
             }
         }
     }

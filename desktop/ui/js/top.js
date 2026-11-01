@@ -70,7 +70,13 @@ function el(tag, cls, text) {
   return n;
 }
 
+// Rebuilding the strip on every event made tabs and their icons blink, so an unchanged list is skipped and favicons are reused from a small cache.
+let lastSig = "";
+const favs = new Map();
 function render(tabs) {
+  const sig = JSON.stringify(tabs);
+  if (sig === lastSig) return;
+  lastSig = sig;
   const keep = box.scrollLeft;
   box.replaceChildren(...tabs.map(t => {
     const locked = t.private && t.locked;
@@ -79,8 +85,9 @@ function render(tabs) {
     const name = locked ? "Private" : (t.home ? "New tab" : (t.title || t.url));
     let fav;
     if (t.icon && !locked) {
-      fav = el("img", "fv");
-      fav.src = t.icon; fav.alt = "";
+      let img = favs.get(t.icon);
+      if (!img) { img = el("img", "fv"); img.src = t.icon; img.alt = ""; favs.set(t.icon, img); if (favs.size > 64) favs.delete(favs.keys().next().value); }
+      fav = img.cloneNode();
       fav.addEventListener("error", () => fav.replaceWith(el("span", "fl", ([...(name || "?")][0] || "?").toUpperCase())));
     } else fav = el("span", "fl", ([...(name || "?")][0] || "?").toUpperCase());
     row.append(fav, el("span", "l", name));

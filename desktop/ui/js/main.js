@@ -179,7 +179,7 @@ async function start() {
 }
 start();
 
-// Toolbar Downloads button: a folder. While a file downloads the lid opens and a sheet drops in; when it finishes the lid closes.
+// Toolbar Downloads button: the download arrow. While a file downloads the arrow bobs; when it finishes it settles.
 function dlButton() {
   const NS = "http://www.w3.org/2000/svg";
   const s = document.createElementNS(NS, "svg");
@@ -191,9 +191,8 @@ function dlButton() {
     p.setAttribute("stroke-linecap", "round"); p.setAttribute("stroke-linejoin", "round");
     s.appendChild(p);
   };
-  part("dlf-back", "M3.5 8V6.5a1.5 1.5 0 0 1 1.5-1.5h4l2 2.2H19a1.5 1.5 0 0 1 1.5 1.5V8");
-  part("dlf-sheet", "M8 13V4.5h8V13");
-  part("dlf-lid", "M3.5 9.5a1.5 1.5 0 0 1 1.5-1.5h14a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5Z");
+  part("dlf-arrow", "M12 4v11M7.5 10.5 12 15l4.5-4.5");
+  part("dlf-tray", "M5 20h14");
   return h("button", { class: "ib dlp", title: "Downloads", "aria-label": "Downloads", act: () => openDownloads() }, s);
 }
 

@@ -63,7 +63,7 @@ object Prefs {
     var plannerIcs by mutableStateOf(""); private set
     /** Show the newest Notebook notes on the start page. */
     var startNotes by mutableStateOf(true); private set
-    var startPlanner by mutableStateOf(true); private set
+    var startPlanner by mutableStateOf(false); private set
     /** Planner: yellow tasks and red tests, time zone ("" is Brussels, "local" is the device) and a subject per time slot, one "Mon 08:30-09:20 Maths" per line. */
     var plannerColors by mutableStateOf(true); private set
     var plannerTz by mutableStateOf(""); private set
@@ -175,7 +175,7 @@ object Prefs {
         aiAlways = sp.getBoolean("aiAlways", false)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
-        startPlanner = sp.getBoolean("startPlanner", true)
+        startPlanner = sp.getBoolean("startPlanner", false)
         plannerColors = sp.getBoolean("plannerColors", true)
         plannerTz = sp.getString("plannerTz", "") ?: ""
         plannerSlots = sp.getString("plannerSlots", "") ?: ""

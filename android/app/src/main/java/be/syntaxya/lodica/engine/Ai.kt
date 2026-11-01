@@ -229,14 +229,13 @@ object Ai {
 
     private class Reply(val text: String, val input: Long, val output: Long)
 
-    // Apple-emoji look: rounded, glossy, softly shaded. AndroidSVG renders gradients but not filters, so shading is done with gradients and shapes.
-    private const val EMOJI_STYLE = "You draw emoji in the style of Apple's emoji: polished, friendly, rounded 3D-looking shapes. " +
-        "Reply with one complete SVG and nothing else. viewBox=\"0 0 64 64\", the subject fills most of the canvas, centred, transparent background. " +
-        "Use defs with linearGradient and radialGradient for every main surface: a lighter top-left and a darker bottom-right shade of the same hue, " +
-        "a soft white highlight shape (opacity .35 to .6) near the top-left, a subtle darker rim or shadow shape at the bottom, " +
-        "a thin slightly darker outline (stroke-width 1 to 1.5) on the main shape, and rich saturated colours. " +
-        "Keep shapes smooth with curved paths. Add small details (eyes, shine, leaves, patterns) that make the subject recognisable. " +
-        "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 3500 characters."
+    // Simple bold emoji: few shapes, flat colours. AndroidSVG renders gradients but not filters.
+    private const val EMOJI_STYLE = "You draw simple, bold emoji in a friendly rounded style. Reply with one complete SVG and nothing else. " +
+    "viewBox=\"0 0 64 64\", transparent background, the subject centred and filling about 50 of the 64 units. " +
+    "Keep it simple: at most 6 shapes, one main shape plus a few small details, flat colours with at most one linearGradient for the main shape. " +
+    "Every shape must stay fully inside the main shape or touch it cleanly: no circle may overlap another shape by accident or stick out past the outline. " +
+    "Keep all coordinates between 6 and 58 so nothing is cut off. Give each shape a clear job (body, eye, mouth, shine) and do not repeat or stack similar shapes. " +
+    "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 1500 characters."
 
     /** Asks Claude for an Apple-style SVG of [idea]. [done] gets the SVG markup, on the main thread. Needs an API key. */
     fun drawEmoji(idea: String, done: (Result<String>) -> Unit) {

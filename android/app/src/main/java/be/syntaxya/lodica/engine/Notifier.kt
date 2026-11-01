@@ -80,7 +80,7 @@ object Notifier {
         Relay.init(ctx)
         if (!Relay.available) return
         runCatching { checkUpdate(ctx) }
-        runCatching { Relay.request("GET", "/api/chat/users?name=" + Uri.encode(Room.name(ctx))) }
+        runCatching { Relay.request("GET", "/api/chat/users?name=" + Uri.encode(Room.name(ctx)) + "&os=android") }
         runCatching { checkChat(ctx) }
         runCatching { Support.refresh(ctx, notify = true) }
     }

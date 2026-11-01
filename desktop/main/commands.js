@@ -640,13 +640,12 @@ function init(deps) {
     return { ok: true, name: n };
   }
   // Same Apple-style prompt as the phone: the AI draws an SVG, a hidden window renders it to a 256 px PNG.
-  const EMOJI_STYLE = "You draw emoji in the style of Apple's emoji: polished, friendly, rounded 3D-looking shapes. " +
-    "Reply with one complete SVG and nothing else. viewBox=\"0 0 64 64\", the subject fills most of the canvas, centred, transparent background. " +
-    "Use defs with linearGradient and radialGradient for every main surface: a lighter top-left and a darker bottom-right shade of the same hue, " +
-    "a soft white highlight shape (opacity .35 to .6) near the top-left, a subtle darker rim or shadow shape at the bottom, " +
-    "a thin slightly darker outline (stroke-width 1 to 1.5) on the main shape, and rich saturated colours. " +
-    "Keep shapes smooth with curved paths. Add small details that make the subject recognisable. " +
-    "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 3500 characters.";
+  const EMOJI_STYLE = "You draw simple, bold emoji in a friendly rounded style. Reply with one complete SVG and nothing else. " +
+    "viewBox=\"0 0 64 64\", transparent background, the subject centred and filling about 50 of the 64 units. " +
+    "Keep it simple: at most 6 shapes, one main shape plus a few small details, flat colours with at most one linearGradient for the main shape. " +
+    "Every shape must stay fully inside the main shape or touch it cleanly: no circle may overlap another shape by accident or stick out past the outline. " +
+    "Keep all coordinates between 6 and 58 so nothing is cut off. Give each shape a clear job (body, eye, mouth, shine) and do not repeat or stack similar shapes. " +
+    "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 1500 characters.";
   async function svgToPng(svg) {
     const { BrowserWindow } = require("electron");
     const w = new BrowserWindow({ show: false, width: 256, height: 256, transparent: true, frame: false, webPreferences: { sandbox: true, javascript: false, offscreen: true } });
@@ -750,7 +749,12 @@ function init(deps) {
 }
 
 /** Run the action bound to a mouse button ("middle", "back", "forward"). */
+let lastMouse = { btn: "", at: 0 };
 function mouse(btn) {
+  // One physical click can arrive twice (page mouseup and the window's app-command), so the same button within 300 ms counts once.
+  const now = Date.now();
+  if (lastMouse.btn === btn && now - lastMouse.at < 300) return;
+  lastMouse = { btn, at: now };
   const act = Object.assign({ middle: "closeTab", back: "back", forward: "forward" }, d.prefs.p.mouse)[btn];
   if (act && act !== "none") runKey(act);
 }

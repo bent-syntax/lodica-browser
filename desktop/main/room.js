@@ -6,11 +6,12 @@ const store = require("./store");
 const events = new EventEmitter();
 const os = require("os");
 // New installs start with the computer's name; a stored name always wins.
-const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", names: store.load("roomNames", []) || [], room: "", chats: store.load("roomChats", []) || [], pending: [] };
+const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", names: store.load("roomNames", []) || [], room: "", chats: store.load("roomChats", []) || [], pending: [], online: [], reads: {} };
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
 const clean = n => String(n || "").replace(/[\s|\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u2028\u2029\ufeff]/g, "_").slice(0, 32) || "_";
+const OS_NAME = { linux: "linux", win32: "windows", darwin: "macos" }[process.platform] || "other";
 const roomQ = r => (r ? "&room=" + encodeURIComponent(r) : "");
 
 /** Remembers every name this device has used, so older messages stay "mine" (under the name they were sent with) after a rename. */
@@ -37,6 +38,7 @@ async function loop(my) {
       last = typeof o.last === "number" ? o.last : last;
       if (outbox.length) flush();
       if (fresh.length || state.error) { state.error = null; changed(); }
+      if (fresh.length) markRead();
     } catch {
       if (!running || my !== gen) return;
       state.error = "Can't reach the server";
@@ -46,15 +48,43 @@ async function loop(my) {
   }
 }
 
+let peerTimer = null, readSent = {};
+
+/** Tells the server the newest message this device has seen in the open conversation. */
+async function markRead() {
+  const room = state.room, top = state.messages.reduce((n, m) => Math.max(n, m.id || 0), 0);
+  if (!running || !top || readSent[room] === top) return;
+  readSent[room] = top;
+  try { await relay.request("POST", "/api/chat/read", 10000, { name: state.name, room, id: top }); } catch { readSent[room] = 0; }
+}
+
+/** Refreshes who is online and who has read what in the open conversation. */
+async function peers() {
+  if (!running) return;
+  const room = state.room;
+  const list = await onlineUsers();
+  let reads = {};
+  try {
+    const [status, body] = await relay.request("GET", "/api/chat/reads" + (room ? "?room=" + encodeURIComponent(room) : "?room="), 10000);
+    if (status === 200) reads = JSON.parse(body).reads || {};
+  } catch {}
+  if (room !== state.room) return;
+  const a = JSON.stringify([list, reads]);
+  if (a === JSON.stringify([state.online, state.reads])) return;
+  state.online = list; state.reads = reads; changed();
+}
+
 function start() {
   if (running || !relay.available) return state;
   running = true;
   settleName();
   loop(++gen);
+  peers(); markRead();
+  clearInterval(peerTimer); peerTimer = setInterval(() => { peers(); markRead(); }, 10000);
   return state;
 }
 
-function stop() { running = false; gen++; }
+function stop() { running = false; gen++; clearInterval(peerTimer); peerTimer = null; }
 
 function deviceId() {
   let id = store.load("roomDeviceId", "");
@@ -115,7 +145,7 @@ function removeChat(r) {
 
 /** Switches conversation and restarts the long poll. */
 function select(r) {
-  state.room = String(r || ""); state.messages = []; state.error = null; last = -1; syncPending();
+  state.room = String(r || ""); state.messages = []; state.reads = {}; state.error = null; last = -1; syncPending();
   const was = running;
   gen++;
   if (was) loop(gen);
@@ -135,12 +165,15 @@ async function discover() {
 }
 
 /** Device names seen on the server, without this device. Also registers this device as present. */
-async function users() {
+async function users() { return (await onlineUsers()).map(u => u.name); }
+
+/** Everyone seen on the server except this device: name, operating system, and whether they are online now. */
+async function onlineUsers() {
   try {
-    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name), 15000);
+    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name) + "&os=" + OS_NAME, 15000);
     if (status !== 200) return [];
     const me = clean(state.name);
-    return (JSON.parse(body).users || []).map(u => u.name).filter(n => n && clean(n) !== me);
+    return (JSON.parse(body).users || []).filter(u => u.name && clean(u.name) !== me).map(u => ({ name: u.name, os: u.os || "other", online: !!u.online }));
   } catch { return []; }
 }
 

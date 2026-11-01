@@ -4,15 +4,15 @@
 // [id, label, group]: the sidebar shows one heading per group, then its pages. Same pages, groups and order as Android.
 const SET_TABS = [
   ["search", "Search", "Browsing"], ["sites", "Sites & domains", "Browsing"], ["ai", "Ask AI", "Browsing"],
-  ["theme", "Theme", "Look & tabs"], ["start", "Start page", "Look & tabs"], ["tabs", "Tabs", "Look & tabs"],
+  ["theme", "Theme", "Look & feel"], ["start", "Start page", "Look & feel"],
   ["privacy", "Privacy & history", "Privacy & security"], ["security", "Security & blocking", "Privacy & security"],
   ["data", "Data, apps & extensions", "Data & controls"], ["controls", "Keybinds & controls", "Data & controls"],
   ["link", "Link", "Account"], ["server", "Server & mail", "Account"], ["identity", "Identity & authenticator", "Account"],
   ["about", "Updates & About", "About"]];
 // Section ids that other code passes to openSettings() -> the page that holds them.
-const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", identity: "identity", ai: "ai", emojis: "ai", theme: "theme", appearance: "theme",
+const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", identity: "sites", ai: "ai", emojis: "ai", theme: "theme", appearance: "theme",
   pages: "theme", layout: "theme", transparency: "theme", holidays: "theme", plugins: "theme", background: "start", shortcuts: "start", planner: "start", start: "start",
-  tabs: "tabs", pctabs: "link", link: "link", privacy: "privacy", https: "security", connections: "security", notes: "start", blocking: "security", spelling: "security", translate: "security", security: "security",
+  tabs: "theme", pctabs: "link", link: "link", privacy: "privacy", https: "security", connections: "security", notes: "start", blocking: "security", spelling: "sites", translate: "sites", security: "security",
   vps: "security", server: "server", mail: "server", chat: "server", data: "data", apps: "data", extensions: "data", downloads: "data", keys: "controls", keybinds: "controls", mouse: "controls",
   osk: "controls", auth: "identity", authenticator: "identity", passwords: "privacy", history: "privacy", about: "about", updates: "about" };
 
@@ -54,18 +54,17 @@ function setFindList(q) {
 }
 function setTabBody(tab) {
   switch (tab) {
-    case "sites": return [secBrowsing(), secDns()];
+    case "sites": return [secBrowsing(), secDns(), secIdentity(), secSpell(), secTranslate()];
     case "ai": return [secAi(), secEmojis()].flat();
-    case "theme": return [secTheme(), secDarkPages(), secLayout()];
+    case "theme": return [secTheme(), secDarkPages(), secLayout(), secTabs()];
     case "start": return [secStart()];
-    case "tabs": return [secTabs()];
     case "link": return [secPcTabs()];
     case "privacy": return [secPrivacy()];
-    case "security": return [secBlocking(), secHttps(), secSpell(), secTranslate()];
+    case "security": return [secBlocking(), secHttps()];
     case "data": return [secData(), secApps(), secExtensions(), secDownloads()].flat();
     case "controls": return [secKeys()];
     case "server": return secServer();
-    case "identity": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
+    case "identity": return [typeof secAuth === "function" ? secAuth() : []];
     case "about": return secAbout();
     default: return [secSearch(), secWords(), secSuggest()];
   }
@@ -175,6 +174,9 @@ function secTheme() {
 /** Holiday themes: claim one in the week either side of its holiday, then use it whenever you like. */
 function holidayList() {
   const box = h("div", { class: "ct" });
+  const wrap = h("div", {}, box,
+    h("div", { class: "set-note", text: "Each holiday theme can be claimed from a week before to a week after its holiday. Once claimed it is yours for good, with its own effects." }),
+    setToggle("holidayFx", "Holiday effects", "Falling snow, hearts and more over the start page and every tab. Move the mouse to push them."));
   const when = (r) => r.days > 0 ? "Claimable in " + (r.days - 7) + (r.days - 7 === 1 ? " day" : " days") : "Missed this year";
   const draw = (list) => {
     const th = Object.fromEntries(THEMES.map((t) => [t[0], t]));
@@ -187,14 +189,12 @@ function holidayList() {
         return h("div", { class: "ct-row" },
           h("span", { class: "theme-chip", style: "width:32px;flex:none;background:" + t[2] + ";border-color:" + t[3] },
             h("i", { style: "background:" + t[3] }), h("i", { style: "background:" + t[4] })),
-          h("span", { style: "flex:1", text: r.label + (r.claimed ? "" : r.claimable ? " (claim it now)" : " (" + when(r) + ")") }), btn);
-      }),
-      h("div", { class: "set-note", text: "Each holiday theme can be claimed from a week before to a week after its holiday. Once claimed it is yours for good, with its own effects." }),
-      setToggle("holidayFx", "Holiday effects", "Falling snow, hearts and more over the start page and every tab. Move the mouse to push them."));
+          h("span", { style: "flex:1;min-width:120px", text: r.label + (r.claimed ? "" : r.claimable ? " (claim it now)" : " (" + when(r) + ")") }), btn);
+      }));
   };
   const load = () => inv("holiday.list").then((l) => draw(l || []));
   load();
-  return box;
+  return wrap;
 }
 let pluginRows = null;
 function pluginList() {

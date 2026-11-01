@@ -6,6 +6,7 @@ function openRoom() {
   if (ROOM.L) return ROOM.L;
   ROOM.L = openLayer({ key: "room", cls: "spage-layer", dim: false, onClose: () => { ROOM.L = null; inv("room.stop"); } }, (L) => {
     L.tabs = h("div", { class: "chat-tabs", style: "display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px" });
+    L.who = h("div", { class: "chat-who" });
     L.note = h("div", { class: "empty", style: "padding:6px 12px" });
     L.thread = h("div", { class: "chat-thread" });
     L.name = h("input", { class: "field", maxlength: "32", placeholder: "Your name" });
@@ -58,7 +59,7 @@ function openRoom() {
     return h("div", { class: "spage" },
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
-        L.tabs, L.note, L.thread, L.prog,
+        L.tabs, L.who, L.note, L.thread, L.prog,
         L.pick,
         h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
   });
@@ -114,6 +115,16 @@ function roomText(t) {
   return h("span", {}, ...out);
 }
 
+// Online list, Snapchat style: a character built from the device's OS and the username (the colour comes from the name, so it changes when the name changes), the username above, the device below.
+const ROOM_OS = { android: ["🤖", "Android"], windows: ["🪟", "Windows"], macos: ["🍎", "Mac"], linux: ["🐧", "Linux"], ios: ["📱", "iPhone"], other: ["💻", "Device"] };
+function roomPerson(u) {
+  let hash = 0; for (const c of u.name) hash = (hash * 31 + c.codePointAt(0)) >>> 0;
+  const [g, label] = ROOM_OS[u.os] || ROOM_OS.other;
+  const face = h("div", { class: "chat-face", style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: g });
+  face.append(h("i", { class: "chat-dot" + (u.online ? " on" : "") }));
+  return h("div", { class: "chat-person", title: u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: label }));
+}
+
 function roomLabel(r) {
   if (!r) return "Everyone";
   if (r.startsWith("grp:")) return r.slice(4);
@@ -166,6 +177,9 @@ function roomRender() {
   add.addEventListener("click", roomNew);
   L.tabs.append(add);
   L.note.textContent = ROOM.state.error || (ROOM.state.room ? "Anyone who knows this chat name can read it. Messages are not end-to-end encrypted and are kept 24 hours." : null) || "Everyone linked to this server is in this room. Messages are not end-to-end encrypted and are kept 24 hours.";
+  const people = (ROOM.state.online || []).filter((u) => u.online);
+  const wsig = JSON.stringify(people);
+  if (L.wsig !== wsig) { L.wsig = wsig; clear(L.who); for (const u of people) L.who.append(roomPerson(u)); L.who.style.display = people.length ? "flex" : "none"; }
   const up = ROOM.state.upload;
   L.prog.style.display = up ? "" : "none";
   L.prog.textContent = up ? "Uploading " + up.name + " " + up.pct + "%" : "";
@@ -175,15 +189,19 @@ function roomRender() {
   const emo = (S.prefs.chatEmojiScale || 150) / 100;
   L.thread.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(15 * scale) + "px";
-  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room]);
+  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, ROOM.state.reads]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
+  const mineIds = ROOM.state.messages.filter((m) => m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name)).map((m) => m.id);
+  const lastMine = mineIds.length ? Math.max(...mineIds) : -1;
+  const seenBy = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= lastMine);
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
+    if (m.id === lastMine && seenBy.length) L.thread.append(h("div", { class: "chat-seen", text: ROOM.state.room.startsWith("dm:") ? "Seen" : "Seen by " + seenBy.join(", ") }));
   }
   for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:calc(11px * var(--chat-scale, 1))", text: "Waiting for the server…" })));
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;

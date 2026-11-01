@@ -529,6 +529,16 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return chat.users(req, res, url, { sendJson, sendText, readBody });
   }
+  if (p === '/api/chat/read') {
+    if (m !== 'POST') return not('POST');
+    if (!authed(req, res)) return;
+    return chat.read(req, res, { sendJson, sendText, readBody });
+  }
+  if (p === '/api/chat/reads') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    return chat.readsOf(req, res, url, { sendJson, sendText, readBody });
+  }
   if (p === '/api/chat/claim') {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;

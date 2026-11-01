@@ -207,9 +207,29 @@ async function install() {
     app.quit();
   } else {
     try { fs.chmodSync(state.path, 0o755); } catch {}
+    const cur = process.env.APPIMAGE;
+    if (cur && replaceFile(state.path, cur)) {
+      // The new version now sits where the old AppImage was; start it and close this one.
+      try { require("child_process").spawn(cur, [], { detached: true, stdio: "ignore" }).unref(); } catch {}
+      await sleep(500);
+      app.quit();
+      return true;
+    }
     shell.showItemInFolder(state.path);
   }
   return true;
 }
 
-module.exports = { cmp, init, check, versions, pickVersion, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _removeOld: removeOld, _reset: () => { state = { state: "idle" }; job = null; } };
+/** Puts [from] in the place of [to] (the running AppImage) in one atomic rename. Returns false when that folder is not writable. */
+function replaceFile(from, to) {
+  const tmp = to + ".new";
+  try {
+    fs.copyFileSync(from, tmp);
+    fs.chmodSync(tmp, 0o755);
+    fs.renameSync(tmp, to);
+  } catch { try { fs.unlinkSync(tmp); } catch {} return false; }
+  try { fs.unlinkSync(from); } catch {}
+  return true;
+}
+
+module.exports = { cmp, init, check, versions, pickVersion, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _removeOld: removeOld, _replaceFile: replaceFile, _reset: () => { state = { state: "idle" }; job = null; } };

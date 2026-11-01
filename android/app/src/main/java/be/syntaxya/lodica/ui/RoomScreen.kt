@@ -3,6 +3,8 @@ package be.syntaxya.lodica.ui
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.compose.foundation.background
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -86,6 +88,8 @@ fun RoomScreen() {
     var emojis by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
+    LaunchedEffect(Room.room, msgs.size) { Room.markRead(ctx); Room.loadReads() }
+    LaunchedEffect(Room.room) { while (true) { delay(10_000); Room.loadUsers(ctx); Room.loadReads() } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
@@ -144,11 +148,27 @@ fun RoomScreen() {
             },
             color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
+        if (Room.peers.isNotEmpty()) LazyRow(
+            Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(Room.peers.toList(), key = { it.name }) { p -> PeerChip(p) }
+        }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(msgs, key = { it.id }) { m -> Bubble(m, mine = Room.isMine(ctx, m.name)) }
+            items(msgs, key = { it.id }) { m ->
+                Bubble(m, mine = Room.isMine(ctx, m.name))
+                if (m.id == msgs.lastOrNull { Room.isMine(ctx, it.name) }?.id) {
+                    val me = Room.name(ctx)
+                    val seen = Room.reads.filter { (n, id) -> n != me && id >= m.id }.keys.toList()
+                    if (seen.isNotEmpty()) Text(
+                        if (Room.room.startsWith("dm:")) "Seen" else "Seen by " + seen.joinToString(", "),
+                        color = Muted, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(end = 4.dp), textAlign = TextAlign.End,
+                    )
+                }
+            }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
@@ -324,4 +344,24 @@ private fun EmojiText(t: String) {
         }
     }
     Text(text, color = Mist, fontSize = 14.sp, inlineContent = inline)
+}
+
+private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "mac" to "macOS", "linux" to "Linux")
+
+/** Online strip entry: OS letter in a circle tinted from the name, name above, OS below, dot when online. */
+@Composable
+private fun PeerChip(p: Room.Peer) {
+    val hue = (p.name.fold(0) { a, c -> (a * 31 + c.code) and 0xffff } % 360).toFloat()
+    val tint = androidx.compose.ui.graphics.Color.hsv(hue, 0.45f, 0.75f)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
+        Box(Modifier.size(40.dp).background(tint, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+            Text((OS_LABEL[p.os] ?: "?").take(1), color = GraphiteRaised, fontSize = 15.sp)
+            if (p.online) Box(
+                Modifier.align(Alignment.BottomEnd).size(12.dp)
+                    .background(androidx.compose.ui.graphics.Color(0xFF22C55E), androidx.compose.foundation.shape.CircleShape),
+            )
+        }
+        Text(OS_LABEL[p.os] ?: "Unknown", color = Muted, fontSize = 12.sp, maxLines = 1)
+    }
 }

@@ -4,6 +4,8 @@
 //   GET  /api/chat?after=<id>&wait=<seconds>&room=<room>  -> { messages: [{id,name,text,at,room}], last }
 //   POST /api/chat  { name, text, room }                  -> the stored message
 //   GET  /api/chat/users?name=<me>                        -> {users: [{name, at}]}; a name given counts as presence
+//   POST /api/chat/read  { name, room, id }                -> this device read the room up to message id
+//   GET  /api/chat/reads?room=<room>                       -> {reads: {name: id}}; users also carry `os` and `online`
 //   GET  /api/chat/rooms                                  -> [{room, at, count}] for the non-default rooms
 // A room is just a label: "" is the shared server room, "dm:<a>|<b>" a private chat between two device
 // names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
@@ -23,6 +25,10 @@ const log = [];
 const waiters = new Set();
 const rate = new Map();
 const seen = new Map(); // device name -> last time it was seen in chat
+const osOf = new Map(); // device name -> operating system label last reported
+const reads = new Map(); // room -> Map(name -> id of the last message that device has read)
+const ONLINE = 90e3; // a device that polled within this window counts as online
+const OS_RE = /^(android|windows|macos|linux|ios|other)$/;
 const SEEN_TTL = 7 * 24 * 3600e3;
 
 function touch(name) {
@@ -123,9 +129,11 @@ function rooms(req, res, h) {
 function users(req, res, url, h) {
   const me = (url.searchParams.get('name') || '').replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX);
   if (me) touch(me);
+  const os = (url.searchParams.get('os') || '').toLowerCase();
+  if (me && OS_RE.test(os)) osOf.set(me, os);
   const now = Date.now();
   for (const [n, at] of seen) if (now - at > SEEN_TTL) seen.delete(n);
-  const list = [...seen].map(([name, at]) => ({ name, at })).sort((a, b) => b.at - a.at);
+  const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', online: now - at < ONLINE })).sort((a, b) => b.at - a.at);
   h.sendJson(req, res, 200, { users: list });
 }
 
@@ -148,10 +156,35 @@ function claim(req, res, url, h) {
   h.sendJson(req, res, 200, { ok: true, name });
 }
 
+/** POST /api/chat/read { name, room, id }: this device has read the room up to message [id]. */
+async function read(req, res, h) {
+  let b;
+  try { b = JSON.parse((await h.readBody(req, 1024)).toString('utf8')); }
+  catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const name = (typeof b?.name === 'string' ? b.name.replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX) : '');
+  const room = cleanRoom(b?.room);
+  if (!name || (!room && typeof b?.room === 'string' && b.room !== '')) return h.sendText(req, res, 400, 'bad name or room');
+  if (!Number.isInteger(b?.id) || b.id < 0 || b.id > seq) return h.sendText(req, res, 400, 'bad id');
+  touch(name);
+  const m = reads.get(room) || new Map();
+  if ((m.get(name) || 0) < b.id) m.set(name, b.id);
+  reads.set(room, m);
+  if (reads.size > 500) reads.delete(reads.keys().next().value);
+  h.sendJson(req, res, 200, { ok: true });
+}
+
+/** GET /api/chat/reads?room=: { reads: { name: last read message id } } for the room. */
+function readsOf(req, res, url, h) {
+  const rawRoom = url.searchParams.get('room') || '';
+  const room = cleanRoom(rawRoom);
+  if (!room && rawRoom) return h.sendText(req, res, 400, 'bad room');
+  h.sendJson(req, res, 200, { reads: Object.fromEntries(reads.get(room) || []) });
+}
+
 /** Test hook. */
 function reset() {
   claims.clear();
-  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); for (const w of [...waiters]) w.done([]); }
+  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); osOf.clear(); reads.clear(); for (const w of [...waiters]) w.done([]); }
 
 /** POST /api/chat/file: an attachment, announced to the room as a normal message that carries `file`. */
 async function postFile(req, res, ip, url, h) {
@@ -174,4 +207,4 @@ async function postFile(req, res, ip, url, h) {
   h.sendJson(req, res, 200, msg);
 }
 
-module.exports = { get, post, postFile, rooms, users, claim, reset };
+module.exports = { get, post, postFile, rooms, users, claim, read, readsOf, reset };

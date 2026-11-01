@@ -8,7 +8,7 @@ const { execFile } = require("child_process");
 
 const cfg = () => process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
 const run = (cmd, args) => new Promise(res => execFile(cmd, args, { encoding: "utf8", timeout: 1500 }, (e, out) => res(e ? "" : String(out))));
-const byName = n => (/dark|black|night/i.test(n) ? "dark" : n ? "light" : null);
+const byName = n => (/dark|black|night|mocha|macchiato|frapp|dracula|nord(?!ic-light)|gruvbox(?!.*light)|tokyo|moon|midnight|obsidian|charcoal|-dim\b/i.test(n) ? "dark" : n ? "light" : null);
 
 async function portal() {
   const out = await run("gdbus", ["call", "--session", "--dest", "org.freedesktop.portal.Desktop", "--object-path", "/org/freedesktop/portal/desktop",
@@ -21,7 +21,13 @@ async function gnome() {
   const cs = (await run("gsettings", ["get", "org.gnome.desktop.interface", "color-scheme"])).replace(/['\s]/g, "");
   if (cs === "prefer-dark") return "dark";
   if (cs === "prefer-light") return "light";
-  return byName((await run("gsettings", ["get", "org.gnome.desktop.interface", "gtk-theme"])).replace(/['\s]/g, ""));
+  const gt = (await run("gsettings", ["get", "org.gnome.desktop.interface", "gtk-theme"])).replace(/['\s]/g, "");
+  if (gt) return byName(gt);
+  // No gsettings schema installed: read the dconf database directly.
+  const d = (await run("dconf", ["read", "/org/gnome/desktop/interface/color-scheme"])).replace(/['\s]/g, "");
+  if (d === "prefer-dark") return "dark";
+  if (d === "prefer-light") return "light";
+  return byName((await run("dconf", ["read", "/org/gnome/desktop/interface/gtk-theme"])).replace(/['\s]/g, ""));
 }
 
 function kde() {
