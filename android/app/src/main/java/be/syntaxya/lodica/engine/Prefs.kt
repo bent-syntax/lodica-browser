@@ -338,7 +338,7 @@ object Prefs {
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateSearchWords(v: String) { searchWords = v.trim(); sp.edit().putString("searchWords", searchWords).apply(); Helper.push() }
     fun searchWordPairs(): List<List<String>> = searchWords.lines().mapNotNull { l ->
-        val w = l.trim().substringBefore().lowercase()
+        val w = l.trim().substringBefore(' ').lowercase()
         val u = l.trim().substringAfter(' ', "").trim()
         if (w.isEmpty() || u.isEmpty()) null else listOf(w, u)
     }
