@@ -1,3 +1,7 @@
+## 1.14.26
+
+- Fixed: Link watcher no longer polls in a loop when the server is older
+
 ## 1.14.25
 
 - Fixed: Linking updates within seconds: tabs, authenticator keys, passwords, settings and theme sync as soon as the other device changes them

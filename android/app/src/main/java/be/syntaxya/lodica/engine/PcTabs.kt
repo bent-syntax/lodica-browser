@@ -214,7 +214,7 @@ object PcTabs {
             c.useCaches = false
             c.setRequestProperty("Authorization", "Bearer ${Relay.token}")
             return when (c.responseCode) {
-                200 -> { c.inputStream.use { it.readBytes() }; c.getHeaderField("X-Mtime")?.toLongOrNull() ?: since }
+                200 -> { c.inputStream.use { it.readBytes() }; c.getHeaderField("X-Mtime")?.toLongOrNull() ?: run { Thread.sleep(5_000); since } }
                 304 -> since
                 404 -> -1L
                 else -> throw java.io.IOException("status")

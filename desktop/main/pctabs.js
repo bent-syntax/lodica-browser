@@ -511,6 +511,7 @@ async function watch() {
     try {
       const r = await fetch(`${relay.API}/api/tabs/${rid}?wait=25&since=${since}`, { cache: "no-store", signal: AbortSignal.timeout(40000) });
       bad = 0;
+      if (r.status === 200 && !r.headers.get("x-mtime")) { await r.arrayBuffer(); await new Promise(r => setTimeout(r, 5000)); continue; }
       if (r.status === 200) {
         const m = Number(r.headers.get("x-mtime")) || 0;
         const fresh = since && m > since;
