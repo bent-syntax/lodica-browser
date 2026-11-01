@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.20
+
+- Changed: Version kept in step with the desktop app. No changes on the phone in this release
+
 ## 1.14.19
 
 - Fixed: The link key now moves to a new device however it was linked, also with a pasted link, not only with a code

@@ -464,6 +464,11 @@ async function route(req, res) {
     if (!support.adminOk(req)) return sendText(req, res, 401, 'unauthorized');
     return testsession.join(req, res, { sendJson, sendText, readBody });
   }
+  if (p === '/api/support/admin/test') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!support.adminOk(req)) return sendText(req, res, 401, 'unauthorized');
+    return testsession.adminList(req, res, { sendJson, sendText, readBody });
+  }
   if ((r = /^\/api\/support\/admin\/test\/([0-9a-f]{16})$/.exec(p))) {
     if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
     if (!support.adminOk(req)) return sendText(req, res, 401, 'unauthorized');

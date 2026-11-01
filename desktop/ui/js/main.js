@@ -222,7 +222,7 @@ function onTestSession(d) {
   S.testsession = d;
   refreshSettings();
   if (!d || !d.on) return;
-  const text = d.state === "active" ? "Support is testing this app" : "Support test session. Read this code to support: " + d.code;
+  const text = d.permanent ? "Support can test this app (always allowed)" : d.state === "active" ? "Support is testing this app" : "Support test session. Read this code to support: " + d.code;
   testBar = h("div", { class: "toast on testbar", role: "status" }, ico("shield"), h("div", { class: "t", text, title: text }),
     h("button", { class: "act danger", act: () => inv("testsession.stop") }, "Stop"));
   $("#banner").append(testBar);

@@ -71,7 +71,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `src/proxy.js`, `src/ssrf.js` | Page proxy and SSRF guard. |
 | `src/search.js` | Search backend. |
 | `src/support.js` | Support tickets: `POST /api/support`, `GET` and `POST /api/support/<id>`. |
-| `src/testsession.js` | Remote test session: `/api/support/test` (client) and `/api/support/admin/test` (support). Code, 15 minute expiry, command allowlist. |
+| `src/testsession.js` | Remote test session: `/api/support/test` (client) and `/api/support/admin/test` (support). Code, 15 minute expiry, command allowlist. Optional permanent session that stays open while the app polls; `GET /api/support/admin/test` lists open sessions. |
 | `src/chat.js`, `src/chatfile.js` | Chat rooms and files. |
 | `src/notebook.js` | The shared notebook notes (`/api/notebook`). |
 | `src/enroll.js`, `src/fcm.js` | Device enrollment and push messages. |

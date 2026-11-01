@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.20 (versionCode 180)
+- New: "Always allow support" in Settings > Updates & About, under the test session. It keeps a test session open whenever Lodica runs, so you do not need to read out a new code every 10 minutes. The badge stays on screen and Stop turns it off
+- New: Support can read the text of the open screen during a test session. Password and authenticator screens are never read
+
 ## 1.14.19 (versionCode 179)
 - Fixed: The link key now moves to a new device however it was linked, also with a pasted link, not only with a code
 - Fixed: An old request for the link key on the server no longer blocks a new one

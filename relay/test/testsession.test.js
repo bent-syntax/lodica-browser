@@ -19,6 +19,7 @@ const api = http.createServer((req, res) => {
   if (p === '/unlock') return ts.unlock(req, res, '9.9.9.8', h);
   if (p === '/start') return ts.start(req, res, '9.9.9.9', h);
   if (p === '/join') return ts.join(req, res, h);
+  if (p === '/list') return ts.adminList(req, res, h);
   if ((r = /^\/c\/(\w+)$/.exec(p))) return req.method === 'GET' ? ts.clientGet(req, res, r[1], h) : ts.clientPost(req, res, r[1], h);
   if ((r = /^\/a\/(\w+)$/.exec(p))) return req.method === 'GET' ? ts.adminGet(req, res, r[1], h) : ts.command(req, res, r[1], h);
   send(res, 404, 'no');
@@ -50,6 +51,13 @@ api.listen(0, '127.0.0.1', async () => {
     await call('POST', '/c/' + s.id, { stop: true });
     assert.equal((await call('POST', '/a/' + s.id, { action: 'click', args: {} })).status, 409, 'stopped by user');
     assert.equal((await call('POST', '/join', { code: s.code })).status, 404, 'code dead after stop');
+    const pm = await call('POST', '/start', { unlock: 'open-sesame', permanent: true });
+    const listed = (await call('GET', '/list')).sessions.find((x) => x.id === pm.id);
+    assert.ok(listed && listed.permanent && listed.state === 'active', 'permanent session is listed and active without a join');
+    assert.equal(listed.code, undefined, 'the list never shows codes');
+    assert.equal((await call('POST', '/a/' + pm.id, { action: 'read', args: {} })).seq, 1, 'permanent session takes commands right away');
+    await call('POST', '/c/' + pm.id, { stop: true });
+    assert.equal((await call('GET', '/list')).sessions.some((x) => x.id === pm.id), false, 'stopped sessions leave the list');
     console.log('ok');
   } finally { api.close(); process.exit(process.exitCode || 0); }
 });

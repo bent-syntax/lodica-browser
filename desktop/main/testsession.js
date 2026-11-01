@@ -1,6 +1,8 @@
 // Remote test session. Only runs after the user turned on "Let support connect for testing" and pressed Start.
 // A maintainer joins with the code the user reads out and may run a short allowlist of in-app UI actions.
-// Settings are backed up before the session and restored when it ends. No files, vault or credentials.
+// Settings are backed up before a normal session and restored when it ends (not for the permanent one). No files, vault or credentials.
+// "Always allow" (pref remoteTestAlways) keeps a permanent session open whenever the app runs, so support
+// needs no new code each time. The badge stays visible and Stop turns it off again.
 const relay = require("./relay");
 const store = require("./store");
 const prefs = require("./prefs");
@@ -9,11 +11,11 @@ const SETTINGS = new Set(["theme", "darkPages", "forceDark", "chatScale", "chatE
   "vertTabs", "barBottom", "vertWidth", "vertCollapsed", "historySuggest", "mouse", "keybinds", "quality", "language", "userAgent", "desktopDefault",
   "holidayFx", "emojiPicker", "autoTop", "bg"]);
 const SKIP = /vault|password|credential/i;
-const s = { id: "", code: "", state: "off", expires: 0, seq: 0, run: 0 };
-let ui = null, tabs = null, timer = null, backup = null;
+const s = { id: "", code: "", state: "off", expires: 0, seq: 0, run: 0, perm: false };
+let ui = null, tabs = null, timer = null, backup = null, retry = null;
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
-const info = () => ({ on: s.state !== "off", state: s.state, code: s.code, expires: s.expires });
+const info = () => ({ on: s.state !== "off", state: s.state, code: s.code, expires: s.expires, permanent: s.perm });
 const push = () => { try { ui.push("testsession", info()); } catch {} };
 
 /** Puts every pref back to the value it had before the session. */
@@ -24,15 +26,34 @@ function restore(b) {
 }
 /** After a crash in the middle of a session the backup is still on disk. Put it back at launch. */
 function recover() { const b = store.load("testBackup", null); if (b) restore(b); }
-function init(d) { ui = d.ui; tabs = d.tabs; recover(); prefs.events.on("change", (k) => { if (k === "remoteTest" && !prefs.p.remoteTest) stop(); }); }
+function init(d) {
+  ui = d.ui; tabs = d.tabs; recover();
+  prefs.events.on("change", (k) => {
+    if (k === "remoteTest" && !prefs.p.remoteTest) { if (prefs.p.remoteTestAlways) prefs.set("remoteTestAlways", false); stop(); }
+    if (k === "remoteTestAlways") prefs.p.remoteTestAlways ? keep(1000) : s.perm && stop();
+  });
+  keep(5000);
+}
+/** Keeps the permanent session open: starts it now and again after it closes, while "Always allow" is on. */
+function keep(ms) {
+  clearTimeout(retry);
+  if (!prefs.p.remoteTest || !prefs.p.remoteTestAlways) return;
+  retry = setTimeout(async () => {
+    if (!prefs.p.remoteTest || !prefs.p.remoteTestAlways || s.state !== "off") return;
+    const r = await start(true).catch(() => null);
+    if (!r || r.error) keep(60000);
+  }, ms);
+}
 
 function end(why) {
   if (s.state === "off") return;
   s.run++; clearTimeout(timer);
-  restore(backup || store.load("testBackup", null));
-  Object.assign(s, { id: "", code: "", state: "off", expires: 0, seq: 0 });
+  const wasPerm = s.perm;
+  if (!wasPerm) restore(backup || store.load("testBackup", null));
+  Object.assign(s, { id: "", code: "", state: "off", expires: 0, seq: 0, perm: false });
   push();
-  try { ui.toast("Test session ended" + (why ? ": " + why : "") + ". Your settings are back as they were."); } catch {}
+  if (wasPerm && why !== "stopped by you") return keep(30000);
+  try { ui.toast("Test session ended" + (why ? ": " + why : "") + (wasPerm ? "." : ". Your settings are back as they were.")); } catch {}
 }
 
 const saved = () => String(store.loadSecret("testUnlock", "") || "");
@@ -49,20 +70,21 @@ async function unlock(code) {
   return { error: st === 403 ? "Wrong code." : st === 429 ? "Too many tries. Try again later." : "Support is not reachable right now." };
 }
 
-async function start() {
+async function start(perm) {
+  perm = perm === true;
   if (!prefs.p.remoteTest) return { error: "Turn on 'Let support connect for testing' first." };
   const code = saved();
   if (!code) { prefs.set("remoteTest", false); return { error: "Enter the support code first." }; }
   if (s.state !== "off") return info();
   if (!relay.available) return { error: "No relay is set up. Pair this browser with your server first." };
-  const [st, text] = await relay.request("POST", "/api/support/test", 15000, { unlock: code }).catch(() => [0, null]);
+  const [st, text] = await relay.request("POST", "/api/support/test", 15000, { unlock: code, permanent: perm }).catch(() => [0, null]);
   const r = json(text);
   if (st === 403) { store.saveSecret("testUnlock", ""); prefs.set("remoteTest", false); return { error: "The support code is no longer valid. Enter it again." }; }
   if (st !== 200 || !r || !r.id) return { error: st === 429 ? "Too many tries. Try again later." : "Support is not reachable right now." };
-  backup = clone(prefs.p);
-  store.save("testBackup", () => backup);
-  Object.assign(s, { id: r.id, code: r.code, state: "waiting", expires: r.expires, seq: 0, run: s.run + 1 });
-  timer = setTimeout(() => end("expired"), Math.max(1000, r.expires - Date.now()));
+  // A permanent session can run for days; restoring old settings at its end would undo the user's own changes.
+  if (!perm) { backup = clone(prefs.p); store.save("testBackup", () => backup); }
+  Object.assign(s, { id: r.id, code: r.code, state: perm ? "active" : "waiting", expires: r.expires, seq: 0, run: s.run + 1, perm });
+  if (!perm) timer = setTimeout(() => end("expired"), Math.max(1000, r.expires - Date.now()));
   push();
   poll(s.run);
   return info();
@@ -72,7 +94,9 @@ async function stop() {
   if (s.state === "off") return info();
   const id = s.id;
   relay.request("POST", "/api/support/test/" + id, 8000, { stop: true }).catch(() => {});
+  const wasPerm = s.perm;
   end("stopped by you");
+  if (wasPerm && prefs.p.remoteTestAlways) prefs.set("remoteTestAlways", false);
   return info();
 }
 
@@ -83,7 +107,8 @@ async function poll(run) {
     if (s.run !== run) return;
     if (st === 404 || (r && r.state === "stopped")) return end(r && r.why ? r.why : "closed");
     if (st !== 200 || !r) { await new Promise((ok) => setTimeout(ok, 3000)); continue; }
-    if (r.state === "active" && s.state !== "active") {
+    if (s.perm) s.expires = r.expires;
+    else if (r.state === "active" && s.state !== "active") {
       s.state = "active"; s.expires = r.expires;
       clearTimeout(timer); timer = setTimeout(() => end("expired"), Math.max(1000, r.expires - Date.now()));
       push();
@@ -154,6 +179,9 @@ async function exec(action, a) {
     }
     case "snapshot":
       return ui.chrome().executeJavaScript(`(()=>{const bad=/vault|password|credential/i;return [...document.querySelectorAll("button,a,input,select,textarea,[role=button],[role=tab],[role=switch]")].filter(e=>!e.closest("[id*=vault],[class*=vault]")&&e.type!=="password"&&e.offsetParent).slice(0,250).map(e=>({tag:e.tagName.toLowerCase(),id:e.id||undefined,cls:String(e.className||"").slice(0,60)||undefined,text:(e.type==="text"||e.tagName==="TEXTAREA"?"":e.innerText||"").trim().slice(0,60)||undefined,title:e.title||undefined,sel:bad.test(e.id+e.className)?undefined:undefined}))})()`);
+    case "read":
+      // Visible text of the browser window. Refuses while a vault, password or authenticator view is open, and never reads fields.
+      return ui.chrome().executeJavaScript(`(()=>{const bad=/vault|password|credential|authenticator|totp|one-time/i;const open=[...document.querySelectorAll(".sheet,.layer,[role=dialog]")].filter(e=>e.offsetParent);if(open.some(e=>bad.test(e.className+" "+((e.querySelector("h2")||{}).textContent||""))))return {error:"a protected view is open"};const root=document.querySelector(${JSON.stringify(String(a.selector || ""))}||"body");if(!root)return {error:"no match"};let t=root.innerText||"";root.querySelectorAll("[id*=vault],[class*=vault],[class*=totp]").forEach(e=>{const x=e.innerText;if(x)t=t.split(x).join("")});return {text:t.replace(/\n{3,}/g,"\n\n").slice(0,20000)}})()`);
     default: throw new Error("unknown action");
   }
 }

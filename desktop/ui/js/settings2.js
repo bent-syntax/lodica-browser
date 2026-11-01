@@ -185,6 +185,7 @@ function secAbout() {
       const r = await inv("testsession.start");
       if (r && r.error) toast(r.error);
     }) : null,
+    S.prefs.remoteTest ? setToggle("remoteTestAlways", "Always allow support", "Keeps a test session open whenever Lodica runs, so you do not need to read out a new code each time. Settings changed during it are not put back afterwards. The badge stays on screen and Stop turns this off") : null,
     setRow("Go back to an older version", "Pick a previous release if an update causes problems", null, openVersions),
     S.prefs.betaUnlocked ? setToggle("betaEnabled", "Beta tester", "Get new features early from pre-releases. They may be unstable") : null,
     setRow("What's new", "Patch notes for every version", null, openNotes)];
