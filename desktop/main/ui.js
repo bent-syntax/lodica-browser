@@ -95,8 +95,8 @@ function fit() {
     view.setBounds({ x: 0, y: 0, width: 0, height: 0 });
     return;
   }
-  top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - BAR) } : { x: 0, y: 0, width, height: TOP });
   const bt = barTop();
+  top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : BAR)) } : { x: 0, y: 0, width, height: TOP });
   view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - BAR), width: Math.max(0, width - (bt ? left : 0)), height: BAR });
   placePanel();

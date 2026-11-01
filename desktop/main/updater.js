@@ -108,6 +108,18 @@ async function check() {
   return state;
 }
 
+// Old downloads of Lodica itself (earlier setups, earlier AppImages) go away once the new file is complete, so they do not stack up.
+function removeOld(dir, keep) {
+  const re = env.platform === "win" ? /^Lodica-Setup-[\w.\-]*\.exe$/i : /^Lodica[\w.\-]*\.AppImage$/i;
+  let names = [];
+  try { names = fs.readdirSync(dir); } catch { return; }
+  for (const n of names) {
+    const f = path.join(dir, n);
+    if (f === keep || !re.test(n)) continue;
+    try { if (fs.statSync(f).isFile()) fs.unlinkSync(f); } catch {}
+  }
+}
+
 function safeName(n) { return String(n || "Lodica-update").replace(/[^\w.\-]/g, "_").slice(0, 120); }
 
 async function download() {
@@ -139,6 +151,7 @@ async function download() {
     if (!expect) throw new Error("Release has no checksum; refusing to install");
     if (digest !== expect) throw new Error("Checksum mismatch; file discarded");
     fs.renameSync(part, target);
+    removeOld(path.dirname(target), target);
     set({ state: "ready", path: target, received: got, size: total });
     sizeOk = true;
   } catch (e) {

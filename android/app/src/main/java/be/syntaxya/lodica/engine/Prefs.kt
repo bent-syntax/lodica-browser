@@ -53,6 +53,8 @@ object Prefs {
     var liveChat by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
+    /** Typed words that open a site: one "word url" per line. */
+    var searchWords by mutableStateOf(""); private set
     var showRedirectOrigin by mutableStateOf(false); private set
     var aiAlways by mutableStateOf(false); private set
     /** Smartschool planner ICS link shown on the start page; empty means not added. */
@@ -165,6 +167,7 @@ object Prefs {
         dummyLogin = sp.getBoolean("dummyLogin", true)
         liveChat = sp.getBoolean("liveChat", true)
         dnsRules = sp.getString("dnsRules", "") ?: ""
+        searchWords = sp.getString("searchWords", "") ?: ""
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
@@ -333,6 +336,12 @@ object Prefs {
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
+    fun updateSearchWords(v: String) { searchWords = v.trim(); sp.edit().putString("searchWords", searchWords).apply(); Helper.push() }
+    fun searchWordPairs(): List<List<String>> = searchWords.lines().mapNotNull { l ->
+        val w = l.trim().substringBefore().lowercase()
+        val u = l.trim().substringAfter(' ', "").trim()
+        if (w.isEmpty() || u.isEmpty()) null else listOf(w, u)
+    }
     fun updateDnsRules(v: String) { dnsRules = v.trim(); sp.edit().putString("dnsRules", dnsRules).apply(); Helper.push() }
     fun updateDnsServer(v: String) {
         val u = v.trim()
@@ -517,6 +526,10 @@ object Prefs {
         if (t.isEmpty()) return "about:blank"
         val schemes = listOf("http://", "https://", "about:", "file://", "data:", "view-source:", "moz-extension://", "resource://")
         if (schemes.any { t.startsWith(it, ignoreCase = true) }) return applyOwnDns(t)
+        searchWordPairs().firstOrNull { it[0] == t.lowercase() }?.let { w ->
+            val u = w[1]
+            return applyOwnDns(if (schemes.any { u.startsWith(it, ignoreCase = true) }) u else "https://$u")
+        }
         val looksLikeHost = !t.contains(' ') &&
             (Regex("^[\\w-]+(\\.[\\w-]+)+(:\\d+)?(/.*)?$").matches(t) || t.startsWith("localhost") ||
                 isCustomHost(t.substringBefore('/').substringBefore(':')))

@@ -31,7 +31,7 @@ const DEFAULTS = {
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, smartschoolMs: false, spell: true, spellAuto: false, selTranslate: false, adBlockMode: "browser", adBlockLevel: "standard", translateAi: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, pcUnlock: "pin", shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiChatDir: "", trusted: [], showRedirectOrigin: false,
-  siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, startNotes: true, startPlanner: true, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
+  siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], searchWords: [], menuPins: null, customTheme: null, themePlugin: "", autoTop: true, startNotes: true, startPlanner: true, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
   emojiPicker: true, claimedThemes: [], holidayFx: true,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,
@@ -115,6 +115,14 @@ function withLanguage(url) {
   } catch { return url; }
 }
 
+/** The site a typed word is set to open (Settings > Search > Search words), or null. */
+function wordTarget(text) {
+  const w = text.toLowerCase();
+  const hit = (Array.isArray(p.searchWords) ? p.searchWords : []).find(r => r && typeof r.word === "string" && r.word.trim().toLowerCase() === w && typeof r.url === "string" && r.url.trim());
+  if (!hit) return null;
+  const u = hit.url.trim();
+  return SCHEMES.some(s => u.toLowerCase().startsWith(s)) ? u : "https://" + u;
+}
 const isBareIp = hp => /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(hp) || hp.startsWith("[");
 const SCHEMES = ["http://", "https://", "about:", "file://", "data:", "view-source:", "lodica://", "chrome://"];
 /** Turns typed text into a URL: keeps URLs, adds https:// to hosts, otherwise searches. */
@@ -122,6 +130,8 @@ function resolve(input, lodicaAvailable) {
   const t = (input || "").trim();
   if (!t) return "about:blank";
   if (SCHEMES.some(s => t.toLowerCase().startsWith(s))) return t;
+  const word = wordTarget(t);
+  if (word) return word;
   const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || /^\[[0-9a-f:]+\](:\d+)?(\/.*)?$/i.test(t) || t.startsWith("localhost"));
   if (host) return withLanguage((t.startsWith("localhost") || isBareIp(t.split("/")[0]) ? "http://" : "https://") + t);
   const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");

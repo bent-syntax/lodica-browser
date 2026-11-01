@@ -8,8 +8,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.security.KeyFactory
+import java.security.KeyPairGenerator
 import java.security.MessageDigest
+import java.security.PrivateKey
 import java.security.SecureRandom
+import java.security.spec.ECGenParameterSpec
+import java.security.spec.X509EncodedKeySpec
+import javax.crypto.KeyAgreement
 import javax.crypto.Cipher
 import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
@@ -17,30 +23,18 @@ import javax.crypto.spec.SecretKeySpec
 
 /**
  * The link key: one random 256-bit key that protects the passwords and authenticator keys shared between linked devices.
- * Same protocol as desktop/main/linkkey.js. A key file holds the key wrapped under a one-off file key W; W reaches a new
- * device either through a 6-digit code (PcTabs carries the messages) or inside a cable file.
+ * Same protocol as desktop/main/linkkey.js. It moves to a new device with an ECDH (P-256) exchange that the device which
+ * showed the linking code confirms. PcTabs carries the messages; the server only sees public keys and the wrapped key.
  */
 object LinkKey {
-    private const val CODE_MS = 30_000L
-    private const val MAX_TRIES = 3
-    private const val FILE_KEEP_MS = 7L * 24 * 3600 * 1000
-
     @Serializable
-    private data class FileEntry(val w: String, val at: Long)
+    private data class State(val key: String? = null)
 
-    @Serializable
-    private data class State(val key: String? = null, val files: Map<String, FileEntry> = emptyMap())
-
-    @Serializable
-    private data class KeyFile(val v: Int = 1, val id: String, val wrapped: String, val w: String? = null)
-
-    class Parsed(val id: String, val wrapped: String, val w: String?)
-
-    private class Pending(val id: String, val code: String, val exp: Long, var tries: Int)
+    /** A one-off key pair. [pub] is SPKI DER in base64. */
+    class Pair(val pub: String, val priv: PrivateKey)
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = false }
     private val rnd = SecureRandom()
-    private val pending = HashMap<String, Pending>()
     private var state = State()
     private var loaded = false
 
@@ -111,66 +105,42 @@ object LinkKey {
         return try { String(open(unb64(text), k)) } catch (_: Exception) { null }
     }
 
-    /** A key file for this key. With [cable] the file carries its own file key; otherwise the key stays here until used. */
-    fun makeFile(cable: Boolean): String {
-        create()
-        var s = load()
-        val id = random(8).joinToString("") { "%02x".format(it) }
-        val w = random(32)
-        val wrapped = b64(seal(keyBytes()!!, w))
-        if (!cable) {
-            val now = System.currentTimeMillis()
-            s = s.copy(files = (s.files + (id to FileEntry(b64(w), now))).filterValues { now - it.at <= FILE_KEEP_MS })
-            save(s)
-        }
-        return json.encodeToString(KeyFile(1, id, wrapped, if (cable) b64(w) else null))
+    // ---- moving the key (ECDH P-256) ----
+    fun newPair(): Pair {
+        val g = KeyPairGenerator.getInstance("EC")
+        g.initialize(ECGenParameterSpec("secp256r1"))
+        val kp = g.generateKeyPair()
+        return Pair(b64(kp.public.encoded), kp.private)
     }
 
-    fun readFile(text: String): Parsed? = try {
-        val f = json.decodeFromString<KeyFile>(text)
-        if (f.v != 1 || !Regex("^[0-9a-f]{16}$").matches(f.id)) null else Parsed(f.id, f.wrapped, f.w)
+    private fun wrapKeyOf(priv: PrivateKey, peerPub: String): ByteArray {
+        val pk = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(unb64(peerPub)))
+        val ka = KeyAgreement.getInstance("ECDH")
+        ka.init(priv)
+        ka.doPhase(pk, true)
+        return hmac(ka.generateSecret(), "lodica-link-key")
+    }
+
+    /** Origin: wraps the link key for the device that sent [peerPub]. Makes the key when there is none. Returns (pub, wrap) or null. */
+    fun wrapFor(peerPub: String): kotlin.Pair<String, String>? = try {
+        create()
+        val mine = newPair()
+        mine.pub to b64(seal(keyBytes()!!, wrapKeyOf(mine.priv, peerPub)))
     } catch (_: Exception) { null }
 
-    /** Unwraps the key of [file] with [w] (base64) and keeps it. False when [w] does not fit. */
-    fun adopt(file: Parsed, w: String): Boolean = try {
-        val k = open(unb64(file.wrapped), unb64(w))
+    /** New device: opens the answer with its private key and keeps the key. */
+    fun adoptWrapped(priv: PrivateKey, peerPub: String, wrap: String): Boolean = try {
+        val k = open(unb64(wrap), wrapKeyOf(priv, peerPub))
         if (k.size != 32) false else { save(load().copy(key = b64(k))); true }
     } catch (_: Exception) { false }
 
-    // ---- the one-time code; [linkSecret] is the 32-byte key of the PcTabs link ----
-    fun proofOf(linkSecret: ByteArray, session: String, code: String) = b64(hmac(linkSecret, "proof|$session|$code"))
-    private fun wrapKeyOf(linkSecret: ByteArray, session: String, code: String) = hmac(linkSecret, "wrap|$session|$code")
-
-    /** Device that made the file: a new device asked for file [id]. Returns the code to show, or null when no such file exists. */
-    @Synchronized
-    fun request(session: String, id: String, now: Long = System.currentTimeMillis()): String? {
-        if (!load().files.containsKey(id)) return null
-        pending.values.removeAll { now > it.exp }
-        val code = (rnd.nextInt(1_000_000)).toString().padStart(6, '0')
-        pending[session] = Pending(id, code, now + CODE_MS, 0)
-        return code
+    /** Four digits both devices can compare, from the two public keys. */
+    fun fingerprint(joinerPub: String, originPub: String): String {
+        val h = MessageDigest.getInstance("SHA-256").digest("$joinerPub|$originPub".toByteArray())
+        val n = ((h[0].toLong() and 0xff) shl 24) or ((h[1].toLong() and 0xff) shl 16) or ((h[2].toLong() and 0xff) shl 8) or (h[3].toLong() and 0xff)
+        return (n % 10000).toString().padStart(4, '0')
     }
 
-    /** Device that made the file: the new device sent its proof. Returns the wrap to send back, or an error text. */
     @Synchronized
-    fun answer(session: String, proof: String, linkSecret: ByteArray, now: Long = System.currentTimeMillis()): Pair<String?, String?> {
-        val p = pending[session] ?: return null to "no code"
-        if (now > p.exp) { pending.remove(session); return null to "expired" }
-        if (++p.tries > MAX_TRIES) { pending.remove(session); return null to "too many tries" }
-        val want = proofOf(linkSecret, session, p.code).toByteArray()
-        if (!MessageDigest.isEqual(want, proof.toByteArray())) return null to "wrong code"
-        pending.remove(session)
-        val s = load()
-        val entry = s.files[p.id] ?: return null to "no code"
-        save(s.copy(files = s.files - p.id)) // one use
-        return b64(seal(unb64(entry.w), wrapKeyOf(linkSecret, session, p.code))) to null
-    }
-
-    /** New device: opens the answer with the typed code. Returns W (base64) or null. */
-    fun unwrapAnswer(wrap: String, linkSecret: ByteArray, session: String, code: String): String? = try {
-        b64(open(unb64(wrap), wrapKeyOf(linkSecret, session, code.trim())))
-    } catch (_: Exception) { null }
-
-    @Synchronized
-    fun forget() { pending.clear(); save(State()) }
+    fun forget() { save(State()) }
 }

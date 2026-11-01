@@ -177,18 +177,39 @@ const icons = new Map();
 function icon(host) {
   host = String(host || "").toLowerCase();
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) return { url: null };
-  if (!icons.has(host)) icons.set(host, fetchIcon(host));
+  if (!icons.has(host)) icons.set(host, fetchIcon(host).then(u => { if (!u) setTimeout(() => icons.delete(host), 600000).unref(); return u; }));
   return icons.get(host).then(url => ({ url }));
 }
-async function fetchIcon(host) {
+const ICON_TYPE = /^image\/(x-icon|vnd\.microsoft\.icon|png|svg\+xml|webp|gif|jpeg)$/;
+async function loadIcon(url) {
   try {
-    const r = await fetch("https://" + host + "/favicon.ico", { signal: AbortSignal.timeout(4000), redirect: "follow" });
-    const type = (r.headers.get("content-type") || "").split(";")[0];
-    if (!r.ok || !/^image\/(x-icon|vnd\.microsoft\.icon|png|svg\+xml|webp|gif|jpeg)$/.test(type)) return null;
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000), redirect: "follow" });
+    const type = (r.headers.get("content-type") || "").split(";")[0].trim();
+    if (!r.ok || !ICON_TYPE.test(type)) return null;
     const buf = Buffer.from(await r.arrayBuffer());
     if (!buf.length || buf.length > 200000) return null;
     return "data:" + type + ";base64," + buf.toString("base64");
   } catch { return null; }
+}
+// The page's own <link rel="icon"> first (most sites have no /favicon.ico), then /favicon.ico.
+async function pageIconUrl(host) {
+  try {
+    const r = await fetch("https://" + host + "/", { signal: AbortSignal.timeout(4000), redirect: "follow" });
+    if (!r.ok) return null;
+    const html = (await r.text()).slice(0, 100000);
+    let best = null;
+    for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
+      const tag = m[0], rel = /\brel\s*=\s*["']?([^"'>]*)/i.exec(tag), href = /\bhref\s*=\s*["']([^"']+)["']/i.exec(tag);
+      if (!rel || !href || !/\bicon\b/i.test(rel[1]) || /mask-icon/i.test(rel[1])) continue;
+      if (!best || /apple-touch/i.test(rel[1]) === false) best = href[1];
+      if (!/apple-touch/i.test(rel[1])) break;
+    }
+    return best ? new URL(best.replace(/&amp;/g, "&"), r.url).href : null;
+  } catch { return null; }
+}
+async function fetchIcon(host) {
+  const u = await pageIconUrl(host);
+  return (u && /^https?:/.test(u) && await loadIcon(u)) || loadIcon("https://" + host + "/favicon.ico");
 }
 
 function ask(msg) {

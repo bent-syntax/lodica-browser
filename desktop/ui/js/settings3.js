@@ -7,17 +7,17 @@ const SET_TABS = [
   ["theme", "Theme", "Look & tabs"], ["start", "Start page", "Look & tabs"], ["tabs", "Tabs", "Look & tabs"],
   ["privacy", "Privacy & history", "Privacy & security"], ["security", "Security & blocking", "Privacy & security"],
   ["data", "Data, apps & extensions", "Data & controls"], ["controls", "Keybinds & controls", "Data & controls"],
-  ["server", "Server & mail", "Account"], ["identity", "Identity & passwords", "Account"],
+  ["link", "Link", "Account"], ["server", "Server & mail", "Account"], ["identity", "Identity & authenticator", "Account"],
   ["about", "Updates & About", "About"]];
 // Section ids that other code passes to openSettings() -> the page that holds them.
 const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", identity: "identity", ai: "ai", emojis: "ai", theme: "theme", appearance: "theme",
   pages: "theme", layout: "theme", transparency: "theme", holidays: "theme", plugins: "theme", background: "start", shortcuts: "start", planner: "start", start: "start",
-  tabs: "tabs", pctabs: "tabs", privacy: "privacy", https: "privacy", blocking: "security", spelling: "security", translate: "security", security: "security",
+  tabs: "tabs", pctabs: "link", link: "link", privacy: "privacy", https: "privacy", blocking: "security", spelling: "security", translate: "security", security: "security",
   vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", downloads: "data", keys: "controls", keybinds: "controls", mouse: "controls",
   osk: "controls", auth: "identity", authenticator: "identity", passwords: "identity", about: "about", updates: "about" };
 
 const SET_ICONS = { search: "search", sites: "globe", ai: "ai", theme: "palette", start: "home", tabs: "tabs", privacy: "shield", security: "shield",
-  data: "data", controls: "settings", server: "vpn", identity: "key", about: "reader" };
+  data: "data", controls: "settings", link: "link", server: "vpn", identity: "key", about: "reader" };
 function setTabBar() {
   const out = []; let last = "";
   for (const [id, label, group] of SET_TABS) {
@@ -58,7 +58,8 @@ function setTabBody(tab) {
     case "ai": return [secAi(), secEmojis()].flat();
     case "theme": return [secTheme(), secDarkPages(), secLayout()];
     case "start": return [secStart()];
-    case "tabs": return [secTabs(), secPcTabs()];
+    case "tabs": return [secTabs()];
+    case "link": return [secPcTabs()];
     case "privacy": return [secPrivacy(), secHttps()];
     case "security": return [secBlocking(), secSpell(), secTranslate()];
     case "data": return [secData(), secApps(), secExtensions(), secDownloads()].flat();
@@ -66,7 +67,7 @@ function setTabBody(tab) {
     case "server": return secServer();
     case "identity": return [secIdentity(), typeof secAuth === "function" ? secAuth() : []];
     case "about": return secAbout();
-    default: return [secSearch(), secSuggest()];
+    default: return [secSearch(), secWords(), secSuggest()];
   }
 }
 function secDownloads() {

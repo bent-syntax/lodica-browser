@@ -81,13 +81,13 @@ private data class PcData(
 )
 
 @Serializable
-private data class PcKq(val session: String = "", val type: String = "", val id: String = "", val proof: String = "", val t: Long = 0)
+private data class PcKq(val session: String = "", val type: String = "", val pub: String = "", val t: Long = 0)
 
 @Serializable
-private data class PcKa(val session: String = "", val type: String = "", val wrap: String? = null, val error: String? = null, val t: Long = 0)
+private data class PcKa(val session: String = "", val type: String = "", val pub: String = "", val wrap: String = "", val t: Long = 0)
 
 /** One step of the key exchange, shown in Settings. */
-class LinkStep(val step: String, val code: String = "", val error: String = "")
+class LinkStep(val step: String, val code: String = "", val session: String = "", val fp: String = "")
 
 @Serializable
 private data class PcCmd(val at: Long = 0, val type: String = "", val url: String = "")
@@ -112,6 +112,8 @@ object PcTabs {
     private const val MAX_BODY = 512 * 1024
     private const val POLL_MS = 30_000L
     private const val KEEPALIVE_MS = 12L * 3600 * 1000
+    /** On for a fresh link until switched off. Passwords, codes, history and Bluetooth stay off. */
+    private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites")
     private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites")
     private val LINK = Regex("([A-Za-z0-9_-]{22})#([A-Za-z0-9_-]{43})")
 
@@ -152,7 +154,7 @@ object PcTabs {
         override fun run() {
             val e = ex ?: return
             if (!enabled || System.currentTimeMillis() > e.until) {
-                if (enabled && ex === e) linkStep = LinkStep("expired")
+                if (enabled && ex === e && linkStep?.step != "confirm") linkStep = LinkStep("expired")
                 ex = null
                 return
             }
@@ -183,7 +185,7 @@ object PcTabs {
         shareHistory = sp.getBoolean("shareHistory", false)
         if (shareHistory && !sp.contains("share.history")) sp.edit().putBoolean("share.history", true).putBoolean("shareHistory", false).apply()
         shareHistory = sp.getBoolean("share.history", false)
-        linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it == "tabs") }
+        linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it in DEFAULT_SHARE) }
         LinkKey.init()
         allowControl = sp.getBoolean("allowControl", false)
         if (enabled) runCatching { load() }.onFailure { Log.w(TAG, "secrets unreadable", it); enabled = false }
@@ -303,7 +305,10 @@ object PcTabs {
                 val (st, txt) = Relay.request("POST", "/api/pair", body, "application/json")
                 if (st == 200) Regex("\"code\"\\s*:\\s*\"([A-Za-z0-9]+)\"").find(txt)?.groupValues?.get(1) else null
             }.onFailure { Log.w(TAG, "pair code failed", it) }.getOrNull()
-            withContext(Dispatchers.Main) { onDone(code) }
+            withContext(Dispatchers.Main) {
+                if (code != null) startEx(Exchange("origin", "", null, code, 0L, System.currentTimeMillis() + 10 * 60_000L))
+                onDone(code)
+            }
         }
     }
 
@@ -319,7 +324,9 @@ object PcTabs {
             withContext(Dispatchers.Main) {
                 if (found == null) { onDone(false); return@withContext }
                 if (!enabled) toggle(true)
-                onDone(enabled && pair(found))
+                val ok = enabled && pair(found)
+                if (ok) askKey()
+                onDone(ok)
             }
         }
     }
@@ -513,7 +520,10 @@ object PcTabs {
 
     // ---- link key exchange -----------------------------------------------------------------
 
-    private class Exchange(val role: String, val session: String, val file: LinkKey.Parsed?, var code: String, var lastT: Long, val until: Long)
+    /** [asking] is the new device's session and public key while the confirm popup is open (origin only). */
+    private class Exchange(val role: String, val session: String, val pair: LinkKey.Pair?, val code: String, var lastT: Long, val until: Long) {
+        var asking: Pair<String, String>? = null
+    }
 
     private fun hmac(k: ByteArray, text: String): ByteArray =
         Mac.getInstance("HmacSHA256").apply { init(SecretKeySpec(k, "HmacSHA256")) }.doFinal(text.toByteArray())
@@ -568,42 +578,26 @@ object PcTabs {
     }
 
     private fun originStep(e: Exchange, k: ByteArray) {
+        if (e.asking != null) return
         val m = getChan(k, "kq")?.let { runCatching { json.decodeFromString<PcKq>(it) }.getOrNull() } ?: return
-        val now = System.currentTimeMillis()
-        if (m.session.isEmpty() || m.t <= e.lastT || now - m.t > 2 * 60_000L) return
+        if (m.type != "join" || m.session.isEmpty() || m.pub.isEmpty() || m.t == e.lastT) return
         e.lastT = m.t
-        fun reply(type: String, wrap: String? = null, error: String? = null) =
-            putChan(k, "ka", json.encodeToString(PcKa(m.session, type, wrap, error, System.currentTimeMillis())))
-        when (m.type) {
-            "req" -> {
-                val code = LinkKey.request(m.session, m.id)
-                if (code == null) { reply("unknown"); note(LinkStep("unknown")) }
-                else { reply("code"); note(LinkStep("code", code = code)) }
-            }
-            "proof" -> {
-                val (wrap, err) = LinkKey.answer(m.session, m.proof, k)
-                if (wrap != null) { reply("ok", wrap = wrap); note(LinkStep("sent")); stopEx(e) }
-                else { reply("bad", error = err); note(LinkStep("bad", error = err ?: "")) }
-            }
-        }
+        e.asking = m.session to m.pub
+        note(LinkStep("confirm", code = e.code, session = m.session))
     }
 
     private fun newStep(e: Exchange, k: ByteArray) {
         val m = getChan(k, "ka")?.let { runCatching { json.decodeFromString<PcKa>(it) }.getOrNull() } ?: return
-        if (m.session != e.session || m.t <= e.lastT) return
+        if (m.session != e.session || m.t == e.lastT) return
         e.lastT = m.t
+        val pair = e.pair ?: return
         when (m.type) {
-            "code" -> note(LinkStep("enter"))
-            "unknown" -> { note(LinkStep("unknown")); stopEx(e) }
-            "bad" -> note(LinkStep("bad", error = m.error ?: ""))
-            "ok" -> {
-                val file = e.file
-                val w = if (m.wrap != null && e.code.isNotEmpty()) LinkKey.unwrapAnswer(m.wrap, k, e.session, e.code) else null
-                if (w != null && file != null && LinkKey.adopt(file, w)) {
-                    stopEx(e)
-                    main.post { linkStep = LinkStep("done"); gotKey() }
-                } else note(LinkStep("bad", error = "wrong code"))
-            }
+            "no" -> { note(LinkStep("no")); stopEx(e) }
+            "ok" -> if (LinkKey.adoptWrapped(pair.priv, m.pub, m.wrap)) {
+                val fp = LinkKey.fingerprint(pair.pub, m.pub)
+                stopEx(e)
+                main.post { linkStep = LinkStep("done", fp = fp); gotKey() }
+            } else { note(LinkStep("bad")); stopEx(e) }
         }
     }
 
@@ -616,53 +610,38 @@ object PcTabs {
         if (enabled) { upload(); refresh() }
     }
 
-    /** Makes the link key when there is none. */
-    fun createKey() {
-        LinkKey.create()
-        gotKey()
-    }
-
-    /** Key file text. A file without [cable] needs a code from this device, so the exchange starts here. */
-    fun makeKeyFile(cable: Boolean): String {
-        val text = LinkKey.makeFile(cable)
-        if (!cable && enabled && key != null) {
-            startEx(Exchange("origin", "", null, "", 0L, System.currentTimeMillis() + 5 * 60_000L))
-        }
-        gotKey()
-        return text
-    }
-
-    /** Reads a key file. [onDone] gets step "done", "wait" (a code is coming) or "error". */
-    fun insertKeyFile(text: String, onDone: (LinkStep) -> Unit) {
-        val f = LinkKey.readFile(text)
-        if (f == null) { onDone(LinkStep("error", error = "That is not a key file")); return }
-        if (f.w != null) {
-            if (LinkKey.adopt(f, f.w)) { gotKey(); onDone(LinkStep("done")) }
-            else onDone(LinkStep("error", error = "The key file is damaged"))
-            return
-        }
-        val k = key
-        if (!enabled || k == null) { onDone(LinkStep("error", error = "Link the device that made this file first")); return }
+    /** Right after a linking code was accepted: asks the device that showed it for the link key. */
+    private fun askKey() {
+        val k = key ?: return
+        val pair = LinkKey.newPair()
         val session = ByteArray(8).also { rnd.nextBytes(it) }.joinToString("") { "%02x".format(it) }
         Relay.scope.launch {
-            val ok = putChan(k, "kq", json.encodeToString(PcKq(session, "req", f.id, "", System.currentTimeMillis())))
+            val ok = putChan(k, "kq", json.encodeToString(PcKq(session, "join", pair.pub, System.currentTimeMillis())))
             withContext(Dispatchers.Main) {
-                if (!ok) { onDone(LinkStep("error", error = "Could not reach the server")); return@withContext }
-                startEx(Exchange("new", session, f, "", 0L, System.currentTimeMillis() + 5 * 60_000L))
-                onDone(LinkStep("wait"))
+                if (!ok) return@withContext
+                startEx(Exchange("new", session, pair, "", 0L, System.currentTimeMillis() + 10 * 60_000L))
+                linkStep = LinkStep("wait")
             }
         }
     }
 
-    /** New device: sends the typed 6-digit code as proof. */
-    fun enterKeyCode(code: String) {
+    /** The user answered the confirm popup. */
+    fun confirmKey(session: String, yes: Boolean) {
         val e = ex ?: return
         val k = key ?: return
-        val c = code.filter { it.isDigit() }
-        if (c.length != 6 || e.role != "new") return
-        e.code = c
+        val asking = e.asking
+        if (e.role != "origin" || asking == null || asking.first != session) return
+        e.asking = null
+        linkStep = null
         Relay.scope.launch {
-            putChan(k, "kq", json.encodeToString(PcKq(e.session, "proof", "", LinkKey.proofOf(k, e.session, c), System.currentTimeMillis())))
+            if (!yes) { putChan(k, "ka", json.encodeToString(PcKa(session, "no", "", "", System.currentTimeMillis()))); return@launch }
+            val w = LinkKey.wrapFor(asking.second) ?: return@launch
+            val ok = putChan(k, "ka", json.encodeToString(PcKa(session, "ok", w.first, w.second, System.currentTimeMillis())))
+            if (ok) {
+                stopEx(e)
+                val fp = LinkKey.fingerprint(asking.second, w.first)
+                main.post { linkStep = LinkStep("sent", fp = fp); gotKey() }
+            }
         }
     }
 

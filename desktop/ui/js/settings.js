@@ -114,6 +114,20 @@ function secDns() {
   out.push(setRow("Add redirect", null, ico("add"), () => { save(rules.concat({ from: "", to: "" })); refreshSettings(); }));
   return out;
 }
+// Search words: a typed word opens a site instead of searching.
+function secWords() {
+  const rules = Array.isArray(S.prefs.searchWords) ? S.prefs.searchWords : [];
+  const save = (r) => { S.prefs.searchWords = r; inv("prefs.set", "searchWords", r); };
+  const out = [secHead("Search words"),
+    h("div", { class: "set-note", text: "Typing only this word in the address bar or the start page search opens the site, e.g. youtube to youtube.com." })];
+  rules.forEach((r, i) => {
+    const f = h("input", { type: "text", value: r.word || "", placeholder: "word", on: { change: (e) => { rules[i] = { ...rules[i], word: e.target.value.trim() }; save(rules); } } });
+    const t = h("input", { type: "text", value: r.url || "", placeholder: "site", on: { change: (e) => { rules[i] = { ...rules[i], url: e.target.value.trim() }; save(rules); } } });
+    out.push(setRow(null, null, h("span", { class: "dns-row" }, f, t, h("button", { class: "ib", title: "Remove", act: () => { save(rules.filter((_, j) => j !== i)); refreshSettings(); } }, ico("close")))));
+  });
+  out.push(setRow("Add search word", null, ico("add"), () => { save(rules.concat({ word: "", url: "" })); refreshSettings(); }));
+  return out;
+}
 function secVps() {
   const link = () => {
     SET.vpsMsg = "";
@@ -237,13 +251,9 @@ function secTabs() {
 }
 
 // ---- Linked devices: what to share and the link key ----
-// The key protects passwords, authenticator keys and Wi-Fi passwords. A new device gets it by file plus a one-time code shown on
-// the device that made the file (valid 30 seconds, one use), or by a file carried over a USB cable and inserted with one button.
+// The key protects passwords, authenticator keys and Wi-Fi passwords. Linking with a code moves it: the device that showed the
+// code asks you to confirm, then the two devices exchange it. The server never sees it.
 function linkRows() {
-  if (!SET.linkSub) {
-    SET.linkSub = true;
-    window.lodica.on("link.key", (m) => linkKeyStep(m || {}));
-  }
   if (SET.linkCats == null) {
     SET.linkCats = false;
     inv("link.cats").then((r) => { SET.linkCats = r || { cats: [], key: {} }; refreshSettings(); });
@@ -252,51 +262,32 @@ function linkRows() {
   const reload = () => { SET.linkCats = null; refreshSettings(); };
   const out = [setRow("What to share", "Switch on what this device sends to the linked device and takes in from it", null)];
   for (const c of L.cats) {
-    out.push(setRow(c.label, c.note + (c.locked && !hasKey ? ". Create or insert the link key below first" : ""), toggleEl(c.on), async () => {
+    out.push(setRow(c.label, c.note + (c.locked && !hasKey ? ". Link with a code first to get the link key" : ""), toggleEl(c.on), async () => {
       await inv("link.sel", c.id, !c.on); reload();
     }));
   }
   if (L.bluetooth && L.bluetooth.length) out.push(setRow("Bluetooth devices on the other device", L.bluetooth.join(", "), null));
-  if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Insert the link key on this device to receive them", null));
+  if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Link with a code to get the link key and receive them", null));
   const mode = S.prefs.pcUnlock || "pin";
   out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
     [["pin", "PIN only"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
-  out.push(setRow("Link key", hasKey ? "This device has the link key. Make a key file to put it on another device" : "No key on this device yet. Create one, or insert a key file made on the other device", null));
-  out.push(h("div", { class: "chips" },
-    !hasKey ? btn("Create key", async () => { await inv("link.key.create"); reload(); }) : null,
-    hasKey ? btn("Save key file (code)", async () => {
-      const r = await inv("link.key.save", false);
-      if (r && r.ok) toast("Key file saved. On the new device choose Insert key file. A code appears here");
-    }) : null,
-    hasKey ? btn("Save key file for a cable", async () => {
-      const ok = await confirmDialog({ title: "File for a cable", message: "This file holds the key itself. Copy it over the USB cable to the desktop, insert it there, then delete it. Anyone who gets the file gets the key.", ok: "Save the file" });
-      if (!ok) return;
-      const r = await inv("link.key.save", true);
-      if (r && r.ok) toast("Saved. Copy it over the cable, then insert it on the desktop");
-    }) : null,
-    btn("Insert key file", async () => {
-      const r = await inv("link.key.insert");
-      if (!r || r.canceled) return;
-      if (r.error) { toast(r.error); return; }
-      if (r.ok) { toast("Key inserted"); reload(); return; }
-      toast("Asking the other device for a code…");
-    }),
-    hasKey ? btn("Forget key", async () => {
-      const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you insert a key again.", ok: "Forget" });
-      if (ok) { await inv("link.key.forget"); reload(); }
-    }, "muted") : null));
+  out.push(setRow("Link key", hasKey ? "This device has the link key. It came from linking with a code" : "No key on this device yet. Link with a code to get one", null));
+  if (hasKey) out.push(h("div", { class: "chips" }, btn("Forget key", async () => {
+    const ok = await confirmDialog({ title: "Forget the link key?", message: "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you link with a code again.", ok: "Forget" });
+    if (ok) { await inv("link.key.forget"); reload(); }
+  }, "muted")));
   return out;
 }
 // Steps of moving the key, from the main process.
 async function linkKeyStep(m) {
-  if (m.step === "code") {
-    await textDialog({ title: "Code for the new device", message: "Type this code on the new device within " + (m.seconds || 30) + " seconds. It works once.", value: m.code, ok: "Done" });
-  } else if (m.step === "enter") {
-    const v = await textDialog({ title: "Enter the code", message: "Type the 6-digit code shown on the device that made the key file. It is valid for 30 seconds.", placeholder: "123456", ok: "Send" });
-    if (v != null) inv("link.key.enter", v.trim());
-  } else if (m.step === "done") { toast("Key inserted"); SET.linkCats = null; refreshSettings(); }
-  else if (m.step === "sent") toast("The new device has the key");
-  else if (m.step === "bad") toast(m.error === "too many tries" ? "Too many wrong codes. Start again" : m.error === "expired" ? "The code expired. Start again" : "Wrong code");
-  else if (m.step === "unknown") toast("That device did not make this key file");
-  else if (m.step === "expired") toast("Waited too long. Start again");
+  if (m.step === "confirm") {
+    const ok = await confirmDialog({ title: "Link a new device?", message: "A device entered the linking code " + m.code + ". If that was you, confirm to share the secret key with it.", ok: "Confirm" });
+    inv("link.key.confirm", m.session, !!ok);
+  } else if (m.step === "wait") toast("Waiting for the other device to confirm");
+  else if (m.step === "done") { toast("Linked. Check code " + m.fp + " matches on both devices"); SET.linkCats = null; refreshSettings(); }
+  else if (m.step === "sent") { toast("Key sent. Check code " + m.fp + " matches on both devices"); SET.linkCats = null; refreshSettings(); }
+  else if (m.step === "no") toast("The other device refused the link");
+  else if (m.step === "bad") toast("The key could not be opened. Link again");
+  else if (m.step === "expired") toast("Waited too long. Link again");
 }
+if (window.lodica && window.lodica.on) window.lodica.on("link.key", (m) => linkKeyStep(m || {}));

@@ -2,6 +2,20 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.14 (versionCode 174)
+- Added: Link devices by entering the linking code, then confirm the code on the other device. They swap a secret key that only opens shared passwords and authenticator codes, which stay encrypted on the server
+- Added: Search words in Settings: type a word like youtube in the address bar to go to a chosen site
+- Added: Typing on the start page goes into the search bar
+- Changed: The key file is gone
+- Changed: Passwords are under Privacy and history on the PC, and the settings tab is called Link
+- Changed: The Android Settings no longer show the raw link text
+- Fixed: Start page shortcuts show the site icon
+- Fixed: Vertical tabs no longer show a dark square at the bottom
+- Fixed: The version number is no longer cut off in Settings
+- Fixed: Updates replace the older downloaded installer or AppImage instead of piling up in Downloads
+- Fixed: Linking devices shares your settings and theme again
+- Fixed: Open tabs on Android show a proper icon for local sites and Lodica Search
+
 ## 1.14.13 (versionCode 173)
 - Added: Unlock the passwords on the PC with the PIN, the link key, your phone, or the key and phone together
 - Added: Open a .lkey file on the phone and confirm to inject the key

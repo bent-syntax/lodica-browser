@@ -198,6 +198,14 @@ function wireSg() {
   sync();
   clr.addEventListener("click", () => { q$.value = ""; sync(); closeSg(); q$.focus(); });
   q$.addEventListener("input", () => { sync(); clearTimeout(sgTimer); sgTimer = setTimeout(showSg, 120); });
+  // Typing with nothing focused goes into the search box.
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+    const a = document.activeElement;
+    if (a && a !== document.body && a !== document.documentElement) return;
+    if (document.querySelector("dialog[open], .overlay:not([hidden])")) return;
+    q$.focus();
+  });
   q$.addEventListener("keydown", (e) => {
     const rows = [...$("sg").querySelectorAll("a")];
     if (e.key === "Escape") closeSg();

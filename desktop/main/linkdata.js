@@ -20,6 +20,9 @@ const CATS = [
   { id: "settings", label: "Settings and themes", note: "Look, language, search and blocking choices. Not links or keys" },
   { id: "sites", label: "Site lists", note: "Sites you allowed, sites that go direct, sites without the hidden-email button" },
 ];
+/** On for a fresh link, until the user switches it off. Passwords, keys, Wi-Fi, history and Bluetooth stay off. */
+const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true };
+const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
 const SETTINGS = ["theme", "customTheme", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
   "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg"];
 const LISTS = ["trusted", "compat", "direct", "noDummy"];
@@ -116,4 +119,4 @@ async function bluetoothCollect() {
   return [...new Set(String(out || "").split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !/enumerator|radio|adapter|generic|service|transport|protocol|attribute|avrcp|a2dp|handsfree|hands-free|headset gateway|rfcomm|device information/i.test(s)))].slice(0, 50).map((s) => s.slice(0, 80));
 }
 
-module.exports = { CATS, SETTINGS, LISTS, mergePasswords, mergeTotp, union, mergeShortcuts, pickSettings, wifiCollect, wifiApply, bluetoothCollect };
+module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, mergePasswords, mergeTotp, union, mergeShortcuts, pickSettings, wifiCollect, wifiApply, bluetoothCollect };

@@ -2,28 +2,22 @@
 // The link key: one random 256-bit key that protects the passwords, authenticator keys and Wi-Fi passwords shared between linked
 // devices. It is separate from the link itself, so a device that is linked but has no key sees none of those.
 //
-// A key file holds the key wrapped under a one-off file key W. Two ways to move it to a new device:
-//  1. Code: the file alone is useless. The new device asks the device that made it (over the link) for W, that device shows a
-//     6-digit code, and the new device must send the code back within 30 seconds. One use, three tries, then it is dead.
-//     W only travels under a key made from the link secret and the code.
-//  2. Cable: a file that carries W itself, to be copied over a USB cable and inserted on the desktop with one button. Whoever
-//     holds that file holds the key, so keep it on the cable and delete it afterwards.
+// The key moves to a new device when linking: the new device sends a one-off public key (ECDH, P-256), the device that showed the
+// linking code asks its user to confirm, then answers with its own one-off public key and the link key wrapped under the shared
+// secret. The server only ever sees public keys and the wrapped key, so it cannot read the key or what is sealed with it.
 // Nothing here talks to the network: pctabs.js carries the messages.
 const crypto = require("crypto");
 const store = require("./store");
 
-const CODE_MS = 30 * 1000;
-const MAX_TRIES = 3;
 const b64 = (b) => Buffer.from(b).toString("base64");
 const unb64 = (s) => Buffer.from(String(s), "base64");
 
-let state = null; // { key: base64 | null, files: { id: { w: base64, at } } }
-const pending = new Map(); // session -> { id, code, exp, tries }
+let state = null; // { key: base64 | null }
 
 function load() {
   if (state) return state;
   const s = store.loadSecret("linkkey", null);
-  state = s && typeof s === "object" ? { key: s.key || null, files: s.files && typeof s.files === "object" ? s.files : {} } : { key: null, files: {} };
+  state = { key: s && typeof s === "object" && typeof s.key === "string" ? s.key : null };
   return state;
 }
 const save = () => store.saveSecret("linkkey", state);
@@ -49,58 +43,39 @@ function sealData(obj) { const k = keyBuf(); return k ? b64(seal(Buffer.from(JSO
 /** The other way round. Null when there is no key or the data was sealed under another key. */
 function openData(text) { const k = keyBuf(); if (!k || !text) return null; try { return JSON.parse(open(unb64(text), k).toString("utf8")); } catch { return null; } }
 
-/** A key file for this key. With cable = true it carries its own file key. */
-function makeFile(cable) {
-  create();
-  const s = load(), id = crypto.randomBytes(8).toString("hex"), w = crypto.randomBytes(32);
-  const file = { v: 1, id, wrapped: b64(seal(keyBuf(), w)) };
-  if (cable) file.w = b64(w);
-  else { s.files[id] = { w: b64(w), at: Date.now() }; for (const k of Object.keys(s.files)) if (Date.now() - s.files[k].at > 7 * 24 * 3600e3) delete s.files[k]; save(); }
-  return JSON.stringify(file);
+/** Keeps [buf] (32 bytes) as the link key. */
+function set(buf) { if (!buf || buf.length !== 32) return false; load().key = b64(buf); save(); return true; }
+
+// ---- moving the key (ECDH P-256) ----
+/** A one-off key pair. pub is SPKI DER in base64. */
+function newPair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  return { pub: b64(publicKey.export({ type: "spki", format: "der" })), priv: privateKey };
 }
-function readFile(text) {
+function wrapKeyOf(priv, peerPub) {
+  const pk = crypto.createPublicKey({ key: unb64(peerPub), format: "der", type: "spki" });
+  const shared = crypto.diffieHellman({ privateKey: priv, publicKey: pk });
+  return crypto.createHmac("sha256", shared).update("lodica-link-key").digest();
+}
+/** Origin: wraps the link key for the device that sent [peerPub]. Makes the key when there is none. */
+function wrapFor(peerPub) {
   try {
-    const f = JSON.parse(String(text));
-    if (!f || f.v !== 1 || !/^[0-9a-f]{16}$/.test(f.id) || typeof f.wrapped !== "string") return null;
-    return { id: f.id, wrapped: f.wrapped, w: typeof f.w === "string" ? f.w : null };
+    create();
+    const mine = newPair();
+    return { pub: mine.pub, wrap: b64(seal(keyBuf(), wrapKeyOf(mine.priv, peerPub))) };
   } catch { return null; }
 }
-/** Unwraps the key of [file] with [w] (base64) and keeps it. False when [w] does not fit. */
-function adopt(file, w) {
-  try { const k = open(unb64(file.wrapped), unb64(w)); if (k.length !== 32) return false; load().key = b64(k); save(); return true; } catch { return false; }
+/** New device: opens the answer with its private key and keeps the key. */
+function adoptWrapped(priv, peerPub, wrap) {
+  try { return set(open(unb64(wrap), wrapKeyOf(priv, peerPub))); } catch { return false; }
+}
+/** Four digits both devices can compare, from the two public keys. */
+function fingerprint(joinerPub, originPub) {
+  const h = crypto.createHash("sha256").update(String(joinerPub)).update("|").update(String(originPub)).digest();
+  return String(h.readUInt32BE(0) % 10000).padStart(4, "0");
 }
 
-// ---- the one-time code ----
-const proofOf = (linkKey, session, code) => crypto.createHmac("sha256", linkKey).update("proof|" + session + "|" + code).digest("base64");
-const wrapKeyOf = (linkKey, session, code) => crypto.createHmac("sha256", linkKey).update("wrap|" + session + "|" + code).digest();
+const status = () => ({ hasKey: hasKey() });
+function forget() { state = { key: null }; save(); }
 
-/** Device that made the file: a new device asked for file [id]. Returns the code to show, or null when this device made no such file. */
-function request(session, id, now = Date.now()) {
-  if (!load().files[id]) return null;
-  for (const [s, p] of pending) if (now > p.exp) pending.delete(s);
-  const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  pending.set(session, { id, code, exp: now + CODE_MS, tries: 0 });
-  return code;
-}
-/** Device that made the file: the new device sent its proof. Returns { wrap } to send back, or { error }. */
-function answer(session, proof, linkKey, now = Date.now()) {
-  const p = pending.get(session);
-  if (!p) return { error: "no code" };
-  if (now > p.exp) { pending.delete(session); return { error: "expired" }; }
-  if (++p.tries > MAX_TRIES) { pending.delete(session); return { error: "too many tries" }; }
-  const want = Buffer.from(proofOf(linkKey, session, p.code)), got = Buffer.from(String(proof));
-  if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) return { error: "wrong code" };
-  pending.delete(session);
-  const entry = load().files[p.id];
-  delete load().files[p.id]; save();                    // one use
-  return { wrap: b64(seal(unb64(entry.w), wrapKeyOf(linkKey, session, p.code))) };
-}
-/** New device: opens the answer with the code that was typed. Returns W (base64) or null. */
-function unwrapAnswer(wrap, linkKey, session, code) {
-  try { return b64(open(unb64(wrap), wrapKeyOf(linkKey, session, String(code).trim()))); } catch { return null; }
-}
-
-const status = () => ({ hasKey: hasKey(), files: Object.keys(load().files).length });
-function forget() { state = { key: null, files: {} }; pending.clear(); save(); }
-
-module.exports = { hasKey, create, sealData, openData, makeFile, readFile, adopt, request, answer, unwrapAnswer, proofOf, status, forget, CODE_MS, MAX_TRIES };
+module.exports = { hasKey, create, sealData, openData, set, newPair, wrapFor, adoptWrapped, fingerprint, status, forget };

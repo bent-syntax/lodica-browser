@@ -157,33 +157,6 @@ fun SettingsScreen() {
     var codeShown by remember { mutableStateOf<String?>(null) }
     var enterCode by remember { mutableStateOf(false) }
     var codeText by remember { mutableStateOf("") }
-    var keyFileCable by remember { mutableStateOf(false) }
-    var keyCodeText by remember { mutableStateOf("") }
-    val saveKey = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { u ->
-        if (u == null) return@rememberLauncherForActivityResult
-        val text = PcTabs.makeKeyFile(keyFileCable)
-        val ok = runCatching { ctx.contentResolver.openOutputStream(u)?.use { it.write(text.toByteArray()) } }.isSuccess
-        Toast.makeText(ctx, if (!ok) "Could not save the file" else if (keyFileCable) "Saved. Copy it over the cable, then insert it on the desktop" else "Key file saved. On the new device choose Insert key file. A code appears here", Toast.LENGTH_LONG).show()
-    }
-    val openKey = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u ->
-        if (u == null) return@rememberLauncherForActivityResult
-        val text = runCatching { ctx.contentResolver.openInputStream(u)?.use { it.readBytes().take(65536).toByteArray().decodeToString() } }.getOrNull()
-        if (text == null) { Toast.makeText(ctx, "Could not read the file", Toast.LENGTH_SHORT).show(); return@rememberLauncherForActivityResult }
-        PcTabs.insertKeyFile(text) { st ->
-            Toast.makeText(ctx, when (st.step) { "done" -> "Key inserted"; "wait" -> "Asking the other device for a code…"; else -> st.error }, Toast.LENGTH_LONG).show()
-        }
-    }
-    val step = PcTabs.linkStep
-    LaunchedEffect(step) {
-        when (step?.step) {
-            "done" -> { Toast.makeText(ctx, "Key inserted", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
-            "sent" -> { Toast.makeText(ctx, "The new device has the key", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
-            "bad" -> { Toast.makeText(ctx, if (step.error == "too many tries") "Too many wrong codes. Start again" else if (step.error == "expired") "The code expired. Start again" else "Wrong code", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
-            "unknown" -> { Toast.makeText(ctx, "That device did not make this key file", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
-            "expired" -> { Toast.makeText(ctx, "Waited too long. Start again", Toast.LENGTH_SHORT).show(); PcTabs.dismissLinkStep() }
-            "enter" -> keyCodeText = ""
-        }
-    }
     var tab by Ui::settingsTab
     var find by rememberSaveable { mutableStateOf("") }
     val scroll = Ui.settingsPageScroll
@@ -352,17 +325,7 @@ fun SettingsScreen() {
                 val link = PcTabs.link
                 if (!PcTabs.enabled) TextButton(onClick = { codeText = ""; enterCode = true }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Enter link code", color = Amber) }
                 if (PcTabs.enabled && link != null) {
-                    Text(
-                        link, color = Muted, fontSize = 12.sp, fontFamily = FontFamily.Monospace,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                    )
                     Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = {
-                            copy(ctx, link, true)
-                            Toast.makeText(ctx, "Link copied", Toast.LENGTH_SHORT).show()
-                        }) { Text("Copy", color = Amber) }
-                        TextButton(onClick = { Prompts.host?.share("Lodica tabs", null, link) }) { Text("Share", color = Amber) }
                         TextButton(onClick = {
                             confirm = Confirm("Reset link?", "The current link stops working. A new one is made.", "Reset") { PcTabs.reset() }
                         }) { Text("Reset link", color = Coral) }
@@ -395,7 +358,7 @@ fun SettingsScreen() {
                         Triple("sites", "Site lists", "Sites you allowed, sites that go direct, sites without the hidden-email button"),
                     ).forEach { (id, label, note) ->
                         val locked = (id == "totp" || id == "passwords") && !LinkKey.hasKey
-                        SwitchRow(label, if (locked) "$note. Create or insert the link key below first" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }
+                        SwitchRow(label, if (locked) "$note. Link with a code first to get the link key" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }
                     }
                     if (PcTabs.remoteBluetooth.isNotEmpty()) {
                         Text("Bluetooth devices on the other device", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
@@ -403,28 +366,16 @@ fun SettingsScreen() {
                     }
                     if (PcTabs.keyMissing) {
                         Text("The other device shares passwords or keys", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
-                        Text("Insert the link key on this device to receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                        Text("Link with a code to get the link key and receive them", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
                     }
                     Text("Link key", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
                     Text(
-                        if (LinkKey.hasKey) "This device has the link key. Make a key file to put it on another device"
-                        else "No key on this device yet. Create one, or insert a key file made on the other device",
+                        if (LinkKey.hasKey) "This device has the link key. It came from linking with a code"
+                        else "No key on this device yet. Link with a code to get one",
                         color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
                     )
-                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        if (!LinkKey.hasKey) TextButton(onClick = { PcTabs.createKey() }) { Text("Create key", color = Amber) }
-                        TextButton(onClick = { keyFileCable = false; saveKey.launch("lodica-key.lkey") }) { Text("Save key file (code)", color = Amber) }
-                    }
-                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = {
-                            confirm = Confirm("File for a cable", "This file holds the key itself. Copy it over the USB cable to the desktop, insert it there, then delete it. Anyone who gets the file gets the key.", "Save the file") {
-                                keyFileCable = true; saveKey.launch("lodica-key.lkey")
-                            }
-                        }) { Text("Save key file for a cable", color = Amber) }
-                        TextButton(onClick = { openKey.launch(arrayOf("*/*")) }) { Text("Insert key file", color = Amber) }
-                    }
                     if (LinkKey.hasKey) TextButton(onClick = {
-                        confirm = Confirm("Forget the link key?", "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you insert a key again.", "Forget") { PcTabs.forgetKey() }
+                        confirm = Confirm("Forget the link key?", "Passwords, authenticator keys and Wi-Fi passwords stop syncing until you link with a code again.", "Forget") { PcTabs.forgetKey() }
                     }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Forget key", color = Coral) }
                     SwitchRow("Allow control from desktop", "The linked desktop can open, focus, close and reload tabs here", PcTabs.allowControl) { PcTabs.updateAllowControl(it) }
                     PcTabs.status?.let {
@@ -490,6 +441,8 @@ fun SettingsScreen() {
                 6 -> {
                     StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
                         if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
+                    Section("Passwords")
+            LinkRow("Passwords") { Ui.go(Screen.Passwords) }
                     Section("History & site data")
             LinkRow("History") { Ui.go(Screen.History) }
             LinkRow("Clear history", Coral) {
@@ -511,9 +464,6 @@ fun SettingsScreen() {
                 11 -> {
                     Section("Browser identity")
             AgentPicker()
-                    Section("Passwords")
-            LinkRow("Passwords") { Ui.go(Screen.Passwords) }
-
                     Section("Authenticator")
                     AuthenticatorSection()
 
@@ -684,44 +634,6 @@ fun SettingsScreen() {
         }
     }
     confirm?.let { c -> ConfirmDialog(c) { confirm = null } }
-    if (step?.step == "code") {
-        AlertDialog(
-            onDismissRequest = { PcTabs.dismissLinkStep() },
-            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            title = { Text("Code for the new device") },
-            text = {
-                Column {
-                    Text(step.code, color = Amber, fontSize = 32.sp, fontFamily = FontFamily.Monospace, letterSpacing = 4.sp)
-                    Text("Type this code on the new device within 30 seconds. It works once.", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-                }
-            },
-            confirmButton = { DlgPrimary(onClick = { PcTabs.dismissLinkStep() }) { Text("Done") } },
-        )
-    }
-    if (step?.step == "enter") {
-        AlertDialog(
-            onDismissRequest = { PcTabs.dismissLinkStep() },
-            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            title = { Text("Enter the code") },
-            text = {
-                Column {
-                    Text("Type the 6-digit code shown on the device that made the key file. It is valid for 30 seconds.", fontSize = 13.sp)
-                    OutlinedTextField(
-                        keyCodeText, { keyCodeText = it.filter { c -> c.isDigit() }.take(6) },
-                        Modifier.fillMaxWidth().padding(top = 8.dp),
-                        singleLine = true,
-                        placeholder = { Text("123456", color = Muted) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
-                            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
-                        ),
-                    )
-                }
-            },
-            confirmButton = { DlgPrimary(onClick = { PcTabs.enterKeyCode(keyCodeText); PcTabs.dismissLinkStep() }) { Text("Send") } },
-            dismissButton = { DlgSecondary(onClick = { PcTabs.dismissLinkStep() }) { Text("Cancel") } },
-        )
-    }
     codeShown?.let { c ->
         AlertDialog(
             onDismissRequest = { codeShown = null },
@@ -1632,7 +1544,7 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 // Same 13 pages, same order and same groups as the desktop settings.
 private val SettingsTabs = listOf(
     "Search", "Sites & domains", "Ask AI", "Theme", "Start page", "Tabs", "Privacy & history",
-    "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & passwords", "Updates & About",
+    "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & authenticator", "Updates & About",
 )
 
 private val SettingsIcons = listOf(
@@ -1656,6 +1568,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Clear suggestions", 0, "past searches"),
     SettingsEntry("Fallback search engine", 0, "lodica search server unavailable"),
     SettingsEntry("Desktop sites", 1, "request desktop"),
+    SettingsEntry("Search words", 1, "typed word opens site shortcut youtube"),
     SettingsEntry("Show original domain after redirects", 1, "redirect origin address bar"),
     SettingsEntry("User agent", 11, "browser identity"),
     SettingsEntry("Language", 1, "accept language"),
@@ -1683,7 +1596,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
     SettingsEntry("Tabs on PC", 5, "sync computer link"),
     SettingsEntry("What to share", 5, "sync share history passwords authenticator bluetooth shortcuts settings sites"),
-    SettingsEntry("Link key", 5, "sync key file passwords authenticator code insert forget"),
+    SettingsEntry("Link key", 5, "sync key link code passwords authenticator forget"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
     SettingsEntry("Reject cookie banners", 7, "consent popups"),
     SettingsEntry("Spell check", 7, "autocorrect languages dictionary"),
@@ -1696,7 +1609,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Clear site data", 6, "cookies cache storage"),
     SettingsEntry("Controls and gestures", 9, "toggles buttons swipe"),
     SettingsEntry("Hidden email", 10, "alias sign-up dummy"),
-    SettingsEntry("Passwords", 11, "logins vault"),
+    SettingsEntry("Passwords", 6, "logins vault"),
     SettingsEntry("Authenticator", 11, "totp 2fa codes google migration qr"),
     SettingsEntry("Server chat", 10, "room messages"),
     SettingsEntry("Instant chat messages", 10, "notifications live battery"),
@@ -1969,8 +1882,10 @@ private fun ChromeImportSection() {
 private fun DnsSection() {
     var rules by remember { mutableStateOf(false) }
     var server by remember { mutableStateOf(false) }
+    var words by remember { mutableStateOf(false) }
     val n = Prefs.dnsPairs().size
     LinkRow(if (n == 0) "Own domain names" else "Own domain names ($n)") { rules = true }
+    LinkRow(Prefs.searchWordPairs().size.let { if (it == 0) "Search words" else "Search words ($it)" }) { words = true }
     LinkRow(if (Prefs.dnsServer.isBlank()) "DNS server: default" else "DNS server: custom") { server = true }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -2001,6 +1916,48 @@ private fun DnsSection() {
                 Button(
                     onClick = { save(pairs.filter { it[0] != f } + listOf(listOf(f, t))); from = ""; to = "" },
                     enabled = f.isNotEmpty() && !f.contains(' ') && t.isNotEmpty() && !t.contains(' '),
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
+                ) { Text("Add") }
+                LazyColumn(Modifier.padding(top = 8.dp).heightIn(max = 280.dp)) {
+                    items(pairs) { p ->
+                        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(p[0], color = Mist, fontSize = 15.sp)
+                                Text("→ " + p[1], color = Muted, fontSize = 13.sp)
+                            }
+                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(Icons.Rounded.Delete, "Remove", tint = Muted) }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (words) {
+        val sheet = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        var pairs by remember { mutableStateOf(Prefs.searchWordPairs()) }
+        var word by remember { mutableStateOf("") }
+        var site by remember { mutableStateOf("") }
+        fun save(l: List<List<String>>) { pairs = l; Prefs.updateSearchWords(l.joinToString("\n") { it[0] + " " + it[1] }) }
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = { words = false }, sheetState = sheet, containerColor = GraphiteRaised,
+        ) {
+            Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+                Text("Search words", color = Mist, fontSize = 18.sp)
+                Text("Typing only this word in the address bar opens the site, e.g. youtube opens youtube.com.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                OutlinedTextField(
+                    word, { word = it }, Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true,
+                    label = { Text("Word", color = Muted) }, placeholder = { Text("youtube", color = Muted) }, colors = fieldColors,
+                )
+                OutlinedTextField(
+                    site, { site = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true,
+                    label = { Text("Site", color = Muted) }, placeholder = { Text("youtube.com", color = Muted) }, colors = fieldColors,
+                )
+                val w = word.trim().lowercase()
+                val u = site.trim()
+                Button(
+                    onClick = { save(pairs.filter { it[0] != w } + listOf(listOf(w, u))); word = ""; site = "" },
+                    enabled = w.isNotEmpty() && !w.contains(' ') && u.isNotEmpty() && !u.contains(' '),
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = OnAmber),
                 ) { Text("Add") }

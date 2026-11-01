@@ -78,7 +78,7 @@ class MainActivity : HostActivity() {
                     c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 } else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
-            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() }; TestSessionBar(); KeyFileDialog(); UnlockAskDialog() } } }
+            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() }; TestSessionBar(); LinkConfirmDialog(); UnlockAskDialog() } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */
@@ -155,11 +155,6 @@ class MainActivity : HostActivity() {
             Ui.pendingMigration = i.dataString
             Ui.menuOpen = false
             Ui.screen = Screen.Settings
-            return
-        }
-        if (i.action == Intent.ACTION_VIEW && i.data?.scheme.let { it == "content" || it == "file" } && i.data?.toString().orEmpty().contains(".lkey", ignoreCase = true)) {
-            val text = runCatching { contentResolver.openInputStream(i.data!!)?.use { it.readBytes().take(65536).toByteArray().decodeToString() } }.getOrNull()
-            if (text != null) Ui.pendingKeyFile = text else android.widget.Toast.makeText(this, "Could not read the key file", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val target = when (i.action) {

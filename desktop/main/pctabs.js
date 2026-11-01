@@ -48,7 +48,7 @@ function sides() {
 
 const enabled = () => !!prefs.p.pcTabs && relay.available;
 // What this device sends and accepts (Settings > Linked devices).
-const sel = (id) => !!(prefs.p.linkShare && prefs.p.linkShare[id]);
+const sel = (id) => linkdata.isShared(prefs.p.linkShare, id);
 
 // Wi-Fi and Bluetooth take seconds to read, so they are read at most every ten minutes.
 let slow = { at: 0, wifi: [], bluetooth: [] };
@@ -63,7 +63,7 @@ async function collectPlain() {
   const d = {}, secret = {};
   if (sel("chatName")) { try { d.chatName = String(require("./room").state.name || ""); } catch { /* no chat */ } }
   if (sel("shortcuts")) d.shortcuts = prefs.p.quickSites;
-  if (sel("settings")) { d.settings = linkdata.pickSettings(prefs.p, prefs.p); d.settingsAt = linkAt("settings"); }
+  if (sel("settings")) { d.settings = linkdata.pickSettings(prefs.p, prefs.p); if (!linkAt("settings")) linkAt("settings", 1); d.settingsAt = linkAt("settings"); }
   if (sel("sites")) { d.sites = {}; for (const k of linkdata.LISTS) d.sites[k] = prefs.p[k]; d.hidden = prefs.p.quickHidden; }
   const s = (sel("wifi") || sel("bluetooth")) ? await slowData() : null;
   if (sel("bluetooth")) d.bluetooth = s.bluetooth;
@@ -268,7 +268,9 @@ async function pairCode() {
     body: JSON.stringify({ link: viewLink() }), signal: AbortSignal.timeout(15000),
   }).catch(() => null);
   if (!r || !r.ok) return null;
-  return (await r.json()).code || null;
+  const code = (await r.json()).code || null;
+  if (code) waitForJoin(code);
+  return code;
 }
 
 async function pairWithCode(code) {
@@ -279,7 +281,9 @@ async function pairWithCode(code) {
   const j = await r.json().catch(() => null);
   if (!j || typeof j.link !== "string") return false;
   if (!prefs.p.pcTabs) prefs.set("pcTabs", true);
-  return pair(j.link);
+  const ok = await pair(j.link);
+  if (ok) askKey();
+  return ok;
 }
 
 // Phone control: commands for the linked phone ride in their own encrypted blob that only this side writes.
@@ -305,8 +309,9 @@ async function control(cmd) {
 }
 
 // ---- Moving the link key to a new device (linkkey.js) ----
-// Two small encrypted messages ride on the link: "kq" (new device to the device that made the key file) and "ka" (the answer).
-// While an exchange is open both sides look every 2 seconds, for at most 5 minutes.
+// Two small encrypted messages ride on the link: "kq" (the new device asks, with a one-off public key) and "ka" (the answer).
+// The device that showed the linking code asks its user to confirm, then answers with the wrapped link key.
+// While an exchange is open both sides look every 2 seconds, for at most 10 minutes.
 const chanId = (name) => crypto.createHmac("sha256", sides().key).update("ch:" + name).digest().subarray(0, 16).toString("base64url");
 async function put(name, obj) {
   try {
@@ -323,7 +328,7 @@ async function get(name) {
 let ex = null, fast = null, exBusy = false;
 const note = (o) => ui?.push("link.key", o);
 function stopFast() { clearInterval(fast); fast = null; ex = null; }
-function startFast(role, extra) { stopFast(); ex = { role, until: Date.now() + 5 * 60e3, lastT: 0, ...extra }; fast = setInterval(exTick, 2000); }
+function startFast(role, extra) { stopFast(); ex = { role, until: Date.now() + 10 * 60e3, lastT: 0, ...extra }; fast = setInterval(exTick, 2000); }
 
 async function exTick() {
   if (!ex) return;
@@ -331,35 +336,49 @@ async function exTick() {
   if (exBusy) return;
   exBusy = true;
   try {
-    const { key } = sides();
     if (ex.role === "origin") {
+      if (ex.asking) return;
       const m = await get("kq");
-      if (!m || !m.session || m.t === ex.lastT) return;
+      if (!m || m.type !== "join" || !m.session || m.t === ex.lastT || typeof m.pub !== "string") return;
       ex.lastT = m.t;
-      if (m.type === "req") {
-        const code = linkkey.request(String(m.session), String(m.id));
-        if (!code) { await put("ka", { session: m.session, type: "unknown", t: Date.now() }); note({ step: "unknown" }); return; }
-        await put("ka", { session: m.session, type: "code", t: Date.now() });
-        note({ step: "code", code, seconds: Math.round(linkkey.CODE_MS / 1000) });
-      } else if (m.type === "proof") {
-        const r = linkkey.answer(String(m.session), String(m.proof), key);
-        await put("ka", r.wrap ? { session: m.session, type: "ok", wrap: r.wrap, t: Date.now() } : { session: m.session, type: "bad", error: r.error, t: Date.now() });
-        if (r.wrap) { note({ step: "sent" }); stopFast(); } else note({ step: "bad", error: r.error });
-      }
+      ex.asking = { session: String(m.session), pub: m.pub };
+      note({ step: "confirm", code: ex.code, session: ex.asking.session });
     } else {
       const m = await get("ka");
       if (!m || m.session !== ex.session || m.t === ex.lastT) return;
       ex.lastT = m.t;
-      if (m.type === "code") note({ step: "enter" });
-      else if (m.type === "unknown") { note({ step: "unknown" }); stopFast(); }
-      else if (m.type === "bad") note({ step: "bad", error: m.error });
-      else if (m.type === "ok" && ex.code) {
-        const w = linkkey.unwrapAnswer(m.wrap, key, ex.session, ex.code);
-        if (w && linkkey.adopt(ex.file, w)) { markSeen("sealed", ""); note({ step: "done" }); stopFast(); slow.at = 0; schedule(); fetchRemote(); }
-        else note({ step: "bad", error: "wrong code" });
-      }
+      if (m.type === "no") { note({ step: "no" }); stopFast(); }
+      else if (m.type === "ok" && linkkey.adoptWrapped(ex.pair.priv, m.pub, m.wrap)) {
+        const fp = linkkey.fingerprint(ex.pair.pub, m.pub);
+        markSeen("sealed", "");
+        note({ step: "done", fp });
+        stopFast(); slow.at = 0; schedule(); fetchRemote();
+      } else if (m.type === "ok") { note({ step: "bad" }); stopFast(); }
     }
   } finally { exBusy = false; }
+}
+
+/** The new device, right after the linking code was accepted: asks the other device for the link key. */
+async function askKey() {
+  const pair = linkkey.newPair(), session = crypto.randomBytes(8).toString("hex");
+  if (!(await put("kq", { session, type: "join", pub: pair.pub, t: Date.now() }))) return false;
+  startFast("new", { session, pair });
+  note({ step: "wait" });
+  return true;
+}
+/** The device that showed [code]: waits for a new device to join. */
+function waitForJoin(code) { startFast("origin", { code: String(code), asking: null }); }
+/** The user answered the confirm popup. */
+async function confirmKey(session, yes) {
+  if (!ex || ex.role !== "origin" || !ex.asking || ex.asking.session !== String(session)) return false;
+  const { pub } = ex.asking;
+  ex.asking = null;
+  if (!yes) { await put("ka", { session, type: "no", t: Date.now() }); return true; }
+  const w = linkkey.wrapFor(pub);
+  if (!w) return false;
+  const ok = await put("ka", { session, type: "ok", pub: w.pub, wrap: w.wrap, t: Date.now() });
+  if (ok) { note({ step: "sent", fp: linkkey.fingerprint(pub, w.pub) }); stopFast(); }
+  return ok;
 }
 
 // ---- Unlocking the PC passwords with the phone and/or the link key (pref pcUnlock: pin, phone, key, both) ----
@@ -369,7 +388,7 @@ async function unlockVault() {
   const mode = prefs.p.pcUnlock || "pin";
   if (mode === "pin") return { error: "Unlocking with the PIN only" };
   if (!enabled()) return { error: "Turn on linking first" };
-  if (mode !== "phone" && !linkkey.hasKey()) return { error: "Insert the link key first" };
+  if (mode !== "phone" && !linkkey.hasKey()) return { error: "Link this device with a code first" };
   if (mode === "key") { require("./vault").grant(); return { ok: true }; }
   const id = crypto.randomBytes(8).toString("hex"), t = Date.now();
   if (!(await put("ur", { id, t }))) return { error: "Could not reach the phone" };
@@ -384,32 +403,7 @@ async function unlockVault() {
   return { error: "The phone did not answer" };
 }
 
-/** A key file for this device's link key. With [cable] the file carries its own file key; otherwise this device waits to show a code. */
-function makeKeyFile(cable) {
-  const file = linkkey.makeFile(!!cable);
-  if (!cable && enabled()) startFast("origin", {});
-  return file;
-}
-/** Insert a key file. A cable file goes in at once; the other kind asks the device that made it, which shows a code. */
-async function insertKeyFile(text) {
-  const f = linkkey.readFile(text);
-  if (!f) return { error: "That is not a key file" };
-  if (f.w) { if (!linkkey.adopt(f, f.w)) return { error: "The key file is damaged" }; markSeen("sealed", ""); slow.at = 0; schedule(); fetchRemote(); return { ok: true }; }
-  if (!enabled()) return { error: "Link the device that made this file first" };
-  const session = crypto.randomBytes(8).toString("hex");
-  if (!(await put("kq", { session, type: "req", id: f.id, t: Date.now() }))) return { error: "Could not reach the server" };
-  startFast("new", { session, file: f, code: "" });
-  return { step: "wait" };
-}
-/** The code typed on the new device. */
-async function enterKeyCode(code) {
-  const c = String(code || "").replace(/[^0-9]/g, "");
-  if (!ex || ex.role !== "new" || c.length !== 6) return false;
-  ex.code = c;
-  return put("kq", { session: ex.session, type: "proof", proof: linkkey.proofOf(sides().key, ex.session, c), t: Date.now() });
-}
 const keyStatus = () => linkkey.status();
-function createKey() { return linkkey.create(); }
 function forgetKey() { stopFast(); linkkey.forget(); }
 
 const status = () => ({ owner: load().owner, ...remote });
@@ -433,4 +427,4 @@ function init(deps) {
   keepalive.unref();
 }
 
-module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, makeKeyFile, insertKeyFile, enterKeyCode, keyStatus, unlockVault, createKey, forgetKey };
+module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, keyStatus, unlockVault, forgetKey };
