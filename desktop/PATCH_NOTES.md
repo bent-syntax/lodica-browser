@@ -1,3 +1,7 @@
+## 1.14.25
+
+- Fixed: Linking updates within seconds: tabs, authenticator keys, passwords, settings and theme sync as soon as the other device changes them
+
 ## 1.14.24
 
 - Added: Server chat shows who is online with their device and name, and a "Seen" line under your last message

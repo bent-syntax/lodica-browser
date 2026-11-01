@@ -117,7 +117,7 @@ object PcTabs {
     private const val KEY_ALIAS = "lodica_pctabs"
     private const val DEBOUNCE_MS = 3_000L
     private const val MAX_BODY = 512 * 1024
-    private const val POLL_MS = 30_000L
+    private const val LOCAL_MS = 4_000L
     private const val KEEPALIVE_MS = 12L * 3600 * 1000
     /** On for a fresh link until switched off. History and Bluetooth stay off. */
     private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp")
@@ -173,20 +173,59 @@ object PcTabs {
         }
     }
     private val tick = Runnable { upload() }
+    private var pollRound = 0
     private val pollTick = object : Runnable {
         override fun run() {
             if (!enabled) return
             if (System.currentTimeMillis() - lastKeep > KEEPALIVE_MS) lastSent = null
             upload()
-            refresh()
-            checkJoin()
-            main.postDelayed(this, POLL_MS)
+            if (pollRound++ % 8 == 0) { refresh(); checkJoin() }
+            main.postDelayed(this, LOCAL_MS)
         }
+    }
+    private var watching = false
+
+    /** Long poll the other device's blob so a change shows within a second or two. */
+    private fun watch() {
+        if (watching) return
+        watching = true
+        Relay.scope.launch {
+            var since = 0L
+            var bad = 0
+            while (enabled) {
+                val rid = readId()
+                if (rid == null) { kotlinx.coroutines.delay(5_000); continue }
+                val m = runCatching { pollBlob(rid, since) }.getOrNull()
+                if (m == null) { bad = minOf(bad + 1, 6); kotlinx.coroutines.delay(2_000L * bad); continue }
+                bad = 0
+                if (m < 0) { since = 0; kotlinx.coroutines.delay(5_000); continue }
+                if (m > since) { val fresh = since != 0L; since = m; if (fresh) withContext(Dispatchers.Main) { refresh() } }
+            }
+            watching = false
+        }
+    }
+
+    /** Returns the blob's mtime, the same [since] on 304, or -1 when it does not exist. */
+    private fun pollBlob(rid: String, since: Long): Long {
+        val c = java.net.URL(Relay.API + "/api/tabs/$rid?wait=25&since=$since").openConnection() as java.net.HttpURLConnection
+        try {
+            c.connectTimeout = 10_000
+            c.readTimeout = 40_000
+            c.useCaches = false
+            c.setRequestProperty("Authorization", "Bearer ${Relay.token}")
+            return when (c.responseCode) {
+                200 -> { c.inputStream.use { it.readBytes() }; c.getHeaderField("X-Mtime")?.toLongOrNull() ?: since }
+                304 -> since
+                404 -> -1L
+                else -> throw java.io.IOException("status")
+            }
+        } finally { c.disconnect() }
     }
 
     private fun startPoll() {
         main.removeCallbacks(pollTick)
         main.post(pollTick)
+        watch()
     }
 
     fun init(ctx: Context) {

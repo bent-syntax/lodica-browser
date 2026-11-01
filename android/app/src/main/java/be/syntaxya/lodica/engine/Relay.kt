@@ -82,7 +82,7 @@ object Relay {
     private const val POLL_MS = 5_000L
     private const val WATCH_MS = 5 * 60_000L
 
-    private var token: String = BuildConfig.RELAY_TOKEN
+    internal var token: String = BuildConfig.RELAY_TOKEN
     /** False when the build carried no relay token: every VPS feature hides itself. */
     val available: Boolean get() = token.isNotEmpty()
     /** Bearer token for the helper extension's search page. */

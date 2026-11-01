@@ -231,9 +231,20 @@ async function tabPut(req, res, id) {
   send(req, res, 204);
 }
 
+// ?wait=<s>&since=<mtimeMs>: hold the request until the blob changes (long poll), 304 when it did not.
 async function tabGet(req, res, id) {
   let st;
-  try { st = await fsp.stat(tabPath(id)); } catch { return sendText(req, res, 404, 'not found'); }
+  const q = new URL(req.url, 'http://x').searchParams;
+  const wait = Math.min(25, Math.max(0, Number(q.get('wait')) || 0));
+  const since = Number(q.get('since')) || 0;
+  const until = Date.now() + wait * 1000;
+  for (;;) {
+    try { st = await fsp.stat(tabPath(id)); } catch { st = null; }
+    if (!wait || (st && Math.floor(st.mtimeMs) > since) || Date.now() >= until || req.destroyed) break;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  if (!st) return sendText(req, res, 404, 'not found');
+  if (wait && Math.floor(st.mtimeMs) <= since) return send(req, res, 304);
   if (Date.now() - st.mtimeMs > cfg.tabTtlMs) {
     fsp.unlink(tabPath(id)).catch(() => {});
     return sendText(req, res, 404, 'not found');
@@ -244,6 +255,7 @@ async function tabGet(req, res, id) {
     'Content-Type': 'application/octet-stream',
     'Cache-Control': 'no-store',
     'Last-Modified': new Date(st.mtimeMs).toUTCString(),
+    'X-Mtime': String(Math.floor(st.mtimeMs)),
     'Referrer-Policy': 'no-referrer',
     'Cross-Origin-Resource-Policy': 'same-origin',
   });

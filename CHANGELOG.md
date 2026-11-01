@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.25 (versionCode 185)
+- Fixed: Linking updates within seconds: tabs, authenticator keys, passwords, settings and theme sync as soon as the other device changes them
+
 ## 1.14.24 (versionCode 184)
 - Added: Server chat shows who is online with their device and name, and a "Seen" line under your last message
 - Added: Themes refresh the start page when changed, and the Linux system theme follows the desktop

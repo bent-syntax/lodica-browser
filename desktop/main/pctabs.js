@@ -490,7 +490,7 @@ function init(deps) {
   // Before 1.14.4 history sharing was its own switch.
   if (prefs.p.shareHistory) { prefs.set("linkShare", { ...prefs.p.linkShare, history: true }); prefs.set("shareHistory", false); }
   prefs.events.on("change", k => {
-    if (!applying && linkdata.SETTINGS.includes(k)) linkAt("settings", Date.now());
+    if (!applying && linkdata.SETTINGS.includes(k)) { linkAt("settings", Date.now()); schedule(); }
     if ((k === "pcTabs" || k === "linkShare") && prefs.p.pcTabs) { slow.at = 0; schedule(); fetchRemote(); }
   });
   schedule();
@@ -499,6 +499,27 @@ function init(deps) {
   keepalive = setInterval(() => { upload(); }, KEEPALIVE_MS);
   poll.unref();
   keepalive.unref();
+  watch();
+}
+
+// Long poll the other device's blob so a change shows up within a second or two.
+async function watch() {
+  let since = 0, bad = 0;
+  for (;;) {
+    if (!enabled()) { since = 0; await new Promise(r => setTimeout(r, 5000)); continue; }
+    const rid = sides().read;
+    try {
+      const r = await fetch(`${relay.API}/api/tabs/${rid}?wait=25&since=${since}`, { cache: "no-store", signal: AbortSignal.timeout(40000) });
+      bad = 0;
+      if (r.status === 200) {
+        const m = Number(r.headers.get("x-mtime")) || 0;
+        const fresh = since && m > since;
+        since = m;
+        await r.arrayBuffer();
+        if (fresh) await fetchRemote();
+      } else if (r.status === 404) { since = 0; await new Promise(r => setTimeout(r, 5000)); }
+    } catch { bad = Math.min(bad + 1, 6); await new Promise(r => setTimeout(r, 2000 * bad)); }
+  }
 }
 
 module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, forgetKey };
