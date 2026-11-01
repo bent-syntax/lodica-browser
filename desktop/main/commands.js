@@ -476,15 +476,17 @@ function init(deps) {
 
   const authOk = () => !vault.pinSet() || vault.state().unlocked;
   on("auth.list", () => (authOk() ? require("./totp").list() : []));
-  on("auth.add", text => (authOk() ? require("./totp").add(str(text)) : 0));
+  on("auth.add", text => { const n = authOk() ? require("./totp").add(str(text)) : 0; if (n) require("./pctabs").schedule(); return n; });
   on("auth.addImage", async () => {
     if (!authOk()) return { added: 0, error: "Locked" };
     const { dialog } = require("electron");
     const r = await dialog.showOpenDialog(d.win(), { title: "Choose a screenshot of the QR code", properties: ["openFile"], filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }] });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
-    return require("./totp").addImage(r.filePaths[0]);
+    const out = await require("./totp").addImage(r.filePaths[0]);
+    if (out && out.added) require("./pctabs").schedule();
+    return out;
   });
-  on("auth.remove", id => (authOk() ? require("./totp").remove(str(id)) : false));
+  on("auth.remove", id => { const ok = authOk() ? require("./totp").remove(str(id)) : false; if (ok) require("./pctabs").schedule(); return ok; });
   on("auth.rename", (id, label) => (authOk() ? require("./totp").rename(str(id), str(label)) : false));
   on("auth.setHost", (id, host) => (authOk() ? require("./totp").setHost(str(id), str(host)) : false));
   on("auth.copy", id => {

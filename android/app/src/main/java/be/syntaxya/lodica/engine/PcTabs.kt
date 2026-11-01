@@ -117,7 +117,7 @@ object PcTabs {
     private const val MAX_BODY = 512 * 1024
     private const val POLL_MS = 30_000L
     private const val KEEPALIVE_MS = 12L * 3600 * 1000
-    /** On for a fresh link until switched off. Passwords, codes, history and Bluetooth stay off. */
+    /** On for a fresh link until switched off. History and Bluetooth stay off. */
     private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp")
     private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites")
     private val LINK = Regex("([A-Za-z0-9_-]{22})#([A-Za-z0-9_-]{43})")
@@ -194,6 +194,8 @@ object PcTabs {
         if (shareHistory && !sp.contains("share.history")) sp.edit().putBoolean("share.history", true).putBoolean("shareHistory", false).apply()
         shareHistory = sp.getBoolean("share.history", false)
         themeFrom = sp.getString("themeFrom", "newest").takeIf { it in listOf("newest", "this", "other") } ?: "newest"
+        // Before 1.14.17 passwords and authenticator keys were off by default, so an old "off" was rarely a choice. Reset them once.
+        if (!sp.getBoolean("shareReset17", false)) sp.edit().remove("share.passwords").remove("share.totp").putBoolean("shareReset17", true).apply()
         linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it in DEFAULT_SHARE) }
         LinkKey.init()
         allowControl = sp.getBoolean("allowControl", false)

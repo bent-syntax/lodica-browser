@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.18 (versionCode 178)
+- Fixed: Authenticator keys and passwords from the phone now show on the PC. Sharing them was switched off on phones that linked before 1.14.17, so it is switched on once
+- Fixed: Adding or removing an authenticator key now sends it to the linked device right away
+
 ## 1.14.17 (versionCode 177)
 - Added: Choose which device the theme comes from in Settings > Linked devices: the newest change, this device or the other device
 - Changed: Passwords and authenticator keys are shared by default and merged both ways, so both devices show the ones from the PC and the phone

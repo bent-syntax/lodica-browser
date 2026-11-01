@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.QrImage
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Totp
 import be.syntaxya.lodica.engine.TotpEntry
 import be.syntaxya.lodica.engine.TotpMigration
@@ -99,7 +100,7 @@ fun AuthenticatorSection() {
                 color = Amber, fontSize = 20.sp,
             )
             Text("${Totp.remaining(e, now)}s", color = Muted, fontSize = 12.sp)
-            IconButton(onClick = { Vault.totpDelete(e.id).accept({ rev++ }, { }) }) {
+            IconButton(onClick = { Vault.totpDelete(e.id).accept({ rev++; PcTabs.changed() }, { }) }) {
                 Icon(Icons.Rounded.Close, "Remove", tint = Muted)
             }
         }
@@ -163,7 +164,7 @@ fun AuthenticatorSection() {
                 DlgPrimary(
                     enabled = found != null && picked.isNotEmpty(),
                     onClick = {
-                        found?.filter { it.id in picked }?.forEach { Vault.totpAdd(it).accept({ rev++ }, { }) }
+                        found?.filter { it.id in picked }?.forEach { Vault.totpAdd(it).accept({ rev++; PcTabs.changed() }, { }) }
                         close()
                     },
                 ) { Text("Import ${picked.size}") }
@@ -230,7 +231,7 @@ fun AuthenticatorSection() {
             confirmButton = {
                 DlgPrimary(
                     enabled = parsed != null,
-                    onClick = { parsed?.let { Prefs.setTotpSkip(it.host, false); Vault.totpAdd(it).accept({ rev++ }, { }) }; adding = false },
+                    onClick = { parsed?.let { Prefs.setTotpSkip(it.host, false); Vault.totpAdd(it).accept({ rev++; PcTabs.changed() }, { }) }; adding = false },
                 ) { Text("Add") }
             },
             dismissButton = { DlgSecondary(onClick = { adding = false }) { Text("Cancel") } },
