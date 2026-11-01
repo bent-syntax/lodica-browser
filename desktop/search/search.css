@@ -226,3 +226,17 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 .addf { width: 200px; }
 .addf input { height: 30px; }
 #plan[hidden]{display:none!important}
+
+/* 1.14.15: shortcuts are a round logo with the site name below, no card around them. */
+#top { gap: 16px; }
+#top a, #top a:hover { width: 84px; padding: 4px 0; border: 0; border-radius: 12px; background: transparent; transform: none; gap: 8px; }
+#top a .fav { width: 56px; height: 56px; border-radius: 50%; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
+#top a:hover .fav { background: var(--hover2, var(--raised)); transform: translateY(-2px); }
+#top a .fav img { width: 28px; height: 28px; border-radius: 4px; }
+#top a span.n { font-size: 12px; color: var(--text); max-width: 84px; }
+#top.nonames a span.n { display: none; }
+#top a .rm { top: -4px; right: 8px; }
+#top a.add { width: 84px; padding: 4px 0; align-self: flex-start; }
+#top a.add .fav { width: 56px; height: 56px; margin-top: 0; font-size: 24px; color: var(--amber); }
+#top a.add span.n { color: var(--sub); }
+@media (prefers-reduced-motion: reduce) { #top a:hover .fav { transform: none; } }

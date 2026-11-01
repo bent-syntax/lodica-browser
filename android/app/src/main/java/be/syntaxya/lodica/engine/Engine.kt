@@ -98,6 +98,7 @@ object Engine {
         // Set again after the protection flags: the page colour scheme must follow the Dark pages switch.
         step("colorScheme") { runtime.settings.setPreferredColorScheme(colorScheme()) }
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
+        step("notifications") { SiteNotify.init(ctx); runtime.webNotificationDelegate = SiteNotify }
 
         step("ublock") { runtime.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")

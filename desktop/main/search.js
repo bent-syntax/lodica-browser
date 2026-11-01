@@ -37,7 +37,7 @@ function positions() {
 
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
-  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, fx: prefs.p.holidayFx && require("./holidays").find(prefs.p.theme) ? prefs.p.theme : "", custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, pos: positions(), showPlan: prefs.p.startPlanner !== false };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, fx: prefs.p.holidayFx && require("./holidays").find(prefs.p.theme) ? prefs.p.theme : "", custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, names: prefs.p.shortcutNames !== false, pos: positions(), showPlan: prefs.p.startPlanner !== false };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "hide") {
     const h = String(msg.host || "").slice(0, 253);
@@ -177,7 +177,7 @@ const icons = new Map();
 function icon(host) {
   host = String(host || "").toLowerCase();
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) return { url: null };
-  if (!icons.has(host)) icons.set(host, fetchIcon(host).then(u => { if (!u) setTimeout(() => icons.delete(host), 600000).unref(); return u; }));
+  if (!icons.has(host)) icons.set(host, fetchIcon(host).then(u => { if (!u) setTimeout(() => icons.delete(host), 600000).unref(); else rememberIcon(host, u); return u; }));
   return icons.get(host).then(url => ({ url }));
 }
 const ICON_TYPE = /^image\/(x-icon|vnd\.microsoft\.icon|png|svg\+xml|webp|gif|jpeg)$/;
@@ -191,26 +191,42 @@ async function loadIcon(url) {
     return "data:" + type + ";base64," + buf.toString("base64");
   } catch { return null; }
 }
-// The page's own <link rel="icon"> first (most sites have no /favicon.ico), then /favicon.ico.
-async function pageIconUrl(host) {
+// Every <link rel="icon"> the page declares, in order (plain icons before apple-touch ones), then
+// /favicon.ico. Each one is tried, because sites often list a stale icon first that now 404s.
+async function pageIconUrls(host) {
   try {
     const r = await fetch("https://" + host + "/", { signal: AbortSignal.timeout(4000), redirect: "follow" });
-    if (!r.ok) return null;
+    if (!r.ok) return [];
     const html = (await r.text()).slice(0, 100000);
-    let best = null;
+    const plain = [], touch = [];
     for (const m of html.matchAll(/<link\b[^>]*>/gi)) {
       const tag = m[0], rel = /\brel\s*=\s*["']?([^"'>]*)/i.exec(tag), href = /\bhref\s*=\s*["']([^"']+)["']/i.exec(tag);
       if (!rel || !href || !/\bicon\b/i.test(rel[1]) || /mask-icon/i.test(rel[1])) continue;
-      if (!best || /apple-touch/i.test(rel[1]) === false) best = href[1];
-      if (!/apple-touch/i.test(rel[1])) break;
+      try { (/apple-touch/i.test(rel[1]) ? touch : plain).push(new URL(href[1].replace(/&amp;/g, "&"), r.url).href); } catch {}
     }
-    return best ? new URL(best.replace(/&amp;/g, "&"), r.url).href : null;
-  } catch { return null; }
+    return [...plain, ...touch].filter(u => /^https?:/.test(u)).slice(0, 6);
+  } catch { return []; }
 }
 async function fetchIcon(host) {
-  const u = await pageIconUrl(host);
-  return (u && /^https?:/.test(u) && await loadIcon(u)) || loadIcon("https://" + host + "/favicon.ico");
+  const bare = host.replace(/^www\./, "");
+  for (const u of [...await pageIconUrls(host), "https://" + host + "/favicon.ico", ...(tabIcons.get(bare) || [])]) {
+    const got = await loadIcon(u);
+    if (got) return got;
+  }
+  return lastGood.get(bare) || null;
 }
+// Icons a tab reported for a host (page-favicon-updated), used when the site's own lookup fails.
+const tabIcons = new Map();
+function rememberTabIcons(host, urls) {
+  const h = String(host || "").toLowerCase().replace(/^www\./, "");
+  if (!h || !Array.isArray(urls)) return;
+  tabIcons.set(h, urls.filter(u => /^https?:/.test(u)).slice(0, 4));
+  if (tabIcons.size > 300) tabIcons.delete(tabIcons.keys().next().value);
+  if (icons.has(h) || icons.has("www." + h)) icons.get(icons.has(h) ? h : "www." + h).then(u => { if (!u) { icons.delete(h); icons.delete("www." + h); } });
+}
+// Last icon that loaded per host, so a failed refetch never replaces a good icon with the letter.
+const lastGood = new Map();
+function rememberIcon(host, url) { if (host && url) lastGood.set(String(host).toLowerCase().replace(/^www\./, ""), url); }
 
 function ask(msg) {
   if (!ai || !prefs.p.ai || !ai.status().connected) return { error: "AI is not connected" };
@@ -225,4 +241,4 @@ function ask(msg) {
 setTimeout(prefetchPlanner, 3000).unref();
 setInterval(prefetchPlanner, 100000).unref();
 
-module.exports = { init, prefetchPlanner, prefetchUrl };
+module.exports = { init, prefetchPlanner, prefetchUrl, rememberIcon, rememberTabIcons };

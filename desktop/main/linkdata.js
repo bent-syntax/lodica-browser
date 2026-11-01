@@ -24,7 +24,8 @@ const CATS = [
 const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true };
 const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
 const SETTINGS = ["theme", "customTheme", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
-  "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg"];
+  "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg",
+  "searchWords", "shortcutNames", "autoTop", "startNotes", "startPlanner", "plannerPos", "notesPos"];
 const LISTS = ["trusted", "compat", "direct", "noDummy"];
 
 const str = (v, n = 300) => String(v == null ? "" : v).slice(0, n);
@@ -75,6 +76,12 @@ function mergeShortcuts(local, remote) {
 function pickSettings(source, current) {
   const out = {};
   for (const k of SETTINGS) if (source && k in source && typeof source[k] === typeof current[k] && (k !== "customTheme" || source[k] === null || typeof source[k] === "object")) out[k] = source[k];
+  if ("searchWords" in out) {
+    if (!Array.isArray(out.searchWords)) delete out.searchWords;
+    else out.searchWords = out.searchWords.filter((r) => r && typeof r.word === "string" && typeof r.url === "string" && r.word.trim() && r.url.trim())
+      .slice(0, 200).map((r) => ({ word: str(r.word, 40).trim(), url: str(r.url, 2000).trim() }));
+  }
+  for (const k of ["plannerPos", "notesPos"]) if (k in out && !["left", "right", "below"].includes(out[k])) delete out[k];
   return out;
 }
 

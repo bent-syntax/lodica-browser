@@ -193,7 +193,7 @@ object Downloads {
         val id = synchronized(this) { nextId++ }
         val mimeGuess = type?.takeIf { it.lowercase() !in generic }
             ?: MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext(name)) ?: "application/octet-stream"
-        main.post { load(ctx); items.add(0, Dl(id, name, mimeGuess, total, 0, Dl.ACTIVE, System.currentTimeMillis())) }
+        main.post { load(ctx); items.add(0, Dl(id, name, mimeGuess, total, 0, Dl.ACTIVE, System.currentTimeMillis())); be.syntaxya.lodica.ui.Ui.dlAnim = ((be.syntaxya.lodica.ui.Ui.dlAnim?.first ?: 0) + 1) to total }
         val tick: (Long) -> Unit = { n -> update(ctx, id) { it.copy(received = n) } }
         var savedUri: String? = null
         io.execute {

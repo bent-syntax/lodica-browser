@@ -12,7 +12,7 @@ body{font:13px/1 system-ui,"Segoe UI",sans-serif;color:var(--mist);user-select:n
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outline:none}
 #tabs{flex:0 1 auto;min-width:0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
-.t{flex:0 1 180px;min-width:72px;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
+.t{flex:0 0 180px;width:180px;min-width:0;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
 .t:hover{background:var(--hover2)}
 .t.cur{background:var(--high);color:var(--amber);font-weight:600;box-shadow:inset 0 -3px 0 var(--amber),0 0 0 1px color-mix(in srgb,var(--amber) 55%,transparent)}
 .t:not(.cur){opacity:.8}
@@ -40,7 +40,7 @@ body.vert .t.drop-after::after{bottom:-3px}
 #list{flex:0 1 auto;min-width:0;display:flex;align-items:center;gap:4px}
 body.vert{flex-direction:column;align-items:stretch;padding:6px 6px 6px 6px;gap:6px}
 body.vert .nav{justify-content:space-between}
-body.vert #list{flex:0 1 auto;min-height:0;flex-direction:column;align-items:stretch;overflow-y:auto;scrollbar-width:thin}
+body.vert #list{flex:0 1 auto;min-height:0;flex-direction:column;align-items:stretch;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(--raised) transparent}
 body.vert #tabs{flex-direction:column;overflow:visible;flex:none}
 body.vert .t{flex:none;min-width:0;width:100%}
 body.vert .add{width:100%;justify-content:flex-start;padding-left:11px}

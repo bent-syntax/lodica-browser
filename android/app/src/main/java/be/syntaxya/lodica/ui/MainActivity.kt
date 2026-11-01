@@ -27,6 +27,7 @@ import androidx.core.content.FileProvider
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import be.syntaxya.lodica.engine.History
+import be.syntaxya.lodica.engine.SiteNotify
 import be.syntaxya.lodica.engine.TotpMigration
 import be.syntaxya.lodica.engine.Engine
 import be.syntaxya.lodica.engine.PcTabs
@@ -56,6 +57,7 @@ class MainActivity : HostActivity() {
         Relay.loadSetup(this)
         Prompts.init(this)
         TabManager.init(this)
+        if (savedInstanceState == null) be.syntaxya.lodica.engine.Updater.startup(this)
         if (savedInstanceState == null || intent?.action == SearchWidget.ACTION_SEARCH) handle(intent)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -119,6 +121,12 @@ class MainActivity : HostActivity() {
             Relay.incoming = null
             Relay.selected = i.getStringExtra(Relay.EXTRA_MAIL)
             Ui.screen = Screen.Inbox
+            return
+        }
+        if (i.action == SiteNotify.ACTION_OPEN) {
+            Ui.closeAll()
+            Ui.screen = Screen.Browser
+            SiteNotify.clicked(i.getStringExtra(SiteNotify.EXTRA_KEY), i.getStringExtra(SiteNotify.EXTRA_SOURCE))
             return
         }
         if (i.action == Notifier.ACTION_OPEN) {

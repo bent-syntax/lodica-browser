@@ -21,6 +21,10 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.contentOrNull
@@ -72,7 +76,7 @@ private data class PcSecret(val passwords: List<PcPass>? = null, val totp: List<
 private data class PcData(
     val chatName: String? = null,
     val shortcuts: List<PcShortcut>? = null,
-    val settings: Map<String, JsonPrimitive>? = null,
+    val settings: Map<String, JsonElement>? = null,
     val settingsAt: Long = 0,
     val sites: PcSites? = null,
     val hidden: List<String>? = null,
@@ -403,14 +407,26 @@ object PcTabs {
         return true
     }
 
-    private fun settingsMap(): Map<String, JsonPrimitive> = mapOf(
+    // The same keys and value shapes as the desktop's linkdata.SETTINGS, so both sides read what the other sends.
+    private fun settingsMap(): Map<String, JsonElement> = mapOf(
+        "theme" to JsonPrimitive(if (Prefs.theme == "dynamic") "system" else Prefs.theme),
+        "customTheme" to (Prefs.customTheme?.let { c -> JsonObject(mapOf("bg" to JsonPrimitive(c.bg), "text" to JsonPrimitive(c.text),
+            "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at))) } ?: JsonNull),
         "language" to JsonPrimitive(Prefs.language.name),
         "darkPages" to JsonPrimitive(Prefs.darkPages),
         "httpsOnly" to JsonPrimitive(Prefs.httpsOnly),
+        "search" to JsonPrimitive(Prefs.searchPicked?.name ?: ""),
         "searchFallback" to JsonPrimitive(Prefs.searchFallback.name),
         "cookieReject" to JsonPrimitive(Prefs.cookieReject),
         "spell" to JsonPrimitive(Prefs.spell),
         "spellAuto" to JsonPrimitive(Prefs.spellAuto),
+        "searchWords" to JsonArray(Prefs.searchWordPairs().map { (w, u) -> JsonObject(mapOf("word" to JsonPrimitive(w), "url" to JsonPrimitive(u))) }),
+        "shortcutNames" to JsonPrimitive(Prefs.shortcutNames),
+        "autoTop" to JsonPrimitive(Prefs.quickAuto),
+        "startNotes" to JsonPrimitive(Prefs.startNotes),
+        "startPlanner" to JsonPrimitive(Prefs.startPlanner),
+        "plannerPos" to JsonPrimitive(Prefs.plannerPos),
+        "notesPos" to JsonPrimitive(Prefs.notesPos),
     )
 
     /** When the shared settings last changed here. Spots edits by comparing a fingerprint, so no hooks in Prefs are needed. */
@@ -421,14 +437,45 @@ object PcTabs {
         return sp.getLong("linkat.settings", 0L)
     }
 
-    private fun applySettings(m: Map<String, JsonPrimitive>) {
-        m["language"]?.takeIf { it.isString }?.content?.let { n -> Language.values().firstOrNull { it.name == n }?.let { if (it != Prefs.language) Prefs.updateLanguage(it) } }
-        m["searchFallback"]?.takeIf { it.isString }?.content?.let { n -> SearchEngine.values().firstOrNull { it.name == n }?.let { if (it != Prefs.searchFallback) Prefs.updateSearchFallback(it) } }
-        m["darkPages"]?.booleanOrNull?.let { if (it != Prefs.darkPages) Prefs.updateDarkPages(it) }
-        m["httpsOnly"]?.booleanOrNull?.let { if (it != Prefs.httpsOnly) Prefs.updateHttpsOnly(it) }
-        m["cookieReject"]?.booleanOrNull?.let { if (it != Prefs.cookieReject) Prefs.updateCookieReject(it) }
-        m["spell"]?.booleanOrNull?.let { if (it != Prefs.spell) Prefs.updateSpell(it) }
-        m["spellAuto"]?.booleanOrNull?.let { if (it != Prefs.spellAuto) Prefs.updateSpellAuto(it) }
+    private fun applySettings(m: Map<String, JsonElement>) {
+        fun str(k: String) = (m[k] as? JsonPrimitive)?.takeIf { it.isString }?.content
+        fun bool(k: String) = (m[k] as? JsonPrimitive)?.takeIf { !it.isString }?.booleanOrNull
+        (m["customTheme"] as? JsonObject)?.let { o ->
+            fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
+            val at = (o["at"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: System.currentTimeMillis()
+            if (CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2"))) {
+                val t = CustomTheme(c("bg"), c("text"), c("accent"), c("accent2"), at)
+                if (t != Prefs.customTheme) Prefs.updateCustomTheme(t)
+            }
+        }
+        str("theme")?.let { v ->
+            val known = v == "custom" || be.syntaxya.lodica.ui.theme.ThemeChoices.any { it.first == v }
+            if (known && v != Prefs.theme && !(v == "system" && Prefs.theme == "dynamic")) Prefs.updateTheme(v)
+        }
+        str("language")?.let { n -> Language.values().firstOrNull { it.name == n }?.let { if (it != Prefs.language) Prefs.updateLanguage(it) } }
+        str("search")?.let { n -> SearchEngine.values().firstOrNull { it.name == n }?.let { if (it != Prefs.searchPicked) Prefs.updateSearch(it) } }
+        str("searchFallback")?.let { n -> SearchEngine.values().firstOrNull { it.name == n }?.let { if (it != Prefs.searchFallback) Prefs.updateSearchFallback(it) } }
+        bool("darkPages")?.let { if (it != Prefs.darkPages) Prefs.updateDarkPages(it) }
+        bool("httpsOnly")?.let { if (it != Prefs.httpsOnly) Prefs.updateHttpsOnly(it) }
+        bool("cookieReject")?.let { if (it != Prefs.cookieReject) Prefs.updateCookieReject(it) }
+        bool("spell")?.let { if (it != Prefs.spell) Prefs.updateSpell(it) }
+        bool("spellAuto")?.let { if (it != Prefs.spellAuto) Prefs.updateSpellAuto(it) }
+        (m["searchWords"] as? JsonArray)?.let { a ->
+            val lines = a.take(200).mapNotNull { e ->
+                val o = e as? JsonObject ?: return@mapNotNull null
+                val w = (o["word"] as? JsonPrimitive)?.contentOrNull?.trim()?.take(40).orEmpty()
+                val u = (o["url"] as? JsonPrimitive)?.contentOrNull?.trim()?.take(2000).orEmpty()
+                if (w.isEmpty() || u.isEmpty() || w.contains(' ') || u.contains('\n')) null else "$w $u"
+            }.joinToString("\n")
+            if (lines != Prefs.searchWords) Prefs.updateSearchWords(lines)
+        }
+        bool("shortcutNames")?.let { if (it != Prefs.shortcutNames) Prefs.updateShortcutNames(it) }
+        bool("autoTop")?.let { if (it != Prefs.quickAuto) Prefs.updateQuickAuto(it) }
+        bool("startNotes")?.let { if (it != Prefs.startNotes) Prefs.updateStartNotes(it) }
+        bool("startPlanner")?.let { if (it != Prefs.startPlanner) Prefs.updateStartPlanner(it) }
+        val places = setOf("left", "right", "below")
+        str("plannerPos")?.takeIf { it in places && it != Prefs.plannerPos }?.let { Prefs.updatePlannerPos(it) }
+        str("notesPos")?.takeIf { it in places && it != Prefs.notesPos }?.let { Prefs.updateNotesPos(it) }
     }
 
     private fun isWeb(u: String) = u.startsWith("https://") || u.startsWith("http://")

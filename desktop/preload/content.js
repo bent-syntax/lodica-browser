@@ -1730,3 +1730,76 @@ if (/^https?:$/.test(location.protocol)) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
   else lodicaMain();
 }
+
+// Site notifications: the page's Notification and showNotification calls are passed to the app,
+// which shows them as system notifications (only for sites the user allowed) and focuses the tab
+// on click. Push messages for closed sites are not supported.
+if (/^https?:$/.test(location.protocol)) {
+  const shim = `(() => {
+    const N = window.Notification;
+    if (!N || N.__lodica) return;
+    let seq = 0;
+    const live = new Map();
+    const post = m => window.postMessage(Object.assign({ __lodicaNotify: 1 }, m), location.origin);
+    const abs = u => { try { return u ? new URL(String(u), location.href).href : ""; } catch { return ""; } };
+    const send = (title, o) => {
+      o = o || {};
+      const id = ++seq;
+      post({ op: "show", id, title: String(title == null ? "" : title).slice(0, 200), body: String(o.body == null ? "" : o.body).slice(0, 1000),
+        tag: String(o.tag == null ? "" : o.tag).slice(0, 200), icon: abs(o.icon), silent: !!o.silent });
+      return id;
+    };
+    class LodicaNotification extends EventTarget {
+      constructor(title, o) {
+        super();
+        if (!arguments.length) throw new TypeError("Failed to construct 'Notification': 1 argument required, but only 0 present.");
+        o = o || {};
+        this.title = String(title); this.body = String(o.body == null ? "" : o.body); this.tag = String(o.tag == null ? "" : o.tag);
+        this.icon = abs(o.icon); this.data = o.data === undefined ? null : o.data; this.silent = !!o.silent;
+        this.dir = o.dir || "auto"; this.lang = o.lang || ""; this.badge = abs(o.badge); this.image = abs(o.image);
+        this.requireInteraction = !!o.requireInteraction; this.renotify = !!o.renotify; this.timestamp = Date.now(); this.actions = [];
+        this.onclick = this.onshow = this.onerror = this.onclose = null;
+        if (N.permission !== "granted") { setTimeout(() => this.__fire("error"), 0); return; }
+        this.__id = send(title, o);
+        live.set(this.__id, this);
+        setTimeout(() => this.__fire("show"), 0);
+      }
+      __fire(type) {
+        const e = new Event(type, { cancelable: true });
+        this.dispatchEvent(e);
+        const h = this["on" + type];
+        if (typeof h === "function") { try { h.call(this, e); } catch (err) { setTimeout(() => { throw err; }); } }
+      }
+      close() { if (this.__id) { post({ op: "close", id: this.__id }); live.delete(this.__id); this.__fire("close"); this.__id = 0; } }
+      static get permission() { return N.permission; }
+      static requestPermission(cb) { return N.requestPermission(cb); }
+      static get maxActions() { return 0; }
+    }
+    LodicaNotification.__lodica = true;
+    window.Notification = LodicaNotification;
+    window.addEventListener("message", e => {
+      const d = e.data;
+      if (e.source !== window || !d || d.__lodicaNotifyEvent !== 1) return;
+      const n = live.get(d.id);
+      if (!n) return;
+      if (d.type === "close") { live.delete(d.id); n.__id = 0; }
+      n.__fire(d.type);
+    });
+    const R = window.ServiceWorkerRegistration;
+    if (R && R.prototype.showNotification) {
+      R.prototype.showNotification = function (title, o) {
+        if (N.permission !== "granted") return Promise.reject(new TypeError("No notification permission has been granted for this origin."));
+        send(title, o);
+        return Promise.resolve();
+      };
+      R.prototype.getNotifications = function () { return Promise.resolve([]); };
+    }
+  })();`;
+  webFrame.executeJavaScript(shim).catch(() => {});
+  window.addEventListener("message", e => {
+    const d = e.data;
+    if (e.source !== window || !d || d.__lodicaNotify !== 1) return;
+    ipcRenderer.send("pageNotify", { op: d.op, id: d.id, title: d.title, body: d.body, tag: d.tag, icon: d.icon, silent: d.silent });
+  });
+  ipcRenderer.on("pageNotify", (e, m) => window.postMessage({ __lodicaNotifyEvent: 1, id: m.id, type: m.type }, location.origin));
+}

@@ -715,6 +715,8 @@ function init(deps) {
   on("webapps.remove", id => webapps.remove(str(id)));
 
   on("privacy.clearSiteData", clearSiteData);
+  on("perms.list", () => perms.list());
+  on("perms.set", (host, kind, allow) => { perms.set(host, kind, allow == null ? null : allow === true); return perms.list(); });
   on("privacy.resetPermissions", () => { perms.reset(); serial.reset(); ui.toast("Site permissions reset"); return true; });
 
   on("private.unlock", pin => {

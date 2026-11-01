@@ -110,7 +110,8 @@ async function check() {
 
 // Old downloads of Lodica itself (earlier setups, earlier AppImages) go away once the new file is complete, so they do not stack up.
 function removeOld(dir, keep) {
-  const re = env.platform === "win" ? /^Lodica-Setup-[\w.\-]*\.exe$/i : /^Lodica[\w.\-]*\.AppImage$/i;
+  // Older installers plus half-finished .part files left by a cancelled or crashed download.
+  const re = (env.platform === "win" ? /^Lodica-Setup-[\w.\-]*\.exe(\.part)?$/i : /^Lodica[\w.\-]*\.AppImage(\.part)?$/i);
   let names = [];
   try { names = fs.readdirSync(dir); } catch { return; }
   for (const n of names) {
@@ -211,4 +212,4 @@ async function install() {
   return true;
 }
 
-module.exports = { cmp, init, check, versions, pickVersion, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _reset: () => { state = { state: "idle" }; job = null; } };
+module.exports = { cmp, init, check, versions, pickVersion, download, cancel, install, status: () => state, _setEnv: e => { env = e; }, _removeOld: removeOld, _reset: () => { state = { state: "idle" }; job = null; } };

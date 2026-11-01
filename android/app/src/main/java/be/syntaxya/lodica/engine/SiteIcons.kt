@@ -1,0 +1,97 @@
+package be.syntaxya.lodica.engine
+
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import be.syntaxya.lodica.tabs.TabManager
+import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+
+/**
+ * Site icons for start page shortcuts and the tab switcher. Many sites declare their real icon with
+ * `<link rel=icon>` and have no working `/favicon.ico`, so this tries, in order: the icons an open tab
+ * on the host already reported, the icons the home page declares, then `/favicon.ico`.
+ * A good icon is kept per host for the session and is never replaced by a failed fetch.
+ */
+object SiteIcons {
+    private const val PX = 96
+    private const val MAX_BYTES = 1 shl 20
+    private val cache = HashMap<String, ImageBitmap>()
+    private val failed = HashMap<String, Long>()
+
+    fun cached(host: String): ImageBitmap? = synchronized(cache) { cache[key(host)] }
+
+    /** Blocking: call off the main thread. */
+    fun load(host: String, http: Boolean = false): ImageBitmap? {
+        val h = key(host)
+        if (h.isEmpty()) return null
+        cached(h)?.let { return it }
+        synchronized(cache) { failed[h]?.let { if (System.currentTimeMillis() - it < 10 * 60_000) return null } }
+        val origin = (if (http) "http://" else "https://") + host.lowercase()
+        val fromTabs = runCatching {
+            TabManager.tabs.toList().filter { key(it.host) == h && !it.private }.flatMap { it.icons }
+        }.getOrDefault(emptyList())
+        val cands = (fromTabs + declared(origin) + "$origin/favicon.ico").distinct().take(8)
+        for (u in cands) {
+            val bmp = runCatching { fetch(URL(u)) }.getOrNull() ?: continue
+            val img = bmp.asImageBitmap()
+            synchronized(cache) { cache[h] = img; failed.remove(h) }
+            return img
+        }
+        synchronized(cache) { failed[h] = System.currentTimeMillis() }
+        return null
+    }
+
+    private fun key(host: String) = host.lowercase().removePrefix("www.")
+
+    /** `<link rel="icon">` and apple-touch-icon hrefs from the home page, plain icons first. */
+    private fun declared(origin: String): List<String> = runCatching {
+        val c = URL("$origin/").openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 4000; c.readTimeout = 4000
+            if (c.responseCode != 200 || !c.contentType.orEmpty().contains("html")) return emptyList()
+            val html = c.inputStream.bufferedReader().use { r -> val b = CharArray(256 * 1024); var n = 0
+                while (n < b.size) { val k = r.read(b, n, b.size - n); if (k < 0) break; n += k }
+                String(b, 0, n) }
+            val tags = Regex("<link\\b[^>]*>", RegexOption.IGNORE_CASE).findAll(html).map { it.value }.toList()
+            fun href(t: String) = Regex("href\\s*=\\s*[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE).find(t)?.groupValues?.get(1)
+            fun rel(t: String) = Regex("rel\\s*=\\s*[\"']([^\"']+)[\"']", RegexOption.IGNORE_CASE).find(t)?.groupValues?.get(1)?.lowercase().orEmpty()
+            val plain = tags.filter { rel(it).split(' ').contains("icon") }.mapNotNull(::href)
+            val apple = tags.filter { rel(it).startsWith("apple-touch-icon") }.mapNotNull(::href)
+            (plain + apple).filter { !it.startsWith("data:") }.mapNotNull { runCatching { URL(URL("$origin/"), it).toString() }.getOrNull() }
+        } finally { c.disconnect() }
+    }.getOrDefault(emptyList())
+
+    private fun fetch(u: URL): Bitmap? {
+        if (u.protocol != "https" && u.protocol != "http") return null
+        val c = u.openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 4000; c.readTimeout = 4000
+            if (c.responseCode != 200) return null
+            val bytes = c.inputStream.use { ins ->
+                val out = ByteArrayOutputStream()
+                val buf = ByteArray(16384)
+                while (true) {
+                    val n = ins.read(buf); if (n < 0) break
+                    out.write(buf, 0, n)
+                    if (out.size() > MAX_BYTES) return null
+                }
+                out.toByteArray()
+            }
+            val svg = c.contentType.orEmpty().contains("svg") || u.path.endsWith(".svg", ignoreCase = true)
+            if (!svg) return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val doc = com.caverock.androidsvg.SVG.getFromString(String(bytes))
+            if (doc.documentViewBox == null && doc.documentWidth > 0 && doc.documentHeight > 0)
+                doc.setDocumentViewBox(0f, 0f, doc.documentWidth, doc.documentHeight)
+            doc.setDocumentWidth("100%"); doc.setDocumentHeight("100%")
+            val out = Bitmap.createBitmap(PX, PX, Bitmap.Config.ARGB_8888)
+            doc.renderToCanvas(Canvas(out))
+            return out
+        } finally {
+            c.disconnect()
+        }
+    }
+}

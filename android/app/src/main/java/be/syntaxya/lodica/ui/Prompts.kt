@@ -333,6 +333,29 @@ object Prompts : PromptDelegate, PermissionDelegate {
 
     fun clearSitePermissions() = app.getSharedPreferences(PERMS, 0).edit().clear().apply()
 
+    data class SitePerm(val host: String, val kind: String, val allow: Boolean)
+
+    /** Stored answers, sorted by site, for the Site permissions list in Settings. */
+    fun sitePermissions(): List<SitePerm> = app.getSharedPreferences(PERMS, 0).all.mapNotNull { (k, v) ->
+        val i = k.indexOf('|')
+        if (i <= 0 || v !is Int) null else SitePerm(k.substring(0, i), k.substring(i + 1), v == 1)
+    }.sortedWith(compareBy({ it.host }, { it.kind }))
+
+    /** Changes one stored answer; null forgets it so the site asks again. */
+    fun setSitePermission(host: String, kind: String, allow: Boolean?) {
+        if (allow == null) app.getSharedPreferences(PERMS, 0).edit().remove("$host|$kind").apply()
+        else remember(host, kind, allow)
+    }
+
+    fun permName(kind: String): String {
+        Regex("^media:(true|false):(true|false)$").find(kind)?.let { m ->
+            return listOfNotNull("Camera".takeIf { m.groupValues[1] == "true" }, "Microphone".takeIf { m.groupValues[2] == "true" })
+                .joinToString(" and ").ifEmpty { "Media" }
+        }
+        return mapOf("notify" to "Notifications", "geo" to "Location", "clipboard" to "Clipboard", "screen" to "Screen sharing",
+            "storage" to "Embedded cookies", "local" to "Local network", "popup" to "Pop-ups")[kind] ?: kind
+    }
+
     /** Ask once per site (or reuse the stored answer). */
     private fun ask(s: GeckoSession, h: String, key: String, title: String, message: String?, done: (Boolean) -> Unit) {
         siteDecision(h, key)?.let { return done(it) }

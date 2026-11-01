@@ -12,9 +12,9 @@ const SET_TABS = [
 // Section ids that other code passes to openSettings() -> the page that holds them.
 const SET_SECTION_TAB = { search: "search", suggest: "search", browsing: "sites", dns: "sites", identity: "identity", ai: "ai", emojis: "ai", theme: "theme", appearance: "theme",
   pages: "theme", layout: "theme", transparency: "theme", holidays: "theme", plugins: "theme", background: "start", shortcuts: "start", planner: "start", start: "start",
-  tabs: "tabs", pctabs: "link", link: "link", privacy: "privacy", https: "privacy", blocking: "security", spelling: "security", translate: "security", security: "security",
-  vps: "server", server: "server", mail: "server", data: "data", apps: "data", extensions: "data", downloads: "data", keys: "controls", keybinds: "controls", mouse: "controls",
-  osk: "controls", auth: "identity", authenticator: "identity", passwords: "identity", about: "about", updates: "about" };
+  tabs: "tabs", pctabs: "link", link: "link", privacy: "privacy", https: "security", connections: "security", notes: "start", blocking: "security", spelling: "security", translate: "security", security: "security",
+  vps: "security", server: "server", mail: "server", chat: "server", data: "data", apps: "data", extensions: "data", downloads: "data", keys: "controls", keybinds: "controls", mouse: "controls",
+  osk: "controls", auth: "identity", authenticator: "identity", passwords: "privacy", history: "privacy", about: "about", updates: "about" };
 
 const SET_ICONS = { search: "search", sites: "globe", ai: "ai", theme: "palette", start: "home", tabs: "tabs", privacy: "shield", security: "shield",
   data: "data", controls: "settings", link: "link", server: "vpn", identity: "key", about: "reader" };
@@ -60,8 +60,8 @@ function setTabBody(tab) {
     case "start": return [secStart()];
     case "tabs": return [secTabs()];
     case "link": return [secPcTabs()];
-    case "privacy": return [secPrivacy(), secHttps()];
-    case "security": return [secBlocking(), secSpell(), secTranslate()];
+    case "privacy": return [secPrivacy()];
+    case "security": return [secBlocking(), secHttps(), secSpell(), secTranslate()];
     case "data": return [secData(), secApps(), secExtensions(), secDownloads()].flat();
     case "controls": return [secKeys()];
     case "server": return secServer();
@@ -248,11 +248,13 @@ function secStart() {
   }
   out.push(secHead("Shortcuts", "shortcuts"),
     setToggle("autoTop", "Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts."),
-    setToggle("startPlanner", "Show planner", "Show your Smartschool planner on the start page."),
+    setToggle("shortcutNames", "Show shortcut names", "Show the site name under each shortcut circle."),
+    secHead("Notes", "notes"),
     setToggle("startNotes", "Show notes", "Show your newest notes from the shared Notebook on the start page."),
-    setRow("Add a server emoji", "Pick a PNG or JPEG. It is shrunk and shared with everyone on your server. Names use a to z, 0 to 9 and _.", emojiAdder()),
     setRow("Notes notebook", "Which note the start page shows and adds to. Empty shows your newest notes.", notesPicker()),
+    setPlace("notesPos", "Notes position", "Where the notes sit on the start page. The planner and the notes can't share a place.", "left"),
     secHead("Smartschool planner", "planner"),
+    setToggle("startPlanner", "Show planner", "Show your Smartschool planner on the start page."),
     setRow("Planner link", "Paste the ICS export link of your Smartschool planner. It shows on the start page. Leave empty to remove it.",
       h("input", { class: "set-input", type: "text", value: S.prefs.plannerIcs || "", placeholder: "https://…/planner.ics",
         on: { change: (e) => { S.prefs.plannerIcs = e.target.value.trim(); inv("prefs.set", "plannerIcs", S.prefs.plannerIcs); } } })),
@@ -263,8 +265,7 @@ function secStart() {
     setRow("Subject per time slot", "One per line, like \"Mon 08:30-09:20 Maths\". Without a day it counts every day. It replaces the lessons in that slot. Tasks and tests stay.",
       h("textarea", { class: "field set-input", rows: String(slotRows(S.prefs.plannerSlots)), value: S.prefs.plannerSlots || "", placeholder: "Mon 08:30-09:20 Maths",
         on: { input: (e) => { e.target.rows = slotRows(e.target.value); }, change: (e) => { S.prefs.plannerSlots = e.target.value.slice(0, 4000); inv("prefs.set", "plannerSlots", S.prefs.plannerSlots); } } })),
-    setPlace("plannerPos", "Planner position", "Where the planner sits on the start page.", "below"),
-    setPlace("notesPos", "Notes position", "Where the notes sit on the start page. The planner and the notes can't share a place.", "left"));
+    setPlace("plannerPos", "Planner position", "Where the planner sits on the start page.", "below"));
   return out;
 }
 // Start page place of the planner or the notes. Picking the place the other one has moves the other to a free place.
@@ -355,6 +356,7 @@ function secSuggest() {
 function secServer() {
   const noDummy = S.prefs.noDummy || [];
   const out = [].concat(secVps());
+  out.push(secHead("Chat", "chat"));
   out.push(setSelect("Chat size", "Size of server chat text and emojis", [
     { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
   out.push(setSelect("Emoji size", "Size of server emojis in the chat, apart from the text size", [

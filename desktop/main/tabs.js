@@ -148,6 +148,7 @@ function wire(t, wc) {
     if (!Array.isArray(favicons) || !favicons.length) return;
     t.icons = favicons.slice(0, 8);
     if (t.host) { iconCache.set(t.host, t.icons); if (iconCache.size > 200) iconCache.delete(iconCache.keys().next().value); }
+    if (t.host && !t.private) require("./search").rememberTabIcons(t.host, t.icons);
     pushCount();
   });
   wc.on("page-title-updated", (_, title) => {

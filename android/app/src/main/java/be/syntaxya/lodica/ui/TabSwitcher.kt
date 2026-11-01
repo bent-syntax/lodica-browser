@@ -278,20 +278,12 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     }
 }
 
-private val tabIcons = HashMap<String, androidx.compose.ui.graphics.ImageBitmap>()
-
-/** The site's favicon, fetched once per host; a letter until it arrives or when the site has none. */
+/** The site's icon from the shared per-host cache; a letter until it arrives, a globe for IP hosts or when there is none. */
 @Composable
 private fun SiteIcon(host: String, url: String) {
     val h = host.removePrefix("www.")
-    val icon by androidx.compose.runtime.produceState<androidx.compose.ui.graphics.ImageBitmap?>(tabIcons[h], h) {
-        if (value == null && h.isNotEmpty()) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            runCatching {
-                val c = java.net.URL((if (url.startsWith("http://")) "http://" else "https://") + "$h/favicon.ico").openConnection() as java.net.HttpURLConnection
-                c.connectTimeout = 4000; c.readTimeout = 4000
-                c.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap()
-            }.getOrNull()
-        }?.also { tabIcons[h] = it }
+    val icon by androidx.compose.runtime.produceState(be.syntaxya.lodica.engine.SiteIcons.cached(h), h) {
+        if (value == null && h.isNotEmpty()) value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { be.syntaxya.lodica.engine.SiteIcons.load(h, url.startsWith("http://")) }
     }
     val ic = icon
     if (ic != null) Image(ic, null, Modifier.size(16.dp))

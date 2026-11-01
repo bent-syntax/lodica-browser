@@ -261,4 +261,23 @@ object Updater {
     }
 
     fun reset() { state = UpdateState.Idle }
+
+    /**
+     * Runs once at app start: removes APKs left from earlier updates (the app is already on that
+     * version or the user skipped it) and checks for a new release, so phones get updates without
+     * opening Settings. A short toast points to Settings when one is found.
+     */
+    fun startup(ctx: Context) {
+        if (state !is UpdateState.Idle) return
+        val app = ctx.applicationContext
+        Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { dir(app).listFiles()?.forEach { it.delete() } }
+            check(app)
+            job?.join()
+            val s = state
+            if (s is UpdateState.Available && s.info.newer) android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(app, "Lodica ${s.info.version} is available. Open Settings to update.", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 }

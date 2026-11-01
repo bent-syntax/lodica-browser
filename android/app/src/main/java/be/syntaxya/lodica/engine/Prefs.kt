@@ -44,6 +44,8 @@ object Prefs {
     private var searchChosen by mutableStateOf<SearchEngine?>(null)
     /** Chosen engine; until the user picks one, Lodica Search while a server is linked, DuckDuckGo otherwise. */
     val search: SearchEngine get() = searchChosen ?: if (Relay.available) SearchEngine.LODICA else SearchEngine.DUCKDUCKGO
+    /** The engine the user picked, or null while it is still the automatic choice. */
+    val searchPicked: SearchEngine? get() = searchChosen
     /** Used when Lodica Search is the engine but the server cannot be reached. */
     var searchFallback by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
     var darkPages by mutableStateOf(true); private set
@@ -79,6 +81,7 @@ object Prefs {
     /** Start-page shortcuts the user added: one "url<TAB>name" per line. */
     var quickSites by mutableStateOf(""); private set
     var quickAuto by mutableStateOf(true); private set
+    var shortcutNames by mutableStateOf(true); private set
     /** Hosts of auto shortcuts the user removed, one per line. */
     var quickHidden by mutableStateOf(""); private set
     /** Own DNS-over-HTTPS server; blank keeps the built-in one. */
@@ -185,6 +188,7 @@ object Prefs {
         if (notesPos == plannerPos) notesPos = PLACES.first { it != plannerPos }
         quickSites = sp.getString("quickSites", "") ?: ""
         quickAuto = sp.getBoolean("quickAuto", true)
+        shortcutNames = sp.getBoolean("shortcutNames", true)
         quickHidden = sp.getString("quickHidden", "") ?: ""
         dnsServer = sp.getString("dnsServer", "") ?: ""
         autoArchiveDays = sp.getInt("autoArchiveDays", 14)
@@ -305,6 +309,7 @@ object Prefs {
         appCtx?.let { refreshWidgets(it) }
     }
     fun hideQuickHost(h: String) { quickHidden = (quickHidden.lines() + h).filter { it.isNotBlank() }.distinct().joinToString("\n"); sp.edit().putString("quickHidden", quickHidden).apply() }
+    fun updateShortcutNames(v: Boolean) { shortcutNames = v; sp.edit().putBoolean("shortcutNames", v).apply() }
     fun updateQuickAuto(v: Boolean) { quickAuto = v; sp.edit().putBoolean("quickAuto", v).apply() }
     fun updateStartPlanner(v: Boolean) { startPlanner = v; sp.edit().putBoolean("startPlanner", v).apply(); Helper.push() }
     fun updateStartNotes(v: Boolean) { startNotes = v; sp.edit().putBoolean("startNotes", v).apply(); Helper.push() }

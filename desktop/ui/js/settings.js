@@ -95,10 +95,10 @@ function secBrowsing() {
     setSelect("Site language", null, S.languages, "language")];
 }
 function secDarkPages() {
-  return [setToggle("darkPages", "Dark mode", "Sites that have a dark mode switch to it"),
+  return [secHead("Page colours", "pages"), setToggle("darkPages", "Dark mode", "Sites that have a dark mode switch to it"),
     setToggle("forceDark", "Force dark", "Make every page dark, even sites with no dark mode")];
 }
-function secHttps() { return [setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"), S.relayAvail ? setToggle("routeVps", "Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct") : null]; }
+function secHttps() { return [secHead("Connections", "connections"), setToggle("httpsOnly", "HTTPS-only", "Upgrade every connection, warn on plain HTTP"), S.relayAvail ? setToggle("routeVps", "Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct") : null]; }
 // 3. VPS
 // Own domain redirects: a typed name (or *.name) opens another address.
 function secDns() {
@@ -152,7 +152,7 @@ function secVps() {
   };
   const out = [h("div", { class: "set-hero relay" + (S.relayAvail ? " on" : "") }, h("span", { class: "hero-ico" }, ico("vpn")),
       h("div", { class: "main" }, h("div", { class: "t1", text: S.relayAvail ? "Server connected" : "No server linked" }),
-        h("div", { class: "t2", text: S.relayAvail ? "lodica." + ((S.relay && S.relay.domain) || "") : "Link your own relay for private routing and hidden email" }))), secHead("VPS")];
+        h("div", { class: "t2", text: S.relayAvail ? "lodica." + ((S.relay && S.relay.domain) || "") : "Link your own relay for private routing and hidden email" }))), secHead("Server", "server")];
   if (S.relayAvail) {
     const d = S.relay && S.relay.domain;
     out.push(setRow("Linked server", d ? "lodica." + d : "Connected", "Unlink", unlink),
@@ -179,6 +179,7 @@ function enterCodeBtn() {
 function secEmojis() {
   const out = [secHead("Server emojis", "emojis"), setRow("Server emojis", "Custom emojis stored on your Lodica server. Click one to copy it as an image", null)];
   out.push(setToggle("emojiPicker", "Emoji picker shortcut", "Press Ctrl+Alt+E in any program to pick a server emoji, then paste it"));
+  if (S.relayAvail) out.push(setRow("Add a server emoji", "Pick a PNG or JPEG. It is shrunk and shared with everyone on your server. Names use a to z, 0 to 9 and _.", emojiAdder()));
   if (!S.relayAvail) return out.concat(setRow("No server linked", "Set up a relay first", null));
   out.push(h("div", { class: "chips" }, btn("Load server emojis", async () => {
     SET.emojis = (await inv("emojis.list")) || [];

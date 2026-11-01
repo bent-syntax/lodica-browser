@@ -2,6 +2,18 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.15 (versionCode 175)
+- Added: Start page shortcuts are circles with the site logo and the name below. A setting shows or hides the names
+- Added: Site notifications show as system notifications on Android and as desktop notifications on PC
+- Added: Per-site permissions list in Settings under History & site data > Site permissions, with notifications, camera, microphone and location
+- Added: Download animation: a folder opens, a sheet of paper drops in and the folder closes
+- Added: Linked devices share settings and theme
+- Changed: Desktop and Android Settings use the same pages and sections in the same order
+- Changed: Android tab switcher shows the real site icons
+- Fixed: Shortcuts load the real site icon instead of a letter
+- Fixed: The Android updater removes old update files, and the desktop updater also removes half-finished downloads
+- Fixed: Vertical tab strip and version text no longer get cut off in Settings
+
 ## 1.14.14 (versionCode 174)
 - Added: Link devices by entering the linking code, then confirm the code on the other device. They swap a secret key that only opens shared passwords and authenticator codes, which stay encrypted on the server
 - Added: Search words in Settings: type a word like youtube in the address bar to go to a chosen site

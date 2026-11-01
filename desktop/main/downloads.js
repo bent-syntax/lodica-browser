@@ -75,7 +75,7 @@ function onWillDownload(e, item, wc) {
   if (items.length > 200) items.length = 200;
   track(item, d);
   persist(); push(true);
-  anim?.();
+  anim?.(wc, d.total);
   ui?.toast("Downloading " + d.name);
 }
 

@@ -49,3 +49,16 @@ test("settings: only known keys of the same kind come through", () => {
   const got = d.pickSettings({ theme: "nord", uiAlpha: "x", spell: false, plannerIcs: "https://evil", routeVps: true, language: "NL", extra: 1 }, cur);
   assert.deepStrictEqual(got, { theme: "nord", spell: false, language: "NL" });
 });
+
+test("settings: search words, shortcut names and start layout come through, cleaned", () => {
+  const cur = { searchWords: [], shortcutNames: true, plannerPos: "below", notesPos: "left", customTheme: null };
+  const got = d.pickSettings({
+    searchWords: [{ word: "yt", url: "https://youtube.com" }, { word: "", url: "x" }, "junk"],
+    shortcutNames: false, plannerPos: "middle", notesPos: "right",
+    customTheme: { bg: "#000000", text: "#ffffff", accent: "#f59e0b", accent2: "#f43f5e" },
+  }, cur);
+  assert.deepStrictEqual(got, {
+    searchWords: [{ word: "yt", url: "https://youtube.com" }], shortcutNames: false, notesPos: "right",
+    customTheme: { bg: "#000000", text: "#ffffff", accent: "#f59e0b", accent2: "#f43f5e" },
+  });
+});

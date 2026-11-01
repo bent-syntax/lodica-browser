@@ -1,51 +1,71 @@
-// Download start animation drawn inside the active page: a file jumps from the cursor to a folder at the bottom, which opens and eats it.
-const { screen } = require("electron");
+// Download start animation drawn over the active page: an amber folder opens, a sheet of paper drops in, and the folder closes with the top of the paper still showing.
+// Runs in an isolated world with styles from insertCSS and DOM built without innerHTML, so page CSP and Trusted Types cannot block it.
+const WORLD = 1047;
+const ID = "lodica-dl-anim";
 
-function script(sx, sy) {
+const CSS = `
+#${ID}{all:initial;position:fixed!important;left:50%!important;bottom:32px!important;width:112px!important;height:132px!important;margin-left:-56px!important;z-index:2147483647!important;pointer-events:none!important;display:block!important;filter:drop-shadow(0 8px 16px rgba(0,0,0,.45))}
+#${ID} div{all:initial;position:absolute;display:block;box-sizing:border-box}
+#${ID} .b{left:0;bottom:0;width:112px;height:84px;border-radius:8px;background:#B45309}
+#${ID} .t{left:8px;top:-12px;width:44px;height:16px;border-radius:6px 6px 0 0;background:#B45309}
+#${ID} .i{left:6px;right:6px;top:6px;bottom:6px;border-radius:6px;background:#111827}
+#${ID} .p{left:24px;bottom:12px;width:64px;height:80px;border-radius:4px;background:#FFFFFF;transform-origin:50% 100%}
+#${ID} .l{left:10px;right:10px;height:3px;border-radius:2px;background:#D1D5DB}
+#${ID} .g{background:#10B981}
+#${ID} .f{left:0;bottom:0;width:112px;height:72px;border-radius:8px;background:#F59E0B;transform-origin:50% 100%}
+`;
+
+function script(short) {
   return `(() => {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const NS = "http://www.w3.org/2000/svg";
-  const root = document.createElement("div");
-  root.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;overflow:hidden";
-  const st = document.createElement("style");
-  st.textContent = ".lx-s{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.lx-lid{transform-origin:3px 7px;transition:transform .2s ease}.lx-open .lx-lid{transform:rotate(-24deg)}";
-  const svg = (inner) => { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("class", "lx-s"); s.innerHTML = inner; return s; };
-  const dock = document.createElement("div");
-  dock.style.cssText = "position:fixed;left:50%;bottom:20px;width:48px;height:48px;margin-left:-24px;color:#F59E0B;transform:translateY(80px);transition:transform .25s ease";
-  dock.append(svg('<path d="M3 8v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1z"/><path class="lx-lid" d="M3 8V6a1 1 0 0 1 1-1h5l2 2h9"/>'));
-  const fly = document.createElement("div");
-  const sx = ${Math.round(sx)}, sy = ${Math.round(sy)};
-  fly.style.cssText = "position:fixed;width:24px;height:24px;margin:-12px 0 0 -12px;color:#F59E0B;left:" + sx + "px;top:" + sy + "px";
-  fly.append(svg('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>'));
-  root.append(st, dock, fly);
-  document.documentElement.append(root);
-  const tx = innerWidth / 2, ty = innerHeight - 44;
-  requestAnimationFrame(() => dock.style.transform = "none");
-  setTimeout(() => dock.classList.add("lx-open"), 250);
-  const mid = { x: (sx + tx) / 2, y: Math.min(sy, ty) - 120 };
-  const a = fly.animate([
-    { transform: "translate(0,0) scale(1)", offset: 0 },
-    { transform: "translate(" + (mid.x - sx) + "px," + (mid.y - sy) + "px) scale(1.3)", offset: 0.45 },
-    { transform: "translate(" + (tx - sx) + "px," + (ty - sy) + "px) scale(.5)", offset: 1 },
-  ], { duration: 750, delay: 100, easing: "cubic-bezier(.3,.1,.3,1)", fill: "both" });
-  a.onfinish = () => {
-    fly.style.opacity = "0"; fly.style.transition = "opacity .15s";
-    dock.classList.remove("lx-open");
-    setTimeout(() => { dock.style.transform = "translateY(80px)"; setTimeout(() => root.remove(), 300); }, 300);
-  };
+  const old = document.getElementById(${JSON.stringify(ID)}); if (old) old.remove();
+  const el = (c, p) => { const d = document.createElement("div"); d.className = c; p.append(d); return d; };
+  const root = document.createElement("div"); root.id = ${JSON.stringify(ID)};
+  const back = el("b", root); el("t", back); el("i", back);
+  const paper = el("p", root);
+  [10, 20, 30, 40, 50].forEach((y, n) => { const l = el(n === 0 ? "l g" : "l", paper); l.style.top = y + "px"; });
+  const front = el("f", root);
+  (document.body || document.documentElement).append(root);
+  const done = () => { root.remove(); return true; };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    paper.style.transform = "translateY(0)";
+    return root.animate([{ opacity: 0 }, { opacity: 1, offset: .3 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 900 }).finished.then(done, done);
+  }
+  const T = ${short ? 1500 : 3000};
+  const ease = "cubic-bezier(.4,0,.2,1)";
+  root.animate([{ opacity: 0, transform: "translateY(16px)" }, { opacity: 1, transform: "none", offset: .08 }, { opacity: 1, transform: "none", offset: .9 }, { opacity: 0, transform: "translateY(8px)" }], { duration: T + 400, fill: "both" });
+  front.animate([
+    { transform: "perspective(400px) rotateX(0deg)" },
+    { transform: "perspective(400px) rotateX(-52deg)", offset: .33 },
+    { transform: "perspective(400px) rotateX(-52deg)", offset: .66 },
+    { transform: "perspective(400px) rotateX(0deg)" },
+  ], { duration: T, easing: ease, fill: "both" });
+  return paper.animate([
+    { transform: "translateY(-72px) rotate(-12deg)" },
+    { transform: "translateY(-40px) rotate(0deg)", offset: .33 },
+    { transform: "translateY(0) rotate(0deg)", offset: .66 },
+    { transform: "translateY(0) rotate(0deg)" },
+  ], { duration: T, easing: ease, fill: "both" }).finished.then(() => new Promise(r => setTimeout(r, 400))).then(done, done);
 })()`;
 }
 
-function play({ wc, win, pageBounds }) {
+async function draw(wc, short) {
+  let key = null;
   try {
-    if (!wc || wc.isDestroyed() || !win) return;
-    const p = screen.getCursorScreenPoint();
-    const c = win.getContentBounds();
-    const pb = pageBounds();
-    let x = p.x - c.x - pb.x, y = p.y - c.y - pb.y;
-    if (x < 0 || y < 0 || x > pb.width || y > pb.height) { x = pb.width / 2; y = 0; }
-    wc.executeJavaScript(script(x, y), true).catch(() => {});
+    key = await wc.insertCSS(CSS);
+    await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: script(short) }], true);
   } catch {}
+  if (key && !wc.isDestroyed()) wc.removeInsertedCSS(key).catch(() => {});
 }
 
-module.exports = { play };
+// src: the webContents that started the download; falls back to the active tab when it is gone or blank (link opened a throwaway tab).
+function play({ src, active, total }) {
+  setTimeout(() => {
+    try {
+      const ok = w => w && !w.isDestroyed() && w.getURL() && w.getURL() !== "about:blank" && w.getType() !== "backgroundPage";
+      const wc = ok(active()) ? active() : ok(src) ? src : null;
+      if (wc) draw(wc, total > 0 && total < 1 << 20);
+    } catch {}
+  }, 150);
+}
+
+module.exports = { play, CSS, script };

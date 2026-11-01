@@ -257,7 +257,7 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .set-hero .main{flex:1;min-width:0}
 .set-hero .t1{font-size:20px;font-weight:600}
 .set-hero .t2{font-size:13px;color:var(--muted);margin-top:2px}
-.sp-ver{margin-top:auto;padding:12px 12px 0;font-size:12px;color:var(--muted);flex:none}.sp-side>*{flex-shrink:0}
+.sp-ver{margin-top:auto;padding:12px 12px 4px;font-size:12px;line-height:16px;color:var(--muted);flex:none;min-width:0;max-width:100%;box-sizing:border-box;white-space:normal;overflow-wrap:anywhere}.sp-side>*{flex-shrink:0}
 .sp-findbox .sp-find{border-radius:999px}
 .chat-panel{margin-top:auto;padding:12px;border-radius:20px;background:var(--bg);display:flex;flex-direction:column;gap:8px}
 .cp-h{font-size:12px;color:var(--muted);font-weight:600}

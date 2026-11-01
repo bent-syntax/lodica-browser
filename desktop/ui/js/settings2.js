@@ -122,18 +122,43 @@ function secPrivacy() {
   return [h("div", { class: "set-hero" + (on ? " on" : "") }, h("span", { class: "hero-ico" }, ico("shield")),
       h("div", { class: "main" }, h("div", { class: "t1", text: on ? "Protection is on" : "Protection is partly off" }),
         h("div", { class: "t2", text: n + " blocked on this page" + (on ? ". HTTPS-only is active" : ". HTTPS-only is off") }))),
-    secHead("Privacy"),
-    setRow("History", null, ico("chevron", "chev"), () => openHistory()),
+    secHead("Passwords", "passwords"),
     setRow("Passwords", null, ico("chevron", "chev"), () => openPasswords()),
+    secHead("History & site data", "history"),
+    setRow("History", null, ico("chevron", "chev"), () => openHistory()),
     setRow("Clear history", null, null, async () => {
       if (await confirmDialog({ title: "Clear history?", message: "Every visited page is removed from this device.", ok: "Clear" })) inv("history.clear");
     }),
-    setRow("Reset site permissions", null, null, async () => { await inv("privacy.resetPermissions"); toast("Site permissions reset"); }),
+    ...secSitePerms(),
+    setRow("Reset site permissions", null, null, async () => { await inv("privacy.resetPermissions"); SET.perms = null; toast("Site permissions reset"); }),
     setRow("Clear site data", null, null, async () => {
       const ok = await confirmDialog({ title: "Clear site data?", message: "Cookies, cache and storage for all sites. You will be logged out everywhere.", ok: "Clear", danger: true });
       if (!ok) return;
       await inv("privacy.clearSiteData"); toast("Site data cleared");
     }, "danger-row")];
+}
+// Site permissions: each remembered answer can be allowed, blocked, or forgotten so the site asks again.
+const PERM_NAMES = { notify: "Notifications", geo: "Location", clipboard: "Clipboard", screen: "Screen sharing", storage: "Embedded cookies", local: "Local network", popup: "Pop-ups" };
+function permName(kind) {
+  const m = /^media:(true|false):(true|false)$/.exec(kind);
+  if (m) return [m[1] === "true" && "Camera", m[2] === "true" && "Microphone"].filter(Boolean).join(" and ") || "Media";
+  return PERM_NAMES[kind] || kind;
+}
+function secSitePerms() {
+  if (SET.perms == null) { SET.perms = false; inv("perms.list").then((a) => { SET.perms = a || []; refreshSettings(); }); }
+  const out = [secHead("Site permissions", "siteperms"),
+    setRow("Site notifications", "Shown as system notifications while the site is open in a tab. Push messages from closed sites are not supported.")];
+  if (SET.perms && !SET.perms.length) out.push(setRow("No site has asked yet", null));
+  for (const x of SET.perms || []) {
+    const sel = h("select", { on: { change: async (e) => {
+      const v = e.target.value;
+      SET.perms = await inv("perms.set", x.host, x.kind, v === "ask" ? null : v === "allow");
+      refreshSettings();
+    } } }, [["allow", "Allow"], ["block", "Block"], ["ask", "Ask again"]].map(([k, l]) =>
+      h("option", { value: k, text: l, selected: k === (x.allow ? "allow" : "block") })));
+    out.push(setRow(x.host, permName(x.kind), sel));
+  }
+  return out;
 }
 // 10. About
 function secAbout() {

@@ -430,7 +430,7 @@ function wire(m) {
   if (m.ai.status().connected && !m.prefs.p.ai && !m.prefs.p.aiAutoOn) { m.prefs.set("ai", true); m.prefs.set("aiAutoOn", true); }
   m.net.init({ tabs, meter: m.meter, ui, sessions: ses });
   m.pctabs.init({ tabs, ui, ai: m.ai });
-  m.downloads.init({ ui, sessions: ses, anim: () => require("./dlpage").play({ wc: tabs.wcOf(), win, pageBounds: ui.pageBounds }) });
+  m.downloads.init({ ui, sessions: ses, anim: (src, total) => require("./dlpage").play({ src, active: () => tabs.wcOf(), total }) });
   m.remind.init({ tabs, win: () => win });
   m.webapps.init({ tabs, openApp });
   m.perms.init({ ui, tabs, sessions: ses });

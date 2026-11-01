@@ -131,6 +131,7 @@ function topSites() {
     quick = st && Array.isArray(st.quick) ? st.quick : [];
     hidden = st && Array.isArray(st.hidden) ? st.hidden : [];
     auto = !st || st.auto !== false;
+    $("top").classList.toggle("nonames", !!st && st.names === false);
     placeWidgets(st && st.pos, st && st.showPlan);
     drawTop(auto && Array.isArray(items) ? items : []);
   });
@@ -150,7 +151,7 @@ function drawTop(items) {
   $("top").replaceChildren(...tiles.filter(Boolean));
 }
 function addTile(items) {
-  const a = el("a", { class: "add", href: "#" }, el("span", { class: "fav", title: "Add shortcut", "aria-label": "Add shortcut" }, "+"));
+  const a = el("a", { class: "add", href: "#" }, el("span", { class: "fav", title: "Add shortcut", "aria-label": "Add shortcut" }, "+"), el("span", { class: "n" }, "Add"));
   a.addEventListener("click", (e) => { e.preventDefault(); adding = true; drawTop(items); $("nu").focus(); });
   return a;
 }

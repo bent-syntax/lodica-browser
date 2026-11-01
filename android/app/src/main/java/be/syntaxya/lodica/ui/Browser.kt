@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.rounded.Public
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.GeckoSession
@@ -131,6 +132,7 @@ fun LodicaRoot() {
         Ui.reader?.let { ReaderSheet(it.first, it.second) }
         Ui.answer?.let { AnswerSheet(it) }
         AgentPanel()
+        DownloadAnim()
         Ui.picker?.let { PickerDialog(it) }
         Ui.totpAsk?.let { TotpAskDialog(it) }
     }
@@ -500,7 +502,6 @@ fun go(input: String) {
     TabManager.load(text)
 }
 
-private val FavCache = HashMap<String, androidx.compose.ui.graphics.ImageBitmap>()
 
 private class Shortcut(val url: String, val title: String, val mine: Boolean)
 
@@ -561,17 +562,19 @@ private fun StartPage(modifier: Modifier) {
                 row.forEach { s ->
                     if (s != null) SiteTile(s.url, s.title, { TabManager.load(s.url) }, { removing = s })
                     else Column(
-                        Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
+                        Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.size(44.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(22.dp))
+                        Box(Modifier.size(56.dp).clip(CircleShape).background(GraphiteRaised).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
                         }
-                        Spacer(Modifier.height(6.dp))
-                        Text("Add", color = Muted, fontSize = 11.sp, maxLines = 1)
+                        if (Prefs.shortcutNames) {
+                            Spacer(Modifier.height(8.dp))
+                            Text("Add", color = Muted, fontSize = 12.sp, maxLines = 1)
+                        }
                     }
                 }
-                repeat(4 - row.size) { Spacer(Modifier.width(64.dp)) }
+                repeat(4 - row.size) { Spacer(Modifier.width(72.dp)) }
             }
         }
         if (!priv && Prefs.startPlanner) {
@@ -623,28 +626,25 @@ private fun StartPage(modifier: Modifier) {
 private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: (() -> Unit)?) {
     val host = remember(url) { runCatching { android.net.Uri.parse(url).host.orEmpty() }.getOrDefault("").removePrefix("www.") }
     Column(
-        Modifier.width(64.dp).clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = onLong).padding(vertical = 6.dp),
+        Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = onLong).padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        val icon by produceState<androidx.compose.ui.graphics.ImageBitmap?>(FavCache[host], host) {
-            if (value == null && host.isNotEmpty()) value = withContext(Dispatchers.IO) {
-                runCatching {
-                    val c = java.net.URL("https://$host/favicon.ico").openConnection() as java.net.HttpURLConnection
-                    c.connectTimeout = 4000; c.readTimeout = 4000
-                    c.inputStream.use { android.graphics.BitmapFactory.decodeStream(it) }?.asImageBitmap()
-                }.getOrNull()
-            }?.also { FavCache[host] = it }
+        val icon by produceState(be.syntaxya.lodica.engine.SiteIcons.cached(host), host) {
+            if (value == null && host.isNotEmpty()) value = withContext(Dispatchers.IO) { be.syntaxya.lodica.engine.SiteIcons.load(host, url.startsWith("http://")) }
         }
-        Box(Modifier.size(52.dp).clip(CircleShape).background(GraphiteRaised), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(56.dp).clip(CircleShape).background(GraphiteRaised).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
             val ic = icon
-            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(26.dp))
-            else Text(host.firstOrNull()?.uppercase() ?: "•", color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)))
+            else if (host.firstOrNull()?.isLetter() == true) Text(host.first().uppercase(), color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
+            else Icon(Icons.Rounded.Public, null, tint = Muted, modifier = Modifier.size(24.dp))
         }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            title.ifBlank { host }, color = Muted, fontSize = 11.sp,
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
-        )
+        if (Prefs.shortcutNames) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                title.ifBlank { host }, color = Mist, fontSize = 12.sp,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

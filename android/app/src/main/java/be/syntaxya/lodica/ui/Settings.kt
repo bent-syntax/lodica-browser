@@ -154,6 +154,7 @@ import be.syntaxya.lodica.ui.theme.ThemeChoices
 fun SettingsScreen() {
     val ctx = LocalContext.current
     var confirm by remember { mutableStateOf<Confirm?>(null) }
+    var permsVersion by remember { mutableStateOf(0) }
     var codeShown by remember { mutableStateOf<String?>(null) }
     var enterCode by remember { mutableStateOf(false) }
     var codeText by remember { mutableStateOf("") }
@@ -237,6 +238,9 @@ fun SettingsScreen() {
                 if (it == SearchEngine.LODICA && !Relay.available) { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             }
             if (Relay.available) EnginePicker("Fallback search engine", Prefs.searchFallback, SearchEngine.entries.filter { it != SearchEngine.LODICA }) { Prefs.updateSearchFallback(it) }
+            Section("Search words")
+            DnsSection(wordsOnly = true)
+            Section("Address bar suggestions")
             SwitchRow("Autocorrect in address bar", "Keyboard corrects and suggests words while you type a search. Off keeps URLs untouched", Prefs.autoCorrect) { Prefs.updateAutoCorrect(it) }
             SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
             LinkRow("Clear suggestions", Coral) {
@@ -247,14 +251,13 @@ fun SettingsScreen() {
                 }
                 1 -> {
                     Section("Browsing")
-            SwitchRow("Auto shortcuts", "Fill the start page with your most visited sites. Turn off to show only shortcuts you add", Prefs.quickAuto) { Prefs.updateQuickAuto(it) }
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()
             QualityPicker()
             SwitchRow("Smoother scrolling", "Faster page drawing. Takes effect after you restart the browser", Prefs.fastRender) { Prefs.updateFastRender(it) }
             TiltRotateSection()
-                    Section("Custom DNS")
+                    Section("Domain redirects")
                     DnsSection()
                 }
                 2 -> {
@@ -287,8 +290,11 @@ fun SettingsScreen() {
                     WidgetEditor()
                 }
                 4 -> {
-                    Section("Start page background")
+                    Section("Background")
                     StartBackgroundSettings()
+                    Section("Shortcuts")
+                    SwitchRow("Show most visited sites", "Fill the start page with the sites you open most, next to your own shortcuts", Prefs.quickAuto) { Prefs.updateQuickAuto(it) }
+                    SwitchRow("Show shortcut names", "Show the site name under each shortcut circle", Prefs.shortcutNames) { Prefs.updateShortcutNames(it) }
                     Section("Notes")
                     SwitchRow("Show notes", "Show your newest Notebook notes on the start page", Prefs.startNotes) { Prefs.updateStartNotes(it) }
                     PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
@@ -318,9 +324,78 @@ fun SettingsScreen() {
                 }
             }
             Spacer(Modifier.height(8.dp))
+                }
+                7 -> {
+                    Section("Blocking")
+            SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
+            SwitchRow("Smartschool: sign in with Microsoft", "Click \"Microsoft\" on the Smartschool login page when you are already signed in to Microsoft. No password is stored", Prefs.smartschoolMs) { Prefs.updateSmartschoolMs(it) }
+
+                    Section("Connections")
+            SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
+            if (Relay.available) SwitchRow("Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct", Prefs.routeVps) {
+                Prefs.updateRouteVps(it)
+            }
+
+                    Section("Spelling")
+            SwitchRow("Spell check", "Long-press a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }
+            if (Prefs.spell) {
+                SwitchRow("Auto-correct", "Fix words as you type. Backspace undoes a fix", Prefs.spellAuto) { Prefs.updateSpellAuto(it) }
+                val langs = listOf("en" to "English", "nl" to "Nederlands", "de" to "Deutsch", "fr" to "Français", "es" to "Español", "it" to "Italiano", "pt" to "Português", "sv" to "Svenska", "da" to "Dansk", "pl" to "Polski")
+                Text("Languages to check and correct. Tap to turn on or off", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                for (row in langs.chunked(3)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for ((code, name) in row) {
+                            val on = code in Prefs.spellLangs
+                            Text(
+                                name,
+                                color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.onPrimary else androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .background(if (on) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                                    .clickable { Prefs.toggleSpellLang(code) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
+
+                }
+                6 -> {
+                    StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
+                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
+                    Section("Passwords")
+            LinkRow("Passwords") { Ui.go(Screen.Passwords) }
+                    Section("History & site data")
+            LinkRow("History") { Ui.go(Screen.History) }
+            LinkRow("Clear history", Coral) {
+                confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
+            }
+            SitePermsSection(permsVersion) { permsVersion++ }
+            LinkRow("Reset site permissions") {
+                Prompts.clearSitePermissions()
+                permsVersion++
+                Toast.makeText(ctx, "Site permissions reset", Toast.LENGTH_SHORT).show()
+            }
+            LinkRow("Clear site data", Coral) {
+                confirm = Confirm("Clear site data?", "Cookies, cache and storage for all sites. You will be logged out everywhere.") {
+                    Engine.runtime(ctx).storageController.clearData(StorageController.ClearFlags.ALL)
+                    Toast.makeText(ctx, "Site data cleared", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+                }
+                9 -> ControlsSection()
+                12 -> {
+                    Section("Browser identity")
+            AgentPicker()
+                    Section("Authenticator")
+                    AuthenticatorSection()
+
+                }
+                10 -> {
             if (!Relay.available) LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             if (Relay.available) {
-                Section("Sync")
+                Section("Linked devices")
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link
                 if (!PcTabs.enabled) TextButton(onClick = { codeText = ""; enterCode = true }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Enter link code", color = Amber) }
@@ -400,80 +475,15 @@ fun SettingsScreen() {
                 }
             }
                 }
-                7 -> {
-                    Section("Blocking")
-            SwitchRow("HTTPS-only", "Upgrade every connection, warn on plain HTTP", Prefs.httpsOnly) { Prefs.updateHttpsOnly(it) }
-            SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
-            SwitchRow("Smartschool: sign in with Microsoft", "Click \"Microsoft\" on the Smartschool login page when you are already signed in to Microsoft. No password is stored", Prefs.smartschoolMs) { Prefs.updateSmartschoolMs(it) }
-
-                    Section("Spelling")
-            SwitchRow("Spell check", "Long-press a misspelled word to see corrections", Prefs.spell) { Prefs.updateSpell(it) }
-            if (Prefs.spell) {
-                SwitchRow("Auto-correct", "Fix words as you type. Backspace undoes a fix", Prefs.spellAuto) { Prefs.updateSpellAuto(it) }
-                val langs = listOf("en" to "English", "nl" to "Nederlands", "de" to "Deutsch", "fr" to "Français", "es" to "Español", "it" to "Italiano", "pt" to "Português", "sv" to "Svenska", "da" to "Dansk", "pl" to "Polski")
-                Text("Languages to check and correct. Tap to turn on or off", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-                for (row in langs.chunked(3)) {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for ((code, name) in row) {
-                            val on = code in Prefs.spellLangs
-                            Text(
-                                name,
-                                color = if (on) androidx.compose.material3.MaterialTheme.colorScheme.onPrimary else androidx.compose.material3.MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .background(if (on) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                                    .clickable { Prefs.toggleSpellLang(code) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-                    Section("VPS")
-                    if (!Relay.available) {
-                        LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
-                    } else {
-                SwitchRow("Route through VPS", "Send browsing through your server's tunnel. Logins and payments stay direct", Prefs.routeVps) {
-                    Prefs.updateRouteVps(it)
-                }
-                    }
-                }
-                6 -> {
-                    StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
-                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
-                    Section("Passwords")
-            LinkRow("Passwords") { Ui.go(Screen.Passwords) }
-                    Section("History & site data")
-            LinkRow("History") { Ui.go(Screen.History) }
-            LinkRow("Clear history", Coral) {
-                confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
-            }
-            LinkRow("Reset site permissions") {
-                Prompts.clearSitePermissions()
-                Toast.makeText(ctx, "Site permissions reset", Toast.LENGTH_SHORT).show()
-            }
-            LinkRow("Clear site data", Coral) {
-                confirm = Confirm("Clear site data?", "Cookies, cache and storage for all sites. You will be logged out everywhere.") {
-                    Engine.runtime(ctx).storageController.clearData(StorageController.ClearFlags.ALL)
-                    Toast.makeText(ctx, "Site data cleared", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-                }
-                9 -> ControlsSection()
                 11 -> {
-                    Section("Browser identity")
-            AgentPicker()
-                    Section("Authenticator")
-                    AuthenticatorSection()
-
-                }
-                10 -> {
-                    Section("Server, chat & mail")
+                    Section("Server")
                     if (!Relay.available) {
                         StatusCard(Icons.Rounded.Cloud, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
                     } else {
                         StatusCard(Icons.Rounded.Cloud, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
+                        LinkRow("Inbox") { Ui.go(Screen.Inbox) }
+                        LinkRow("Disconnect server") { Relay.disconnect() }
+                        Section("Chat")
                         LinkRow("Server chat") { Ui.go(Screen.Room) }
                 SwitchRow("Instant chat messages", "Keeps a quiet connection open so messages arrive right away. Shows a small ongoing notification", Prefs.liveChat) {
                     Prefs.updateLiveChat(it); if (it) ChatService.start(ctx) else ChatService.stop(ctx)
@@ -482,7 +492,6 @@ fun SettingsScreen() {
                     runCatching { ctx.startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, ctx.packageName).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
                 } else LinkRow("Send a test notification") { Notifier.test(ctx) }
                 if (Prefs.liveChat && !ChatService.ignoringBattery(ctx)) LinkRow("Allow background use (battery)") { runCatching { ctx.startActivity(ChatService.batteryIntent(ctx)) } }
-                        LinkRow("Inbox") { Ui.go(Screen.Inbox) }
                         var sharing by remember { mutableStateOf(ScreenShare.running) }
                         val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
                             val grant = r.data
@@ -496,8 +505,6 @@ fun SettingsScreen() {
                         }
                         Section("Hidden email")
                         SwitchRow("Hidden email", "Offer a private address on your own domain on sign-up forms", Prefs.dummyLogin) { Prefs.updateDummyLogin(it) }
-                        Section("Server")
-                        LinkRow("Disconnect server") { Relay.disconnect() }
                     }
                     LinkRow("Run server setup") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
                 }
@@ -1317,6 +1324,43 @@ internal fun LinkRow(title: String, color: androidx.compose.ui.graphics.Color = 
     }
 }
 
+/** Each remembered site answer can be allowed, blocked, or forgotten so the site asks again. Same as desktop. */
+@Composable
+private fun SitePermsSection(version: Int, changed: () -> Unit) {
+    val perms = remember(version) { Prompts.sitePermissions() }
+    Section("Site permissions")
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Text("Site notifications", color = Mist, fontSize = 15.sp)
+        Text("Shown as system notifications while the site is open in a tab. Push messages from closed sites are not supported.", color = Muted, fontSize = 13.sp)
+    }
+    if (perms.isEmpty()) InfoRow("No site has asked yet", "")
+    perms.forEach { p ->
+        var open by remember(p) { mutableStateOf(false) }
+        Box {
+            Row(
+                Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(p.host, color = Mist, fontSize = 15.sp)
+                    Text(Prompts.permName(p.kind), color = Muted, fontSize = 13.sp)
+                }
+                Text(if (p.allow) "Allow" else "Block", color = if (p.allow) Amber else Muted, fontSize = 13.sp)
+            }
+            Box(Modifier.align(Alignment.TopEnd)) {
+                DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
+                    listOf<Pair<String, Boolean?>>("Allow" to true, "Block" to false, "Ask again" to null).forEach { (label, v) ->
+                        DropdownMenuItem(
+                            text = { Text(label, color = if (v == p.allow) Amber else Mist) },
+                            onClick = { open = false; Prompts.setSitePermission(p.host, p.kind, v); changed() },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 internal fun InfoRow(title: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
@@ -1541,15 +1585,15 @@ private class SettingsEntry(val title: String, val tab: Int, keywords: String = 
 
 /** What the settings search looks through: a title, the page it lives on and extra words people may type. */
 // Must be declared before SettingsIndex: the index reads it during file-level initialisation.
-// Same 13 pages, same order and same groups as the desktop settings.
+// Same 14 pages, same order and same groups as the desktop settings.
 private val SettingsTabs = listOf(
     "Search", "Sites & domains", "Ask AI", "Theme", "Start page", "Tabs", "Privacy & history",
-    "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Server & mail", "Identity & authenticator", "Updates & About",
+    "Security & blocking", "Data, apps & extensions", "Keybinds & controls", "Link", "Server & mail", "Identity & authenticator", "Updates & About",
 )
 
 private val SettingsIcons = listOf(
     Icons.Rounded.Search, Icons.Rounded.Language, Icons.Rounded.AutoAwesome, Icons.Rounded.Palette, Icons.Rounded.Home, Icons.Rounded.Tab, Icons.Rounded.History,
-    Icons.Rounded.Shield, Icons.Rounded.Extension, Icons.Rounded.Gesture, Icons.Rounded.Email, Icons.Rounded.Key, Icons.Rounded.Update,
+    Icons.Rounded.Shield, Icons.Rounded.Extension, Icons.Rounded.Gesture, Icons.Rounded.Link, Icons.Rounded.Email, Icons.Rounded.Key, Icons.Rounded.Update,
 )
 
 /** Landing list: group title to the pages inside it. */
@@ -1558,19 +1602,22 @@ private val SettingsGroups = listOf(
     "Look & tabs" to listOf(3, 4, 5),
     "Privacy & security" to listOf(6, 7),
     "Data & controls" to listOf(8, 9),
-    "Account" to listOf(10, 11),
-    "About" to listOf(12),
+    "Account" to listOf(10, 11, 12),
+    "About" to listOf(13),
 )
 
 private val SettingsIndex = listOf(
     SettingsEntry("Search engine", 0, "default duckduckgo lodica fallback"),
     SettingsEntry("Suggest from history", 0, "address bar suggestions"),
     SettingsEntry("Clear suggestions", 0, "past searches"),
+    SettingsEntry("Autocorrect in address bar", 0, "typo spelling"),
+    SettingsEntry("Show most visited sites", 4, "auto shortcuts start page"),
+    SettingsEntry("Show shortcut names", 4, "shortcut circles labels start page"),
     SettingsEntry("Fallback search engine", 0, "lodica search server unavailable"),
     SettingsEntry("Desktop sites", 1, "request desktop"),
-    SettingsEntry("Search words", 1, "typed word opens site shortcut youtube"),
+    SettingsEntry("Search words", 0, "typed word opens site shortcut youtube"),
     SettingsEntry("Show original domain after redirects", 1, "redirect origin address bar"),
-    SettingsEntry("User agent", 11, "browser identity"),
+    SettingsEntry("User agent", 12, "browser identity"),
     SettingsEntry("Language", 1, "accept language"),
     SettingsEntry("Video quality", 1, "data saver"),
     SettingsEntry("Smoother scrolling", 1, "scroll smooth fast render surface lag jank restart"),
@@ -1583,7 +1630,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Theme", 3, "colours dark light logo icon"),
     SettingsEntry("Search widget", 3, "home screen"),
     SettingsEntry("Dark pages", 3, "force dark websites"),
-    SettingsEntry("Start page background", 4, "wallpaper image"),
+    SettingsEntry("Background", 4, "wallpaper image"),
     SettingsEntry("Show notes on start page", 4, "notebook notes widget"),
     SettingsEntry("Smartschool planner", 4,"ics calendar agenda schedule"),
     SettingsEntry("Notes position", 4, "notebook widget left right under search bar"),
@@ -1594,30 +1641,31 @@ private val SettingsIndex = listOf(
     SettingsEntry("Show planner", 4, "smartschool start page hide planner"),
     SettingsEntry("Planner position", 4, "smartschool widget left right under search bar"),
     SettingsEntry("Auto-archive tabs", 5, "unused days"),
-    SettingsEntry("Tabs on PC", 5, "sync computer link"),
-    SettingsEntry("What to share", 5, "sync share history passwords authenticator bluetooth shortcuts settings sites"),
-    SettingsEntry("Link key", 5, "sync key link code passwords authenticator forget"),
+    SettingsEntry("Tabs on PC", 10, "sync computer link"),
+    SettingsEntry("What to share", 10, "sync share history passwords authenticator bluetooth shortcuts settings sites"),
+    SettingsEntry("Link key", 10, "sync key link code passwords authenticator forget"),
     SettingsEntry("HTTPS-only", 7, "secure connections"),
     SettingsEntry("Reject cookie banners", 7, "consent popups"),
     SettingsEntry("Spell check", 7, "autocorrect languages dictionary"),
     SettingsEntry("Route through VPS", 7, "tunnel server proxy"),
-    SettingsEntry("Custom DNS", 1, "dns over https resolver"),
+    SettingsEntry("Domain redirects", 1, "custom dns over https resolver own domain names"),
     SettingsEntry("Import from Chrome", 8, "bookmarks passwords"),
     SettingsEntry("History", 6, "visited pages"),
     SettingsEntry("Clear history", 6, "delete"),
     SettingsEntry("Reset site permissions", 6, "camera microphone location"),
+    SettingsEntry("Site permissions", 6, "allow block ask camera microphone location site notifications push alerts"),
     SettingsEntry("Clear site data", 6, "cookies cache storage"),
     SettingsEntry("Controls and gestures", 9, "toggles buttons swipe"),
-    SettingsEntry("Hidden email", 10, "alias sign-up dummy"),
+    SettingsEntry("Hidden email", 11, "alias sign-up dummy"),
     SettingsEntry("Passwords", 6, "logins vault"),
-    SettingsEntry("Authenticator", 11, "totp 2fa codes google migration qr"),
-    SettingsEntry("Server chat", 10, "room messages"),
-    SettingsEntry("Instant chat messages", 10, "notifications live battery"),
-    SettingsEntry("Share phone screen", 10, "cast mirror screen computer game record remote control accessibility tap"),
-    SettingsEntry("Notifications", 10, "test permission alerts"),
-    SettingsEntry("Inbox", 10, "mail"),
-    SettingsEntry("Server setup", 10, "disconnect link"),
-    SettingsEntry("Version and what's new", 12, "about updates patch notes"),
+    SettingsEntry("Authenticator", 12, "totp 2fa codes google migration qr"),
+    SettingsEntry("Server chat", 11, "room messages"),
+    SettingsEntry("Instant chat messages", 11, "notifications live battery"),
+    SettingsEntry("Share phone screen", 11, "cast mirror screen computer game record remote control accessibility tap"),
+    SettingsEntry("Notifications", 11, "test permission alerts"),
+    SettingsEntry("Inbox", 11, "mail"),
+    SettingsEntry("Server setup", 11, "disconnect link"),
+    SettingsEntry("Version and what's new", 13, "about updates patch notes"),
 )
 
 
@@ -1879,14 +1927,16 @@ private fun ChromeImportSection() {
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun DnsSection() {
+private fun DnsSection(wordsOnly: Boolean = false) {
     var rules by remember { mutableStateOf(false) }
     var server by remember { mutableStateOf(false) }
     var words by remember { mutableStateOf(false) }
     val n = Prefs.dnsPairs().size
-    LinkRow(if (n == 0) "Own domain names" else "Own domain names ($n)") { rules = true }
-    LinkRow(Prefs.searchWordPairs().size.let { if (it == 0) "Search words" else "Search words ($it)" }) { words = true }
-    LinkRow(if (Prefs.dnsServer.isBlank()) "DNS server: default" else "DNS server: custom") { server = true }
+    if (wordsOnly) LinkRow(Prefs.searchWordPairs().size.let { if (it == 0) "Search words" else "Search words ($it)" }) { words = true }
+    else {
+        LinkRow(if (n == 0) "Own domain names" else "Own domain names ($n)") { rules = true }
+        LinkRow(if (Prefs.dnsServer.isBlank()) "DNS server: default" else "DNS server: custom") { server = true }
+    }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,

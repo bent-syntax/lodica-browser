@@ -31,6 +31,8 @@ object Ui {
     var finding by mutableStateOf(false)
     var findQuery by mutableStateOf("")
     var findCount by mutableStateOf("")
+    /** Download start animation: run number and file size in bytes (0 = unknown), or null when idle. */
+    var dlAnim by mutableStateOf<Pair<Int, Long>?>(null)
 
     /** A link copied in another app, offered once when Lodica regains focus. */
     var clipLink by mutableStateOf<String?>(null)
