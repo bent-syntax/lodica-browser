@@ -325,16 +325,46 @@ object Helper {
                                 port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items))
                             }.start()
                         }
-                        // Start page Notes card: the newest Notebook notes as a title and a preview line.
+                        // Start page Notes card: the chosen Notebook note (pref notesBook), else the newest notes as a title and a preview line.
                         "notes" -> {
                             val id = m.optInt("id")
                             Thread {
                                 val items = org.json.JSONArray()
-                                if (Prefs.startNotes && Relay.available) Notebook.list()?.take(5)?.forEach { info ->
-                                    val lines = (Notebook.get(info.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
-                                    items.put(JSONObject().put("title", (lines.getOrNull(0) ?: info.title.ifBlank { "New note" }).take(80)).put("more", (lines.getOrNull(1) ?: "").take(120)))
+                                var book = false
+                                if (Prefs.startNotes && Relay.available) {
+                                    val all = Notebook.list()
+                                    val pick = all?.firstOrNull { it.id == Prefs.notesBook }
+                                    if (pick != null) {
+                                        book = true
+                                        val lines = (Notebook.get(pick.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
+                                        lines.take(60).forEachIndexed { i, l ->
+                                            items.put(if (i == 0) JSONObject().put("title", l.take(200)).put("more", "") else JSONObject().put("title", "").put("more", l.take(400)))
+                                        }
+                                    } else all?.take(5)?.forEach { info ->
+                                        val lines = (Notebook.get(info.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
+                                        items.put(JSONObject().put("title", (lines.getOrNull(0) ?: info.title.ifBlank { "New note" }).take(80)).put("more", (lines.getOrNull(1) ?: "").take(120)))
+                                    }
                                 }
-                                port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items))
+                                port.postMessage(JSONObject().put("type", "reply").put("id", id).put("items", items).put("book", book))
+                            }.start()
+                        }
+                        // Quick note from the start page: appends a line to the chosen note, else the newest note, else a new one.
+                        "noteAdd" -> {
+                            val id = m.optInt("id"); val text = m.optString("text").trim().take(500)
+                            Thread {
+                                var ok = false
+                                if (text.isNotEmpty() && Relay.available) runCatching {
+                                    val all = Notebook.list()
+                                    var nid = (all?.firstOrNull { it.id == Prefs.notesBook } ?: all?.firstOrNull())?.id
+                                    if (all != null && nid == null) nid = Notebook.create()?.id
+                                    if (nid != null) for (i in 0 until 2) {
+                                        val cur = Notebook.get(nid) ?: break
+                                        val r = Notebook.put(nid, (if (cur.text.isNotEmpty() && !cur.text.endsWith("\n")) cur.text + "\n" else cur.text) + text, cur.rev) ?: break
+                                        if (r.gone) break
+                                        if (!r.conflict) { ok = true; break }
+                                    }
+                                }
+                                port.postMessage(JSONObject().put("type", "reply").put("id", id).put("ok", ok))
                             }.start()
                         }
                         // Lodica Search results: fetched by the app itself with its own token, so the page never needs the relay credentials.

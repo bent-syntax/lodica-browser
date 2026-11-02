@@ -297,6 +297,7 @@ fun SettingsScreen() {
                     Section("Notes")
                     SwitchRow("Show notes", "Show your newest Notebook notes on the start page", Prefs.startNotes) { Prefs.updateStartNotes(it) }
                     PlacePicker("Notes position", Prefs.notesPos) { Prefs.updateNotesPos(it) }
+                    NotesBookPicker()
                     Section("Smartschool planner")
                     SwitchRow("Show planner", "Show your Smartschool planner on the start page", Prefs.startPlanner) { Prefs.updateStartPlanner(it) }
                     PlannerSetting()
@@ -730,6 +731,27 @@ private fun EmojiKeyboardSection() {
     LinkRow("Sync server emojis") {
         if (!Relay.available) Toast.makeText(ctx, "No server linked", Toast.LENGTH_SHORT).show()
         else { Emojis.syncNow(); Toast.makeText(ctx, "Syncing emojis", Toast.LENGTH_SHORT).show() }
+    }
+    var textSizing by remember { mutableStateOf(false) }
+    LinkRow("Chat text size: ${Prefs.chatScale}%") { textSizing = true }
+    if (textSizing) {
+        var pct by remember { mutableStateOf(Prefs.chatScale.toString()) }
+        val n = pct.toIntOrNull()
+        AlertDialog(
+            onDismissRequest = { textSizing = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Chat text size") },
+            text = {
+                OutlinedTextField(
+                    pct, { pct = it.filter(Char::isDigit).take(3) }, Modifier.fillMaxWidth(), singleLine = true,
+                    label = { Text("Percent, 80 to 250", color = Muted) },
+                    keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber),
+                )
+            },
+            confirmButton = { DlgPrimary({ if (n != null && n in 80..250) { Prefs.updateChatScale(n); textSizing = false } }) { Text("Save") } },
+            dismissButton = { DlgSecondary({ textSizing = false }) { Text("Cancel") } },
+        )
     }
     var sizing by remember { mutableStateOf(false) }
     LinkRow("Emoji size in chat: ${Emojis.scale}%") { sizing = true }
@@ -2126,5 +2148,31 @@ private fun PlannerTextSetting(hint: String, example: String, single: Boolean, v
             ),
         )
         TextButton(onClick = { save(draft) }) { Text("Save", color = Amber) }
+    }
+}
+
+/** Picks which Notebook note the start page Notes card shows and adds quick notes to; empty means the newest notes. */
+@Composable
+private fun NotesBookPicker() {
+    var open by remember { mutableStateOf(false) }
+    var books by remember { mutableStateOf<List<be.syntaxya.lodica.engine.NoteInfo>?>(null) }
+    val name = books?.firstOrNull { it.id == Prefs.notesBook }?.title?.ifBlank { "New note" }
+    LinkRow("Notes notebook: " + (if (Prefs.notesBook.isEmpty()) "newest notes" else name ?: "chosen note")) { open = true }
+    if (open) {
+        LaunchedEffect(Unit) { books = withContext(Dispatchers.IO) { be.syntaxya.lodica.engine.Notebook.list() } }
+        AlertDialog(
+            onDismissRequest = { open = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Notes notebook") },
+            text = {
+                Column {
+                    LinkRow("Newest notes") { Prefs.updateNotesBook(""); open = false }
+                    if (books == null) Text("Loading notes", color = Muted)
+                    books?.forEach { b -> LinkRow(b.title.ifBlank { "New note" }) { Prefs.updateNotesBook(b.id); open = false } }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { DlgSecondary({ open = false }) { Text("Cancel") } },
+        )
     }
 }

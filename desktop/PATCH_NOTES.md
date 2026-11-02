@@ -1,3 +1,7 @@
+## 1.14.39
+
+- Fixed: Version bump to keep desktop and Android in step; the notebook pick, quick note, chat size and image preview with download icon already exist on desktop.
+
 ## 1.14.38
 
 - Fixed: Version bump to keep desktop and Android in step; the desktop start page already shows the planner at once.

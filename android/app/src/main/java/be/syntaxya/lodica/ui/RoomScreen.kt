@@ -30,11 +30,17 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.shape.CircleShape
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.text.InlineTextContent
+import be.syntaxya.lodica.engine.Prefs
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
@@ -306,18 +312,25 @@ private fun FileBody(m: RoomMsg) {
         m.fileSize < 1024L * 1024 * 1024 -> "%.1f MB".format(m.fileSize / 1048576.0)
         else -> "%.2f GB".format(m.fileSize / 1073741824.0)
     }
-    Text(m.fileName, color = Mist, fontSize = 14.sp)
+    Text(m.fileName, color = Mist, fontSize = (14 * Prefs.chatScale / 100f).sp)
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
         TextButton({ save.launch(m.fileName.ifBlank { "file" }) }) { Text("Save ($size)", color = Amber) }
-        if (m.fileType.startsWith("image/") && preview == null && m.fileSize <= 20L * 1024 * 1024) TextButton({
-            Room.scopeIo {
-                val bytes = Room.fetchFile(id)
-                val bmp = bytes?.let { runCatching { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull() }
-                if (bmp != null) preview = bmp else status = "Preview unavailable"
-            }
-        }) { Text("Preview", color = Amber) }
     }
-    preview?.let { Image(it.asImageBitmap(), m.fileName, Modifier.fillMaxWidth().heightInMax(max = 260.dp)) }
+    LaunchedEffect(id) {
+        if (m.fileType.startsWith("image/") && preview == null && m.fileSize <= 20L * 1024 * 1024) withContext(Dispatchers.IO) {
+            val bytes = Room.fetchFile(id)
+            preview = bytes?.let { runCatching { android.graphics.BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull() }
+        }
+    }
+    preview?.let { bmp ->
+        Box(Modifier.fillMaxWidth().heightIn(max = (260 * Prefs.chatScale / 100f).dp).aspectRatio(bmp.width.toFloat() / bmp.height, matchHeightConstraintsFirst = true).clip(RoundedCornerShape(12.dp))) {
+            Image(bmp.asImageBitmap(), m.fileName, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Fit)
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(8.dp).size(32.dp).clip(CircleShape).background(GraphiteRaised.copy(alpha = 0.8f)).clickable { save.launch(m.fileName.ifBlank { "file" }) },
+                contentAlignment = Alignment.Center,
+            ) { Icon(Icons.Rounded.Download, "Download ${m.fileName}", tint = Mist, modifier = Modifier.size(24.dp)) }
+        }
+    }
     status?.let { Text(it, color = Muted, fontSize = 11.sp) }
 }
 
@@ -341,7 +354,7 @@ private fun EmojiText(t: String) {
             if (bmp != null) Image(bmp, n, Modifier.fillMaxSize())
         }
     }
-    Text(text, color = Mist, fontSize = 14.sp, inlineContent = inline)
+    Text(text, color = Mist, fontSize = (14 * Prefs.chatScale / 100f).sp, inlineContent = inline)
 }
 
 private val OS_GLYPH = mapOf("android" to "🤖", "windows" to "🪟", "macos" to "🍎", "ios" to "📱", "linux" to "🐧")

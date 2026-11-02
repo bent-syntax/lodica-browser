@@ -1,4 +1,11 @@
 # Patch notes
+## 1.14.39
+
+- Added: On Android you can pick which Notebook note the start page Notes card shows (Settings, Notes, Notes notebook), and type a quick note line into it from the start page.
+- Added: A chat text size setting on Android (Settings, Chat text size, 80 to 250 percent), matching the desktop.
+- Changed: Chat images on Android now load by themselves at their real aspect ratio, with a download icon in the top right corner.
+- Changed: Free dragging and resizing of the planner and notes windows already exists on desktop; the Android start page still uses the fixed positions.
+
 ## 1.14.38
 
 - Fixed: The planner on the Android start page now shows straight away after the app starts, using the last downloaded calendar while the new one loads.
