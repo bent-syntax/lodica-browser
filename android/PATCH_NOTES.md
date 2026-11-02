@@ -1,4 +1,9 @@
 # Patch notes
+
+## 1.14.42
+
+- Added: Hearth provider for Ask AI and chats. Settings, AI, "Hearth address and key". The key is stored encrypted and sent only to your address.
+
 ## 1.14.41
 
 - Changed: No Android change in this release; the emoji picker Add button is desktop only.

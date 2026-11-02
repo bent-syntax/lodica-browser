@@ -832,6 +832,34 @@ private fun AiSection() {
     var memory by remember { mutableStateOf(false) }
     var reset by remember { mutableStateOf<Confirm?>(null) }
     var keyDialog by remember { mutableStateOf(false) }
+    var hearthDialog by remember { mutableStateOf(false) }
+    LinkRow(if (Ai.hasHearth) "Hearth: set (${Ai.hearthAddress})" else "Hearth address and key", if (Ai.hasHearth) Mist else Amber) { hearthDialog = true }
+    if (hearthDialog) {
+        var addr by remember { mutableStateOf(Ai.hearthAddress) }
+        var hk by remember { mutableStateOf("") }
+        var err by remember { mutableStateOf<String?>(null) }
+        var checking by remember { mutableStateOf(false) }
+        val colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber, focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh)
+        AlertDialog(
+            onDismissRequest = { hearthDialog = false },
+            containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+            title = { Text("Hearth") },
+            text = {
+                Column {
+                    Text("Your own Hearth server. Used first for Ask AI and chats; the key is stored encrypted on this phone and sent only to this address. Empty both fields and save to remove.", fontSize = 13.sp)
+                    OutlinedTextField(addr, { addr = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true, placeholder = { Text("https://hearth.example.com", color = Muted) }, colors = colors)
+                    OutlinedTextField(hk, { hk = it }, Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true, placeholder = { Text(if (Ai.hasHearth) "Key saved. Type to replace" else "hk_…", color = Muted) }, colors = colors)
+                    err?.let { Text(it, color = Danger, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)) }
+                }
+            },
+            confirmButton = { DlgPrimary(onClick = {
+                if (checking) return@DlgPrimary
+                checking = true
+                Ai.setHearth(addr, hk) { e -> checking = false; if (e == null) hearthDialog = false else err = e }
+            }) { Text(if (checking) "Checking…" else "Save") } },
+            dismissButton = { DlgSecondary(onClick = { hearthDialog = false }) { Text("Cancel") } },
+        )
+    }
     LinkRow(if (Ai.hasKey) "Anthropic API key: set (Haiku 5.5)" else "Anthropic API key", if (Ai.hasKey) Mist else Amber) { keyDialog = true }
     if (keyDialog) {
         var draft by remember { mutableStateOf("") }

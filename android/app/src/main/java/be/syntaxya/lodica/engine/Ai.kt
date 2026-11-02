@@ -64,12 +64,79 @@ object Ai {
         private set
     private var apiKey: String? = null
 
+    /** Hearth server (own address + key from Settings). Preferred over the Anthropic key and Termux; the key never leaves [Secret] except to that address. */
+    var hasHearth by mutableStateOf(false)
+        private set
+    var hearthAddress by mutableStateOf("")
+        private set
+    private var hearthKey: String? = null
+    private val hearthLock = Any() // Hearth serves two requests at a time for everyone, so ours go one by one
+
+    private fun hearthMsg(code: Int) = when (code) {
+        401 -> "Hearth refused the key. Check it in Settings, AI."
+        403 -> "Hearth key may not use that model."
+        429 -> "Hearth is busy or the key hit its limit. Try again soon."
+        502, 504 -> "Hearth could not answer. Try again."
+        else -> "Hearth answered $code"
+    }
+
+    /** Checks the address and key with GET /v1/models, then stores them. Both empty clears them. [done] gets null on success, else a message. */
+    fun setHearth(addr: String, key: String, done: (String?) -> Unit) {
+        val a = addr.trim().trimEnd('/'); val k = key.trim()
+        if (a.isEmpty() && k.isEmpty()) {
+            hearthKey = null; hearthAddress = ""; hasHearth = false
+            Secret.put("hearthaddr", null); Secret.put("hearthkey", null)
+            connected = hasKey || hasHearth || (enabled && status == "Connected"); Helper.push(); done(null); return
+        }
+        if (!Regex("^https?://[^\\s/]+(/\\S*)?$", RegexOption.IGNORE_CASE).matches(a)) { done("Enter the Hearth address, like https://hearth.example.com"); return }
+        if (k.isEmpty()) { done("Enter the Hearth key"); return }
+        io.execute {
+            val err = runCatching {
+                val c = URL("$a/v1/models").openConnection() as HttpURLConnection
+                try {
+                    c.connectTimeout = 15_000; c.readTimeout = 15_000
+                    c.setRequestProperty("x-api-key", k)
+                    if (c.responseCode !in 200..299) hearthMsg(c.responseCode) else null
+                } finally { c.disconnect() }
+            }.getOrElse { "Could not reach that address" }
+            main.post {
+                if (err == null) {
+                    hearthKey = k; hearthAddress = a; hasHearth = true
+                    Secret.put("hearthaddr", a); Secret.put("hearthkey", k)
+                    connected = true; Helper.push()
+                }
+                done(err)
+            }
+        }
+    }
+
+    /** One stateless Hearth call (model auto, no stream); a 429 is retried once, a 401 never. */
+    private fun viaHearth(turns: List<Pair<String, String>>, system: String): String = synchronized(hearthLock) {
+        val msgs = JSONArray().apply { turns.forEach { put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", it.second)) } }
+        val body = JSONObject().put("model", "auto").put("system", system).put("messages", msgs).toString().toByteArray()
+        var attempt = 0
+        while (true) {
+            val c = URL("$hearthAddress/v1/messages").openConnection() as HttpURLConnection
+            try {
+                c.requestMethod = "POST"; c.connectTimeout = 15_000; c.readTimeout = 300_000; c.doOutput = true
+                c.setRequestProperty("x-api-key", hearthKey); c.setRequestProperty("content-type", "application/json")
+                c.outputStream.use { it.write(body) }
+                val code = c.responseCode
+                if (code == 429 && attempt++ == 0) { Thread.sleep(3000); continue }
+                if (code !in 200..299) throw IllegalStateException(hearthMsg(code))
+                val j = JSONObject(c.inputStream.bufferedReader().readText())
+                return j.optJSONArray("content")?.optJSONObject(0)?.optString("text").orEmpty()
+            } finally { c.disconnect() }
+        }
+        ""
+    }
+
     fun setKey(k: String) {
         val v = k.trim().ifEmpty { null }
         apiKey = v
         hasKey = v != null
         Secret.put("aikey", v)
-        connected = hasKey || (enabled && status == "Connected")
+        connected = hasKey || hasHearth || (enabled && status == "Connected")
         Helper.push()
     }
 
@@ -82,7 +149,9 @@ object Ai {
         Secret.init(app)
         apiKey = Secret.get("aikey")
         hasKey = apiKey != null
-        connected = hasKey
+        hearthKey = Secret.get("hearthkey"); hearthAddress = Secret.get("hearthaddr").orEmpty()
+        hasHearth = hearthKey != null && hearthAddress.isNotEmpty()
+        connected = hasKey || hasHearth
         Helper.push()
         if (enabled) { status = "Checking…"; io.execute { val ok = ping(); main.post { setConnected(ok, false) } } }
     }
@@ -90,7 +159,7 @@ object Ai {
     fun updateEnabled(v: Boolean) {
         enabled = v
         app.getSharedPreferences("ai", Context.MODE_PRIVATE).edit().putBoolean("enabled", v).apply()
-        if (v) connect() else { connected = hasKey; status = "Off"; Helper.push() }
+        if (v) connect() else { connected = hasKey || hasHearth; status = "Off"; Helper.push() }
     }
 
     val termuxInstalled: Boolean
@@ -99,7 +168,7 @@ object Ai {
     /** Pings the bridge; if it is not running, asks for the Termux permission and starts it. */
     fun connect() {
         if (!enabled) return
-        if (!termuxInstalled) { connected = hasKey; status = "Termux not installed"; return }
+        if (!termuxInstalled) { connected = hasKey || hasHearth; status = "Termux not installed"; return }
         status = "Connecting…"
         io.execute {
             if (ping()) { main.post { setConnected(true, false) }; return@execute }
@@ -107,7 +176,7 @@ object Ai {
                 val host = Prompts.host
                 if (host == null) { start(); return@post }
                 host.requestAndroid(arrayOf(PERMISSION)) { ok ->
-                    if (ok) start() else { connected = hasKey; status = "Termux permission denied" }
+                    if (ok) start() else { connected = hasKey || hasHearth; status = "Termux permission denied" }
                 }
             }
         }
@@ -123,7 +192,7 @@ object Ai {
             .putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         try { app.startService(intent) } catch (e: Exception) {
             Log.w(TAG, "termux start failed: ${e.javaClass.simpleName}")
-            connected = hasKey; status = "Termux refused the command (allow-external-apps?)"; return
+            connected = hasKey || hasHearth; status = "Termux refused the command (allow-external-apps?)"; return
         }
         io.execute {
             var ok = false
@@ -133,7 +202,7 @@ object Ai {
     }
 
     private fun setConnected(ok: Boolean, started: Boolean) {
-        connected = hasKey || (ok && enabled)
+        connected = hasKey || hasHearth || (ok && enabled)
         status = when {
             !enabled -> "Off"
             ok -> "Connected"
@@ -165,7 +234,7 @@ object Ai {
         io.execute {
             val r = runCatching {
                 var input = 0L; var output = 0L
-                val text = if (key != null) {
+                val text = if (hasHearth) viaHearth(turns, system) else if (key != null) {
                     val msgs = JSONArray().apply { turns.forEach { put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", it.second)) } }
                     val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", 600).put("system", system).put("messages", msgs))
                     if (code !in 200..299) throw apiError(code, j)
@@ -201,7 +270,7 @@ object Ai {
         io.execute {
             val r = runCatching {
                 var input = 0L; var output = 0L
-                val text = if (key != null) {
+                val text = if (hasHearth) viaHearth(turns, system) else if (key != null) {
                     val res = viaApi(key, turns, system, search)
                     input = res.input; output = res.output; res.text
                 } else {
@@ -222,7 +291,7 @@ object Ai {
                 if (out.isEmpty()) throw IllegalStateException("Empty answer")
                 out
             }
-            if (key == null && r.exceptionOrNull() is java.io.IOException) main.post { connected = hasKey; status = "Not running. Tap to connect"; Helper.push() }
+            if (key == null && !hasHearth && r.exceptionOrNull() is java.io.IOException) main.post { connected = hasKey || hasHearth; status = "Not running. Tap to connect"; Helper.push() }
             main.post { done(r) }
         }
     }
