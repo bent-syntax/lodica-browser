@@ -1,4 +1,8 @@
 ## 1.14.33
+## 1.14.34
+
+- Fixed: Saved theme names on the phone are no longer cut off (long names wrap to two lines). The phone now plays a custom theme's animation on the start page
+
 
 - Added: Make an extension with the AI (Settings, Extensions on the PC): describe what it should do, the AI writes the extension files, and after you check its permissions it is installed in the browser
 

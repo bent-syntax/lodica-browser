@@ -9,6 +9,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import be.syntaxya.lodica.ui.theme.ThemeState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -110,6 +119,34 @@ fun StartBackdrop(modifier: Modifier = Modifier) {
         }
         if (kind != "none" && Prefs.startDim > 0f) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = Prefs.startDim)))
+        }
+        ThemeAnim()
+    }
+}
+
+/** Soft accent glow from a custom theme's animation preset (pulse, glow, drift, float, shimmer). Same looks as the PC start page. */
+@Composable
+private fun ThemeAnim() {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val kind = Prefs.customTheme?.anim.orEmpty()
+    if (Prefs.theme != "custom" || kind.isEmpty()) return
+    val off = android.provider.Settings.Global.getFloat(ctx.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    val a = Color(ThemeState.palette.accent); val b = Color(ThemeState.palette.accent2)
+    val ms = when (kind) { "pulse" -> 6000; "glow" -> 9000; "drift" -> 16000; "float" -> 14000; else -> 8000 }
+    val t by rememberInfiniteTransition(label = "themeanim").animateFloat(
+        0f, 1f, infiniteRepeatable(tween(ms, easing = androidx.compose.animation.core.LinearEasing), if (kind == "shimmer") RepeatMode.Restart else RepeatMode.Reverse), label = "t",
+    )
+    val p = if (off) 0.5f else t
+    Canvas(Modifier.fillMaxSize()) {
+        val w = size.width; val h = size.height
+        fun glow(c: Color, x: Float, y: Float, r: Float, al: Float) =
+            drawRect(Brush.radialGradient(listOf(c.copy(alpha = al), Color.Transparent), Offset(x, y), r), Offset.Zero, Size(w, h))
+        when (kind) {
+            "pulse" -> glow(a, w * .5f, h * .4f, maxOf(w, h) * .6f, .08f + .18f * p)
+            "glow" -> { val al = .08f + .18f * p; glow(a, w * .2f, h * .8f, maxOf(w, h) * .45f, al); glow(b, w * .8f, h * .2f, maxOf(w, h) * .45f, al) }
+            "drift" -> drawRect(Brush.linearGradient(listOf(a.copy(alpha = .18f), Color.Transparent, b.copy(alpha = .18f)), Offset(w * (p - .5f), 0f), Offset(w * (p + .5f), h)))
+            "float" -> { val dx = w * .04f * p; val dy = -h * .04f * p; glow(a, w * .3f + dx, h * .3f + dy, maxOf(w, h) * .3f, .18f); glow(b, w * .7f + dx, h * .7f + dy, maxOf(w, h) * .3f, .18f) }
+            else -> drawRect(Brush.linearGradient(listOf(Color.Transparent, a.copy(alpha = .18f), Color.Transparent), Offset(w * (p * 2f - .5f), 0f), Offset(w * (p * 2f + .5f), h * .3f)))
         }
     }
 }

@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.34 (versionCode 194)
+- Fixed: Saved theme names on the phone are no longer cut off (long names wrap to two lines). The phone now plays a custom theme's animation on the start page
+
 ## 1.14.33 (versionCode 193)
 - Added: Make an extension with the AI (Settings, Extensions on the PC): describe what it should do, the AI writes the extension files, and after you check its permissions it is installed in the browser
 
@@ -9,7 +12,7 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 - Added: Log in your own email address (Inbox, Addresses) to get a forwarding address. Forward login mails from your email to it and the login code is filled into the open tab. Works on phone and PC. The relay must be updated for this
 
 ## 1.14.31 (versionCode 191)
-- Added: The AI theme maker can make a theme with a light and a dark version that follows the system theme, and can add an animation (pulse, glow, drift, float or shimmer) on the PC start page and search page. The phone keeps and syncs both, and follows the system light or dark; it does not play the animation yet
+- Added: The AI theme maker can make a theme with a light and a dark version that follows the system theme, and can add an animation (pulse, glow, drift, float or shimmer) on the PC start page and search page. The phone keeps and syncs both, and follows the system light or dark; the animation is played on the phone from 1.14.34
 
 ## 1.14.30 (versionCode 190)
 - Changed: Saved themes and holiday themes now show as swatches like the other themes (background with two colour dots). Holiday themes moved to the bottom of the theme settings

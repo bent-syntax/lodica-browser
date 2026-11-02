@@ -59,16 +59,17 @@ import be.syntaxya.lodica.ui.theme.ThemeState
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun RoundChoice(
-    label: String, selected: Boolean, size: Dp = 52.dp, onLongClick: (() -> Unit)? = null, onClick: () -> Unit, content: @Composable () -> Unit,
+    label: String, selected: Boolean, size: Dp = 52.dp, labelWidth: Dp = size + 12.dp, onLongClick: (() -> Unit)? = null, onClick: () -> Unit, content: @Composable () -> Unit,
 ) {
     val ring by animateColorAsState(if (selected) Amber else GraphiteHigh, tween(180), label = "ring")
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(size + 12.dp)) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(labelWidth)) {
         Box(
             Modifier.size(size).clip(CircleShape).border(if (selected) 2.dp else 1.dp, ring, CircleShape).combinedClickable(onLongClick = onLongClick, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) { content() }
         Text(
-            label, color = if (selected) Amber else Muted, fontSize = 11.sp, maxLines = 1,
+            label, color = if (selected) Amber else Muted, fontSize = 11.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal, modifier = Modifier.padding(top = 4.dp),
         )
     }
@@ -119,7 +120,7 @@ internal fun SavedThemeSwatches() {
         Prefs.savedThemes.forEach { t ->
             val on = Prefs.theme == "custom" && cur != null && cur.bg.equals(t.bg, true) && cur.text.equals(t.text, true) &&
                 cur.accent.equals(t.accent, true) && cur.accent2.equals(t.accent2, true)
-            RoundChoice(t.name, on, onLongClick = { Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow() }, onClick = {
+            RoundChoice(t.name, on, labelWidth = 84.dp, onLongClick = { Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow() }, onClick = {
                 Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis(), t.light, t.anim))
                 Prefs.updateTheme("custom")
                 Relay.syncThemeNow()
