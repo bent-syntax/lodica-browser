@@ -950,6 +950,13 @@ private fun ExtensionsSection() {
     ex.hits.forEach { h -> LinkRow("Install ${h.name}", Amber) { ex.install(ctx, h) } }
     val pickXpi = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { u -> if (u != null) ex.installFile(ctx, u) }
     LinkRow("Install from file (.xpi)", Amber) { pickXpi.launch(arrayOf("*/*")) }
+    var idea by remember { mutableStateOf("") }
+    OutlinedTextField(
+        idea, { idea = it }, singleLine = true,
+        placeholder = { Text("Describe an extension for the AI to make", color = Muted) },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+    )
+    LinkRow("Make an extension with the AI", Amber) { if (!ex.busy) ex.makeWithAi(ctx, idea) }
     var confirmRemove by remember { mutableStateOf<be.syntaxya.lodica.engine.Extensions.Item?>(null) }
     confirmRemove?.let { i ->
         AlertDialog(

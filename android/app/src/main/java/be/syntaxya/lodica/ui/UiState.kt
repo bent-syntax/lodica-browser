@@ -32,6 +32,9 @@ object Ui {
     var findQuery by mutableStateOf("")
     var findCount by mutableStateOf("")
     /** Download start animation: run number and file size in bytes (0 = unknown), or null when idle. */
+    /** Last finger position in window pixels; the download animation starts there. */
+    @Volatile var lastTouchX = 0f
+    @Volatile var lastTouchY = 0f
     var dlAnim by mutableStateOf<Pair<Int, Long>?>(null)
 
     /** A link copied in another app, offered once when Lodica regains focus. */

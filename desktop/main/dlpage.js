@@ -1,4 +1,4 @@
-// Download start animation drawn over the active page: a sheet of paper in the theme colours lifts off where the cursor is and flies up to the toolbar's Downloads button.
+// Download start animation drawn over the active page: a sheet of paper in the theme colours lifts off where the cursor is and drops into a folder at the top right, drawn in the theme colours with the shape of the user's operating system folder.
 // Runs in an isolated world with styles from insertCSS and DOM built without innerHTML, so page CSP and Trusted Types cannot block it.
 const WORLD = 1047;
 const ID = "lodica-dl-anim";
@@ -9,28 +9,48 @@ const CSS = `
 #${ID} i{all:initial;position:absolute;display:block;left:8px;right:8px;height:3px;border-radius:2px}
 `;
 
-// c: theme colours { bg, amber, text }; from: cursor in page coordinates; to: toolbar button in page coordinates (above the page, so it is negative in y).
-function script(short, c, from, to) {
+// Folder shape per operating system, so it looks like the folder the user knows: [corner radius, tab width %, tab height, tab radius, front gradient].
+const FOLDERS = {
+  win32: [3, 42, 10, 3, "linear-gradient(transparent,transparent)"],
+  darwin: [12, 38, 12, 8, "linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0))"],
+  linux: [8, 44, 12, 6, "linear-gradient(transparent,transparent)"],
+};
+
+// c: theme colours { bg, amber, text }; from: cursor in page coordinates; to: folder centre in page coordinates; os: process.platform.
+function script(short, c, from, to, os) {
+  const f = FOLDERS[os] || FOLDERS.linux;
   return `(() => {
   const old = document.getElementById(${JSON.stringify(ID)}); if (old) old.remove();
-  const c = ${JSON.stringify(c)}, from = ${JSON.stringify(from)}, to = ${JSON.stringify(to)};
+  const c = ${JSON.stringify(c)}, from = ${JSON.stringify(from)}, to = ${JSON.stringify(to)}, f = ${JSON.stringify(f)};
+  const mk = (css, parent) => { const e = document.createElement("div"); e.style.cssText = css; parent.append(e); return e; };
   const root = document.createElement("div"); root.id = ${JSON.stringify(ID)};
-  const sheet = document.createElement("div");
-  sheet.style.cssText = "background:" + c.bg + ";border:2px solid " + c.amber + ";box-shadow:0 6px 16px rgba(0,0,0,.35)";
+  const W = 96, H = 72;
+  const box = mk("left:" + (to.x - W / 2) + "px;top:" + (to.y - H / 2) + "px;width:" + W + "px;height:" + H + "px;perspective:300px;opacity:0;filter:drop-shadow(0 8px 14px rgba(0,0,0,.4))", root);
+  const dark = "color-mix(in srgb," + c.amber + " 62%,black)";
+  mk("left:0;top:0;width:" + f[1] + "%;height:" + (f[2] + 6) + "px;background:" + dark + ";border-radius:" + f[3] + "px " + f[3] + "px 0 0", box);
+  mk("left:0;top:" + f[2] + "px;width:" + W + "px;height:" + (H - f[2]) + "px;background:" + dark + ";border-radius:" + f[0] + "px", box);
+  const sheet = mk("left:" + (W / 2 - 22) + "px;top:" + (f[2] + 4) + "px;width:44px;height:56px;border-radius:4px;background:" + c.bg + ";border:2px solid " + c.amber + ";opacity:0;z-index:2", box);
   [12, 24, 36].forEach((y, n) => { const l = document.createElement("i"); l.style.top = y + "px"; l.style.background = n === 0 ? c.amber : c.text; l.style.opacity = n === 0 ? "1" : ".45"; sheet.append(l); });
-  root.append(sheet);
+  const front = mk("left:0;top:" + (f[2] + 14) + "px;width:" + W + "px;height:" + (H - f[2] - 14) + "px;background:" + f[4] + "," + c.amber + ";border-radius:" + f[0] + "px;transform-origin:50% 100%;z-index:3", box);
   (document.body || document.documentElement).append(root);
   const done = () => { root.remove(); return true; };
   if (matchMedia("(prefers-reduced-motion: reduce)").matches)
-    return root.animate([{ opacity: 0 }, { opacity: 1, offset: .3 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 600 }).finished.then(done, done);
-  const T = ${short ? 1500 : 3000};
-  const mx = (from.x + to.x) / 2, my = Math.min(from.y, to.y) + 40;
-  return sheet.animate([
-    { transform: "translate(" + from.x + "px," + from.y + "px) scale(.4) rotate(-8deg)", opacity: 0 },
-    { transform: "translate(" + from.x + "px," + (from.y - 24) + "px) scale(1) rotate(0deg)", opacity: 1, offset: .2 },
-    { transform: "translate(" + mx + "px," + my + "px) scale(.8) rotate(6deg)", opacity: 1, offset: .6 },
-    { transform: "translate(" + to.x + "px," + to.y + "px) scale(.2) rotate(0deg)", opacity: 0 },
-  ], { duration: T, easing: "cubic-bezier(.4,0,.2,1)", fill: "both" }).finished.then(done, done);
+    return box.animate([{ opacity: 0 }, { opacity: 1, offset: .3 }, { opacity: 1, offset: .7 }, { opacity: 0 }], { duration: 600 }).finished.then(done, done);
+  const T = ${short ? 1500 : 3000}, o = { duration: T, easing: "cubic-bezier(.4,0,.2,1)", fill: "both" };
+  const lin = { duration: T, fill: "both" };
+  const dx = from.x - to.x, dy = from.y - to.y;
+  return Promise.all([
+    box.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none", offset: .12 }, { opacity: 1, offset: .9 }, { opacity: 0, transform: "translateY(-6px)" }], lin).finished,
+    front.animate([{ transform: "rotateX(0deg)" }, { transform: "rotateX(-55deg)", offset: .14 }, { transform: "rotateX(-55deg)", offset: .72 }, { transform: "rotateX(0deg)", offset: .9 }, { transform: "rotateX(0deg)" }], o).finished,
+    sheet.animate([
+      { transform: "translate(" + dx + "px," + dy + "px) scale(.4) rotate(-8deg)", opacity: 0 },
+      { transform: "translate(" + dx + "px," + (dy - 24) + "px) scale(1) rotate(0deg)", opacity: 1, offset: .12 },
+      { transform: "translate(" + (dx * .35) + "px," + (dy * .35 - 40) + "px) scale(.9) rotate(5deg)", opacity: 1, offset: .45 },
+      { transform: "translate(0,-14px) scale(.75) rotate(0deg)", opacity: 1, offset: .68 },
+      { transform: "translate(0,22px) scale(.75)", opacity: 1, offset: .82 },
+      { transform: "translate(0,22px) scale(.75)", opacity: 1 },
+    ], o).finished,
+  ]).then(done, done);
 })()`;
 }
 
@@ -39,13 +59,13 @@ async function where(wc) {
   const { screen } = require("electron");
   const win = wc.getOwnerBrowserWindow && wc.getOwnerBrowserWindow();
   const [vw, vh] = await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: "[innerWidth, innerHeight]" }]);
-  let from = { x: vw / 2, y: vh - 48 }, to = { x: vw - 120, y: -20 };
+  let from = { x: vw / 2, y: vh - 48 };
+  const to = { x: Math.max(80, vw - 96), y: 88 };
   if (win) {
     const cb = win.getContentBounds(), p = screen.getCursorScreenPoint();
     const ox = cb.width - vw, oy = cb.height - vh;
     const x = p.x - cb.x - ox, y = p.y - cb.y - oy;
     if (x >= 0 && x <= vw && y >= 0 && y <= vh) from = { x, y };
-    to = { x: Math.max(40, vw - 120), y: -oy + 20 };
   }
   return { from, to };
 }
@@ -56,7 +76,7 @@ async function draw(wc, short) {
     key = await wc.insertCSS(CSS);
     const t = global.lodicaTheme || { bg: "#1F2937", amber: "#F59E0B", text: "#E5E7EB" };
     const { from, to } = await where(wc);
-    await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: script(short, t, from, to) }], true);
+    await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: script(short, t, from, to, process.platform) }], true);
   } catch {}
   if (key && !wc.isDestroyed()) wc.removeInsertedCSS(key).catch(() => {});
 }
@@ -72,4 +92,4 @@ function play({ src, active, total }) {
   }, 150);
 }
 
-module.exports = { play, CSS, script };
+module.exports = { play, CSS, script, FOLDERS };

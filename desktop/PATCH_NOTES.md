@@ -1,3 +1,7 @@
+## 1.14.36
+
+- Added: Make an extension with the AI on the phone (Settings, Extensions): describe it, the AI writes the files, and you check its permissions before it is added. Changed: AI emojis now pick the most recognisable view and include the iconic parts (a hot dog shows the bun, sausage and mustard). The download animation now starts where you clicked or touched and drops the file into a folder in your theme colours, shaped like the folder of your system (Windows, macOS, Linux or Android).
+
 ## 1.14.35
 
 - Fixed: The online list in the server chat only shows people who have the chat open right now, with the right device name. AI-made emojis are drawn cleaner (bold outline, fewer colours, no thin details). The relay must be updated for the online list

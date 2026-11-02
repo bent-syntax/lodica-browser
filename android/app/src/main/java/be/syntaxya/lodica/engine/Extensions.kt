@@ -164,6 +164,67 @@ object Extensions {
         }.start()
     }
 
+    private val FILE_NAME = Regex("^[a-z0-9_-]{1,40}\\.(json|js|css|html|txt)$", RegexOption.IGNORE_CASE)
+
+    /** Parses the model reply into checked files, or null when unusable. Adds a Firefox id when the manifest has none. */
+    private fun parseFiles(text: String): Map<String, String>? {
+        val a = text.indexOf('{'); val b = text.lastIndexOf('}')
+        if (a < 0 || b < a) return null
+        val f = try { JSONObject(text.substring(a, b + 1)).optJSONObject("files") } catch (e: Exception) { null } ?: return null
+        if (f.length() == 0 || f.length() > 8) return null
+        val files = LinkedHashMap<String, String>()
+        for (n in f.keys()) {
+            val body = f.optString(n)
+            if (!FILE_NAME.matches(n) || body.isEmpty() || body.length > 60 * 1024) return null
+            files[n] = body
+        }
+        val mf = try { JSONObject(files["manifest.json"] ?: return null) } catch (e: Exception) { return null }
+        if (mf.optInt("manifest_version") != 3 || mf.optString("name").isBlank()) return null
+        for (k in listOf("background", "content_scripts", "action", "web_accessible_resources")) {
+            val refs = Regex("\"([^\"]+\\.(js|css|html))\"").findAll(mf.opt(k)?.toString().orEmpty()).map { it.groupValues[1] }
+            if (refs.any { it !in files }) return null
+        }
+        if (mf.optJSONObject("browser_specific_settings")?.optJSONObject("gecko")?.optString("id").isNullOrEmpty()) {
+            val id = "ai-" + java.util.UUID.randomUUID().toString().take(8) + "@lodica.local"
+            mf.put("browser_specific_settings", JSONObject().put("gecko", JSONObject().put("id", id)))
+            files["manifest.json"] = mf.toString(2)
+        }
+        return files
+    }
+
+    /** Asks the AI for an extension, zips it and installs it through the normal permission prompt. */
+    fun makeWithAi(ctx: Context, idea: String) {
+        if (idea.isBlank()) { status = "Describe the extension first"; return }
+        busy = true; status = "The AI is writing it"
+        Ai.makeExtension(idea.trim()) { r ->
+            val files = r.getOrNull()?.let { parseFiles(it) }
+            if (files == null) {
+                busy = false
+                status = r.exceptionOrNull()?.message ?: "The AI gave no usable extension. Try again"
+                return@makeExtension
+            }
+            Thread {
+                try {
+                    val f = java.io.File(ctx.cacheDir, "ai-${System.nanoTime()}.xpi")
+                    java.util.zip.ZipOutputStream(f.outputStream()).use { z ->
+                        files.forEach { (n, body) -> z.putNextEntry(java.util.zip.ZipEntry(n)); z.write(body.toByteArray()); z.closeEntry() }
+                    }
+                    main.post {
+                        ctl(ctx).install("file://" + f.absolutePath, WebExtensionController.INSTALLATION_METHOD_MANAGER).accept({
+                            busy = false; status = "Installed ${it?.metaData?.name ?: "extension"}"; refresh(ctx); f.delete()
+                        }, { e ->
+                            Log.w(TAG, "ai install failed", e)
+                            busy = false; status = "Not installed"; f.delete()
+                        })
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "ai zip failed", e)
+                    main.post { busy = false; status = "Could not build the extension" }
+                }
+            }.start()
+        }
+    }
+
     fun toggle(ctx: Context, item: Item) {
         val c = ctl(ctx)
         val r = if (item.enabled) c.disable(item.ext, WebExtensionController.EnableSource.USER)

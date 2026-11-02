@@ -6,7 +6,7 @@ Module._load = function (r, ...a) { return r === "electron" ? {} : orig.call(thi
 const d = require("../main/dlpage");
 
 for (const short of [true, false]) {
-  const s = d.script(short, { bg: "#111827", amber: "#F59E0B", text: "#E5E7EB" }, { x: 100, y: 200 }, { x: 900, y: -20 });
+  const s = d.script(short, { bg: "#111827", amber: "#F59E0B", text: "#E5E7EB" }, { x: 100, y: 200 }, { x: 900, y: 88 }, "win32");
   new Function(s);
   assert(!/innerHTML/.test(s), "no innerHTML");
   assert(s.includes(short ? "const T = 1500" : "const T = 3000"));

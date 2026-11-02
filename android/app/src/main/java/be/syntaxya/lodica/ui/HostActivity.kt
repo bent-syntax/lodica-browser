@@ -17,6 +17,11 @@ import java.io.File
  */
 abstract class HostActivity : FragmentActivity(), PromptHost {
 
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) { Ui.lastTouchX = ev.rawX; Ui.lastTouchY = ev.rawY }
+        return super.dispatchTouchEvent(ev)
+    }
+
     private var filesDone: ((Array<Uri>?) -> Unit)? = null
     private var permsDone: ((Boolean) -> Unit)? = null
     private var captureUri: Uri? = null

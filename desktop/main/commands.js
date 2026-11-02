@@ -682,7 +682,7 @@ function init(deps) {
     "Keep it simple: at most 6 shapes, one main shape plus a few small details, flat colours with at most one linearGradient for the main shape. " +
     "Every shape must stay fully inside the main shape or touch it cleanly: no circle may overlap another shape by accident or stick out past the outline. " +
     "Keep all coordinates between 6 and 58 so nothing is cut off. Give each shape a clear job (body, eye, mouth, shine) and do not repeat or stack similar shapes. " +
-    "Draw it clean like a sticker: one bold silhouette with smooth curves, symmetric where the subject is symmetric, a slightly darker outline colour for the main shape (stroke-width 2, round joins), one soft highlight, and a limited palette of 3 to 4 harmonious colours. Use only a front view, no thin lines, no tiny details, no overlapping outlines. " +
+    "Draw it clean like a sticker: one bold silhouette with smooth curves, symmetric where the subject is symmetric, a slightly darker outline colour for the main shape (stroke-width 2, round joins), one soft highlight, and a limited palette of 3 to 4 harmonious colours. Pick the most recognisable view: a side view for long things such as food and vehicles, a front view for faces and animals. Include the iconic parts so it is instantly recognisable (a hot dog is a long bun seen from the side, a sausage lying in it, and a zigzag of mustard). No thin lines, no tiny details, no overlapping outlines. " +
     "Do not use filter, mask, clipPath, image, text, style, script, foreignObject or any external reference. Under 1500 characters.";
   async function svgToPng(svg) {
     const { BrowserWindow } = require("electron");
