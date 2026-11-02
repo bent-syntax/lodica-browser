@@ -16,9 +16,11 @@ async function fetchList() {
   return cache;
 }
 
+let adder = async () => ({ error: "Not available" }), busy = false;
 function setSource(fn) { source = fn; }
+function setAdder(fn) { adder = fn; }
 
-function hide() { if (win && !win.isDestroyed()) win.hide(); }
+function hide() { if (!busy && win && !win.isDestroyed()) win.hide(); }
 
 function show() {
   if (win && !win.isDestroyed()) {
@@ -64,9 +66,14 @@ function init(prefs) {
     hide();
     return true;
   });
+  ipcMain.handle("emojipicker:add", async (e, name) => {
+    if (!win || e.sender !== win.webContents || busy) return { error: "Busy" };
+    busy = true; // the file dialog takes focus; do not hide the picker meanwhile
+    try { const r = await adder(String(name || ""), win); cache = []; return r; } finally { busy = false; if (win && !win.isDestroyed()) win.focus(); }
+  });
   apply(!!prefs.p.emojiPicker);
   prefs.events.on("change", (k, v) => { if (k === "emojiPicker") apply(!!v); });
   app.on("will-quit", () => globalShortcut.unregisterAll());
 }
 
-module.exports = { init, setSource, show };
+module.exports = { init, setSource, setAdder, show };

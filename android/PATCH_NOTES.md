@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.41
+
+- Changed: No Android change in this release; the emoji picker Add button is desktop only.
+
 ## 1.14.40
 
 - Added: Custom themes can now set danger, raised, high and muted colours on Android; they sync with the desktop theme. Tab and start page background colours are kept and synced but not painted on Android yet.

@@ -1,3 +1,7 @@
+## 1.14.41
+
+- Added: The emoji picker window (Ctrl+Alt+E) now has an Add button: type a name, pick an image and it uploads to your linked Lodica server, with the same name check and size limit as Settings.
+
 ## 1.14.40
 
 - Added: Custom themes now also set a danger colour, a tab colour and a start page background, and sync to other devices. Customize an applied theme still starts from the applied colours.

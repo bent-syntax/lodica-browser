@@ -647,12 +647,13 @@ function init(deps) {
     return true;
   });
   // Add a server emoji: pick a PNG or JPEG, shrink it to fit the relay's size cap, upload it under a name.
-  on("emojis.add", async name => {
+  on("emojis.add", name => addEmoji(name, d.win()));
+  async function addEmoji(name, parent) {
     const n = str(name).toLowerCase();
     if (!/^[a-z0-9_]{1,32}$/.test(n)) return { error: "Name: 1 to 32 letters, digits or _" };
     if (!relay.available) return { error: "Link a Lodica server first" };
     const { dialog, nativeImage } = require("electron");
-    const r = await dialog.showOpenDialog(d.win(), { title: "Choose an emoji image", properties: ["openFile"], filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }] });
+    const r = await dialog.showOpenDialog(parent, { title: "Choose an emoji image", properties: ["openFile"], filters: [{ name: "Images", extensions: ["png", "jpg", "jpeg"] }] });
     if (r.canceled || !r.filePaths[0]) return { canceled: true };
     let img = nativeImage.createFromPath(r.filePaths[0]);
     if (img.isEmpty()) return { error: "Could not read that image" };
@@ -668,7 +669,8 @@ function init(deps) {
     }
     if (png.length > 96 * 1024) return { error: "Image too big" };
     return uploadEmoji(n, png);
-  });
+  }
+  require("./emojipicker").setAdder(addEmoji);
   async function uploadEmoji(n, png) {
     try {
       const res = await fetch(`${relay.API}/api/emojis`, { method: "POST", headers: { Authorization: "Bearer " + relay.token, "Content-Type": "application/json" }, body: JSON.stringify({ name: n, png, at: Date.now() }), signal: AbortSignal.timeout(20000) });

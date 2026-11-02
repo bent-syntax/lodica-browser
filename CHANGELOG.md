@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.41 (versionCode 201)
+- Added: The emoji picker window (Ctrl+Alt+E) now has an Add button: type a name, pick an image and it uploads to your linked Lodica server, with the same name check and size limit as Settings.
+
 ## 1.14.40 (versionCode 200)
 - Added: Custom themes now also set a danger colour, a tab colour and a start page background, and sync to other devices. Customize an applied theme still starts from the applied colours.
 - Added: Custom themes can now set danger, raised, high and muted colours on Android; they sync with the desktop theme. Tab and start page background colours are kept and synced but not painted on Android yet.
