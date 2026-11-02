@@ -1,3 +1,7 @@
+## 1.14.38
+
+- Fixed: Version bump to keep desktop and Android in step; the desktop start page already shows the planner at once.
+
 ## 1.14.37
 
 - Added: Every device that has read a message now shows its own icon under that message, so you can see who has seen what. Changed: The people list in the chat shows the icon of each device's system (Windows, macOS, Linux, Android, iPhone).

@@ -44,7 +44,8 @@ private val ROW_H = 31.dp
 /** The Smartschool planner on the native start page. Every row has its own box; tasks are amber, tests red. Drag the grip to show more lessons. */
 @Composable
 fun PlannerCard(modifier: Modifier = Modifier) {
-    var rows by remember { mutableStateOf(PlannerWidget.plan()) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    var rows by remember { PlannerWidget.warm(ctx); mutableStateOf(PlannerWidget.plan()) }
     var note by remember { mutableStateOf(PlannerWidget.note()) }
     var clock by remember { mutableStateOf(PlannerWidget.now()) }
     var open by remember { mutableStateOf(-1) }
@@ -58,7 +59,6 @@ fun PlannerCard(modifier: Modifier = Modifier) {
         }
     }
     val density = androidx.compose.ui.platform.LocalDensity.current
-    val ctx = androidx.compose.ui.platform.LocalContext.current
     var drag by remember { mutableStateOf(0f) }
     val shown = Prefs.plannerRows
     // a task or test inside a lesson is already shown when that lesson is opened, so it gets no row of its own

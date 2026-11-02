@@ -50,6 +50,14 @@ class PlannerWidget : AppWidgetProvider() {
         private val ROW_IDS = intArrayOf(R.id.p0, R.id.p1, R.id.p2, R.id.p3, R.id.p4, R.id.p5, R.id.p6, R.id.p7, R.id.p8, R.id.p9, R.id.p10, R.id.p11)
 
         @Volatile private var text: String? = null
+        @Volatile private var cacheFile: java.io.File? = null
+
+        /** Loads the last downloaded calendar from disk so the planner shows at once on a cold start. */
+        fun warm(ctx: Context) {
+            val f = java.io.File(ctx.applicationContext.cacheDir, "planner.ics")
+            cacheFile = f
+            if (text == null && Prefs.plannerIcs.isNotBlank()) text = runCatching { f.takeIf { it.exists() }?.readText() }.getOrNull()
+        }
         @Volatile private var failed = false
         @Volatile private var fetchedAt = 0L
         @Volatile private var fetching = false
@@ -70,7 +78,7 @@ class PlannerWidget : AppWidgetProvider() {
                     val url = Prefs.plannerIcs
                     if (url.startsWith("https://") || url.startsWith("http://")) {
                         val got = runCatching { download(url) }.getOrNull()
-                        if (got != null) { text = got; failed = false } else failed = true
+                        if (got != null) { text = got; failed = false; runCatching { cacheFile?.writeText(got) } } else failed = true
                     } else { text = null; failed = false }
                     fetchedAt = System.currentTimeMillis()
                 } finally {

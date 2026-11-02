@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.38
+
+- Fixed: The planner on the Android start page now shows straight away after the app starts, using the last downloaded calendar while the new one loads.
+
 ## 1.14.37
 
 - Added: Every device that has read a message now shows its own icon under that message, so you can see who has seen what. Changed: The people list in the chat shows the icon of each device's system (Windows, macOS, Linux, Android, iPhone).
