@@ -36,6 +36,8 @@ data class CustomTheme(
     val light: List<String> = emptyList(),
     /** Optional animation preset, one of [ANIMS], or empty. */
     val anim: String = "",
+    /** Optional extra colours by key: raised, high, muted, danger, tab, startBg. */
+    val extra: Map<String, String> = emptyMap(),
 ) {
     /** This theme with its light variant swapped in, when it has one. */
     fun forLight() = if (light.size == 4) copy(bg = light[0], text = light[1], accent = light[2], accent2 = light[3], light = emptyList()) else this
@@ -44,13 +46,17 @@ data class CustomTheme(
         val ANIMS = listOf("pulse", "glow", "drift", "float", "shimmer")
         fun valid(vararg c: String) = c.all { HEX.matches(it) }
         fun validLight(l: List<String>) = l.size == 4 && valid(*l.toTypedArray())
+        val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "startBg")
+        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && HEX.matches(v) }
         fun pack(c: CustomTheme) = listOf(c.bg, c.text, c.accent, c.accent2, c.at.toString()) +
-            (if (c.light.size == 4 || c.anim.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList())
+            (if (c.light.size == 4 || c.anim.isNotEmpty() || c.extra.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList()) +
+            c.extra.map { (k, v) -> "$k=$v" }
         fun unpack(p: List<String>): CustomTheme? {
-            if ((p.size != 5 && p.size != 10) || !valid(p[0], p[1], p[2], p[3])) return null
-            val l = if (p.size == 10) p.subList(5, 9).takeIf { validLight(it) } ?: emptyList() else emptyList()
-            val a = if (p.size == 10 && p[9] in ANIMS) p[9] else ""
-            return CustomTheme(p[0], p[1], p[2], p[3], p[4].toLongOrNull() ?: 0L, l, a)
+            if (p.size < 5 || !valid(p[0], p[1], p[2], p[3])) return null
+            val l = if (p.size >= 10) p.subList(5, 9).takeIf { validLight(it) } ?: emptyList() else emptyList()
+            val a = if (p.size >= 10 && p[9] in ANIMS) p[9] else ""
+            val x = p.drop(10).mapNotNull { it.split('=', limit = 2).takeIf { kv -> kv.size == 2 }?.let { kv -> kv[0] to kv[1] } }.toMap()
+            return CustomTheme(p[0], p[1], p[2], p[3], p[4].toLongOrNull() ?: 0L, l, a, cleanExtra(x))
         }
     }
 }

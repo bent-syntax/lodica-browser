@@ -64,7 +64,7 @@ body.home #tabs { display: none; }
 #viewer img { max-width: 100%; max-height: 72vh; border-radius: 8px; }
 #viewer .cap { margin-top: 12px; text-align: center; font-size: 14px; }
 #viewer .cap a { color: var(--link); display: block; margin-top: 6px; }
-html { background: var(--bg); }
+html { background: var(--start-bg, var(--bg)); }
 body.home { background: transparent; }
 html.hasbg body.home::before { content: ""; position: fixed; inset: -40px; z-index: -2; background: var(--bgimg) center / cover; filter: blur(var(--bgblur)); }
 html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) var(--bgdim), transparent); }
@@ -164,15 +164,15 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
 #plan .pe.task { background: rgba(245,158,11,.18); border-radius: 12px; padding: 4px 8px; margin: 0 -8px; }
 #plan .pe.test { background: rgba(244,63,94,.18); border-radius: 12px; padding: 4px 8px; margin: 0 -8px; }
 #plan .pe.task b { color: #F59E0B; }
-#plan .pe.test b { color: #F43F5E; }
+#plan .pe.test b { color: var(--danger, #F43F5E); }
 #plan .pe { cursor: pointer; position: relative; }
 #plan .pe b { min-width: 96px; }
-#plan .pe .now { position: absolute; left: 0; right: 0; height: 2px; background: #F43F5E; pointer-events: none; }
+#plan .pe .now { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger, #F43F5E); pointer-events: none; }
 #plan .pi { margin: 2px 0 6px; padding: 8px 12px; border-radius: 12px; background: rgba(127,127,127,.15); font-size: 13px; }
 #plan .pi .dd { margin-top: 4px; white-space: pre-wrap; }
-#plan .pn { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 12px; color: #F43F5E; }
+#plan .pn { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-size: 12px; color: var(--danger, #F43F5E); }
 #plan .pn b { min-width: 52px; font-weight: 600; }
-#plan .pn i { flex: 1; height: 2px; border-radius: 1px; background: #F43F5E; }
+#plan .pn i { flex: 1; height: 2px; border-radius: 1px; background: var(--danger, #F43F5E); }
 #plan[data-free], #notes[data-free] { position: fixed !important; margin: 0 !important; max-width: none !important; max-height: none !important; z-index: 5; }
 .dragbar { cursor: move; touch-action: none; user-select: none; }
 .rz { position: absolute; z-index: 6; touch-action: none; }

@@ -52,6 +52,7 @@ import be.syntaxya.lodica.engine.NoteInfo
 import be.syntaxya.lodica.engine.Notebook
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
@@ -222,7 +223,7 @@ fun NotebookScreen() {
                         val n = left.firstOrNull()?.let { f -> withContext(Dispatchers.IO) { Notebook.get(f.id) } }
                         if (n != null) show(n) else status = "Can't reach the server"
                     }
-                }) { Text("Delete", color = Coral) }
+                }) { Text("Delete", color = Danger) }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = Muted) } },
         )

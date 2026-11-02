@@ -365,7 +365,7 @@ function init(deps) {
   setInterval(pullTheme, 10 * 60 * 1000).unref?.();
   // Optional extras on a custom theme: a light variant (follows the system) and an animation preset.
   const ANIMS = ["pulse", "glow", "drift", "float", "shimmer"];
-  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted"];
+  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "startBg"];
   const themeExtras = (c, out) => {
     const l = c && c.light;
     if (l && typeof l === "object" && ["bg", "text", "accent", "accent2"].every(k => HEX.test(l[k]))) {
@@ -379,7 +379,7 @@ function init(deps) {
     if (c === null) { d.prefs.set("customTheme", null); return true; }
     if (!c || !["bg", "text", "accent", "accent2"].every(k => HEX.test(c[k]))) return false;
     const out = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2, at: Date.now() };
-    for (const k of ["raised", "high", "muted"]) if (HEX.test(c[k])) out[k] = c[k];
+    for (const k of THEME_KEYS.slice(4)) if (HEX.test(c[k])) out[k] = c[k];
     themeExtras(c, out);
     d.prefs.set("customTheme", out);
     if (use) d.prefs.set("theme", "custom"); // colour edits alone never switch the theme

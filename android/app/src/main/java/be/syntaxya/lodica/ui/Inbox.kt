@@ -50,6 +50,7 @@ import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
@@ -176,7 +177,7 @@ private fun MailDetail(m: Mail) {
                         else Toast.makeText(ctx, "Couldn't delete", Toast.LENGTH_SHORT).show()
                     }
                 }
-            }) { Text("Delete", color = Coral) }
+            }) { Text("Delete", color = Danger) }
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
             Text(m.subject.ifBlank { "(no subject)" }, color = Mist, fontSize = 18.sp)

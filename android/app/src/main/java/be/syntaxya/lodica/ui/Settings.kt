@@ -120,6 +120,7 @@ import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -205,15 +206,15 @@ fun SettingsScreen() {
                 }
                 Section("Danger zone")
                 Column(Modifier.padding(horizontal = 16.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).border(1.dp, Coral.copy(alpha = 0.5f), RoundedCornerShape(20.dp))) {
-                    LinkRow("Clear history", Coral) {
+                    LinkRow("Clear history", Danger) {
                         confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
                     }
                     Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
-                    LinkRow("Clear suggestions", Coral) {
+                    LinkRow("Clear suggestions", Danger) {
                         confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
                     }
                     Box(Modifier.fillMaxWidth().height(1.dp).background(GraphiteHigh))
-                    LinkRow("Clear site data", Coral) {
+                    LinkRow("Clear site data", Danger) {
                         confirm = Confirm("Clear site data?", "Cookies, cache and storage for all sites. You will be logged out everywhere.") {
                             Engine.runtime(ctx).storageController.clearData(StorageController.ClearFlags.ALL)
                         }
@@ -243,7 +244,7 @@ fun SettingsScreen() {
             Section("Address bar suggestions")
             SwitchRow("Autocorrect in address bar", "Keyboard corrects and suggests words while you type a search. Off keeps URLs untouched", Prefs.autoCorrect) { Prefs.updateAutoCorrect(it) }
             SwitchRow("Suggest from history", "Address bar offers visited pages and past searches. Stays on this device", Prefs.historySuggest) { Prefs.updateHistorySuggest(it) }
-            LinkRow("Clear suggestions", Coral) {
+            LinkRow("Clear suggestions", Danger) {
                 confirm = Confirm("Clear suggestions?", "Past searches and visit counts are removed from this device.") { History.clearSuggestions() }
             }
 
@@ -367,7 +368,7 @@ fun SettingsScreen() {
             LinkRow("Passwords") { Ui.go(Screen.Passwords) }
                     Section("History & site data")
             LinkRow("History") { Ui.go(Screen.History) }
-            LinkRow("Clear history", Coral) {
+            LinkRow("Clear history", Danger) {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") { History.clear() }
             }
             SitePermsSection(permsVersion) { permsVersion++ }
@@ -376,7 +377,7 @@ fun SettingsScreen() {
                 permsVersion++
                 Toast.makeText(ctx, "Site permissions reset", Toast.LENGTH_SHORT).show()
             }
-            LinkRow("Clear site data", Coral) {
+            LinkRow("Clear site data", Danger) {
                 confirm = Confirm("Clear site data?", "Cookies, cache and storage for all sites. You will be logged out everywhere.") {
                     Engine.runtime(ctx).storageController.clearData(StorageController.ClearFlags.ALL)
                     Toast.makeText(ctx, "Site data cleared", Toast.LENGTH_SHORT).show()
@@ -612,7 +613,7 @@ fun SettingsScreen() {
             if (Prefs.testUnlocked && Prefs.remoteTest) {
                 var err by remember { mutableStateOf("") }
                 if (TestSession.state == "off") LinkRow("Start a test session") { TestSession.start(ctx) { err = it ?: "" } }
-                else LinkRow("Stop test session", color = Coral) { TestSession.stop(ctx) }
+                else LinkRow("Stop test session", color = Danger) { TestSession.stop(ctx) }
                 if (TestSession.state != "off") Text("Code: ${TestSession.code}", color = Amber, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
                 val msg = err.ifBlank { TestSession.note }
                 if (msg.isNotBlank()) Text(msg, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
@@ -819,7 +820,7 @@ private fun EmojiKeyboardSection() {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (bmp != null) androidx.compose.foundation.Image(bmp, e.name, Modifier.size(32.dp))
             Text(if (e.name.all { it.isDigit() }) "Custom emoji" else e.name, color = Mist, modifier = Modifier.weight(1f).padding(start = 12.dp))
-            IconButton(onClick = { Emojis.remove(e.name) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Coral) }
+            IconButton(onClick = { Emojis.remove(e.name) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Danger) }
         }
     }
 }
@@ -1108,7 +1109,7 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Muted,
-        icon = { IconTile(Icons.Rounded.Delete, 48, Coral) },
+        icon = { IconTile(Icons.Rounded.Delete, 48, Danger) },
         title = { Text(c.title) },
         text = { Text(c.body) },
         confirmButton = { DlgDanger(onClick = { c.run(); dismiss() }) { Text(c.action) } },
@@ -1456,7 +1457,7 @@ fun HistoryScreen() {
                 confirm = Confirm("Clear history?", "Every visited page is removed from this device.") {
                     History.clear(); items.clear()
                 }
-            }) { Text("Clear all", color = Coral) }
+            }) { Text("Clear all", color = Danger) }
         }
         FilterField(filter, "Search history") { filter = it }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -1803,7 +1804,7 @@ private fun CustomThemeEditor() {
             enabled = ok,
             onClick = {
                 val same = saved?.takeIf { it.bg == bg && it.text == text && it.accent == accent && it.accent2 == accent2 }
-                Prefs.updateCustomTheme(CustomTheme(bg, text, accent, accent2, System.currentTimeMillis(), same?.light.orEmpty(), saved?.anim.orEmpty()))
+                Prefs.updateCustomTheme(CustomTheme(bg, text, accent, accent2, System.currentTimeMillis(), same?.light.orEmpty(), saved?.anim.orEmpty(), Prefs.customTheme?.extra.orEmpty()))
                 Prefs.updateTheme("custom")
                 Relay.syncThemeNow()
             },
@@ -1868,7 +1869,7 @@ private fun StartBackgroundSettings() {
         "image" -> Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { pick.launch("image/*") }) { Text("Choose another image", color = Amber) }
             TextButton(onClick = { StartBg.removeImage(ctx); Prefs.touchStartImage(); Prefs.updateStartBg("none") }) {
-                Text("Remove", color = Coral)
+                Text("Remove", color = Danger)
             }
         }
         else -> {}

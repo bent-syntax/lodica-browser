@@ -133,7 +133,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .bg-x,.key-x{width:28px;height:28px;border-radius:14px}
 button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 
-.btn.fill.danger{background:var(--coral);color:contrast-color(var(--coral))}.btn.fill.danger:hover{background:color-mix(in srgb,var(--coral) 85%,white)}
+.btn.fill.danger{background:var(--danger,var(--coral));color:contrast-color(var(--coral))}.btn.fill.danger:hover{background:color-mix(in srgb,var(--coral) 85%,white)}
 
 /* 1.13.1 redesign: popover-style menu with tile grid, icon-tile rows, elevated bar, rounded cards. */
 .sheet{border:1px solid color-mix(in srgb,var(--high) 70%,transparent);box-shadow:0 16px 40px rgba(0,0,0,.35);background:var(--raised)}

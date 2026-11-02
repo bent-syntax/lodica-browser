@@ -7,15 +7,17 @@ function customVars(c) {
   return {
     "--bg": c.bg, "--raised": c.raised || mix(c.text, c.bg, 8), "--high": c.high || mix(c.text, c.bg, 16), "--mist": c.text, "--text": c.text,
     "--muted": c.muted || mix(c.text, c.bg, 60), "--amber": c.accent, "--coral": c.accent2, "--link": c.accent, "--url": c.accent2, "--sub": c.text,
+    "--danger": c.danger || c.accent2, "--tab": c.tab || "", "--start-bg": c.startBg || "",
     "color-scheme": lum(c.bg) > 0.5 ? "light" : "dark",
   };
 }
 function applyCustom(root, theme, c) {
+  const sys = null;
   const full = c && c.light && typeof c.light === "object" && typeof matchMedia === "function" && !matchMedia("(prefers-color-scheme: dark)").matches ? Object.assign({}, c, c.light) : c;
   const ok = full && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(full[k]));
   const vars = ok && theme === "custom" ? customVars(full) : null;
-  for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "color-scheme"]) {
-    if (vars) root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
+  for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "--danger", "--tab", "--start-bg", "color-scheme"]) {
+    if (vars && vars[k] !== "") root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
   }
   const anim = vars && c && ["pulse", "glow", "drift", "float", "shimmer"].includes(c.anim) ? c.anim : "";
   if (anim) root.setAttribute("data-theme-anim", anim); else root.removeAttribute("data-theme-anim");

@@ -52,6 +52,7 @@ import be.syntaxya.lodica.engine.Dl
 import be.syntaxya.lodica.engine.Downloads
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
 
@@ -88,7 +89,7 @@ fun DownloadsScreen() {
             Box(Modifier.weight(1f)) { TopBar("Downloads") { Ui.back() } }
             FolderAnim(items.any { it.status == Dl.ACTIVE })
             if (items.any { it.status != Dl.ACTIVE }) TextButton(onClick = { Downloads.clearFinished(ctx) }) {
-                Text("Clear list", color = Coral)
+                Text("Clear list", color = Danger)
             }
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {

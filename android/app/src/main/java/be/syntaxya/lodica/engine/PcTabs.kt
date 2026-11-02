@@ -535,7 +535,7 @@ object PcTabs {
             val at = (o["at"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: System.currentTimeMillis()
             if (CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2"))) {
                 val (lo, an) = readExtras(o)
-                val t = CustomTheme(c("bg"), c("text"), c("accent"), c("accent2"), at, lo, an)
+                val t = CustomTheme(c("bg"), c("text"), c("accent"), c("accent2"), at, lo, an, CustomTheme.cleanExtra(CustomTheme.EXTRA_KEYS.associateWith { c(it) }))
                 if (t != Prefs.customTheme) Prefs.updateCustomTheme(t)
             }
         }

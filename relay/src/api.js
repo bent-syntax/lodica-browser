@@ -350,12 +350,12 @@ async function themePut(req, res) {
   catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   if (!b || !['bg', 'text', 'accent', 'accent2'].every((k) => hex(b[k]))) return sendText(req, res, 400, 'bad theme');
   const out = { bg: b.bg, text: b.text, accent: b.accent, accent2: b.accent2, at: Number.isFinite(b.at) ? b.at : Date.now() };
-  for (const k of ['raised', 'high', 'muted']) if (hex(b[k])) out[k] = b[k];
+  for (const k of ['raised', 'high', 'muted', 'danger', 'tab', 'startBg']) if (hex(b[k])) out[k] = b[k];
   // Optional light variant (system-following theme) and animation preset.
   const l = b.light;
   if (l && typeof l === 'object' && ['bg', 'text', 'accent', 'accent2'].every((k) => hex(l[k]))) {
     out.light = {};
-    for (const k of ['bg', 'text', 'accent', 'accent2', 'raised', 'high', 'muted']) if (hex(l[k])) out.light[k] = l[k];
+    for (const k of ['bg', 'text', 'accent', 'accent2', 'raised', 'high', 'muted', 'danger', 'tab', 'startBg']) if (hex(l[k])) out.light[k] = l[k];
   }
   if (['pulse', 'glow', 'drift', 'float', 'shimmer'].includes(b.anim)) out.anim = b.anim;
   const tmp = `${THEME_FILE}.${process.pid}.tmp`;

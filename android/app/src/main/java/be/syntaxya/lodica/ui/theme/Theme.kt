@@ -39,6 +39,7 @@ class Palette(
     val accent2: Long,
     val text: Long,
     val muted: Long,
+    val danger: Long = accent2,
 )
 
 val Palettes: List<Palette> = listOf(
@@ -79,8 +80,10 @@ fun customPalette(c: CustomTheme): Palette {
     fun px(h: String) = 0xFF000000 or h.removePrefix("#").toLong(16)
     val bg = px(c.bg); val text = px(c.text)
     val lum = (0.299 * ((bg shr 16) and 0xFF) + 0.587 * ((bg shr 8) and 0xFF) + 0.114 * (bg and 0xFF)) / 255
-    return Palette("custom", "Custom", lum < 0.5, bg, mix(bg, text, 0.08f), mix(bg, text, 0.18f), px(c.accent), px(c.accent2), text,
-        readableMuted(mix(bg, text, 0.6f), bg, mix(bg, text, 0.08f), text, lum < 0.5))
+    fun opt(k: String, d: Long) = c.extra[k]?.let { px(it) } ?: d
+    val raised = opt("raised", mix(bg, text, 0.08f))
+    return Palette("custom", "Custom", lum < 0.5, bg, raised, opt("high", mix(bg, text, 0.18f)), px(c.accent), px(c.accent2), text,
+        c.extra["muted"]?.let { px(it) } ?: readableMuted(mix(bg, text, 0.6f), bg, raised, text, lum < 0.5), opt("danger", px(c.accent2)))
 }
 
 /** Picker entries: "system" first, then every palette. */
@@ -126,6 +129,7 @@ val GraphiteRaised: Color get() = Color(ThemeState.palette.raised)
 val GraphiteHigh: Color get() = Color(ThemeState.palette.high)
 val Amber: Color get() = Color(ThemeState.palette.accent)
 val Coral: Color get() = Color(ThemeState.palette.accent2)
+val Danger: Color get() = Color(ThemeState.palette.danger)
 val Mist: Color get() = Color(ThemeState.palette.text)
 val Muted: Color get() = Color(ThemeState.palette.muted)
 

@@ -1,3 +1,8 @@
+## 1.14.40
+
+- Added: Custom themes now also set a danger colour, a tab colour and a start page background, and sync to other devices. Customize an applied theme still starts from the applied colours.
+- Fixed: The custom theme did not apply on the start page because of a script error.
+
 ## 1.14.39
 
 - Fixed: Version bump to keep desktop and Android in step; the notebook pick, quick note, chat size and image preview with download icon already exist on desktop.

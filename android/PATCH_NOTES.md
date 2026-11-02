@@ -1,4 +1,9 @@
 # Patch notes
+## 1.14.40
+
+- Added: Custom themes can now set danger, raised, high and muted colours on Android; they sync with the desktop theme. Tab and start page background colours are kept and synced but not painted on Android yet.
+- Changed: Danger buttons and warnings follow the theme danger colour.
+
 ## 1.14.39
 
 - Added: On Android you can pick which Notebook note the start page Notes card shows (Settings, Notes, Notes notebook), and type a quick note line into it from the start page.

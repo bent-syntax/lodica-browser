@@ -75,6 +75,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -181,7 +182,7 @@ fun TabSwitcher() {
                             Spacer(Modifier.width(8.dp))
                             Text("Archived (${TabManager.archived.size})", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.weight(1f))
-                            TextButton(onClick = { TabManager.clearArchive() }) { Text("Clear", color = Coral) }
+                            TextButton(onClick = { TabManager.clearArchive() }) { Text("Clear", color = Danger) }
                         }
                     }
                     items(TabManager.archived.toList(), key = { "a-" + it.id }, span = { GridItemSpan(2) }) { r ->

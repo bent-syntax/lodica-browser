@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.40 (versionCode 200)
+- Added: Custom themes now also set a danger colour, a tab colour and a start page background, and sync to other devices. Customize an applied theme still starts from the applied colours.
+- Added: Custom themes can now set danger, raised, high and muted colours on Android; they sync with the desktop theme. Tab and start page background colours are kept and synced but not painted on Android yet.
+- Fixed: The custom theme did not apply on the start page because of a script error.
+
 ## 1.14.39 (versionCode 199)
 - Added: On Android you can pick which Notebook note the start page Notes card shows (Settings, Notes, Notes notebook), and type a quick note line into it from the start page.
 - Added: A chat text size setting on Android (Settings, Chat text size, 80 to 250 percent), matching the desktop.
