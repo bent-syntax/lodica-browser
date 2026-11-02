@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.44 (versionCode 204)
+- Added: The server chat people strip shows the character the linked AI picked for each username.
+- Fixed: Start page shortcut logos retry loading after a failed fetch instead of staying a letter.
+- Changed: Custom theme tab and start page colours now apply on Android.
+- Added: Desktop picks the online list character (relay `face` field; restart the relay).
+
 ## 1.14.43 (versionCode 203)
 - Fixed: Android downloads can now be paused, resumed and cancelled from the Downloads screen. Cancelling deletes the partial file.
 

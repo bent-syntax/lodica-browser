@@ -215,3 +215,5 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 
 ## Extensions (1.2.0)
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.
+
+- Online list shows the character other devices share through `/api/chat/users`; shortcut logos retry loading; custom theme tab and start page colours apply. Planner and notes keep fixed slots on the phone (free drag and resize is desktop only).

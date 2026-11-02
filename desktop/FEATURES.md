@@ -213,3 +213,5 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - `pdf/` holds the pdf.js 6.4.299 release (Apache-2.0, see `pdf/LICENSE`), trimmed to the en-US locale.
 - Served by the `lodica://pdf/` host in `main/main.js`. `/f?u=<url>` proxies a remote or file PDF so the viewer reads it same-origin.
 - `pdfViewerUrl()` in `main/tabs.js` rewrites main-frame `.pdf` navigations, redirects and tab loads to the viewer.
+
+- Online list: the linked AI picks one emoji character per username (stored as `roomFace`, regenerated on rename or first AI link) and shares it through `/api/chat/users?face=`.

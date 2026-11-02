@@ -95,7 +95,7 @@ object Room {
     /** Adds private chats others have started with this device's name. */
     /** Device names seen on this server (including this one), newest first. Filled by [loadUsers]. */
     val users = mutableStateListOf<String>()
-    data class Peer(val name: String, val os: String, val online: Boolean)
+    data class Peer(val name: String, val os: String, val online: Boolean, val face: String = "")
     val peers = mutableStateListOf<Peer>()
     /** name -> id of the last message that person has read in the open room. */
     val reads = mutableStateMapOf<String, Long>()
@@ -112,7 +112,7 @@ object Room {
                 if (code != 200) return@runCatching
                 val arr = JSONObject(body).optJSONArray("users") ?: return@runCatching
                 val list = (0 until arr.length()).map { arr.getJSONObject(it) }
-                    .map { Peer(it.optString("name"), it.optString("os"), it.optBoolean("online")) }
+                    .map { Peer(it.optString("name"), it.optString("os"), it.optBoolean("online"), it.optString("face")) }
                     .filter { it.name.isNotBlank() && clean(it.name) != clean(me) }
                 main.post { users.clear(); users.addAll(list.map { it.name }); peers.clear(); peers.addAll(list) }
             }

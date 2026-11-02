@@ -86,6 +86,12 @@ fun customPalette(c: CustomTheme): Palette {
         c.extra["muted"]?.let { px(it) } ?: readableMuted(mix(bg, text, 0.6f), bg, raised, text, lum < 0.5), opt("danger", px(c.accent2)))
 }
 
+/** A colour from the active custom theme's optional extras (tab, startBg), or null when none is set. */
+fun customExtraColor(key: String): Color? {
+    val h = be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key)?.removePrefix("#") ?: return null
+    return runCatching { Color(0xFF000000 or h.toLong(16)) }.getOrNull()
+}
+
 /** Picker entries: "system" first, then every palette. */
 val ThemeChoices: List<Pair<String, String>> =
     listOf("system" to "System") +

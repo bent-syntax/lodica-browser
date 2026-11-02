@@ -120,7 +120,7 @@ const ROOM_OS = { android: ["🤖", "Android"], windows: ["🪟", "Windows"], ma
 function roomFace(u, cls) {
   let hash = 0; for (const c of u.name) hash = (hash * 31 + c.codePointAt(0)) >>> 0;
   const [g, label] = ROOM_OS[u.os] || ROOM_OS.other;
-  return [h("div", { class: cls, style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: g, title: u.name + " (" + label + ")" }), label];
+  return [h("div", { class: cls, style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: u.face || g, title: u.name + " (" + label + ")" }), label];
 }
 function roomPerson(u) {
   const [face, label] = roomFace(u, "chat-face");

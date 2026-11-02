@@ -111,6 +111,11 @@ server.listen(0, '127.0.0.1', async () => {
     await call(port, 'GET', '/api/chat/users?name=Cy&os=linux&open=1');
     const cy2 = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
     assert.strictEqual(cy2.online, true);
+    await call(port, 'GET', '/api/chat/users?name=Cy&os=linux&face=' + encodeURIComponent('\u{1F984}'));
+    await call(port, 'GET', '/api/chat/users?name=Ann&os=linux&face=' + encodeURIComponent('<b>x</b>'));
+    const us = (await call(port, 'GET', '/api/chat/users')).json.users;
+    assert.strictEqual(us.find((u) => u.name === 'Cy').face, '\u{1F984}');
+    assert.strictEqual(us.find((u) => u.name === 'Ann').face, '');
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 1 })).status, 200);
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 400);

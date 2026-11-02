@@ -30,6 +30,8 @@ const reads = new Map(); // room -> Map(name -> id of the last message that devi
 const openAt = new Map(); // device name -> last time it polled with the chat open
 const ONLINE = 30e3; // a device that polled with the chat open within this window counts as online
 const _unused = 0; // a device that polled within this window counts as online
+const faceOf = new Map();
+const FACE_RE = /^\p{Extended_Pictographic}[\p{Extended_Pictographic}\u200d\ufe0f\u{1f3fb}-\u{1f3ff}]{0,15}$/u;
 const OS_RE = /^(android|windows|macos|linux|ios|other)$/;
 const SEEN_TTL = 7 * 24 * 3600e3;
 
@@ -133,10 +135,12 @@ function users(req, res, url, h) {
   if (me) touch(me);
   const os = (url.searchParams.get('os') || '').toLowerCase();
   if (me && OS_RE.test(os)) osOf.set(me, os);
+  const face = url.searchParams.get('face') || '';
+  if (me && FACE_RE.test(face)) faceOf.set(me, face);
   if (me && url.searchParams.get('open') === '1') openAt.set(me, Date.now());
   const now = Date.now();
   for (const [n, at] of seen) if (now - at > SEEN_TTL) { seen.delete(n); openAt.delete(n); }
-  const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', online: now - (openAt.get(name) || 0) < ONLINE })).sort((a, b) => b.at - a.at);
+  const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', face: faceOf.get(name) || '', online: now - (openAt.get(name) || 0) < ONLINE })).sort((a, b) => b.at - a.at);
   h.sendJson(req, res, 200, { users: list });
 }
 

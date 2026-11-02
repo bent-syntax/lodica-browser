@@ -641,7 +641,12 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val icon by produceState(be.syntaxya.lodica.engine.SiteIcons.cached(host), host) {
-            if (value == null && host.isNotEmpty()) value = withContext(Dispatchers.IO) { be.syntaxya.lodica.engine.SiteIcons.load(host, url.startsWith("http://")) }
+            // Retry after the 2 minute failure window so a tile that loaded while offline gets its logo later.
+            var tries = 0
+            while (value == null && host.isNotEmpty() && tries++ < 3) {
+                value = withContext(Dispatchers.IO) { be.syntaxya.lodica.engine.SiteIcons.load(host, url.startsWith("http://")) }
+                if (value == null) kotlinx.coroutines.delay(125_000)
+            }
         }
         Box(Modifier.size(56.dp).clip(CircleShape).background(GraphiteRaised).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
             val ic = icon

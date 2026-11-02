@@ -378,7 +378,7 @@ private fun PeerChip(p: Room.Peer) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
         Box(Modifier.size(40.dp).background(tint, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-            Text(OS_GLYPH[p.os] ?: "💻", fontSize = 20.sp)
+            Text(p.face.ifEmpty { OS_GLYPH[p.os] ?: "💻" }, fontSize = 20.sp)
             if (p.online) Box(
                 Modifier.align(Alignment.BottomEnd).size(12.dp)
                     .background(androidx.compose.ui.graphics.Color(0xFF22C55E), androidx.compose.foundation.shape.CircleShape),

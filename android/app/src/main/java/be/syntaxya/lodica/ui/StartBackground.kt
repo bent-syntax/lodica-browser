@@ -115,7 +115,7 @@ fun StartBackdrop(modifier: Modifier = Modifier) {
                 if (b != null) Image(b.asImageBitmap(), null, layer, contentScale = ContentScale.Crop)
                 else Box(layer.background(Graphite))
             }
-            else -> Box(layer.background(Graphite))
+            else -> Box(layer.background(be.syntaxya.lodica.ui.theme.customExtraColor("startBg") ?: Graphite))
         }
         if (kind != "none" && Prefs.startDim > 0f) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = Prefs.startDim)))

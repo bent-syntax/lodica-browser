@@ -167,13 +167,30 @@ async function discover() {
 /** Device names seen on the server, without this device. Also registers this device as present. */
 async function users() { return (await onlineUsers()).map(u => u.name); }
 
+// The generated character: one emoji the linked AI picks for the username. Made again when the name changes, and once when the AI is first linked.
+let face = store.load("roomFace", null);
+let faceBusy = false;
+async function ensureFace() {
+  if (faceBusy || (face && face.name === state.name)) return;
+  faceBusy = true;
+  try {
+    const ai = require("./ai");
+    if (!ai.status().connected) return;
+    const t = await ai.complete([{ role: "user", content: "Username: " + state.name }], "Pick ONE emoji that works as a friendly character for this username. Reply with only that single emoji, nothing else.");
+    const g = [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(String(t).trim())][0]?.segment || "";
+    if (g && /\p{Extended_Pictographic}/u.test(g) && g.length <= 16) { face = { name: state.name, glyph: g }; store.save("roomFace", () => face); }
+  } catch {} finally { faceBusy = false; }
+}
+
 /** Everyone seen on the server except this device: name, operating system, and whether they are online now. */
 async function onlineUsers(open = false) {
   try {
-    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name) + "&os=" + OS_NAME + (open ? "&open=1" : ""), 15000);
+    ensureFace();
+    const f = face && face.name === state.name ? "&face=" + encodeURIComponent(face.glyph) : "";
+    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name) + "&os=" + OS_NAME + f + (open ? "&open=1" : ""), 15000);
     if (status !== 200) return [];
     const me = clean(state.name);
-    return (JSON.parse(body).users || []).filter(u => u.name && clean(u.name) !== me).map(u => ({ name: u.name, os: u.os || "other", online: !!u.online }));
+    return (JSON.parse(body).users || []).filter(u => u.name && clean(u.name) !== me).map(u => ({ name: u.name, os: u.os || "other", face: u.face || "", online: !!u.online }));
   } catch { return []; }
 }
 

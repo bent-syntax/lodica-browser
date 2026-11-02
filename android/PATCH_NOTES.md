@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.14.44
+
+- Added: The server chat people strip shows the character the linked AI picked for each username.
+- Fixed: Start page shortcut logos retry loading after a failed fetch instead of staying a letter.
+- Changed: Custom theme tab and start page colours now apply on Android.
+
 ## 1.14.43
 
 - Fixed: Pause, resume and cancel buttons for running downloads. Cancel removes the partial file.

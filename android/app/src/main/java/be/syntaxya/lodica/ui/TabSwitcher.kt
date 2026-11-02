@@ -242,7 +242,7 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     val grow by animateFloatAsState(if (entered) 1f else 0.82f, tween(260), label = "tab-in")
     Column(
         modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f }
-            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else GraphiteRaised)
+            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (be.syntaxya.lodica.ui.theme.customExtraColor("tab") ?: GraphiteRaised))
             .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else Modifier)
             .clickable(onClick = onOpen),
     ) {
