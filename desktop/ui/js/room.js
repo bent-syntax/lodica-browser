@@ -117,10 +117,13 @@ function roomText(t) {
 
 // Online list, Snapchat style: a character built from the device's OS and the username (the colour comes from the name, so it changes when the name changes), the username above, the device below.
 const ROOM_OS = { android: ["🤖", "Android"], windows: ["🪟", "Windows"], macos: ["🍎", "Mac"], linux: ["🐧", "Linux"], ios: ["📱", "iPhone"], other: ["💻", "Device"] };
-function roomPerson(u) {
+function roomFace(u, cls) {
   let hash = 0; for (const c of u.name) hash = (hash * 31 + c.codePointAt(0)) >>> 0;
   const [g, label] = ROOM_OS[u.os] || ROOM_OS.other;
-  const face = h("div", { class: "chat-face", style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: g });
+  return [h("div", { class: cls, style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: g, title: u.name + " (" + label + ")" }), label];
+}
+function roomPerson(u) {
+  const [face, label] = roomFace(u, "chat-face");
   face.append(h("i", { class: "chat-dot" + (u.online ? " on" : "") }));
   return h("div", { class: "chat-person", title: u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: label }));
 }
@@ -194,14 +197,18 @@ function roomRender() {
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
-  const mineIds = ROOM.state.messages.filter((m) => m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name)).map((m) => m.id);
-  const lastMine = mineIds.length ? Math.max(...mineIds) : -1;
-  const seenBy = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= lastMine);
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
-    if (m.id === lastMine && seenBy.length) L.thread.append(h("div", { class: "chat-seen", text: ROOM.state.room.startsWith("dm:") ? "Seen" : "Seen by " + seenBy.join(", ") }));
+    // Small device icons under the message each other device has read up to.
+    const nextId = (ROOM.state.messages[ROOM.state.messages.indexOf(m) + 1] || { id: Infinity }).id;
+    const here = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= m.id && ROOM.state.reads[n] < nextId);
+    if (here.length) {
+      const row = h("div", { class: "chat-seen" });
+      for (const n of here) { const u = (ROOM.state.online || []).find((x) => x.name === n) || { name: n, os: "other" }; row.append(roomFace(u, "chat-mini")[0]); }
+      L.thread.append(row);
+    }
   }
   for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:calc(11px * var(--chat-scale, 1))", text: "Waiting for the server…" })));
   if (stick) L.thread.scrollTop = L.thread.scrollHeight;

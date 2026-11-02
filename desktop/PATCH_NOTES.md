@@ -1,3 +1,7 @@
+## 1.14.37
+
+- Added: Every device that has read a message now shows its own icon under that message, so you can see who has seen what. Changed: The people list in the chat shows the icon of each device's system (Windows, macOS, Linux, Android, iPhone).
+
 ## 1.14.36
 
 - Added: Make an extension with the AI on the phone (Settings, Extensions): describe it, the AI writes the files, and you check its permissions before it is added. Changed: AI emojis now pick the most recognisable view and include the iconic parts (a hot dog shows the bun, sausage and mustard). The download animation now starts where you clicked or touched and drops the file into a folder in your theme colours, shaped like the folder of your system (Windows, macOS, Linux or Android).

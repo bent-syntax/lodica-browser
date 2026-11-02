@@ -160,13 +160,11 @@ fun RoomScreen() {
         ) {
             items(msgs, key = { it.id }) { m ->
                 Bubble(m, mine = Room.isMine(ctx, m.name))
-                if (m.id == msgs.lastOrNull { Room.isMine(ctx, it.name) }?.id) {
-                    val me = Room.name(ctx)
-                    val seen = Room.reads.filter { (n, id) -> n != me && id >= m.id }.keys.toList()
-                    if (seen.isNotEmpty()) Text(
-                        if (Room.room.startsWith("dm:")) "Seen" else "Seen by " + seen.joinToString(", "),
-                        color = Muted, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(end = 4.dp), textAlign = TextAlign.End,
-                    )
+                val me = Room.name(ctx)
+                val nextId = msgs.getOrNull(msgs.indexOf(m) + 1)?.id ?: Long.MAX_VALUE
+                val here = Room.reads.filter { (n, id) -> n != me && id >= m.id && id < nextId }.keys.toList()
+                if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)) {
+                    here.forEach { n -> ReadDot(n, Room.peers.firstOrNull { it.name == n }?.os ?: "other") }
                 }
             }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
@@ -346,6 +344,17 @@ private fun EmojiText(t: String) {
     Text(text, color = Mist, fontSize = 14.sp, inlineContent = inline)
 }
 
+private val OS_GLYPH = mapOf("android" to "🤖", "windows" to "🪟", "macos" to "🍎", "ios" to "📱", "linux" to "🐧")
+
+/** Small device icon of [name] (colour from the name, glyph from the OS), shown under the message that device has read. */
+@Composable
+private fun ReadDot(name: String, os: String) {
+    val hue = (name.fold(0) { a, c -> (a * 31 + c.code) and 0xffff } % 360).toFloat()
+    Box(Modifier.size(16.dp).background(androidx.compose.ui.graphics.Color.hsv(hue, 0.55f, 0.6f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
+        Text(OS_GLYPH[os] ?: "💻", fontSize = 9.sp)
+    }
+}
+
 private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "macos" to "macOS", "ios" to "iPhone", "linux" to "Linux")
 
 /** Online strip entry: OS letter in a circle tinted from the name, name above, OS below, dot when online. */
@@ -356,7 +365,7 @@ private fun PeerChip(p: Room.Peer) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
         Box(Modifier.size(40.dp).background(tint, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-            Text((OS_LABEL[p.os] ?: "?").take(1), color = GraphiteRaised, fontSize = 15.sp)
+            Text(OS_GLYPH[p.os] ?: "💻", fontSize = 20.sp)
             if (p.online) Box(
                 Modifier.align(Alignment.BottomEnd).size(12.dp)
                     .background(androidx.compose.ui.graphics.Color(0xFF22C55E), androidx.compose.foundation.shape.CircleShape),
