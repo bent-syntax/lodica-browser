@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.14.46
+
+- Added: Start page planner on Android moves and resizes like a window: drag the title, drag the grip, double tap the title to reset.
+- Changed: Removed the duplicate theme preview below the theme list in settings.
+
 ## 1.14.45
 
 - Added: Server chat shows "Seen by" names under the last message each person has read.

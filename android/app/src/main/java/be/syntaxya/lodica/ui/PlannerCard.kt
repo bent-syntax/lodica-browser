@@ -3,6 +3,11 @@ package be.syntaxya.lodica.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -41,7 +46,7 @@ import kotlinx.coroutines.withContext
 
 private val ROW_H = 31.dp
 
-/** The Smartschool planner on the native start page. Every row has its own box; tasks are amber, tests red. Drag the grip to show more lessons. */
+/** The Smartschool planner on the native start page. Every row has its own box; tasks are amber, tests red. Drag the title to move it, the grip to resize it, double tap the title to reset. */
 @Composable
 fun PlannerCard(modifier: Modifier = Modifier) {
     val ctx = androidx.compose.ui.platform.LocalContext.current
@@ -63,8 +68,18 @@ fun PlannerCard(modifier: Modifier = Modifier) {
     val shown = Prefs.plannerRows
     // a task or test inside a lesson is already shown when that lesson is opened, so it gets no row of its own
     val vis = rows.filter { r -> !(r.kind != 0 && !r.allDay && rows.any { l -> l.kind == 0 && !l.allDay && l.day == r.day && r.from >= l.from && r.from < l.to }) }
-    Column(modifier.clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).padding(horizontal = 16.dp, vertical = 12.dp)) {
-        Text("Smartschool planner", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    val wDp = Prefs.plannerW
+    Column(
+        modifier.offset { IntOffset((Prefs.plannerX * density.density).roundToInt(), (Prefs.plannerY * density.density).roundToInt()) }
+            .then(if (wDp > 0f) Modifier.width(wDp.dp) else Modifier)
+            .clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text("Smartschool planner", color = Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
+            detectDragGestures { change, d ->
+                change.consume()
+                Prefs.updatePlannerRect(Prefs.plannerX + d.x / density.density, Prefs.plannerY + d.y / density.density, Prefs.plannerW)
+            }
+        }.pointerInput(Unit) { detectTapGestures(onDoubleTap = { Prefs.updatePlannerRect(0f, 0f, 0f) }) })
         Box(Modifier.height(8.dp))
         if (note != null) Text(note!!, color = Muted, fontSize = 13.sp)
         else Column(Modifier.fillMaxWidth().height(ROW_H * shown.coerceAtMost(vis.size.coerceAtLeast(1))).verticalScroll(rememberScrollState())) {
@@ -125,15 +140,19 @@ fun PlannerCard(modifier: Modifier = Modifier) {
             }
         }
         if (note == null && vis.size > 2) Box(
-            Modifier.fillMaxWidth().padding(top = 6.dp).draggable(
-                orientation = Orientation.Vertical,
-                state = rememberDraggableState { d ->
-                    drag += d
+            Modifier.fillMaxWidth().padding(top = 6.dp).pointerInput(Unit) {
+                detectDragGestures { change, d ->
+                    change.consume()
+                    drag += d.y
                     val step = with(density) { ROW_H.toPx() }
                     while (drag > step) { Prefs.updatePlannerRows(Prefs.plannerRows + 1); drag -= step }
                     while (drag < -step) { Prefs.updatePlannerRows(Prefs.plannerRows - 1); drag += step }
-                },
-            ),
+                    if (d.x != 0f) {
+                        val cur = if (Prefs.plannerW > 0f) Prefs.plannerW else 320f
+                        Prefs.updatePlannerRect(Prefs.plannerX, Prefs.plannerY, (cur + d.x / density.density).coerceIn(200f, 600f))
+                    }
+                }
+            },
             contentAlignment = Alignment.Center,
         ) { Box(Modifier.width(40.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Muted)) }
     }

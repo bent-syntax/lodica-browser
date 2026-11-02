@@ -1,3 +1,7 @@
+## 1.14.46
+
+- Fixed: Version kept in step with Android; no desktop changes.
+
 ## 1.14.45
 
 - Added: Server chat shows "Seen by" names under the last message each person has read.

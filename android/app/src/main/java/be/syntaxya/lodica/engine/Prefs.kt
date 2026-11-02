@@ -101,6 +101,9 @@ object Prefs {
     var plannerWidgetAlpha by mutableStateOf(0.85f); private set
     /** How many planner rows the start page shows before it scrolls; the grip on the card changes it. */
     var plannerRows by mutableStateOf(6); private set
+    var plannerX by mutableStateOf(0f); private set
+    var plannerY by mutableStateOf(0f); private set
+    var plannerW by mutableStateOf(0f); private set
     var chatScale by mutableStateOf(100); private set
     var notesBook by mutableStateOf(""); private set
     var plannerDone by mutableStateOf(setOf<String>()); private set
@@ -213,6 +216,7 @@ object Prefs {
         plannerWidgetMode = if (sp.getString("plannerWidgetMode", "full") == "tasks") "tasks" else "full"
         plannerWidgetAlpha = sp.getFloat("plannerWidgetAlpha", 0.85f).coerceIn(0f, 1f)
         plannerRows = sp.getInt("plannerRows", 6).coerceIn(2, 14)
+        plannerX = sp.getFloat("plannerX", 0f); plannerY = sp.getFloat("plannerY", 0f); plannerW = sp.getFloat("plannerW", 0f)
         chatScale = sp.getInt("chatScale", 100).coerceIn(80, 250)
         notesBook = sp.getString("notesBook", "") ?: ""
         plannerDone = sp.getStringSet("plannerDone", emptySet())?.toSet() ?: emptySet()
@@ -388,6 +392,11 @@ object Prefs {
     fun updatePlannerWidgetAlpha(v: Float) { plannerWidgetAlpha = v.coerceIn(0f, 1f); sp.edit().putFloat("plannerWidgetAlpha", plannerWidgetAlpha).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updateNotesBook(v: String) { notesBook = v; sp.edit().putString("notesBook", v).apply() }
     fun updateChatScale(v: Int) { chatScale = v.coerceIn(80, 250); sp.edit().putInt("chatScale", chatScale).apply() }
+    /** Planner window on the start page: offset in dp from its default slot, width in dp (0 = full width). Double tap the title to reset. */
+    fun updatePlannerRect(x: Float, y: Float, w: Float) {
+        plannerX = x; plannerY = y; plannerW = w
+        sp.edit().putFloat("plannerX", x).putFloat("plannerY", y).putFloat("plannerW", w).apply()
+    }
     fun updatePlannerRows(v: Int) { plannerRows = v.coerceIn(2, 14); sp.edit().putInt("plannerRows", plannerRows).apply() }
     /** Ticks a planner task or test off (or back on). Only the newest 300 are kept. */
     fun togglePlannerDone(key: String) {

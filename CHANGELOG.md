@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.46 (versionCode 206)
+- Added: Start page planner on Android moves and resizes like a window: drag the title, drag the grip, double tap the title to reset.
+- Changed: Removed the duplicate theme preview below the theme list in settings.
+
 ## 1.14.45 (versionCode 205)
 - Added: Server chat shows who has seen each message ("Seen by" names with their characters).
 - Added: Online list shows a drawn character per username, an operating system badge and a green dot; you are listed first and offline people are dimmed. Desktop and Android.

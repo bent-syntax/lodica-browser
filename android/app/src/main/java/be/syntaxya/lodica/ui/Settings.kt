@@ -1750,7 +1750,6 @@ private fun ThemePicker() {
     )
     ThemeSwatches()
     SavedThemeSwatches()
-    ThemePreview()
     CustomThemeEditor()
     HolidayThemes()
 }
