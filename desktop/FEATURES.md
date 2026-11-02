@@ -215,3 +215,4 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - `pdfViewerUrl()` in `main/tabs.js` rewrites main-frame `.pdf` navigations, redirects and tab loads to the viewer.
 
 - Online list: the linked AI picks one emoji character per username (stored as `roomFace`, regenerated on rename or first AI link) and shares it through `/api/chat/users?face=`.
+- Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, offline dimmed. "Seen by" names under the last message each person read (`/api/chat/read`, `/api/chat/reads`).

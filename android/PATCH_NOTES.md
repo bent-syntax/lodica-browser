@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.14.45
+
+- Added: Server chat shows "Seen by" names under the last message each person has read.
+- Added: Online list shows a drawn character per username, an OS badge and an online dot. You are listed first, and the list is always visible.
+
 ## 1.14.44
 
 - Added: The server chat people strip shows the character the linked AI picked for each username.

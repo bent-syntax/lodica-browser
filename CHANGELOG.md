@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.45 (versionCode 205)
+- Added: Server chat shows who has seen each message ("Seen by" names with their characters).
+- Added: Online list shows a drawn character per username, an operating system badge and a green dot; you are listed first and offline people are dimmed. Desktop and Android.
+
 ## 1.14.44 (versionCode 204)
 - Added: The server chat people strip shows the character the linked AI picked for each username.
 - Fixed: Start page shortcut logos retry loading after a failed fetch instead of staying a letter.

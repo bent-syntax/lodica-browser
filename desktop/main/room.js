@@ -6,7 +6,7 @@ const store = require("./store");
 const events = new EventEmitter();
 const os = require("os");
 // New installs start with the computer's name; a stored name always wins.
-const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", names: store.load("roomNames", []) || [], room: "", chats: store.load("roomChats", []) || [], pending: [], online: [], reads: {} };
+const state = { messages: [], error: null, name: store.load("roomName", "") || String(os.hostname() || "").replace(/\.local$/i, "").trim().slice(0, 32) || "Me", names: store.load("roomNames", []) || [], room: "", chats: store.load("roomChats", []) || [], pending: [], online: [], reads: {}, os: { linux: "linux", win32: "windows", darwin: "macos" }[process.platform] || "other", face: (store.load("roomFace", null) || {}).glyph || "" };
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".

@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.heightIn as heightInMax
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -154,11 +155,13 @@ fun RoomScreen() {
             },
             color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
-        if (Room.peers.any { it.online }) LazyRow(
+        val myName = Room.name(ctx)
+        val strip = listOf(Room.Peer(myName, "android", true)) + Room.peers.filter { it.online && it.name != myName }
+        LazyRow(
             Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(Room.peers.filter { it.online }, key = { it.name }) { p -> PeerChip(p) }
+            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName) }
         }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
@@ -170,7 +173,8 @@ fun RoomScreen() {
                 val nextId = msgs.getOrNull(msgs.indexOf(m) + 1)?.id ?: Long.MAX_VALUE
                 val here = Room.reads.filter { (n, id) -> n != me && id >= m.id && id < nextId }.keys.toList()
                 if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)) {
-                    here.forEach { n -> ReadDot(n, Room.peers.firstOrNull { it.name == n }?.os ?: "other") }
+                    here.forEach { n -> Avatar(n, 20.dp) }
+                    Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                 }
             }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
@@ -359,31 +363,59 @@ private fun EmojiText(t: String) {
 
 private val OS_GLYPH = mapOf("android" to "🤖", "windows" to "🪟", "macos" to "🍎", "ios" to "📱", "linux" to "🐧")
 
-/** Small device icon of [name] (colour from the name, glyph from the OS), shown under the message that device has read. */
+private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "macos" to "macOS", "ios" to "iPhone", "linux" to "Linux")
+
+/** Cartoon avatar drawn from the name alone, same recipe as the desktop one, so it changes when the username changes. */
 @Composable
-private fun ReadDot(name: String, os: String) {
-    val hue = (name.fold(0) { a, c -> (a * 31 + c.code) and 0xffff } % 360).toFloat()
-    Box(Modifier.size(16.dp).background(androidx.compose.ui.graphics.Color.hsv(hue, 0.55f, 0.6f), androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-        Text(OS_GLYPH[os] ?: "💻", fontSize = 9.sp)
+private fun Avatar(name: String, size: androidx.compose.ui.unit.Dp) {
+    var n = 7L
+    for (c in name) n = (n * 31 + c.code) and 0xFFFFFFFFL
+    fun pick(k: Long, m: Int) = ((n / k) % m).toInt()
+    val bg = androidx.compose.ui.graphics.Color.hsl((n % 360).toFloat(), 0.55f, 0.45f)
+    val shirt = androidx.compose.ui.graphics.Color.hsl(((n / 8) % 360).toFloat(), 0.6f, 0.35f)
+    val skin = androidx.compose.ui.graphics.Color(listOf(0xFFF5D0B0, 0xFFE8B58C, 0xFFC68B5E, 0xFF8D5A3B, 0xFFFADDC4)[pick(3, 5)])
+    val hair = androidx.compose.ui.graphics.Color(listOf(0xFF2B1B12, 0xFF6B3E1E, 0xFFD9A441, 0xFFB33A2B, 0xFF222222, 0xFF8A8A8A)[pick(5, 6)])
+    val style = pick(11, 4); val mouth = pick(13, 3); val glasses = pick(17, 4) == 0
+    val ink = androidx.compose.ui.graphics.Color(0xFF222222); val lip = androidx.compose.ui.graphics.Color(0xFF5A2A1A)
+    androidx.compose.foundation.Canvas(Modifier.size(size).clip(androidx.compose.foundation.shape.CircleShape)) {
+        val u = this.size.width / 40f
+        fun o(x: Float, y: Float) = androidx.compose.ui.geometry.Offset(x * u, y * u)
+        drawRect(bg)
+        drawOval(shirt, o(6f, 32f), androidx.compose.ui.geometry.Size(28 * u, 20 * u))
+        drawCircle(skin, 10 * u, o(20f, 21f))
+        when (style) {
+            0 -> drawArc(hair, 180f, 180f, true, o(10f, 8f), androidx.compose.ui.geometry.Size(20 * u, 18 * u))
+            1 -> { drawArc(hair, 180f, 180f, true, o(9f, 7f), androidx.compose.ui.geometry.Size(22 * u, 20 * u)); drawRect(hair, o(8f, 18f), androidx.compose.ui.geometry.Size(4 * u, 12 * u)); drawRect(hair, o(28f, 18f), androidx.compose.ui.geometry.Size(4 * u, 12 * u)) }
+            2 -> drawArc(hair, 180f, 180f, true, o(10f, 9f), androidx.compose.ui.geometry.Size(20 * u, 12 * u))
+            else -> { drawCircle(hair, 5 * u, o(20f, 9f)); drawArc(hair, 180f, 180f, true, o(11f, 9f), androidx.compose.ui.geometry.Size(18 * u, 14 * u)) }
+        }
+        drawCircle(ink, 1.5f * u, o(15.5f, 20f)); drawCircle(ink, 1.5f * u, o(24.5f, 20f))
+        if (glasses) {
+            val st = androidx.compose.ui.graphics.drawscope.Stroke(1.4f * u)
+            drawCircle(ink, 3.6f * u, o(15.5f, 20f), style = st); drawCircle(ink, 3.6f * u, o(24.5f, 20f), style = st)
+        }
+        when (mouth) {
+            0 -> drawArc(lip, 20f, 140f, false, o(15f, 21f), androidx.compose.ui.geometry.Size(10 * u, 8 * u), style = androidx.compose.ui.graphics.drawscope.Stroke(1.8f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            1 -> drawOval(lip, o(17f, 23.8f), androidx.compose.ui.geometry.Size(6 * u, 4.4f * u))
+            else -> drawLine(lip, o(16f, 26f), o(24f, 26f), 1.8f * u, androidx.compose.ui.graphics.StrokeCap.Round)
+        }
     }
 }
 
-private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "macos" to "macOS", "ios" to "iPhone", "linux" to "Linux")
-
-/** Online strip entry: OS letter in a circle tinted from the name, name above, OS below, dot when online. */
+/** Online strip entry: avatar (or the AI character), name above, OS below, dot when online. */
 @Composable
-private fun PeerChip(p: Room.Peer) {
-    val hue = (p.name.fold(0) { a, c -> (a * 31 + c.code) and 0xffff } % 360).toFloat()
-    val tint = androidx.compose.ui.graphics.Color.hsv(hue, 0.45f, 0.75f)
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun PeerChip(p: Room.Peer, me: Boolean = false) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (p.online) 1f else 0.55f)) {
         Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
-        Box(Modifier.size(40.dp).background(tint, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) {
-            Text(p.face.ifEmpty { OS_GLYPH[p.os] ?: "💻" }, fontSize = 20.sp)
+        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+            if (p.face.isEmpty()) Avatar(p.name, 48.dp)
+            else Box(Modifier.size(48.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 24.sp) }
+            Text(OS_GLYPH[p.os] ?: "💻", fontSize = 12.sp, modifier = Modifier.align(Alignment.BottomStart))
             if (p.online) Box(
                 Modifier.align(Alignment.BottomEnd).size(12.dp)
                     .background(androidx.compose.ui.graphics.Color(0xFF22C55E), androidx.compose.foundation.shape.CircleShape),
             )
         }
-        Text(OS_LABEL[p.os] ?: "Unknown", color = Muted, fontSize = 12.sp, maxLines = 1)
+        Text(if (me) "You · ${OS_LABEL[p.os] ?: ""}" else OS_LABEL[p.os] ?: "Unknown", color = Muted, fontSize = 12.sp, maxLines = 1)
     }
 }

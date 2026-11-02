@@ -117,15 +117,35 @@ function roomText(t) {
 
 // Online list, Snapchat style: a character built from the device's OS and the username (the colour comes from the name, so it changes when the name changes), the username above, the device below.
 const ROOM_OS = { android: ["🤖", "Android"], windows: ["🪟", "Windows"], macos: ["🍎", "Mac"], linux: ["🐧", "Linux"], ios: ["📱", "iPhone"], other: ["💻", "Device"] };
+// Cartoon avatar drawn from the name alone, so it changes when the username changes. An AI-made character (u.face) replaces it.
+function roomAvatar(name) {
+  let n = 7; for (const c of name) n = (n * 31 + c.codePointAt(0)) >>> 0;
+  const pick = (k, m) => Math.floor(n / k) % m;
+  const bg = "hsl(" + (n % 360) + ",55%,45%)", shirt = "hsl(" + (Math.floor(n / 8) % 360) + ",60%,35%)";
+  const skin = ["#F5D0B0", "#E8B58C", "#C68B5E", "#8D5A3B", "#FADDC4"][pick(3, 5)];
+  const hair = ["#2B1B12", "#6B3E1E", "#D9A441", "#B33A2B", "#222", "#8A8A8A"][pick(5, 6)];
+  const style = pick(11, 4);
+  const hairSvg = [
+    '<path d="M10 20c0-9 5-13 10-13s10 4 10 13c-3-5-6-6-10-6s-7 1-10 6z" fill="' + hair + '"/>',
+    '<path d="M9 22c-1-10 4-15 11-15s12 5 11 15c-1-4-2-8-11-8S10 18 9 22z" fill="' + hair + '"/><rect x="8" y="18" width="4" height="12" rx="2" fill="' + hair + '"/><rect x="28" y="18" width="4" height="12" rx="2" fill="' + hair + '"/>',
+    '<path d="M11 15c2-6 16-6 18 0-4-2-14-2-18 0z" fill="' + hair + '"/>',
+    '<circle cx="20" cy="9" r="5" fill="' + hair + '"/><path d="M11 18c0-6 4-9 9-9s9 3 9 9c-3-3-6-4-9-4s-6 1-9 4z" fill="' + hair + '"/>',
+  ][style];
+  const mouth = ['<path d="M15 25q5 4 10 0" stroke="#5a2a1a" stroke-width="1.8" fill="none" stroke-linecap="round"/>', '<ellipse cx="20" cy="26" rx="3" ry="2.2" fill="#5a2a1a"/>', '<path d="M16 26h8" stroke="#5a2a1a" stroke-width="1.8" stroke-linecap="round"/>'][pick(13, 3)];
+  const glasses = pick(17, 4) === 0 ? '<g fill="none" stroke="#222" stroke-width="1.4"><circle cx="15.5" cy="20" r="3.6"/><circle cx="24.5" cy="20" r="3.6"/><path d="M19 20h2"/></g>' : "";
+  return '<svg viewBox="0 0 40 40" width="100%" height="100%"><rect width="40" height="40" fill="' + bg + '"/><ellipse cx="20" cy="42" rx="14" ry="10" fill="' + shirt + '"/><circle cx="20" cy="21" r="10" fill="' + skin + '"/>' + hairSvg +
+    '<circle cx="15.5" cy="20" r="1.5" fill="#222"/><circle cx="24.5" cy="20" r="1.5" fill="#222"/>' + glasses + mouth + '</svg>';
+}
 function roomFace(u, cls) {
-  let hash = 0; for (const c of u.name) hash = (hash * 31 + c.codePointAt(0)) >>> 0;
   const [g, label] = ROOM_OS[u.os] || ROOM_OS.other;
-  return [h("div", { class: cls, style: "background:hsl(" + (hash % 360) + ",55%,45%)", text: u.face || g, title: u.name + " (" + label + ")" }), label];
+  const el = h("div", { class: cls, title: u.name + " (" + label + ")" });
+  if (u.face) { el.style.background = "var(--raised)"; el.textContent = u.face; } else el.innerHTML = roomAvatar(u.name);
+  return [el, label, g];
 }
 function roomPerson(u) {
-  const [face, label] = roomFace(u, "chat-face");
-  face.append(h("i", { class: "chat-dot" + (u.online ? " on" : "") }));
-  return h("div", { class: "chat-person", title: u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: label }));
+  const [face, label, glyph] = roomFace(u, "chat-face");
+  face.append(h("i", { class: "chat-dot" + (u.online ? " on" : "") }), h("b", { class: "chat-os", text: glyph }));
+  return h("div", { class: "chat-person" + (u.online ? "" : " off"), title: u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: u.me ? "You · " + label : label }));
 }
 
 function roomLabel(r) {
@@ -180,7 +200,8 @@ function roomRender() {
   add.addEventListener("click", roomNew);
   L.tabs.append(add);
   L.note.textContent = ROOM.state.error || (ROOM.state.room ? "Anyone who knows this chat name can read it. Messages are not end-to-end encrypted and are kept 24 hours." : null) || "Everyone linked to this server is in this room. Messages are not end-to-end encrypted and are kept 24 hours.";
-  const people = (ROOM.state.online || []).filter((u) => u.online);
+  const myOs = (ROOM.state.online || []).find((u) => u.name === ROOM.state.name);
+  const people = [...(myOs ? [] : [{ name: ROOM.state.name || "Me", os: ROOM.state.os || "other", face: ROOM.state.face || "", online: true }]).map((u) => ({ ...u, me: true })), ...(ROOM.state.online || []).map((u) => ({ ...u, me: u.name === ROOM.state.name }))].filter((u) => u.name && (u.online || u.me)).sort((a, b) => (b.me ? 1 : 0) - (a.me ? 1 : 0) || (b.online ? 1 : 0) - (a.online ? 1 : 0));
   const wsig = JSON.stringify(people);
   if (L.wsig !== wsig) { L.wsig = wsig; clear(L.who); for (const u of people) L.who.append(roomPerson(u)); L.who.style.display = people.length ? "flex" : "none"; }
   const up = ROOM.state.upload;
@@ -207,6 +228,7 @@ function roomRender() {
     if (here.length) {
       const row = h("div", { class: "chat-seen" });
       for (const n of here) { const u = (ROOM.state.online || []).find((x) => x.name === n) || { name: n, os: "other" }; row.append(roomFace(u, "chat-mini")[0]); }
+      row.append(h("span", { class: "chat-seen-t", text: "Seen by " + here.join(", ") }));
       L.thread.append(row);
     }
   }

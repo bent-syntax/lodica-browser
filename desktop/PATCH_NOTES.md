@@ -1,3 +1,8 @@
+## 1.14.45
+
+- Added: Server chat shows "Seen by" names under the last message each person has read.
+- Added: Online list shows a drawn character per username, an OS badge and an online dot. You are listed first.
+
 ## 1.14.44
 
 - Added: Online list character: the linked AI picks one emoji for your username, made again when the name changes and once when the AI is first linked. Others see it through the server.
