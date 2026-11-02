@@ -185,6 +185,12 @@ object Helper {
     fun code(alias: Alias, value: String) {
         val site = alias.site
         fun same(t: Tab) = t.host.isNotEmpty() && (t.host == site || t.host.endsWith(".$site") || site.endsWith(".${t.host}"))
+        if (!alias.own.isNullOrEmpty()) {
+            val cur = TabManager.current?.takeIf { !it.private && frames[it] != null } ?: return
+            val msg = JSONObject().put("type", "code").put("value", value)
+            for (f in frames[cur].orEmpty()) f.port.postMessage(msg)
+            return
+        }
         val tab = owners[alias.address]?.get()?.takeIf { frames[it] != null }
             ?: TabManager.current?.takeIf { frames[it] != null && same(it) }
             ?: TabManager.tabs.firstOrNull { frames[it] != null && same(it) }

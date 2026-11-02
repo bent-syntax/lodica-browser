@@ -478,6 +478,7 @@ function init(deps) {
   on("screen.stop", () => require("./screen").stop());
   on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
   on("relay.delete", id => relay.deleteMail(id));
+  on("relay.own", email => relay.addOwn(email));
   on("relay.forget", address => relay.forget(str(address)));
 
   on("remind.set", ts => remind.set(ts));

@@ -313,6 +313,7 @@ async function aliasesPost(req, res) {
       site: typeof it.site === 'string' ? it.site.slice(0, 200) : '',
       created: Number.isFinite(it.created) ? it.created : Date.now(),
     };
+    if (typeof it.own === 'string' && it.own.length <= 200) entry.own = it.own;
     const i = list.findIndex((x) => localOf(x.address) === local);
     if (i >= 0) list[i] = Object.assign(list[i], entry, { site: entry.site || list[i].site }); else list.push(entry);
   }

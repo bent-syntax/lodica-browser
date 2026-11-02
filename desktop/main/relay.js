@@ -148,7 +148,7 @@ async function syncAliases() {
     let added = false;
     for (const a of remote) {
       if (!a || !a.address || known.has(a.address.toLowerCase()) || gone.has(a.address.toLowerCase())) continue;
-      state.aliases.push({ address: a.address, site: a.site || "", created: a.created || Date.now() });
+      state.aliases.push({ address: a.address, site: a.site || "", created: a.created || Date.now(), ...(a.own ? { own: String(a.own).slice(0, 200) } : {}) });
       added = true;
     }
     if (added) { state.aliases.sort((x, y) => y.created - x.created); persist(); }
@@ -228,6 +228,40 @@ function newAlias(host) {
   if (available) request("POST", "/api/aliases", 15000, alias).catch(() => {});
   return alias;
 }
+
+/** The user's own address: their mail provider forwards to this alias, so a login code mailed there is filled into the tab in front. */
+function addOwn(email) {
+  const own = String(email || "").trim().toLowerCase();
+  if (!/^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(own)) return { error: "Enter a valid email address" };
+  const old = state.aliases.find(a => a.own === own);
+  if (old) return { alias: old };
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let tail = ""; for (let i = 0; i < 8; i++) tail += chars[crypto.randomInt(chars.length)];
+  const alias = { address: `login-${tail}@${DOMAIN}`, site: "", created: Date.now(), own };
+  state.aliases.unshift(alias);
+  persist(); changed();
+  if (available) request("POST", "/api/aliases", 15000, alias).catch(() => {});
+  return { alias };
+}
+
+const ownSeen = new Set();
+let ownSince = Date.now();
+/** Checks the forwarding addresses for new login codes. Runs while the app is up. */
+async function pollOwn() {
+  const own = state.aliases.filter(a => a.own);
+  if (!available || !own.length) return;
+  const since = ownSince; ownSince = Date.now() - 5000;
+  for (const a of own) {
+    try {
+      for (const m of (await fetchMail(local(a), since)).reverse()) {
+        if (ownSeen.has(m.id)) continue;
+        ownSeen.add(m.id);
+        arrived(a, m);
+      }
+    } catch { /* try again next round */ }
+  }
+}
+setInterval(pollOwn, 8000).unref();
 
 /** Polls the relay for 5 minutes after a sign-up so the confirmation mail shows up fast. */
 function watch(alias) {
@@ -379,6 +413,6 @@ module.exports = {
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
   link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, requestRawSeq, uploadFile, downloadTo, fetchMail, refresh, deleteMail,
-  forget, siteOf, newAlias, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
+  forget, siteOf, newAlias, addOwn, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };

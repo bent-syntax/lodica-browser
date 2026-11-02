@@ -1,4 +1,8 @@
 # Patch notes
+## 1.14.32
+
+- Added: Log in your own email address (Inbox, Addresses) to get a forwarding address. Forward login mails from your email to it and the login code is filled into the open tab. Works on phone and PC. The relay must be updated for this
+
 ## 1.14.31
 
 - Added: The AI theme maker can make a theme with a light and a dark version that follows the system theme, and can add an animation (pulse, glow, drift, float or shimmer) on the PC start page and search page. The phone keeps and syncs both, and follows the system light or dark; it does not play the animation yet

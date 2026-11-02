@@ -60,7 +60,7 @@ data class Mail(
 
 /** A hidden address handed to a site. [address] is the full alias, e.g. `shop-x1y2z3@your-domain`. */
 @Serializable
-data class Alias(val address: String, val site: String, val created: Long = System.currentTimeMillis()) {
+data class Alias(val address: String, val site: String, val created: Long = System.currentTimeMillis(), val own: String? = null) {
     val local: String get() = address.substringBefore('@')
 }
 
@@ -121,6 +121,41 @@ object Relay {
         if (raw != null) runCatching { aliases.addAll(json.decodeFromString<List<Alias>>(raw)) }
         removed.addAll(app.getSharedPreferences("aliases", Context.MODE_PRIVATE).getStringSet("removed", null).orEmpty())
         scope.launch { while (true) { checkUp(); delay(30_000) } }
+        scope.launch { while (true) { delay(8_000); pollOwn() } }
+    }
+
+    private val ownSeen = HashSet<String>()
+    private var ownSince = System.currentTimeMillis()
+
+    /** Checks the forwarding addresses of the user's own emails for new login codes. */
+    private suspend fun pollOwn() {
+        val own = withContext(Dispatchers.Main) { aliases.filter { !it.own.isNullOrEmpty() } }
+        if (!available || own.isEmpty()) return
+        val since = ownSince
+        ownSince = System.currentTimeMillis() - 5_000
+        for (a in own) {
+            val list = runCatching { fetch(a.local, since) }.getOrNull() ?: continue
+            for (m in list.reversed()) {
+                if (!ownSeen.add(m.id)) continue
+                withContext(Dispatchers.Main) { arrived(a, m) }
+            }
+        }
+    }
+
+    /** The user's own address: their mail provider forwards to the returned alias. Null when [email] is not valid. Main thread. */
+    fun addOwn(email: String): Alias? {
+        val own = email.trim().lowercase()
+        if (!Regex("^[^\\s@]{1,64}@[^\\s@]{1,190}\\.[^\\s@]{2,}$").matches(own)) return null
+        aliases.firstOrNull { it.own == own }?.let { return it }
+        val abc = "abcdefghijklmnopqrstuvwxyz0123456789"
+        val tail = (1..8).map { abc[rnd.nextInt(abc.length)] }.joinToString("")
+        val a = Alias("login-$tail@$DOMAIN", "", own = own)
+        aliases.add(0, a)
+        persist()
+        if (available) scope.launch {
+            runCatching { request("POST", "/api/aliases", json.encodeToString(a).toByteArray(), "application/json") }
+        }
+        return a
     }
 
     /**

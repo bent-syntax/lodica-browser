@@ -2,7 +2,14 @@ package be.syntaxya.lodica.ui
 
 import android.text.format.DateUtils
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -98,6 +105,36 @@ private fun MailList() {
             }
 
             item { Section("Addresses") }
+            item {
+                var own by remember { mutableStateOf("") }
+                val ctx = LocalContext.current
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicTextField(
+                            own, { own = it }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            textStyle = TextStyle(color = Mist, fontSize = 15.sp),
+                            cursorBrush = SolidColor(Amber),
+                            decorationBox = { inner ->
+                                Box(Modifier.fillMaxWidth().background(GraphiteHigh, CircleShape).padding(horizontal = 16.dp, vertical = 12.dp)) {
+                                    if (own.isEmpty()) Text("Your own email", color = Muted, fontSize = 15.sp)
+                                    inner()
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = {
+                            val a = Relay.addOwn(own)
+                            if (a == null) Toast.makeText(ctx, "Enter a valid email address", Toast.LENGTH_SHORT).show()
+                            else { own = ""; Toast.makeText(ctx, "Forward login mails from your email to ${a.address}", Toast.LENGTH_LONG).show() }
+                        }) { Text("Add", color = Amber) }
+                    }
+                    Text(
+                        "Forward login mails from your own email to the address shown. A code that arrives is filled into the open tab.",
+                        color = Muted, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+            }
             if (Relay.aliases.isEmpty()) item {
                 Text(
                     "Tap \"Hidden email\" on a sign-up form to make one",
@@ -109,7 +146,7 @@ private fun MailList() {
                     Column(Modifier.weight(1f)) {
                         SelectionContainer { Text(a.address, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         Text(
-                            "${a.site} · ${DateUtils.getRelativeTimeSpanString(a.created)}",
+                            "${if (!a.own.isNullOrEmpty()) "Forwarded from ${a.own}" else a.site} · ${DateUtils.getRelativeTimeSpanString(a.created)}",
                             color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }

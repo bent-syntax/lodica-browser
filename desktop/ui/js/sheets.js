@@ -17,9 +17,20 @@ function renderInbox() {
   b.append(h("div", { class: "tabs2" }, tab("mail", "Inbox" + (mails.length ? " (" + mails.length + ")" : "")), tab("addr", "Addresses" + (al.length ? " (" + al.length + ")" : ""))));
   if (st.error) b.append(h("div", { class: "empty", style: "color:var(--coral);padding:12px", text: st.error }));
   if (INB.tab === "addr") {
+    const own = h("input", { class: "field", type: "email", maxlength: "200", placeholder: "Your own email, e.g. me@gmail.com" });
+    const add = async () => {
+      const r = await inv("relay.own", own.value);
+      if (!r || r.error) return toast(r && r.error || "Link a Lodica server first");
+      own.value = "";
+      toast("Forward login mails from your email to " + r.alias.address);
+      inv("relay.state").then((s2) => { if (s2) { S.relay = Object.assign({}, S.relay, s2); refreshInbox(); } });
+    };
+    own.addEventListener("keydown", e => { if (e.key === "Enter") add(); });
+    b.append(h("div", { class: "row" }, own, btn("Add", add)),
+      h("div", { class: "t2", style: "padding:0 12px 8px", text: "Forward login mails from your own email to the address shown. A code that arrives is filled into the open tab." }));
     if (!al.length) return b.append(h("div", { class: "empty", text: "No addresses yet" }));
     for (const a of al) b.append(h("div", { class: "row" }, ico("email"),
-      h("div", { class: "main" }, h("div", { class: "t1", text: a.address }), h("div", { class: "t2", text: (a.site || "") + (a.created ? " · " + fmtTime(a.created) : "") })),
+      h("div", { class: "main" }, h("div", { class: "t1", text: a.address }), h("div", { class: "t2", text: (a.own ? "Forwarded from " + a.own : a.site || "") + (a.created ? " · " + fmtTime(a.created) : "") })),
       ib("copy", "Copy", () => { navigator.clipboard.writeText(a.address).catch(() => {}); toast("Address copied"); }),
       ib("delete", "Forget", async () => {
         if (!(await confirmDialog({ title: "Forget address?", message: a.address, ok: "Forget", danger: true }))) return;

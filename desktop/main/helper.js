@@ -99,6 +99,7 @@ function code(alias, value) {
   const { tabs } = deps;
   const site = alias.site;
   const same = t => t && !t.private && sameSite(Relay.baseDomain(t.host), site);
+  if (alias.own) { const cur = tabs.current(); if (cur && !cur.private) for (const f of live(cur)) send(f, { type: "code", value }); return; }
   let tab = owners.get(alias.address);
   if (!tab || !live(tab).length) tab = null;
   if (!tab && same(tabs.current())) tab = tabs.current();
