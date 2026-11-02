@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -115,7 +117,7 @@ fun DownloadsScreen() {
                                 ) else LinearProgressIndicator(color = Amber, modifier = Modifier.fillMaxWidth().padding(top = 6.dp, end = 12.dp))
                                 val got = Formatter.formatShortFileSize(ctx, d.received)
                                 Text(
-                                    if (d.total > 0) "$got of ${Formatter.formatShortFileSize(ctx, d.total)}" else "$got downloaded",
+                                    (if (d.total > 0) "$got of ${Formatter.formatShortFileSize(ctx, d.total)}" else "$got downloaded") + (if (d.paused) " · Paused" else ""),
                                     color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp),
                                 )
                             }
@@ -130,6 +132,14 @@ fun DownloadsScreen() {
                         "${(d.received * 100 / d.total).coerceIn(0L, 100L)}%", color = Amber, fontSize = 13.sp,
                         modifier = Modifier.padding(end = 16.dp),
                     )
+                    if (d.status == Dl.ACTIVE) {
+                        IconButton(onClick = { Downloads.pause(ctx, d, !d.paused) }) {
+                            Icon(if (d.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, if (d.paused) "Resume" else "Pause", tint = Amber, modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = { Downloads.cancel(d) }) {
+                            Icon(Icons.Rounded.Close, "Cancel download", tint = Muted, modifier = Modifier.size(18.dp))
+                        }
+                    }
                     if (d.status == Dl.DONE) IconButton(onClick = { Downloads.open(ctx, d) }) {
                         Icon(Icons.Rounded.FolderOpen, "Open", tint = Muted, modifier = Modifier.size(20.dp))
                     }

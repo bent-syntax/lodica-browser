@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.43 (versionCode 203)
+- Fixed: Android downloads can now be paused, resumed and cancelled from the Downloads screen. Cancelling deletes the partial file.
+
 ## 1.14.42 (versionCode 202)
 - Added: Android can now use a Hearth server for Ask AI and chats. Settings, AI, "Hearth address and key" checks the address and key and stores them encrypted. Hearth is tried before the Anthropic key and Termux. Desktop already had this.
 - Changed: No other change. Smartschool sign in with Microsoft and the Ctrl+Shift+L page assistant already shipped earlier.

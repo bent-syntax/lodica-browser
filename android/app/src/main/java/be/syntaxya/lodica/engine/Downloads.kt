@@ -24,7 +24,7 @@ import java.util.concurrent.Executors
 /** One download shown on the Downloads screen. [uri] is where the finished file can be opened from. */
 data class Dl(
     val id: Long, val name: String, val mime: String, val total: Long, val received: Long,
-    val status: Int, val at: Long, val uri: String? = null,
+    val status: Int, val at: Long, val uri: String? = null, val paused: Boolean = false,
 ) {
     companion object { const val ACTIVE = 0; const val DONE = 1; const val FAILED = 2 }
 }
@@ -67,6 +67,19 @@ object Downloads {
         if (i >= 0) { items[i] = f(items[i]); if (items[i].status != Dl.ACTIVE) persist(ctx) }
     }
 
+    private class Stop : java.io.IOException("cancelled")
+    private val paused = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+    private val cancelled = java.util.concurrent.ConcurrentHashMap.newKeySet<Long>()
+
+    /** Holds the transfer where it is; the connection stays open and resumes by itself if the server drops it. */
+    fun pause(ctx: Context, d: Dl, on: Boolean) {
+        if (on) paused.add(d.id) else paused.remove(d.id)
+        update(ctx, d.id) { it.copy(paused = on) }
+    }
+
+    /** Stops a running download and deletes the partial file. */
+    fun cancel(d: Dl) { cancelled.add(d.id); paused.remove(d.id) }
+
     fun remove(ctx: Context, d: Dl) { items.remove(d); persist(ctx) }
 
     fun clearFinished(ctx: Context) { items.removeAll { it.status != Dl.ACTIVE }; persist(ctx) }
@@ -92,7 +105,7 @@ object Downloads {
         runCatching { ctx.startActivity(intent) }.onFailure { toast(ctx, "No app can open this file") }
     }
 
-    private val io = Executors.newFixedThreadPool(2) { r -> Thread(r, "lodica-download") }
+    private val io = Executors.newCachedThreadPool { r -> Thread(r, "lodica-download") }
     private val main = Handler(Looper.getMainLooper())
 
     private fun header(r: WebResponse, name: String): String? =
@@ -150,7 +163,7 @@ object Downloads {
     }.getOrNull()
 
     /** Copies [first] into [out]; when the stream breaks, resumes with Range requests up to 5 times. */
-    private fun copy(first: InputStream, out: java.io.OutputStream, resume: Resume?, progress: (Long) -> Unit = {}) {
+    private fun copy(first: InputStream, out: java.io.OutputStream, resume: Resume?, id: Long = 0, progress: (Long) -> Unit = {}) {
         var input = first
         var done = 0L
         var tries = 0
@@ -160,6 +173,8 @@ object Downloads {
             try {
                 input.use {
                     while (true) {
+                        while (id in paused && id !in cancelled) Thread.sleep(200)
+                        if (id in cancelled) throw Stop()
                         val n = it.read(buf)
                         if (n < 0) return
                         out.write(buf, 0, n)
@@ -170,7 +185,7 @@ object Downloads {
                     }
                 }
             } catch (e: java.io.IOException) {
-                if (resume == null || ++tries > 5) throw e
+                if (e is Stop || resume == null || ++tries > 5) throw e
                 Thread.sleep(1000L * tries)
                 input = reopen(resume, done) ?: throw e
             }
@@ -196,8 +211,9 @@ object Downloads {
         main.post { load(ctx); items.add(0, Dl(id, name, mimeGuess, total, 0, Dl.ACTIVE, System.currentTimeMillis())); be.syntaxya.lodica.ui.Ui.dlAnim = ((be.syntaxya.lodica.ui.Ui.dlAnim?.first ?: 0) + 1) to total }
         val tick: (Long) -> Unit = { n -> update(ctx, id) { it.copy(received = n) } }
         var savedUri: String? = null
+        var partial: (() -> Unit)? = null
         io.execute {
-            val ok = runCatching {
+            val result = runCatching {
                 body.use { input ->
                     if (Build.VERSION.SDK_INT >= 29) {
                         // A generic type makes MediaStore tack ".bin" on, so prefer the type implied by the extension.
@@ -211,7 +227,8 @@ object Downloads {
                         val resolver = ctx.contentResolver
                         val uri: Uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv)
                             ?: error("insert failed")
-                        resolver.openOutputStream(uri)!!.use { copy(input, it, resume, tick) }
+                        partial = { resolver.delete(uri, null, null) }
+                        resolver.openOutputStream(uri)!!.use { copy(input, it, resume, id, tick) }
                         resolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
                         savedUri = uri.toString()
                     } else {
@@ -219,11 +236,20 @@ object Downloads {
                         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                         dir.mkdirs()
                         val f = File(dir, name)
-                        f.outputStream().use { copy(input, it, resume, tick) }
+                        partial = { f.delete() }
+                        f.outputStream().use { copy(input, it, resume, id, tick) }
                         savedUri = Uri.fromFile(f).toString()
                     }
                 }
-            }.isSuccess
+            }
+            val ok = result.isSuccess
+            if (result.exceptionOrNull() is Stop) {
+                runCatching { partial?.invoke() }
+                cancelled.remove(id); paused.remove(id)
+                main.post { items.removeAll { it.id == id } }
+                toast(ctx, "Download cancelled")
+                return@execute
+            }
             update(ctx, id) { it.copy(status = if (ok) Dl.DONE else Dl.FAILED, uri = savedUri, received = if (ok && it.total > 0) it.total else it.received) }
             toast(ctx, if (ok) "Saved $name to Downloads" else "Download failed")
         }

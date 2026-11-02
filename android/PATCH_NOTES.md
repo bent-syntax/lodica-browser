@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.14.43
+
+- Fixed: Pause, resume and cancel buttons for running downloads. Cancel removes the partial file.
+
 ## 1.14.42
 
 - Added: Hearth provider for Ask AI and chats. Settings, AI, "Hearth address and key". The key is stored encrypted and sent only to your address.
