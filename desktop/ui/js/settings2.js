@@ -107,6 +107,14 @@ function secExtensions() {
   };
   out.push(setRow("Install from a file", "A .crx, .zip or Firefox .xpi file. You see its permissions first. Only extensions that use Chrome-compatible features load.", null, local("file")));
   out.push(setRow("Load an unpacked folder", "A folder with a manifest.json, for extensions you are making. It is copied in; install again after changes.", null, local("folder")));
+  out.push(setRow("Make an extension with the AI", "Describe what it should do, then press Enter. The AI writes the files and you see its permissions before it installs. Needs the AI connected.",
+    h("input", { class: "set-input", type: "text", placeholder: "For example: hide cookie banners", on: { keydown: async (e) => {
+      if (e.key !== "Enter" || !e.target.value.trim()) return;
+      const box = e.target; box.disabled = true; toast("Making the extension…");
+      const r = await inv("ext.ai", box.value.trim());
+      if (r && r.ok) { SET.exts = r.list; toast("Extension installed"); } else if (r && !r.canceled) toast((r && r.error) || "Could not make it");
+      refreshSettings();
+    } } })));
   out.push(setRow("Make an extension", "Creates a starter folder with a manifest.json and a content script. Edit it, then load the folder above.", null, async () => {
     const r = await inv("ext.scaffold");
     if (r && r.ok) toast("Starter created"); else if (r && !r.canceled) toast((r && r.error) || "Could not create it");

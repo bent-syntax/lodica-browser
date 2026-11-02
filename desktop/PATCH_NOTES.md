@@ -1,3 +1,7 @@
+## 1.14.33
+
+- Added: Make an extension with the AI (Settings, Extensions on the PC): describe what it should do, the AI writes the extension files, and after you check its permissions it is installed in the browser
+
 ## 1.14.32
 
 - Added: Log in your own email address (Inbox, Addresses) to get a forwarding address. Forward login mails from your email to it and the login code is filled into the open tab. Works on phone and PC. The relay must be updated for this

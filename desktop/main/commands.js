@@ -730,6 +730,25 @@ function init(deps) {
       message: "Install " + name + "?", detail: perms.length ? "It asks for:\n" + perms.join("\n") : "It asks for no special permissions.",
     })).response === 0);
   });
+  // Make an extension from a description with the linked AI, then install it after the usual permission prompt.
+  on("ext.ai", async (idea) => {
+    const what = str(idea).trim().slice(0, 600);
+    if (!what) return { error: "Describe the extension first" };
+    const ae = require("./aiextension");
+    let reply;
+    try { reply = await d.ai.complete([{ role: "user", content: "Extension: " + what }], ae.SYSTEM); }
+    catch (e) { return { error: /connect/i.test(String(e && e.message)) ? "Connect the AI in Settings first" : "The AI could not answer" }; }
+    const ext = ae.parse(reply);
+    if (!ext) return { error: "The AI gave no usable extension. Try again" };
+    const dir = ae.write(ext);
+    try {
+      const { dialog } = require("electron");
+      return await extensions.installLocal(dir, async (name, perms) => (await dialog.showMessageBox(d.win(), {
+        type: "question", buttons: ["Install", "Cancel"], defaultId: 1, cancelId: 1, title: "Install extension",
+        message: "Install " + name + "?", detail: "Written by the AI from your description. Check it does what you want.\n" + (perms.length ? "It asks for:\n" + perms.join("\n") : "It asks for no special permissions."),
+      })).response === 0);
+    } finally { require("fs").rmSync(dir, { recursive: true, force: true }); }
+  });
   on("ext.scaffold", async () => {
     const { dialog, shell } = require("electron");
     const r = await dialog.showOpenDialog(d.win(), { title: "Choose where to create the extension folder", properties: ["openDirectory", "createDirectory"] });
