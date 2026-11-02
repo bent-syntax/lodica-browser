@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.14.47
+
+- Added: Start page notes on Android: a movable, resizable window showing your Notebook note with a quick-add line.
+- Added: Your online character on Android can be picked by the AI and is shared with the server chat.
+
 ## 1.14.46
 
 - Added: Start page planner on Android moves and resizes like a window: drag the title, drag the grip, double tap the title to reset.

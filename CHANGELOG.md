@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.47 (versionCode 207)
+
+- Added: Start page notes on Android: a movable, resizable window showing your Notebook note with a quick-add line.
+- Added: Your online character on Android can be picked by the AI and is shared with the server chat.
+
 ## 1.14.46 (versionCode 206)
 - Added: Start page planner on Android moves and resizes like a window: drag the title, drag the grip, double tap the title to reset.
 - Changed: Removed the duplicate theme preview below the theme list in settings.

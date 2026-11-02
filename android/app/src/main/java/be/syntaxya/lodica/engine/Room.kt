@@ -101,6 +101,22 @@ object Room {
     val reads = mutableStateMapOf<String, Long>()
     private var readSent = 0L
 
+    private var faceBusy = false
+
+    /** The generated character: one emoji the linked AI picks for the username. Made again when the name changes. */
+    private fun ensureFace(ctx: Context, me: String) {
+        val sp = ctx.getSharedPreferences("room", Context.MODE_PRIVATE)
+        if (faceBusy || !Ai.connected || sp.getString("faceName", "") == me) return
+        faceBusy = true
+        Ai.agentStep(listOf("user" to "Username: $me"), "Pick ONE emoji that works as a friendly character for this username. Reply with only that single emoji, nothing else.") { r ->
+            faceBusy = false
+            val t = r.getOrNull()?.trim().orEmpty()
+            val bi = java.text.BreakIterator.getCharacterInstance(); bi.setText(t)
+            val g = if (t.isEmpty()) "" else t.substring(0, bi.next())
+            if (g.isNotEmpty() && g.length <= 16 && g.codePoints().anyMatch { it > 0x2190 }) sp.edit().putString("faceName", me).putString("face", g).apply()
+        }
+    }
+
     /** Registers this device by name and fetches the list of names to pick a private chat from. */
     fun loadUsers(ctx: Context, open: Boolean = false) {
         if (!Relay.available) return
@@ -108,7 +124,10 @@ object Room {
             runCatching {
                 settleName(ctx)
                 val me = name(ctx)
-                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8") + "&os=android" + (if (open) "&open=1" else ""))
+                main.post { ensureFace(ctx, me) }
+                val fsp = ctx.getSharedPreferences("room", Context.MODE_PRIVATE)
+                val face = if (fsp.getString("faceName", "") == me) fsp.getString("face", "").orEmpty() else ""
+                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8") + "&os=android" + (if (face.isNotEmpty()) "&face=" + java.net.URLEncoder.encode(face, "UTF-8") else "") + (if (open) "&open=1" else ""))
                 if (code != 200) return@runCatching
                 val arr = JSONObject(body).optJSONArray("users") ?: return@runCatching
                 val list = (0 until arr.length()).map { arr.getJSONObject(it) }

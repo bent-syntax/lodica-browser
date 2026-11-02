@@ -1,3 +1,7 @@
+## 1.14.47
+
+- Fixed: Version kept in step with Android; no desktop changes.
+
 ## 1.14.46
 
 - Fixed: Version kept in step with Android; no desktop changes.

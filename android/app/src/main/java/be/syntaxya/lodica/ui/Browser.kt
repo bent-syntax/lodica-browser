@@ -592,6 +592,10 @@ private fun StartPage(modifier: Modifier) {
             Spacer(Modifier.height(20.dp))
             PlannerCard(Modifier.fillMaxWidth())
         }
+        if (!priv && Prefs.startNotes) {
+            Spacer(Modifier.height(20.dp))
+            NotesCard(Modifier.fillMaxWidth())
+        }
     }
     }
     if (adding) {
