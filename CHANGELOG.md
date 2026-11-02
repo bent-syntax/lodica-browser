@@ -2,6 +2,9 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.35 (versionCode 195)
+- Fixed: The online list in the server chat only shows people who have the chat open right now, with the right device name. AI-made emojis are drawn cleaner (bold outline, fewer colours, no thin details). The relay must be updated for the online list
+
 ## 1.14.34 (versionCode 194)
 - Fixed: Saved theme names on the phone are no longer cut off (long names wrap to two lines). The phone now plays a custom theme's animation on the start page
 

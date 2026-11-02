@@ -102,13 +102,13 @@ object Room {
     private var readSent = 0L
 
     /** Registers this device by name and fetches the list of names to pick a private chat from. */
-    fun loadUsers(ctx: Context) {
+    fun loadUsers(ctx: Context, open: Boolean = false) {
         if (!Relay.available) return
         Relay.scope.launch {
             runCatching {
                 settleName(ctx)
                 val me = name(ctx)
-                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8") + "&os=android")
+                val (code, body) = Relay.request("GET", "/api/chat/users?name=" + java.net.URLEncoder.encode(me, "UTF-8") + "&os=android" + (if (open) "&open=1" else ""))
                 if (code != 200) return@runCatching
                 val arr = JSONObject(body).optJSONArray("users") ?: return@runCatching
                 val list = (0 until arr.length()).map { arr.getJSONObject(it) }

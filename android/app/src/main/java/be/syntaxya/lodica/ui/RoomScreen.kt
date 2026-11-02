@@ -86,10 +86,10 @@ fun RoomScreen() {
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
     var emojis by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx); Room.start(); onDispose { Room.stop() } }
+    DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx, open = true); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     LaunchedEffect(Room.room, msgs.size) { Room.markRead(ctx); Room.loadReads() }
-    LaunchedEffect(Room.room) { while (true) { delay(10_000); Room.loadUsers(ctx); Room.loadReads() } }
+    LaunchedEffect(Room.room) { while (true) { delay(10_000); Room.loadUsers(ctx, open = true); Room.loadReads() } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
@@ -148,11 +148,11 @@ fun RoomScreen() {
             },
             color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
-        if (Room.peers.isNotEmpty()) LazyRow(
+        if (Room.peers.any { it.online }) LazyRow(
             Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(Room.peers.toList(), key = { it.name }) { p -> PeerChip(p) }
+            items(Room.peers.filter { it.online }, key = { it.name }) { p -> PeerChip(p) }
         }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
@@ -346,7 +346,7 @@ private fun EmojiText(t: String) {
     Text(text, color = Mist, fontSize = 14.sp, inlineContent = inline)
 }
 
-private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "mac" to "macOS", "linux" to "Linux")
+private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "macos" to "macOS", "ios" to "iPhone", "linux" to "Linux")
 
 /** Online strip entry: OS letter in a circle tinted from the name, name above, OS below, dot when online. */
 @Composable

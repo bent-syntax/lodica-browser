@@ -107,7 +107,10 @@ server.listen(0, '127.0.0.1', async () => {
     // OS and online flag, read receipts.
     await call(port, 'GET', '/api/chat/users?name=Cy&os=linux');
     const cy = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
-    assert.ok(cy.os === 'linux' && cy.online === true);
+    assert.ok(cy.os === 'linux' && cy.online === false);
+    await call(port, 'GET', '/api/chat/users?name=Cy&os=linux&open=1');
+    const cy2 = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
+    assert.strictEqual(cy2.online, true);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 1 })).status, 200);
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 400);

@@ -62,7 +62,7 @@ async function markRead() {
 async function peers() {
   if (!running) return;
   const room = state.room;
-  const list = await onlineUsers();
+  const list = await onlineUsers(true);
   let reads = {};
   try {
     const [status, body] = await relay.request("GET", "/api/chat/reads" + (room ? "?room=" + encodeURIComponent(room) : "?room="), 10000);
@@ -168,9 +168,9 @@ async function discover() {
 async function users() { return (await onlineUsers()).map(u => u.name); }
 
 /** Everyone seen on the server except this device: name, operating system, and whether they are online now. */
-async function onlineUsers() {
+async function onlineUsers(open = false) {
   try {
-    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name) + "&os=" + OS_NAME, 15000);
+    const [status, body] = await relay.request("GET", "/api/chat/users?name=" + encodeURIComponent(state.name) + "&os=" + OS_NAME + (open ? "&open=1" : ""), 15000);
     if (status !== 200) return [];
     const me = clean(state.name);
     return (JSON.parse(body).users || []).filter(u => u.name && clean(u.name) !== me).map(u => ({ name: u.name, os: u.os || "other", online: !!u.online }));
