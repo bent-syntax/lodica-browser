@@ -87,7 +87,7 @@ object Room {
         stop()
         main.post { messages.clear(); reads.clear(); error = null }
         last = -1L
-        readSent = 0L
+        readSent.clear()
         room = r
         start()
     }
@@ -99,7 +99,7 @@ object Room {
     val peers = mutableStateListOf<Peer>()
     /** name -> id of the last message that person has read in the open room. */
     val reads = mutableStateMapOf<String, Long>()
-    private var readSent = 0L
+    private val readSent = HashMap<String, Long>()
 
     private var faceBusy = false
 
@@ -169,13 +169,14 @@ object Room {
     fun markRead(ctx: Context) {
         if (!Relay.available) return
         val id = messages.lastOrNull { it.room == room }?.id ?: return
-        if (id <= readSent) return
-        readSent = id
         val r = room
+        if (id <= (readSent[r] ?: 0L)) return
+        readSent[r] = id
         Relay.scope.launch {
             runCatching {
                 val b = JSONObject().put("name", name(ctx)).put("room", r).put("id", id).toString().toByteArray()
-                Relay.request("POST", "/api/chat/read", b, "application/json")
+                val (code, _) = Relay.request("POST", "/api/chat/read", b, "application/json")
+                if (code != 200) readSent.remove(r)
             }
         }
     }

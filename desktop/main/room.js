@@ -55,7 +55,10 @@ async function markRead() {
   const room = state.room, top = state.messages.reduce((n, m) => Math.max(n, m.id || 0), 0);
   if (!running || !top || readSent[room] === top) return;
   readSent[room] = top;
-  try { await relay.request("POST", "/api/chat/read", 10000, { name: state.name, room, id: top }); } catch { readSent[room] = 0; }
+  try {
+    const [status] = await relay.request("POST", "/api/chat/read", 10000, { name: state.name, room, id: top });
+    if (status !== 200) readSent[room] = 0;
+  } catch { readSent[room] = 0; }
 }
 
 /** Refreshes who is online and who has read what in the open conversation. */

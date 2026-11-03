@@ -171,7 +171,8 @@ async function read(req, res, h) {
   const name = (typeof b?.name === 'string' ? b.name.replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX) : '');
   const room = cleanRoom(b?.room);
   if (!name || (!room && typeof b?.room === 'string' && b.room !== '')) return h.sendText(req, res, 400, 'bad name or room');
-  if (!Number.isInteger(b?.id) || b.id < 0 || b.id > seq) return h.sendText(req, res, 400, 'bad id');
+  if (!Number.isInteger(b?.id) || b.id < 0) return h.sendText(req, res, 400, 'bad id');
+  b.id = Math.min(b.id, seq); // a client that outlived a relay restart still counts as having read everything
   touch(name);
   const m = reads.get(room) || new Map();
   if ((m.get(name) || 0) < b.id) m.set(name, b.id);

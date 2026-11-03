@@ -217,7 +217,7 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.
 
 - Online list shows the character other devices share through `/api/chat/users`; shortcut logos retry loading; custom theme tab and start page colours apply.
-- Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, always shown. "Seen by" names under the last message each person read.
+- Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, always shown. "Seen by" names under the last message each person read. Read marks survive a server restart and are kept per chat.
 - Planner on the start page: drag by the title, resize with the grip, double tap title to reset.
 - Notes on the start page: drag the title, resize with the grip, double tap title to reset; quick-add line writes to the chosen notebook. AI picks your online character.
 

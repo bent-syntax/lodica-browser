@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.14.49
+
+- Fixed: "Seen by" now works after the server restarts and when you switch chats (Android remembered one read mark for all chats), so read marks and online characters show up again.
+
 ## 1.14.48
 
 - Added: Make your own costume character: click your character in the server chat strip (tap on Android), describe it, and the AI makes it. Everyone sees it; empty text goes back to the automatic one, and without any AI the operating system badge shows.
