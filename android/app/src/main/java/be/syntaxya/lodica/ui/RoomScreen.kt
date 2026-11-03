@@ -2,6 +2,7 @@ package be.syntaxya.lodica.ui
 
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.delay
@@ -156,12 +157,15 @@ fun RoomScreen() {
             color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
         val myName = Room.name(ctx)
-        val strip = listOf(Room.Peer(myName, "android", true)) + Room.peers.filter { it.online && it.name != myName }
+        var costume by remember { mutableStateOf(false) }
+        var myFace by remember { mutableStateOf(Room.myFace(ctx)) }
+        if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx) }
+        val strip = listOf(Room.Peer(myName, "android", true, myFace)) + Room.peers.filter { it.online && it.name != myName }
         LazyRow(
             Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName) }
+            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName, onClick = if (p.name == myName) ({ costume = true }) else null) }
         }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
@@ -402,10 +406,36 @@ private fun Avatar(name: String, size: androidx.compose.ui.unit.Dp) {
     }
 }
 
+/** Describe a costume; the AI makes the character. Empty text goes back to the automatic one. */
+@Composable
+private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit) {
+    var text by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onClose() },
+        title = { Text("Your character") },
+        text = {
+            Column {
+                Text("Describe a costume. Leave empty to use the automatic character.", fontSize = 13.sp)
+                OutlinedTextField(text, { text = it.take(120) }, placeholder = { Text("a pirate cat") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF43F5E), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !busy, onClick = {
+                busy = true; err = null
+                Room.setFace(ctx, text) { e -> busy = false; if (e == null) { onDone(); onClose() } else err = e }
+            }) { Text(if (busy) "Making…" else "Make it") }
+        },
+        dismissButton = { TextButton(enabled = !busy, onClick = onClose) { Text("Cancel") } },
+    )
+}
+
 /** Online strip entry: avatar (or the AI character), name above, OS below, dot when online. */
 @Composable
-private fun PeerChip(p: Room.Peer, me: Boolean = false) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (p.online) 1f else 0.55f)) {
+private fun PeerChip(p: Room.Peer, me: Boolean = false, onClick: (() -> Unit)? = null) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (p.online) 1f else 0.55f).then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)) {
         Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
             if (p.face.isEmpty()) Avatar(p.name, 48.dp)

@@ -220,3 +220,5 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, always shown. "Seen by" names under the last message each person read.
 - Planner on the start page: drag by the title, resize with the grip, double tap title to reset.
 - Notes on the start page: drag the title, resize with the grip, double tap title to reset; quick-add line writes to the chosen notebook. AI picks your online character.
+
+- Costume character: tap your own character in the chat strip, describe it, the AI makes one emoji (`faceCustom` in the `room` prefs); empty text resets. Your own character now shows in the strip.

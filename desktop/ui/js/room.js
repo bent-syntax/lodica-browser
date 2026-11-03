@@ -142,10 +142,20 @@ function roomFace(u, cls) {
   if (u.face) { el.style.background = "var(--raised)"; el.textContent = u.face; } else el.innerHTML = roomAvatar(u.name);
   return [el, label, g];
 }
+// Describe a costume; the AI makes the character and everyone sees it. Empty text goes back to the operating system badge.
+async function roomCostume() {
+  const v = await textDialog({ key: "costume", title: "Your character", message: "Describe a costume. Leave empty to use the automatic character.", placeholder: "a pirate cat", ok: "Make it" });
+  if (v === null || v === undefined) return;
+  const r = await inv("room.face", v);
+  if (r && !r.ok) toast({ text: r.error || "Could not make the character" });
+  else { ROOM.state.face = (r && r.glyph) || ""; roomRender(); }
+}
 function roomPerson(u) {
   const [face, label, glyph] = roomFace(u, "chat-face");
   face.append(h("i", { class: "chat-dot" + (u.online ? " on" : "") }), h("b", { class: "chat-os", text: glyph }));
-  return h("div", { class: "chat-person" + (u.online ? "" : " off"), title: u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: u.me ? "You · " + label : label }));
+  const el = h("div", { class: "chat-person" + (u.online ? "" : " off"), title: u.me ? "Click to make your own costume character" : u.name + (u.online ? " is online" : " was online recently") }, h("div", { class: "chat-pname", text: u.name }), face, h("div", { class: "chat-pos", text: u.me ? "You · " + label : label }));
+  if (u.me) { el.style.cursor = "pointer"; el.addEventListener("click", roomCostume); }
+  return el;
 }
 
 function roomLabel(r) {

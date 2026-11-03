@@ -1,3 +1,7 @@
+## 1.14.48
+
+- Added: Make your own costume character: click your character in the server chat strip, describe it, and the AI makes it. Everyone sees it; empty text goes back to the automatic one.
+
 ## 1.14.47
 
 - Fixed: Version kept in step with Android; no desktop changes.

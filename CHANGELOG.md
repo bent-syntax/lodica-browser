@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.48 (versionCode 208)
+
+- Added: Make your own costume character: click your character in the server chat strip (tap on Android), describe it, and the AI makes it. Everyone sees it; empty text goes back to the automatic one, and without any AI the operating system badge shows.
+- Fixed: Your own character now shows in the Android chat strip.
+
 ## 1.14.47 (versionCode 207)
 
 - Added: Start page notes on Android: a movable, resizable window showing your Notebook note with a quick-add line.
