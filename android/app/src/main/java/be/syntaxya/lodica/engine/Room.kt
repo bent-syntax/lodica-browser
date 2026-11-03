@@ -283,7 +283,14 @@ object Room {
                     val fresh = (0 until arr.length()).map { arr.getJSONObject(it) }
                         .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room")).withFile(it.optJSONObject("file")) }
                         .distinctBy { it.id }
-                    last = o.optLong("last", last)
+                    val srvLast = o.optLong("last", last)
+                    if (last >= 0 && srvLast < last) {
+                        // Server restarted: ids began again at 1. Drop the old list and reload the history.
+                        last = -1
+                        main.post { messages.clear(); error = null }
+                        continue
+                    }
+                    last = srvLast
                     main.post {
                         val add = fresh.filter { m -> m.room == room && messages.none { it.id == m.id } }
                         if (add.isNotEmpty()) messages.addAll(add)

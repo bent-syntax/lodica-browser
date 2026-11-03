@@ -1,3 +1,7 @@
+## 1.14.50
+
+- Fixed: After the server restarts, the chat on desktop and Android now reloads instead of silently missing new messages.
+
 ## 1.14.49
 
 - Fixed: "Seen by" now works after the server restarts and when you switch chats (Android remembered one read mark for all chats), so read marks and online characters show up again.

@@ -17,7 +17,7 @@ Release assets: Android APK from `cd android && ./gradlew assembleRelease` (need
 - `npm test` cannot run on this server (no Electron binary). The user runs it locally.
 
 ## Pending
-- [ ] Idle unload may kill background media tabs
+- [x] Idle unload may kill background media tabs (guarded by t.audio in tabs.js discardIdle)
 - [ ] Desktop docx editor is lossy for tables and images; legacy .doc unsupported
 - [ ] Desktop has no equivalent of the bar auto-hide and web app install
 

@@ -33,7 +33,12 @@ async function loop(my) {
       if (status !== 200) throw new Error("HTTP " + status);
       const o = JSON.parse(body);
       if (my !== gen) return;
-      const fresh = (o.messages || []).filter(m => (m.room || "") === room && !state.messages.some(x => x.id === m.id));
+      if (last >= 0 && typeof o.last === "number" && o.last < last) {
+        // Server restarted: ids began again at 1. Drop the old list and reload the history.
+        last = -1; state.messages = []; readSent = {}; changed();
+        continue;
+      }
+      const fresh =(o.messages || []).filter(m => (m.room || "") === room && !state.messages.some(x => x.id === m.id));
       if (fresh.length) state.messages = state.messages.concat(fresh).slice(-200);
       last = typeof o.last === "number" ? o.last : last;
       if (outbox.length) flush();
