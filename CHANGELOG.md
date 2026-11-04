@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.52 (versionCode 212)
+
+- Changed: The server chat now shows only the other online users, as half characters peeking over the typing bar. Tap one to see the full character and open a private chat. "Seen by" now shows only under your last sent message.
+
 ## 1.14.51 (versionCode 211)
 
 - Fixed: The online characters in the server chat now show above the typing bar on desktop and Android, and the "Seen by" mark is sent again after a server restart.

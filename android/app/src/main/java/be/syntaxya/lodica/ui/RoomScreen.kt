@@ -37,6 +37,10 @@ import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -160,28 +164,53 @@ fun RoomScreen() {
         var costume by remember { mutableStateOf(false) }
         var myFace by remember { mutableStateOf(Room.myFace(ctx)) }
         if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx) }
+        val lastMineId = msgs.lastOrNull { Room.isMine(ctx, it.name) }?.id
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(msgs, key = { it.id }) { m ->
                 Bubble(m, mine = Room.isMine(ctx, m.name))
-                val me = Room.name(ctx)
-                val nextId = msgs.getOrNull(msgs.indexOf(m) + 1)?.id ?: Long.MAX_VALUE
-                val here = Room.reads.filter { (n, id) -> n != me && id >= m.id && id < nextId }.keys.toList()
-                if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End)) {
-                    here.forEach { n -> Avatar(n, 20.dp) }
-                    Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+                if (m.id == lastMineId) {
+                    val here = Room.reads.filter { (n, id) -> n != Room.name(ctx) && id >= m.id }.keys.toList()
+                    if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+                        here.forEach { n -> Avatar(n, 20.dp) }
+                        Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+                    }
                 }
             }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
         }
-        val strip = listOf(Room.Peer(myName, "android", true, myFace)) + Room.peers.filter { it.online && it.name != myName }
-        LazyRow(
-            Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName, onClick = if (p.name == myName) ({ costume = true }) else null) }
+        val others = Room.peers.filter { it.online && it.name != myName }
+        var peek by remember { mutableStateOf<Room.Peer?>(null) }
+        peek?.let { p ->
+            AlertDialog(
+                onDismissRequest = { peek = null },
+                title = { Text(p.name, color = Mist) },
+                text = {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        if (p.face.isEmpty()) Avatar(p.name, 96.dp)
+                        else Box(Modifier.size(96.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 48.sp) }
+                        Text((OS_GLYPH[p.os] ?: "💻") + " " + (OS_LABEL[p.os] ?: "Unknown") + " · online", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                    }
+                },
+                confirmButton = { TextButton(onClick = { val r = Room.dm(ctx, p.name); Room.addChat(ctx, r); Room.select(r); peek = null }) { Text("Private chat", color = Amber) } },
+                dismissButton = { TextButton(onClick = { peek = null }) { Text("Close") } },
+                containerColor = GraphiteRaised,
+            )
+        }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.Bottom) {
+            LazyRow(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(others, key = { it.name }) { p ->
+                    Box(Modifier.width(48.dp).height(24.dp).clipToBounds().clickable { peek = p }) {
+                        Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter), contentAlignment = Alignment.Center) {
+                            if (p.face.isEmpty()) Avatar(p.name, 48.dp)
+                            else Box(Modifier.size(48.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 24.sp) }
+                        }
+                    }
+                }
+            }
+            Text(myFace.ifEmpty { "🎭" }, fontSize = 16.sp, modifier = Modifier.clickable { costume = true }.padding(4.dp))
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }

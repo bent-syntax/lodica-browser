@@ -210,10 +210,34 @@ function roomRender() {
   add.addEventListener("click", roomNew);
   L.tabs.append(add);
   L.note.textContent = ROOM.state.error || (ROOM.state.room ? "Anyone who knows this chat name can read it. Messages are not end-to-end encrypted and are kept 24 hours." : null) || "Everyone linked to this server is in this room. Messages are not end-to-end encrypted and are kept 24 hours.";
-  const myOs = (ROOM.state.online || []).find((u) => u.name === ROOM.state.name);
-  const people = [...(myOs ? [] : [{ name: ROOM.state.name || "Me", os: ROOM.state.os || "other", face: ROOM.state.face || "", online: true }]).map((u) => ({ ...u, me: true })), ...(ROOM.state.online || []).map((u) => ({ ...u, me: u.name === ROOM.state.name }))].filter((u) => u.name && (u.online || u.me)).sort((a, b) => (b.me ? 1 : 0) - (a.me ? 1 : 0) || (b.online ? 1 : 0) - (a.online ? 1 : 0));
-  const wsig = JSON.stringify(people);
-  if (L.wsig !== wsig) { L.wsig = wsig; clear(L.who); for (const u of people) L.who.append(roomPerson(u)); L.who.style.display = people.length ? "flex" : "none"; }
+  const people = (ROOM.state.online || []).filter((u) => u.name && u.online && u.name !== ROOM.state.name);
+  const wsig = JSON.stringify([people, ROOM.state.face, L.peek]);
+  if (L.wsig !== wsig) {
+    L.wsig = wsig; clear(L.who);
+    const open = people.find((u) => u.name === L.peek);
+    if (L.peek && !open) L.peek = null;
+    if (open) {
+      const card = roomPerson({ ...open, me: false });
+      card.classList.add("chat-pop");
+      const go = h("button", { class: "btn", text: "Private chat" });
+      go.addEventListener("click", () => inv("room.open", "dm", open.name).then((s) => { L.peek = null; if (s) { ROOM.state = s; } roomRender(); }));
+      const x = h("button", { class: "btn", text: "Close" });
+      x.addEventListener("click", () => { L.peek = null; roomRender(); });
+      card.append(h("div", { class: "chat-pop-b" }, go, x));
+      L.who.append(card);
+    }
+    const row = h("div", { class: "chat-peeks" });
+    for (const u of people) {
+      const pk = h("div", { class: "chat-peek", title: u.name + " is online. Click to see them." }, roomFace(u, "chat-face")[0]);
+      pk.addEventListener("click", () => { L.peek = u.name; roomRender(); });
+      row.append(pk);
+    }
+    const me = h("button", { class: "btn chat-me", text: ROOM.state.face || "🎭", title: "Make your own costume character" });
+    me.addEventListener("click", roomCostume);
+    row.append(me);
+    L.who.append(row);
+    L.who.style.display = "flex";
+  }
   const up = ROOM.state.upload;
   L.prog.style.display = up ? "" : "none";
   L.prog.textContent = up ? "Uploading " + up.name + " " + up.pct + "%" : "";
@@ -228,18 +252,21 @@ function roomRender() {
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
+  const isMine = (m) => m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
+  const lastMine = [...ROOM.state.messages].reverse().find(isMine);
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
-    // Small device icons under the message each other device has read up to.
-    const nextId = (ROOM.state.messages[ROOM.state.messages.indexOf(m) + 1] || { id: Infinity }).id;
-    const here = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= m.id && ROOM.state.reads[n] < nextId);
-    if (here.length) {
-      const row = h("div", { class: "chat-seen" });
-      for (const n of here) { const u = (ROOM.state.online || []).find((x) => x.name === n) || { name: n, os: "other" }; row.append(roomFace(u, "chat-mini")[0]); }
-      row.append(h("span", { class: "chat-seen-t", text: "Seen by " + here.join(", ") }));
-      L.thread.append(row);
+    // Who has seen the last message this device sent.
+    if (m === lastMine) {
+      const here = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= m.id);
+      if (here.length) {
+        const row = h("div", { class: "chat-seen" });
+        for (const n of here) { const u = (ROOM.state.online || []).find((x) => x.name === n) || { name: n, os: "other" }; row.append(roomFace(u, "chat-mini")[0]); }
+        row.append(h("span", { class: "chat-seen-t", text: "Seen by " + here.join(", ") }));
+        L.thread.append(row);
+      }
     }
   }
   for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:calc(11px * var(--chat-scale, 1))", text: "Waiting for the server…" })));

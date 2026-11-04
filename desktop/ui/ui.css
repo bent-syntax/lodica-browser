@@ -416,7 +416,12 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 
 #banner .testbar{background:var(--danger,#F43F5E);color:#fff}
 
-.chat-who{display:flex;gap:12px;padding:4px 12px;overflow-x:auto}
+.chat-who{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px}
+.chat-peeks{display:flex;gap:12px;align-items:flex-end}
+.chat-peek{width:48px;height:24px;overflow:hidden;cursor:pointer}
+.chat-me{padding:0 8px;min-height:24px}
+.chat-pop{flex-direction:row;gap:12px;align-items:center;padding:8px 12px;border-radius:20px;background:var(--raised)}
+.chat-pop-b{display:flex;gap:8px}
 .chat-person{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:56px}
 .chat-pname{font-size:12px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-face{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
