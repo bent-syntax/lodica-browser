@@ -170,7 +170,7 @@ object Room {
         if (!Relay.available) return
         val id = messages.lastOrNull { it.room == room }?.id ?: return
         val r = room
-        if (id <= (readSent[r] ?: 0L)) return
+        if (id == (readSent[r] ?: 0L)) return
         readSent[r] = id
         Relay.scope.launch {
             runCatching {

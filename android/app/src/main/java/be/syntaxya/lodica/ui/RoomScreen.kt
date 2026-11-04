@@ -160,13 +160,6 @@ fun RoomScreen() {
         var costume by remember { mutableStateOf(false) }
         var myFace by remember { mutableStateOf(Room.myFace(ctx)) }
         if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx) }
-        val strip = listOf(Room.Peer(myName, "android", true, myFace)) + Room.peers.filter { it.online && it.name != myName }
-        LazyRow(
-            Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName, onClick = if (p.name == myName) ({ costume = true }) else null) }
-        }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -182,6 +175,13 @@ fun RoomScreen() {
                 }
             }
             items(Room.pending.filter { it.room == Room.room }, key = { it.id }) { m -> Bubble(m, mine = true, waiting = true) }
+        }
+        val strip = listOf(Room.Peer(myName, "android", true, myFace)) + Room.peers.filter { it.online && it.name != myName }
+        LazyRow(
+            Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(strip, key = { it.name }) { p -> PeerChip(p, me = p.name == myName, onClick = if (p.name == myName) ({ costume = true }) else null) }
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }

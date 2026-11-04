@@ -59,7 +59,7 @@ function openRoom() {
     return h("div", { class: "spage" },
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
-        L.tabs, L.who, L.note, L.thread, L.prog,
+        L.tabs, L.note, L.thread, L.prog, L.who,
         L.pick,
         h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
   });

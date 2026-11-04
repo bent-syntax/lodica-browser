@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.51 (versionCode 211)
+
+- Fixed: The online characters in the server chat now show above the typing bar on desktop and Android, and the "Seen by" mark is sent again after a server restart.
+
 ## 1.14.50 (versionCode 210)
 
 - Fixed: After the server restarts, the chat on desktop and Android now reloads instead of silently missing new messages.
