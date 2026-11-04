@@ -215,7 +215,8 @@ fun RoomScreen() {
             )
         }
         val bob by rememberInfiniteTransition(label = "think").animateFloat(0f, -3f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "bob")
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).zIndex(1f), verticalAlignment = Alignment.Bottom) {
+        val grip = if (Room.uploading == null && sendError == null) 12.dp else 0.dp
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).offset(y = grip).zIndex(1f), verticalAlignment = Alignment.Bottom) {
             Row(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 others.take(5).forEach { p ->
                     Box(Modifier.width(48.dp).height(24.dp).clickable { peek = p }) {

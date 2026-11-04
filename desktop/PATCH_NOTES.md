@@ -1,3 +1,7 @@
+## 1.14.56
+
+- Fixed: Other people's characters now really hold the top of the typing bar. Their hands sit on the edge of the message field instead of floating above it.
+
 ## 1.14.55
 
 - Fixed: The same person now looks the same on every device. The character is shared between your linked devices (Settings > Linked devices > Chat character), so a new phone or PC takes over your character instead of making its own.
