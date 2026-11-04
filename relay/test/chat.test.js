@@ -129,6 +129,24 @@ server.listen(0, '127.0.0.1', async () => {
     assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').art, art1); // refused posts change nothing
     assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art: '' })).status, 200);
     assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').art, '');
+    // Hands and thinking bubble are separate SVGs; a missing key keeps the stored part, "" clears it.
+    const hands = '<svg><ellipse cx="12" cy="36" rx="8" ry="6" fill="#fcd34d" onclick="x()"/><script>x</script></svg>';
+    const bubble = '<svg><circle cx="40" cy="16" r="12" fill="#fff" stroke="#111827"/></svg>';
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art, hands, bubble })).status, 200);
+    let cyU = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
+    assert.ok(cyU.hands.includes('<ellipse cx="12" cy="36" rx="8" ry="6" fill="#fcd34d"/>') && !/script|onclick/.test(cyU.hands), cyU.hands);
+    assert.ok(cyU.bubble.includes('<circle cx="40" cy="16" r="12"'), cyU.bubble);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art: '' })).status, 200);
+    cyU = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
+    assert.ok(cyU.art === '' && cyU.hands && cyU.bubble, 'art cleared, hands and bubble kept');
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', hands: '<svg><script>x</script></svg>' })).status, 400);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', hands: '', bubble: '' })).status, 200);
+    cyU = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy');
+    assert.ok(cyU.hands === '' && cyU.bubble === '');
+    // Typing shows for a few seconds after a poll that says so, and only then.
+    assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').typing, false);
+    await call(port, 'GET', '/api/chat/users?name=Cy&open=1&typing=1');
+    assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').typing, true);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 1 })).status, 200);
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 200); // clamped to the newest message

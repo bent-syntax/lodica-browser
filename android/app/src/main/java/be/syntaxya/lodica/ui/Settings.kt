@@ -432,6 +432,8 @@ fun SettingsScreen() {
                         Triple("shortcuts", "Start page shortcuts", "The tiles under the search bar"),
                         Triple("settings", "Settings and themes", "Look, language, search and blocking choices. Not links or keys"),
                         Triple("sites", "Site lists", "Sites you allowed, sites that go direct, sites without the hidden-email button"),
+                        Triple("character", "Chat character", "Your server chat character, so it looks the same on both devices"),
+                        Triple("notes", "Notes", "Your notebook, kept on your devices and never on the server"),
                     ).forEach { (id, label, note) ->
                         val locked = (id == "totp" || id == "passwords") && !LinkKey.hasKey
                         SwitchRow(label, if (locked) "$note. Link with a code first to get the link key" else if (id == "totp" || id == "passwords") "$note. Protected by the link key" else note, PcTabs.linkShare[id] == true) { PcTabs.updateShare(id, it) }

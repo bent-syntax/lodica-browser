@@ -50,6 +50,8 @@ object Engine {
         Ai.init(ctx)
         Chats.init()
         Chats.onChange = { PcTabs.changed() }
+        Notebook.init(ctx)
+        Notebook.onChange = { PcTabs.changed() }
 
         val blocking = ContentBlocking.Settings.Builder()
             .antiTracking(ContentBlocking.AntiTracking.STRICT)

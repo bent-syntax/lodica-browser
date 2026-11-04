@@ -452,6 +452,7 @@ function init(deps) {
   on("room.send", text => room.send(str(text)));
   on("room.name", name => room.setName(str(name)));
   on("room.face", desc => room.setFace(str(desc)));
+  on("room.typing", () => room.typing());
   on("room.select", r => room.select(str(r)));
   on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
   on("room.upload", async () => {

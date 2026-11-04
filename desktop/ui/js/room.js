@@ -27,6 +27,8 @@ function openRoom() {
       if (n !== S.prefs.chatScale) setPref("chatScale", n);
     });
     L.ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+    // Tell the others we are typing; the main process rate-limits the pings.
+    L.ta.addEventListener("input", () => { if (L.ta.value.trim()) inv("room.typing"); });
     L.prog = h("div", { class: "empty", style: "padding:0 12px;display:none" });
     const attach = async () => {
       const err = await inv("room.upload");
@@ -198,6 +200,20 @@ function roomNew() {
   target.focus();
 }
 
+// Where everyone else last read: each reader sits under the newest loaded message they have seen, whoever sent it.
+function roomSeen() {
+  const st = ROOM.state, msgs = st.messages || [], at = new Map();
+  for (const n of Object.keys(st.reads || {})) {
+    if (n === st.name || (st.names || []).includes(n)) continue;
+    const m = [...msgs].reverse().find((x) => x.id <= st.reads[n]);
+    if (!m || m.name === n) continue;
+    const u = (st.online || []).find((x) => x.name === n) || { name: n, os: "other" };
+    if (!at.has(m.id)) at.set(m.id, []);
+    at.get(m.id).push({ name: n, os: u.os, face: u.face, art: u.art });
+  }
+  return [...at].map(([id, readers]) => ({ id, readers }));
+}
+
 function roomRender() {
   const L = ROOM.L; if (!L) return;
   if (document.activeElement !== L.name && L.name.value !== (ROOM.state.name || "")) L.name.value = ROOM.state.name || "";
@@ -230,7 +246,12 @@ function roomRender() {
     }
     const row = h("div", { class: "chat-peeks" });
     for (const u of people) {
-      const pk = h("div", { class: "chat-peek", title: u.name + " is online. Click to see them." }, roomFace(u, "chat-face")[0]);
+      const defs = ROOM.state.defaults || {};
+      const pk = h("div", { class: "chat-peek", title: u.name + (u.typing ? " is typing…" : " is online. Click to see them.") }, h("div", { class: "chat-clip" }, roomFace(u, "chat-face")[0]));
+      // The hands hold the typing bar; a thinking bubble shows while they type.
+      const hands = u.hands || defs.hands, bubble = u.bubble || defs.bubble;
+      if (hands) pk.append(h("div", { class: "chat-hands" }, roomArt(hands)));
+      if (u.typing && bubble) pk.append(h("div", { class: "chat-think" }, roomArt(bubble)));
       pk.addEventListener("click", () => { L.peek = u.name; roomRender(); });
       row.append(pk);
     }
@@ -250,26 +271,22 @@ function roomRender() {
   const emo = (S.prefs.chatEmojiScale || 150) / 100;
   L.thread.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(15 * scale) + "px";
-  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, ROOM.state.reads]);
+  const seen = roomSeen();
+  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
-  const isMine = (m) => m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
-  const lastMine = [...ROOM.state.messages].reverse().find(isMine);
   for (const m of ROOM.state.messages) {
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
       mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
-    // Who has seen the last message this device sent.
-    if (m === lastMine) {
-      const here = Object.keys(ROOM.state.reads || {}).filter((n) => n !== ROOM.state.name && !(ROOM.state.names || []).includes(n) && ROOM.state.reads[n] >= m.id);
-      if (here.length) {
-        const row = h("div", { class: "chat-seen" });
-        for (const n of here) { const u = (ROOM.state.online || []).find((x) => x.name === n) || { name: n, os: "other" }; row.append(roomFace(u, "chat-mini")[0]); }
-        row.append(h("span", { class: "chat-seen-t", text: "Seen by " + here.join(", ") }));
-        L.thread.append(row);
-      }
+    const here = seen.find((x) => x.id === m.id);
+    if (here) {
+      const row = h("div", { class: "chat-seen" + (mine ? "" : " left") });
+      for (const u of here.readers) row.append(roomFace(u, "chat-mini")[0]);
+      row.append(h("span", { class: "chat-seen-t", text: "Seen by " + here.readers.map((u) => u.name).join(", ") }));
+      L.thread.append(row);
     }
   }
   for (const t of ROOM.state.pending || []) L.thread.append(h("div", { class: "aiq chat-q", style: "opacity:.55", title: "Waiting for the server" }, t, h("div", { style: "font-size:calc(11px * var(--chat-scale, 1))", text: "Waiting for the server…" })));

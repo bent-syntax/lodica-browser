@@ -1,5 +1,5 @@
 "use strict";
-// What linked devices can share, in ten categories. Each device picks the ones it sends and accepts (Settings > Linked devices).
+// What linked devices can share, in twelve categories. Each device picks the ones it sends and accepts (Settings > Linked devices).
 // Three of them (passwords, authenticator keys, Wi-Fi passwords) travel sealed under the link key (linkkey.js), so a device
 // that is linked but holds no key cannot read them. collect() builds what goes into the encrypted blob, apply() takes in what
 // the other device sent. The merge helpers are pure so they can be tested.
@@ -7,6 +7,7 @@ const { execFile } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { cleanArt } = require("./faceart");
 
 const CATS = [
   { id: "tabs", label: "Open tabs", note: "Shown in Settings on the other device" },
@@ -19,9 +20,11 @@ const CATS = [
   { id: "shortcuts", label: "Start page shortcuts", note: "The tiles under the search bar" },
   { id: "settings", label: "Settings and themes", note: "Look, language, search and blocking choices. Not links or keys" },
   { id: "sites", label: "Site lists", note: "Sites you allowed, sites that go direct, sites without the hidden-email button" },
+  { id: "character", label: "Chat character", note: "Your server chat character looks the same on both devices" },
+  { id: "notes", label: "Notes", note: "Your notebook on both devices. Notes live on your linked devices, not on the server" },
 ];
 /** On for a fresh link, until the user switches it off. Passwords and keys still only travel once the link key is on both devices. Wi-Fi, history and Bluetooth stay off. */
-const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true, passwords: true, totp: true };
+const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true, passwords: true, totp: true, character: true, notes: true };
 const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
 const SETTINGS = ["theme", "customTheme", "savedThemes", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
   "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg",
@@ -74,6 +77,57 @@ function mergeShortcuts(local, remote) {
     seen.add(t.url); out.push({ url: str(t.url, 500), title: str(t.title, 40) }); changed++;
   }
   return { list: out, changed };
+}
+/** A chat character as linked devices share it: a glyph, the costume SVG, the hands that grip the typing bar and the thinking bubble. Null when it holds nothing. */
+function cleanCharacter(c) {
+  if (!c || typeof c !== "object") return null;
+  const out = { glyph: str(c.glyph, 40), desc: str(c.desc, 200), custom: !!c.custom, art: cleanArt(c.art), hands: cleanArt(c.hands), bubble: cleanArt(c.bubble), at: Math.max(0, Number(c.at) || 0) };
+  return out.glyph || out.art ? out : null;
+}
+/** One character per user: a character the user asked for beats one the app made up, then the newer one wins, so every device ends up with the same one. */
+function betterCharacter(a, b) {
+  if (!!a.custom !== !!b.custom) return !!a.custom;
+  if (a.at !== b.at) return a.at > b.at;
+  for (const k of ["art", "glyph", "desc", "hands", "bubble"]) if (a[k] !== b[k]) return a[k] > b[k]; // plain text order, the same on every platform
+  return false;
+}
+const sameCharacter = (a, b) => ["glyph", "desc", "custom", "art", "hands", "bubble", "at"].every((k) => a[k] === b[k]);
+function mergeCharacter(local, remote) {
+  const r = cleanCharacter(remote), l = cleanCharacter(local);
+  if (!r) return { value: l, changed: false };
+  if (!l || betterCharacter(r, l)) return { value: r, changed: !l || !sameCharacter(l, r) };
+  return { value: l, changed: false };
+}
+const NOTES_MAX = 500, NOTE_TEXT = 200000, TOMB_TTL = 30 * 24 * 3600e3;
+/** Notes: one per id, the newer edit wins and a delete is a note with `deleted` so it travels too. Adopted notes get a new `rev` so an open editor sees the change. */
+function mergeNotes(local, remote, now = Date.now()) {
+  const out = new Map();
+  for (const n of Array.isArray(local) ? local : []) if (n && typeof n.id === "string") out.set(n.id, n);
+  let changed = 0;
+  for (const r of Array.isArray(remote) ? remote : []) {
+    if (!r || typeof r.id !== "string" || !/^[\w-]{1,40}$/.test(r.id)) continue;
+    const e = { id: r.id, text: r.deleted ? "" : str(r.text, NOTE_TEXT), at: Math.max(0, Number(r.at) || 0), rev: 0 };
+    if (r.deleted) e.deleted = true;
+    const cur = out.get(e.id);
+    const wins = !cur || e.at > (cur.at || 0) || (e.at === (cur.at || 0) && ((e.deleted && !cur.deleted) || (!e.deleted && !cur.deleted && e.text > cur.text)));
+    if (!wins) continue;
+    if (cur && !!cur.deleted === !!e.deleted && cur.text === e.text && (cur.at || 0) === e.at) continue;
+    e.rev = (cur ? cur.rev || 0 : 0) + 1;
+    out.set(e.id, e); changed++;
+  }
+  const list = [...out.values()].filter((n) => !n.deleted || now - (n.at || 0) < TOMB_TTL).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, NOTES_MAX);
+  return { list, changed };
+}
+/** The part of the notes that fits the sync budget, newest first: whole notes only. */
+function notesForSync(list, budget = 200000) {
+  const out = []; let used = 0;
+  for (const n of (Array.isArray(list) ? list : []).slice().sort((a, b) => (b.at || 0) - (a.at || 0))) {
+    const item = n.deleted ? { id: n.id, deleted: true, at: n.at } : { id: n.id, text: n.text, at: n.at };
+    const size = JSON.stringify(item).length;
+    if (used + size > budget) continue;
+    used += size; out.push(item);
+  }
+  return out;
 }
 /** Settings: only the known keys, and only values of the same kind as the local one. */
 function pickSettings(source, current) {
@@ -135,4 +189,4 @@ async function bluetoothCollect() {
   return [...new Set(String(out || "").split(/\r?\n/).map((s) => s.trim()).filter((s) => s && !/enumerator|radio|adapter|generic|service|transport|protocol|attribute|avrcp|a2dp|handsfree|hands-free|headset gateway|rfcomm|device information/i.test(s)))].slice(0, 50).map((s) => s.slice(0, 80));
 }
 
-module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, THEME_KEYS, THEME_FROM, mergePasswords, mergeTotp, union, mergeShortcuts, pickSettings, wifiCollect, wifiApply, bluetoothCollect };
+module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, THEME_KEYS, THEME_FROM, mergePasswords, mergeTotp, union, mergeShortcuts, cleanCharacter, mergeCharacter, mergeNotes, notesForSync, pickSettings, wifiCollect, wifiApply, bluetoothCollect };

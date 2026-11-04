@@ -85,7 +85,17 @@ private data class PcData(
     val sealedKey: String? = null,
     /** Four digits naming the sender's link key, sent always so a mismatch shows even with nothing sealed. Not secret. */
     val keyId: String? = null,
+    /** The sender's chat character, so every linked device shows the same one. */
+    val character: PcCharacter? = null,
+    /** The sender's notes, deleted ones included so a delete travels. */
+    val notes: List<PcNote>? = null,
 )
+
+@Serializable
+private data class PcCharacter(val glyph: String = "", val desc: String = "", val custom: Boolean = false, val art: String = "", val hands: String = "", val bubble: String = "", val at: Long = 0)
+
+@Serializable
+private data class PcNote(val id: String = "", val text: String? = null, val deleted: Boolean? = null, val at: Long = 0)
 
 @Serializable
 private data class PcKq(val session: String = "", val type: String = "", val pub: String = "", val t: Long = 0)
@@ -120,17 +130,21 @@ object PcTabs {
     private const val LOCAL_MS = 4_000L
     private const val KEEPALIVE_MS = 12L * 3600 * 1000
     /** On for a fresh link until switched off. History and Bluetooth stay off. */
-    private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp")
-    private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites")
+    private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp", "character", "notes")
+    private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites", "character", "notes")
     private val LINK = Regex("([A-Za-z0-9_-]{22})#([A-Za-z0-9_-]{43})")
 
     private lateinit var sp: SharedPreferences
+    private lateinit var app: Context
     private val main = Handler(Looper.getMainLooper())
     private val rnd = SecureRandom()
     private val json = Json { encodeDefaults = true; ignoreUnknownKeys = true }
     private val io = Mutex()
 
     var enabled by mutableStateOf(false); private set
+    /** True once a linked device's data was read: until then this device does not make its own chat character, which could replace theirs. */
+    private var gotRemote = false
+    private val startedAt = System.currentTimeMillis()
     var link by mutableStateOf<String?>(null); private set
     var status by mutableStateOf<String?>(null); private set
     /** Tabs last read from the other device. */
@@ -230,7 +244,8 @@ object PcTabs {
 
     fun init(ctx: Context) {
         if (::sp.isInitialized) return
-        sp = ctx.applicationContext.getSharedPreferences("pctabs", Context.MODE_PRIVATE)
+        app = ctx.applicationContext
+        sp = app.getSharedPreferences("pctabs", Context.MODE_PRIVATE)
         enabled = Relay.available && sp.getBoolean("enabled", false)
         shareHistory = sp.getBoolean("shareHistory", false)
         if (shareHistory && !sp.contains("share.history")) sp.edit().putBoolean("share.history", true).putBoolean("shareHistory", false).apply()
@@ -241,6 +256,7 @@ object PcTabs {
         linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it in DEFAULT_SHARE) }
         LinkKey.init()
         allowControl = sp.getBoolean("allowControl", false)
+        Room.holdAuto = { enabled && linkShare["character"] == true && !gotRemote && System.currentTimeMillis() - startedAt < 60_000 }
         if (enabled) runCatching { load() }.onFailure { Log.w(TAG, "secrets unreadable", it); enabled = false }
         if (enabled) startPoll()
     }
@@ -434,6 +450,7 @@ object PcTabs {
                 remoteUpdated = if (showTabs) list.updated else 0L
                 Chats.merge(chats)
                 if (shareHistory && hist.isNotEmpty()) History.importVisits(hist)
+                gotRemote = true
                 list.data?.let { runCatching { applyData(it) }.onFailure { e -> Log.w(TAG, "apply failed", e) } }
             }
         }
@@ -612,6 +629,14 @@ object PcTabs {
                 next += u to x.title.take(40)
             }
             if (next.size != cur.size) Prefs.updateQuick(next)
+        }
+        val ch = d.character
+        if (linkShare["character"] == true && ch != null && markNew("character", json.encodeToString(ch))) {
+            runCatching { Room.adoptCharacter(app, Room.Character(ch.glyph, ch.desc, ch.custom, ch.art, ch.hands, ch.bubble, ch.at)) }
+        }
+        val nt = d.notes
+        if (linkShare["notes"] == true && nt != null && markNew("notes", json.encodeToString(nt))) {
+            runCatching { Notebook.mergeFrom(nt.take(500).map { SyncNote(it.id.take(40), it.text.orEmpty(), it.deleted == true, it.at) }) }
         }
         if (linkShare["bluetooth"] == true) remoteBluetooth = d.bluetooth.orEmpty().take(50).map { it.take(100) }
         if (d.sealed != null && (linkShare["passwords"] == true || linkShare["totp"] == true)) {
@@ -924,7 +949,9 @@ object PcTabs {
             PcSites(emptyList(), Prefs.compat.toList(), Prefs.direct.toList(), Prefs.noDummy.toList()) else null
         val hidden = if (linkShare["sites"] == true) Prefs.quickHidden.lines().filter { it.isNotBlank() } else null
         val shortcuts = if (linkShare["shortcuts"] == true) Prefs.quickList().map { PcShortcut(it.first, it.second) } else null
-        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed, if (sealed != null) LinkKey.keyId() else null, LinkKey.keyId())
+        val character = if (linkShare["character"] == true) Room.characterOut(app)?.let { PcCharacter(it.glyph, it.desc, it.custom, it.art, it.hands, it.bubble, it.at) } else null
+        val notes = if (linkShare["notes"] == true) Notebook.forSync(Notebook.everything()).map { PcNote(it.id, if (it.deleted) null else it.text, if (it.deleted) true else null, it.at) } else null
+        val data = PcData(null, shortcuts, settings, stamp, sites, hidden, null, sealed, if (sealed != null) LinkKey.keyId() else null, LinkKey.keyId(), character, notes)
         val dataSig = fp(json.encodeToString(data))
         val sig = list.joinToString("\n") { it.url + "\t" + it.title } + "\n@" + (hist?.size ?: -1) + "\n#" +
             chats.joinToString(",") { it.id + ":" + it.updated } + "\n$" + dataSig

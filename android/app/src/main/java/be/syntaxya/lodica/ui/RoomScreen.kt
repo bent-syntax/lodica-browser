@@ -41,6 +41,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.offset
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
@@ -101,7 +108,7 @@ fun RoomScreen() {
     DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx, open = true); Room.start(); onDispose { Room.stop() } }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
     LaunchedEffect(Room.room, msgs.size) { Room.markRead(ctx); Room.loadReads() }
-    LaunchedEffect(Room.room) { while (true) { delay(10_000); Room.loadUsers(ctx, open = true); Room.loadReads() } }
+    LaunchedEffect(Room.room) { while (true) { delay(3_000); Room.loadUsers(ctx, open = true); Room.loadReads() } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
@@ -166,16 +173,20 @@ fun RoomScreen() {
         var myArt by remember { mutableStateOf(Room.myArt(ctx)) }
         LaunchedEffect(Unit) { while (true) { myFace = Room.myFace(ctx); myArt = Room.myArt(ctx); delay(3000) } }
         if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx); myArt = Room.myArt(ctx) }
-        val lastMineId = msgs.lastOrNull { Room.isMine(ctx, it.name) }?.id
+        val seenAt = HashMap<Long, MutableList<String>>()
+        Room.reads.forEach { (n, id) ->
+            if (n == myName) return@forEach
+            val last = msgs.lastOrNull { it.id <= id } ?: return@forEach
+            seenAt.getOrPut(last.id) { mutableListOf() }.add(n)
+        }
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(msgs, key = { it.id }) { m ->
                 Bubble(m, mine = Room.isMine(ctx, m.name))
-                if (m.id == lastMineId) {
-                    val here = Room.reads.filter { (n, id) -> n != Room.name(ctx) && id >= m.id }.keys.toList()
-                    if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+                seenAt[m.id]?.sorted()?.let { here ->
+                    Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
                         here.forEach { n ->
                             val q = Room.peers.firstOrNull { it.name == n }
                             PeerFace(n, q?.face.orEmpty(), q?.art.orEmpty(), 20.dp)
@@ -203,13 +214,18 @@ fun RoomScreen() {
                 containerColor = GraphiteRaised,
             )
         }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.Bottom) {
-            LazyRow(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(others, key = { it.name }) { p ->
-                    Box(Modifier.width(48.dp).height(24.dp).clipToBounds().clickable { peek = p }) {
-                        if (p.art.isNotEmpty()) CostumeArt(p.art, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
-                        else if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
-                        else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        val bob by rememberInfiniteTransition(label = "think").animateFloat(0f, -3f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "bob")
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).zIndex(1f), verticalAlignment = Alignment.Bottom) {
+            Row(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                others.take(5).forEach { p ->
+                    Box(Modifier.width(48.dp).height(24.dp).clickable { peek = p }) {
+                        Box(Modifier.width(48.dp).height(24.dp).clipToBounds()) {
+                            if (p.art.isNotEmpty()) CostumeArt(p.art, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
+                            else if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
+                            else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        }
+                        CostumeArt(p.hands.ifEmpty { Room.DEFAULT_HANDS }, 48.dp, Modifier.requiredSize(48.dp).offset(y = (-5).dp))
+                        if (p.typing) CostumeArt(p.bubble.ifEmpty { Room.DEFAULT_BUBBLE }, 36.dp, Modifier.requiredSize(36.dp).offset(30.dp, (-34).dp + bob.dp))
                     }
                 }
             }
@@ -236,7 +252,7 @@ fun RoomScreen() {
                     label = { Text("Your name", color = Muted) }, colors = fieldColors,
                 )
                 OutlinedTextField(
-                    text, { text = it }, Modifier.fillMaxWidth().padding(top = 6.dp), maxLines = 4,
+                    text, { text = it; if (it.isNotBlank()) Room.typing(ctx) }, Modifier.fillMaxWidth().padding(top = 6.dp), maxLines = 4,
                     placeholder = { Text(sendError ?: "Message", color = Muted) },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Default), colors = fieldColors,
                 )

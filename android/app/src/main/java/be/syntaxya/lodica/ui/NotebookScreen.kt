@@ -64,7 +64,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val NOTE_MAX = 100_000
-private const val SYNCED = "Synced with your linked devices"
+private const val SYNCED = "Saved on this device"
 
 private fun firstLine(s: String) = s.lineSequence().firstOrNull { it.isNotBlank() }?.trim()?.take(60) ?: ""
 
@@ -86,12 +86,12 @@ fun NotebookScreen() {
 
     // Loads the list and shows the wanted note, else the current one, else the first.
     suspend fun reload(want: String? = null) {
-        val l = withContext(Dispatchers.IO) { Notebook.list() }
-        if (l == null) { status = "Can't reach the server"; return }
+        var l = withContext(Dispatchers.IO) { Notebook.list() }
+        if (l.isEmpty()) { withContext(Dispatchers.IO) { Notebook.create() }; l = withContext(Dispatchers.IO) { Notebook.list() } }
         notes = l
         val pick = listOfNotNull(want, id).firstOrNull { w -> l.any { it.id == w } } ?: l.firstOrNull()?.id ?: return
         val n = withContext(Dispatchers.IO) { Notebook.get(pick) }
-        if (n != null) show(n) else status = "Can't reach the server"
+        if (n != null) show(n) else status = "Can't read the notes"
     }
 
     // Sends the text when it differs from the last saved one. On a conflict the newer text from another device is kept
@@ -102,13 +102,12 @@ fun NotebookScreen() {
         if (mine == sent) { status = SYNCED; return true }
         status = "Saving..."
         var r = withContext(Dispatchers.IO) { Notebook.put(cur, mine, rev) }
-        if (r != null && r.conflict) {
+        if (r.conflict) {
             val merged = Notebook.merge(r.text, mine)
             if (id == cur && text == mine) text = merged
             rev = r.rev; sent = r.text
             r = if (merged != r.text) withContext(Dispatchers.IO) { Notebook.put(cur, merged, rev) } else r
         }
-        if (r == null) { status = "Can't reach the server. Will try again."; return false }
         if (r.gone) { reload(); return true }
         if (!r.conflict && id == cur) { rev = r.rev; sent = r.text }
         status = if (text == sent) SYNCED else "Saving..."
@@ -124,7 +123,6 @@ fun NotebookScreen() {
             val cur = id ?: continue
             val l = withContext(Dispatchers.IO) { Notebook.list() }
             val f = withContext(Dispatchers.IO) { Notebook.get(cur) }
-            if (l == null) { status = "Can't reach the server"; continue }
             if (f == null) { reload(); continue }
             notes = l
             if (id == cur && f.rev != rev && text == sent) { text = f.text; rev = f.rev; sent = f.text }
@@ -161,7 +159,6 @@ fun NotebookScreen() {
                 scope.launch {
                     if (!save()) return@launch
                     val c = withContext(Dispatchers.IO) { Notebook.create() }
-                    if (c == null) { status = "Can't add a note. Check the server."; return@launch }
                     notes = notes + NoteInfo(c.id, "")
                     show(c)
                 }
@@ -217,11 +214,10 @@ fun NotebookScreen() {
                     val cur = id
                     if (cur != null) scope.launch {
                         val left = withContext(Dispatchers.IO) { Notebook.remove(cur) }
-                        if (left == null) { status = "Can't delete. Check the server."; return@launch }
                         sent = text; id = null
                         notes = left
                         val n = left.firstOrNull()?.let { f -> withContext(Dispatchers.IO) { Notebook.get(f.id) } }
-                        if (n != null) show(n) else status = "Can't reach the server"
+                        if (n != null) show(n) else reload()
                     }
                 }) { Text("Delete", color = Danger) }
             },

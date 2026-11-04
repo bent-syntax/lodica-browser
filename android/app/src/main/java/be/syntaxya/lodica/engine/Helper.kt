@@ -94,7 +94,7 @@ object Helper {
                 .put("aiAlways", Prefs.aiAlways)
                 .put("planner", Prefs.plannerIcs)
                 .put("plannerOpts", JSONObject().put("colors", Prefs.plannerColors).put("tz", Prefs.plannerTz).put("slots", Prefs.plannerSlots))
-                .put("notes", Prefs.startNotes && Relay.available)
+                .put("notes", Prefs.startNotes)
                 .put("showPlan", Prefs.startPlanner)
                 .put("pos", JSONObject().put("plan", Prefs.plannerPos).put("notes", Prefs.notesPos))
                 // The engine picked in Settings. Empty means Lodica Search, so the search page keeps its own results.
@@ -331,16 +331,16 @@ object Helper {
                             Thread {
                                 val items = org.json.JSONArray()
                                 var book = false
-                                if (Prefs.startNotes && Relay.available) {
+                                if (Prefs.startNotes) {
                                     val all = Notebook.list()
-                                    val pick = all?.firstOrNull { it.id == Prefs.notesBook }
+                                    val pick = all.firstOrNull { it.id == Prefs.notesBook }
                                     if (pick != null) {
                                         book = true
                                         val lines = (Notebook.get(pick.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
                                         lines.take(60).forEachIndexed { i, l ->
                                             items.put(if (i == 0) JSONObject().put("title", l.take(200)).put("more", "") else JSONObject().put("title", "").put("more", l.take(400)))
                                         }
-                                    } else all?.take(5)?.forEach { info ->
+                                    } else all.take(5).forEach { info ->
                                         val lines = (Notebook.get(info.id)?.text ?: "").lines().map { it.trim() }.filter { it.isNotEmpty() }
                                         items.put(JSONObject().put("title", (lines.getOrNull(0) ?: info.title.ifBlank { "New note" }).take(80)).put("more", (lines.getOrNull(1) ?: "").take(120)))
                                     }
@@ -353,13 +353,13 @@ object Helper {
                             val id = m.optInt("id"); val text = m.optString("text").trim().take(500)
                             Thread {
                                 var ok = false
-                                if (text.isNotEmpty() && Relay.available) runCatching {
+                                if (text.isNotEmpty()) runCatching {
                                     val all = Notebook.list()
-                                    var nid = (all?.firstOrNull { it.id == Prefs.notesBook } ?: all?.firstOrNull())?.id
-                                    if (all != null && nid == null) nid = Notebook.create()?.id
-                                    if (nid != null) for (i in 0 until 2) {
+                                    var nid = (all.firstOrNull { it.id == Prefs.notesBook } ?: all.firstOrNull())?.id
+                                    if (nid == null) nid = Notebook.create().id
+                                    for (i in 0 until 2) {
                                         val cur = Notebook.get(nid) ?: break
-                                        val r = Notebook.put(nid, (if (cur.text.isNotEmpty() && !cur.text.endsWith("\n")) cur.text + "\n" else cur.text) + text, cur.rev) ?: break
+                                        val r = Notebook.put(nid, (if (cur.text.isNotEmpty() && !cur.text.endsWith("\n")) cur.text + "\n" else cur.text) + text, cur.rev)
                                         if (r.gone) break
                                         if (!r.conflict) { ok = true; break }
                                     }

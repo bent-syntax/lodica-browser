@@ -51,17 +51,14 @@ fun NotesCard(modifier: Modifier = Modifier) {
     var text by remember { mutableStateOf("") }
     var rev by remember { mutableStateOf(0) }
     var draft by remember { mutableStateOf("") }
-    var offline by remember { mutableStateOf(false) }
     suspend fun load() {
         val all = withContext(Dispatchers.IO) { Notebook.list() }
-        if (all == null) { offline = true; return }
-        offline = false
         val pick = all.firstOrNull { it.id == Prefs.notesBook } ?: all.firstOrNull { it.title.isNotBlank() } ?: all.firstOrNull() ?: return
         val n = withContext(Dispatchers.IO) { Notebook.get(pick.id) } ?: return
         id = n.id; text = n.text; rev = n.rev
     }
     LaunchedEffect(Prefs.notesBook) {
-        while (true) { load(); delay(60_000) }
+        while (true) { load(); delay(15_000) }
     }
     val wDp = Prefs.notesW
     Column(
@@ -76,8 +73,7 @@ fun NotesCard(modifier: Modifier = Modifier) {
             }
         }.pointerInput(Unit) { detectTapGestures(onDoubleTap = { Prefs.updateNotesRect(0f, 0f, 0f) }) })
         Box(Modifier.height(8.dp))
-        if (offline) Text("Notes need a linked device", color = Muted, fontSize = 13.sp)
-        else Text(text.ifBlank { "Empty note" }, color = if (text.isBlank()) Muted else Mist, fontSize = 13.sp, maxLines = 6, overflow = TextOverflow.Ellipsis)
+        Text(text.ifBlank { "Empty note" }, color = if (text.isBlank()) Muted else Mist, fontSize = 13.sp, maxLines = 6, overflow = TextOverflow.Ellipsis)
         Box(Modifier.height(8.dp))
         Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(androidx.compose.ui.graphics.Color(0x26808080)).padding(horizontal = 12.dp, vertical = 8.dp)) {
             if (draft.isEmpty()) Text("Add a line", color = Muted, fontSize = 13.sp)
@@ -86,16 +82,17 @@ fun NotesCard(modifier: Modifier = Modifier) {
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
                 keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = {
                     val line = draft.trim()
-                    if (line.isEmpty() || id.isEmpty()) return@KeyboardActions
+                    if (line.isEmpty()) return@KeyboardActions
                     draft = ""
                     scope.launch {
+                        if (id.isEmpty()) { val c = withContext(Dispatchers.IO) { Notebook.create() }; id = c.id; text = ""; rev = c.rev }
                         val mine = if (text.isBlank()) line else text.trimEnd() + "\n" + line
                         var r = withContext(Dispatchers.IO) { Notebook.put(id, mine, rev) }
-                        if (r != null && r.conflict) {
+                        if (r.conflict) {
                             val merged = Notebook.merge(r.text, line)
-                            r = withContext(Dispatchers.IO) { Notebook.put(id, merged, r!!.rev) }
+                            r = withContext(Dispatchers.IO) { Notebook.put(id, merged, r.rev) }
                         }
-                        if (r != null && !r.gone) { text = r.text; rev = r.rev } else load()
+                        if (!r.gone) { text = r.text; rev = r.rev } else load()
                     }
                 }),
                 modifier = Modifier.fillMaxWidth(),

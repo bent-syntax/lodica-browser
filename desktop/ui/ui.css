@@ -416,9 +416,15 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 
 #banner .testbar{background:var(--danger,#F43F5E);color:#fff}
 
-.chat-who{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px}
+.chat-who{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px;margin-bottom:-8px}
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
-.chat-peek{width:48px;height:24px;overflow:hidden;cursor:pointer}
+.chat-peek{position:relative;width:48px;height:24px;cursor:pointer}
+.chat-clip{width:48px;height:24px;overflow:hidden}
+.chat-hands{position:absolute;left:0;top:-5px;width:48px;height:48px;pointer-events:none}
+.chat-hands img,.chat-think img{width:100%;height:100%;display:block}
+.chat-think{position:absolute;left:30px;top:-34px;width:36px;height:36px;pointer-events:none;animation:chat-think 1.4s ease-in-out infinite}
+@keyframes chat-think{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.chat-think{animation:none}}
 .chat-peek .chat-face{background:none!important;font-size:40px;line-height:48px;align-items:flex-start}
 .chat-peek .chat-face img{height:48px}
 .chat-me{padding:0 8px;min-height:24px}
@@ -437,6 +443,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg);background:var(--muted)}
 .chat-dot.on{background:#22c55e}
 .chat-pos{font-size:12px;color:var(--muted)}
+.chat-seen.left{align-self:flex-start}
 .chat-seen{align-self:flex-end;display:flex;gap:4px;align-items:center;padding:0 12px 4px}
 .chat-seen-t{font-size:11px;color:var(--muted)}
 .chat-mini{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;overflow:hidden}

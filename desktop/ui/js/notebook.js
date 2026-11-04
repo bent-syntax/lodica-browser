@@ -1,5 +1,5 @@
 "use strict";
-// Notebook: several notes shared with every device linked to the same server. Saves a moment after typing, checks for changes every 10 seconds.
+// Notebook: several notes kept on this device and shared with your linked devices, not with the server. Saves a moment after typing, checks for changes every 10 seconds.
 const NB = { L: null };
 
 function openNotebook() {
@@ -66,7 +66,7 @@ function openNotebook() {
       }
       L.busy = false;
       if (r && r.gone) { L.dirty = false; await reload(); return; }
-      if (!r) { L.dirty = true; L.status.textContent = "Can't reach the server. Will try again."; return; }
+      if (!r) { L.dirty = true; L.status.textContent = "Can't save the note. Will try again."; return; }
       if (r.conflict) L.dirty = true; else adopt(r);
       L.status.textContent = L.dirty ? "Saving..." : "Saved";
       if (L.dirty) L.timer = setTimeout(save, 600);
@@ -74,12 +74,12 @@ function openNotebook() {
     // Loads the note list and shows [want], or the current note, or the first one.
     const reload = async (want) => {
       const notes = await inv("notebook.list");
-      if (!notes) { L.status.textContent = "Can't reach the server"; return; }
+      if (!notes) { L.status.textContent = "Can't read the notes"; return; }
       L.notes = notes;
       const id = [want, L.id, notes[0] && notes[0].id].find((x) => x && notes.some((n) => n.id === x));
       if (id === L.id && !want) { drawChips(); L.status.textContent = "Synced with your linked devices"; return; }
       const n = await inv("notebook.get", id);
-      if (!n) { L.status.textContent = "Can't reach the server"; return; }
+      if (!n) { L.status.textContent = "Can't read the notes"; return; }
       show(n);
       L.status.textContent = "Synced with your linked devices";
     };
@@ -89,7 +89,7 @@ function openNotebook() {
       await settle();
       if (L.dirty || L.ta.value !== L.sent) await save();
       await settle();
-      if (L.dirty) { L.status.textContent = "Can't reach the server. Will try again."; return; }
+      if (L.dirty) { L.status.textContent = "Can't save the note. Will try again."; return; }
       const n = await inv("notebook.get", id);
       if (!n) { await reload(); return; }
       show(n);
@@ -102,7 +102,7 @@ function openNotebook() {
       if (L.dirty || L.ta.value !== L.sent) await save();
       await settle();
       const n = await inv("notebook.create");
-      if (!n) { L.status.textContent = "Can't add a note. Check the server."; return; }
+      if (!n) { L.status.textContent = "Can't add a note."; return; }
       L.notes.push({ id: n.id, title: "", at: n.at });
       show(n);
       L.status.textContent = "Synced with your linked devices";
@@ -114,7 +114,7 @@ function openNotebook() {
       clearTimeout(L.timer);
       await settle();
       const left = await inv("notebook.remove", L.id);
-      if (!left) { L.status.textContent = "Can't delete. Check the server."; return; }
+      if (!left) { L.status.textContent = "Can't delete the note."; return; }
       L.dirty = false; L.id = null;
       L.notes = left;
       const n = await inv("notebook.get", left[0].id);
@@ -129,7 +129,7 @@ function openNotebook() {
     const pull = async () => {
       if (L.busy || L.dirty || !L.id) { if (!L.id) reload(); else if (!L.busy) save(); return; }
       const [notes, n] = await Promise.all([inv("notebook.list"), inv("notebook.get", L.id)]);
-      if (!notes) { L.status.textContent = "Can't reach the server"; return; }
+      if (!notes) { L.status.textContent = "Can't read the notes"; return; }
       if (!n) { if (!L.busy && !L.dirty) reload(); return; }
       if (L.busy || L.dirty) return;
       L.notes = notes;

@@ -81,9 +81,9 @@ async function planner() {
 /** Warms the planner cache at app start and when a tab opens. */
 function prefetchPlanner() { planner().catch(() => {}); }
 
-// Notes widget on the start page: the chosen note of the shared notebook (pref notesBook), else the newest five.
+// Notes widget on the start page: the chosen note of the notebook on this device (pref notesBook), else the newest five.
 async function notes() {
-  if (prefs.p.startNotes === false || !relay.available) return { off: true };
+  if (prefs.p.startNotes === false) return { off: true };
   const nb = require("./notebook");
   const list = await nb.list();
   if (!list) return { items: null };
@@ -105,7 +105,7 @@ async function notes() {
 // Quick note from the start page: appends a line to the chosen note, else the newest note, else a new one.
 async function noteAdd(text) {
   text = text.trim().slice(0, 500);
-  if (!text || !relay.available) return false;
+  if (!text) return false;
   const nb = require("./notebook");
   const list = await nb.list();
   if (!list) return false;

@@ -62,6 +62,8 @@ async function slowData() {
 async function collectPlain() {
   const d = {}, secret = {};
   if (sel("chatName")) { try { d.chatName = String(require("./room").state.name || ""); } catch { /* no chat */ } }
+  if (sel("character")) { try { d.character = require("./room").characterOut(); } catch { /* no chat */ } }
+  if (sel("notes")) d.notes = linkdata.notesForSync(require("./notebook").everything());
   if (sel("shortcuts")) d.shortcuts = prefs.p.quickSites;
   if (sel("settings")) { d.settings = linkdata.pickSettings(prefs.p, prefs.p); if (!linkAt("settings")) linkAt("settings", 1); d.settingsAt = linkAt("settings"); }
   if (sel("sites")) { d.sites = {}; for (const k of linkdata.LISTS) d.sites[k] = prefs.p[k]; d.hidden = prefs.p.quickHidden; }
@@ -128,6 +130,12 @@ async function applyData(d) {
   } catch (e) { console.warn("link keys:", e && e.message); }
   if (sel("chatName") && typeof d.chatName === "string" && d.chatName && markNew("chatName", d.chatName)) {
     try { const room = require("./room"); if (room.state.name !== d.chatName) await room.setName(d.chatName); out.applied.push("chatName"); } catch { /* chat not set up */ }
+  }
+  if (sel("character") && d.character && markNew("character", d.character)) {
+    try { if (await require("./room").adoptCharacter(d.character)) out.applied.push("character"); } catch { /* chat not set up */ }
+  }
+  if (sel("notes") && Array.isArray(d.notes) && markNew("notes", d.notes)) {
+    if (require("./notebook").merge(d.notes)) out.applied.push("notes");
   }
   if (sel("shortcuts") && Array.isArray(d.shortcuts) && markNew("shortcuts", d.shortcuts)) {
     const r = linkdata.mergeShortcuts(prefs.p.quickSites, d.shortcuts);
@@ -486,6 +494,7 @@ function init(deps) {
   tabs = deps.tabs;
   ai = deps.ai;
   ui = deps.ui;
+  require("./notebook").onChange(() => { if (!applying) schedule(); });
   if (ai) ai.chats.onChange(() => { schedule(); ui?.push("ai.chats", ai.chats.get()); });
   // Before 1.14.4 history sharing was its own switch.
   if (prefs.p.shareHistory) { prefs.set("linkShare", { ...prefs.p.linkShare, history: true }); prefs.set("shareHistory", false); }

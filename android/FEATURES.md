@@ -211,15 +211,17 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - Search widget: hint text and shape (pill, rounded, square) are set in Settings > Appearance; colours follow the theme.
 
 ## Notebook
-- Menu > Notebook (needs the relay): several text notes shared with every linked device. Switch between notes with the chips, add one with the plus chip, delete the open one with the bin button. Saves after you stop typing and checks for changes every 10 seconds. If two devices edit at once, the newer text stays and the other edit is added under it.
+- Menu > Notebook: several text notes kept on this device and synced only with your linked devices, through the encrypted link blob (Settings > Linked devices > Notes). Nothing goes to the relay. Switch between notes with the chips, add one with the plus chip, delete the open one with the bin button. Saves after you stop typing. If two devices edit one note, the newer edit wins per note; a deleted note stays as a marker for 30 days so the delete reaches every device. At most 500 notes, and about 200 KB of notes travel through the link. Old notes on the relay are not imported.
 
 ## Extensions (1.2.0)
 - Desktop: install from the Chrome Web Store by link or ID (Electron, partial API). Android: search and install from Firefox Add-ons. On/off and remove in Settings > General.
 
 - Online list shows the character other devices share through `/api/chat/users`; shortcut logos retry loading; custom theme tab and start page colours apply.
-- Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, always shown. "Seen by" names under the last message each person read. Read marks survive a server restart and are kept per chat.
+- Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, always shown. "Seen by" shows under the newest message each other device has read, whoever sent it, so a PC that read three messages back shows under that message. Read marks survive a server restart and are kept per chat. The strip refreshes every 3 seconds.
 - Planner on the start page: drag by the title, resize with the grip, double tap title to reset.
 - Notes on the start page: drag the title, resize with the grip, double tap title to reset; quick-add line writes to the chosen notebook. AI picks your online character.
 
 - Costume character: tap your own character in the chat strip, describe it, the AI makes one emoji (`faceCustom` in the `room` prefs); empty text resets. Your own character now shows in the strip.
+- One character per person: the character (emoji, costume, hands, thinking bubble, custom description) is a link category called "Chat character" in Settings > Linked devices. Every linked device adopts the same one (custom beats automatic, then the newer one wins) and posts it under its own device name, so the same person looks the same on every device. A device that just linked waits for the first sync before it makes a character of its own. `Room.adoptCharacter`, `PcTabs`.
+- Hands and thinking bubble: other online people peek over the typing bar with their hands gripping its top edge. While someone types, a thinking bubble floats above them (`/api/chat/users?typing=1`, shown for 6 seconds). With an AI linked, it draws the hands and bubble to match the costume; otherwise plain default ones show.
 - Costume art: with an AI linked, your character is also a 64x64 SVG drawing the AI makes (`art` and `artKey` in the `room` prefs), drawn by `ui/CostumeArt.kt` and shared with `POST /api/chat/face`. Without an AI, or on an older server, the emoji or drawn avatar shows.

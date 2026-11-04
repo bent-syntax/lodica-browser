@@ -1,5 +1,12 @@
 # Patch notes
 
+## 1.14.55
+
+- Fixed: The same person now looks the same on every device. The character is shared between your linked devices (Settings > Linked devices > Chat character), so a new phone or PC takes over your character instead of making its own.
+- Added: Other people's characters grip the typing bar with their hands while they are in the chat, and a thinking bubble floats above them while they type. The AI you linked draws the hands and the bubble to match the costume.
+- Fixed: "Seen by" now sits under the newest message each person has read, whoever sent it. If your PC read up to three messages back, everyone sees it under that message.
+- Fixed: Notes are no longer shared through the server. They stay on your device and sync only with your linked devices (Settings > Linked devices > Notes). Old notes on the server are not imported. The server needs the newest update for the character and typing parts.
+
 ## 1.14.54
 
 - Added: Characters in the server chat are now costume drawings made by the AI you linked in Settings (API key, Hearth or Claude). Without a linked AI you keep the emoji or drawn avatar. Describe a costume under your character button to change yours. The server needs the newest update to share the drawings with others.
