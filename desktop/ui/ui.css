@@ -420,6 +420,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
 .chat-peek{width:48px;height:24px;overflow:hidden;cursor:pointer}
 .chat-peek .chat-face{background:none!important;font-size:40px;line-height:48px;align-items:flex-start}
+.chat-peek .chat-face img{height:48px}
 .chat-me{padding:0 8px;min-height:24px}
 .chat-pop{flex-direction:row;gap:12px;align-items:center;padding:8px 12px;border-radius:20px;background:var(--raised)}
 .chat-pop-b{display:flex;gap:8px}
@@ -427,6 +428,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-pname{font-size:12px;max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chat-face{position:relative;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px}
 .chat-face svg,.chat-mini svg{border-radius:50%;display:block}
+.chat-face.has-art,.chat-mini.has-art{background:none;border-radius:0}
+.chat-face img,.chat-mini img,.chat-me img{width:100%;height:100%;display:block;pointer-events:none}
+.chat-pop .chat-face.has-art{width:96px;height:96px}
+.chat-me.has-art{width:32px;height:32px;padding:0}
 .chat-person.off{opacity:.55}
 .chat-os{position:absolute;left:-4px;bottom:-4px;font-size:12px;line-height:1;font-weight:400}
 .chat-dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg);background:var(--muted)}

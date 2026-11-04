@@ -136,10 +136,12 @@ function roomAvatar(name) {
   return '<svg viewBox="0 0 40 40" width="100%" height="100%"><rect width="40" height="40" fill="' + bg + '"/><ellipse cx="20" cy="42" rx="14" ry="10" fill="' + shirt + '"/><circle cx="20" cy="21" r="10" fill="' + skin + '"/>' + hairSvg +
     '<circle cx="15.5" cy="20" r="1.5" fill="#222"/><circle cx="24.5" cy="20" r="1.5" fill="#222"/>' + glasses + mouth + '</svg>';
 }
+// A costume SVG as an image. The main process already cleaned it down to plain shapes, and an image cannot run scripts.
+function roomArt(art) { return h("img", { src: "data:image/svg+xml;utf8," + encodeURIComponent(art), alt: "", draggable: "false" }); }
 function roomFace(u, cls) {
   const [g, label] = ROOM_OS[u.os] || ROOM_OS.other;
   const el = h("div", { class: cls, title: u.name + " (" + label + ")" });
-  if (u.face) { el.style.background = "var(--raised)"; el.textContent = u.face; } else el.innerHTML = roomAvatar(u.name);
+  if (u.art) { el.classList.add("has-art"); el.append(roomArt(u.art)); } else if (u.face) { el.style.background = "var(--raised)"; el.textContent = u.face; } else el.innerHTML = roomAvatar(u.name);
   return [el, label, g];
 }
 // Describe a costume; the AI makes the character and everyone sees it. Empty text goes back to the operating system badge.
@@ -148,7 +150,7 @@ async function roomCostume() {
   if (v === null || v === undefined) return;
   const r = await inv("room.face", v);
   if (r && !r.ok) toast({ text: r.error || "Could not make the character" });
-  else { ROOM.state.face = (r && r.glyph) || ""; roomRender(); }
+  else { ROOM.state.face = (r && r.glyph) || ""; ROOM.state.art = (r && r.art) || ""; roomRender(); }
 }
 function roomPerson(u) {
   const [face, label, glyph] = roomFace(u, "chat-face");
@@ -211,7 +213,7 @@ function roomRender() {
   L.tabs.append(add);
   L.note.textContent = ROOM.state.error || (ROOM.state.room ? "Anyone who knows this chat name can read it. Messages are not end-to-end encrypted and are kept 24 hours." : null) || "Everyone linked to this server is in this room. Messages are not end-to-end encrypted and are kept 24 hours.";
   const people = (ROOM.state.online || []).filter((u) => u.name && u.online && u.name !== ROOM.state.name);
-  const wsig = JSON.stringify([people, ROOM.state.face, L.peek]);
+  const wsig = JSON.stringify([people, ROOM.state.face, ROOM.state.art, L.peek]);
   if (L.wsig !== wsig) {
     L.wsig = wsig; clear(L.who);
     const open = people.find((u) => u.name === L.peek);
@@ -232,7 +234,8 @@ function roomRender() {
       pk.addEventListener("click", () => { L.peek = u.name; roomRender(); });
       row.append(pk);
     }
-    const me = h("button", { class: "btn chat-me", text: ROOM.state.face || "🎭", title: "Make your own costume character" });
+    const me = h("button", { class: "btn chat-me", text: ROOM.state.art ? null : ROOM.state.face || "🎭", title: "Make your own costume character" });
+    if (ROOM.state.art) { me.classList.add("has-art"); me.append(roomArt(ROOM.state.art)); }
     me.addEventListener("click", roomCostume);
     row.append(me);
     L.who.append(row);

@@ -222,3 +222,4 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 - Notes on the start page: drag the title, resize with the grip, double tap title to reset; quick-add line writes to the chosen notebook. AI picks your online character.
 
 - Costume character: tap your own character in the chat strip, describe it, the AI makes one emoji (`faceCustom` in the `room` prefs); empty text resets. Your own character now shows in the strip.
+- Costume art: with an AI linked, your character is also a 64x64 SVG drawing the AI makes (`art` and `artKey` in the `room` prefs), drawn by `ui/CostumeArt.kt` and shared with `POST /api/chat/face`. Without an AI, or on an older server, the emoji or drawn avatar shows.

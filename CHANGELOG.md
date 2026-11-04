@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.54 (versionCode 214)
+
+- Added: Characters in the server chat are now costume drawings made by the AI you linked in Settings (API key, Hearth or Claude). Without a linked AI you keep the emoji or drawn avatar. Describe a costume under your character button to change yours. The server needs the newest update to share the drawings with others.
+
 ## 1.14.53 (versionCode 213)
 
 - Fixed: The server chat now shows the top half of each online user's character above the typing bar, bigger and without a circle behind it. "Seen by" now shows the character of the person who saw your message, not the old drawn avatar.

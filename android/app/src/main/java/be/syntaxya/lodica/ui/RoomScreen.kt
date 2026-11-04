@@ -163,7 +163,9 @@ fun RoomScreen() {
         val myName = Room.name(ctx)
         var costume by remember { mutableStateOf(false) }
         var myFace by remember { mutableStateOf(Room.myFace(ctx)) }
-        if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx) }
+        var myArt by remember { mutableStateOf(Room.myArt(ctx)) }
+        LaunchedEffect(Unit) { while (true) { myFace = Room.myFace(ctx); myArt = Room.myArt(ctx); delay(3000) } }
+        if (costume) CostumeDialog(ctx, { costume = false }) { myFace = Room.myFace(ctx); myArt = Room.myArt(ctx) }
         val lastMineId = msgs.lastOrNull { Room.isMine(ctx, it.name) }?.id
         LazyColumn(
             Modifier.weight(1f).fillMaxWidth(), state = state,
@@ -175,9 +177,8 @@ fun RoomScreen() {
                     val here = Room.reads.filter { (n, id) -> n != Room.name(ctx) && id >= m.id }.keys.toList()
                     if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
                         here.forEach { n ->
-                            val f = Room.peers.firstOrNull { it.name == n }?.face.orEmpty()
-                            if (f.isEmpty()) Avatar(n, 20.dp)
-                            else Box(Modifier.size(20.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(f, fontSize = 11.sp) }
+                            val q = Room.peers.firstOrNull { it.name == n }
+                            PeerFace(n, q?.face.orEmpty(), q?.art.orEmpty(), 20.dp)
                         }
                         Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                     }
@@ -193,8 +194,7 @@ fun RoomScreen() {
                 title = { Text(p.name, color = Mist) },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                        if (p.face.isEmpty()) Avatar(p.name, 96.dp)
-                        else Box(Modifier.size(96.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 48.sp) }
+                        PeerFace(p.name, p.face, p.art, 96.dp)
                         Text((OS_GLYPH[p.os] ?: "💻") + " " + (OS_LABEL[p.os] ?: "Unknown") + " · online", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
                     }
                 },
@@ -207,12 +207,14 @@ fun RoomScreen() {
             LazyRow(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(others, key = { it.name }) { p ->
                     Box(Modifier.width(48.dp).height(24.dp).clipToBounds().clickable { peek = p }) {
-                        if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
+                        if (p.art.isNotEmpty()) CostumeArt(p.art, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
+                        else if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
                         else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }
-            Text(myFace.ifEmpty { "🎭" }, fontSize = 16.sp, modifier = Modifier.clickable { costume = true }.padding(4.dp))
+            if (myArt.isNotEmpty()) CostumeArt(myArt, 28.dp, Modifier.clickable { costume = true }.padding(2.dp))
+            else Text(myFace.ifEmpty { "🎭" }, fontSize = 16.sp, modifier = Modifier.clickable { costume = true }.padding(4.dp))
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
@@ -400,6 +402,14 @@ private val OS_GLYPH = mapOf("android" to "🤖", "windows" to "🪟", "macos" t
 
 private val OS_LABEL = mapOf("android" to "Android", "windows" to "Windows", "macos" to "macOS", "ios" to "iPhone", "linux" to "Linux")
 
+/** A person's character at [size]: the costume drawing, else the emoji on a disc, else the drawn avatar. */
+@Composable
+private fun PeerFace(name: String, face: String, art: String, size: androidx.compose.ui.unit.Dp) {
+    if (art.isNotEmpty()) CostumeArt(art, size)
+    else if (face.isEmpty()) Avatar(name, size)
+    else Box(Modifier.size(size).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(face, fontSize = (size.value / 2).sp) }
+}
+
 /** Cartoon avatar drawn from the name alone, same recipe as the desktop one, so it changes when the username changes. */
 @Composable
 private fun Avatar(name: String, size: androidx.compose.ui.unit.Dp) {
@@ -463,20 +473,3 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
     )
 }
 
-/** Online strip entry: avatar (or the AI character), name above, OS below, dot when online. */
-@Composable
-private fun PeerChip(p: Room.Peer, me: Boolean = false, onClick: (() -> Unit)? = null) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.alpha(if (p.online) 1f else 0.55f).then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)) {
-        Text(p.name.take(12), color = Mist, fontSize = 12.sp, maxLines = 1)
-        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-            if (p.face.isEmpty()) Avatar(p.name, 48.dp)
-            else Box(Modifier.size(48.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 24.sp) }
-            Text(OS_GLYPH[p.os] ?: "💻", fontSize = 12.sp, modifier = Modifier.align(Alignment.BottomStart))
-            if (p.online) Box(
-                Modifier.align(Alignment.BottomEnd).size(12.dp)
-                    .background(androidx.compose.ui.graphics.Color(0xFF22C55E), androidx.compose.foundation.shape.CircleShape),
-            )
-        }
-        Text(if (me) "You · ${OS_LABEL[p.os] ?: ""}" else OS_LABEL[p.os] ?: "Unknown", color = Muted, fontSize = 12.sp, maxLines = 1)
-    }
-}

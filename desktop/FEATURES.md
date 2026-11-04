@@ -216,5 +216,6 @@ Done: #1-16, #18-21 (first batch). Batch 2 (#22-31) done. Batch 3 (#32-36) done.
 
 - Online list: the linked AI picks one emoji character per username (stored as `roomFace`, regenerated on rename or first AI link) and shares it through `/api/chat/users?face=`.
 - Server chat people strip: drawn character per username (AI emoji if shared), OS badge, online dot, you first, offline dimmed. "Seen by" names under the last message each person read (`/api/chat/read`, `/api/chat/reads`). Read marks survive a server restart.
+- Costume art: with an AI linked, your character is also a 64x64 SVG drawing (`main/faceart.js` cleans it, `roomArt` in prefs). It is shared with `POST /api/chat/face` and shown in the strip, tap card and Seen by. Without an AI, or on an older server, the emoji or drawn avatar shows.
 
 - Costume character: click your own person in the chat strip, describe it, `room.face` asks the AI for one emoji (stored as `roomFace` with `custom`, never overwritten on rename); empty text resets to the automatic one / OS badge.

@@ -17,6 +17,7 @@ const server = http.createServer((req, res) => {
   const fm = /^\/api\/chat\/file\/(.+)$/.exec(url.pathname);
   if (fm) return require('../src/chatfile').serve(req, res, fm[1], url.searchParams.get('dl') === '1');
   if (url.pathname === '/api/chat/read') return chat.read(req, res, h);
+  if (url.pathname === '/api/chat/face') return chat.face(req, res, h);
   if (req.method === 'POST') return chat.post(req, res, '1.2.3.4', h);
   if (url.pathname === '/api/chat/users') return chat.users(req, res, url, h);
   if (url.pathname === '/api/chat/reads') return chat.readsOf(req, res, url, h);
@@ -116,6 +117,18 @@ server.listen(0, '127.0.0.1', async () => {
     const us = (await call(port, 'GET', '/api/chat/users')).json.users;
     assert.strictEqual(us.find((u) => u.name === 'Cy').face, '\u{1F984}');
     assert.strictEqual(us.find((u) => u.name === 'Ann').face, '');
+    // Costume SVG: only allowlisted shapes survive, anything else is refused or dropped.
+    const art = '<svg viewBox="0 0 64 64" onload="x()"><script>alert(1)</script><circle cx="32" cy="24" r="16" fill="#f59e0b" onclick="x()"/><path d="M20 50 L44 50" stroke="red" fill="url(#a)"/><image href="http://x/y.png"/><rect x="8" y="8" width="10" height="10" fill="#fff"/></svg>';
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art })).status, 200);
+    const art1 = (await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').art;
+    assert.ok(art1.startsWith('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'), art1);
+    assert.ok(art1.includes('<circle cx="32" cy="24" r="16" fill="#f59e0b"/>') && art1.includes('<rect '), art1);
+    assert.ok(!/script|onload|onclick|url\(|image|href|red/.test(art1), art1);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art: '<svg><script>x</script></svg>' })).status, 400);
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art: 5 })).status, 400);
+    assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').art, art1); // refused posts change nothing
+    assert.strictEqual((await call(port, 'POST', '/api/chat/face', { name: 'Cy', art: '' })).status, 200);
+    assert.strictEqual((await call(port, 'GET', '/api/chat/users')).json.users.find((u) => u.name === 'Cy').art, '');
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 1 })).status, 200);
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 200); // clamped to the newest message

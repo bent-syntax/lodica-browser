@@ -229,14 +229,14 @@ object Ai {
     fun chat(turns: List<Pair<String, String>>, done: (Result<String>) -> Unit) = run(turns, done)
 
     /** One browser-agent step: the caller's own system prompt, no search, no memory, the reply is raw text. */
-    fun agentStep(turns: List<Pair<String, String>>, system: String, done: (Result<String>) -> Unit) {
+    fun agentStep(turns: List<Pair<String, String>>, system: String, maxTokens: Int = 600, done: (Result<String>) -> Unit) {
         val key = apiKey
         io.execute {
             val r = runCatching {
                 var input = 0L; var output = 0L
                 val text = if (hasHearth) viaHearth(turns, system) else if (key != null) {
                     val msgs = JSONArray().apply { turns.forEach { put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", it.second)) } }
-                    val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", 600).put("system", system).put("messages", msgs))
+                    val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", maxTokens).put("system", system).put("messages", msgs))
                     if (code !in 200..299) throw apiError(code, j)
                     j.optJSONObject("usage")?.let { u ->
                         input = u.optLong("input_tokens") + u.optLong("cache_creation_input_tokens") + u.optLong("cache_read_input_tokens")

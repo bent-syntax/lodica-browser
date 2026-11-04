@@ -1,4 +1,5 @@
 'use strict';
+const { cleanArt } = require('./faceart');
 // Same-server chat. Every client of a server holds the same token, so the server has one shared room.
 // Messages live in memory only (last 200, 24 h) and are delivered in real time by long polling:
 //   GET  /api/chat?after=<id>&wait=<seconds>&room=<room>  -> { messages: [{id,name,text,at,room}], last }
@@ -6,6 +7,7 @@
 //   GET  /api/chat/users?name=<me>                        -> {users: [{name, at}]}; a name given counts as presence
 //   POST /api/chat/read  { name, room, id }                -> this device read the room up to message id
 //   GET  /api/chat/reads?room=<room>                       -> {reads: {name: id}}; users also carry `os` and `online`
+//   POST /api/chat/face  { name, art }                     -> set this device's costume SVG ("" clears it); users carry `face` and `art`
 //   GET  /api/chat/rooms                                  -> [{room, at, count}] for the non-default rooms
 // A room is just a label: "" is the shared server room, "dm:<a>|<b>" a private chat between two device
 // names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
@@ -29,8 +31,8 @@ const osOf = new Map(); // device name -> operating system label last reported
 const reads = new Map(); // room -> Map(name -> id of the last message that device has read)
 const openAt = new Map(); // device name -> last time it polled with the chat open
 const ONLINE = 30e3; // a device that polled with the chat open within this window counts as online
-const _unused = 0; // a device that polled within this window counts as online
 const faceOf = new Map();
+const artOf = new Map(); // device name -> costume SVG (see faceart.js)
 const FACE_RE = /^\p{Extended_Pictographic}[\p{Extended_Pictographic}\u200d\ufe0f\u{1f3fb}-\u{1f3ff}]{0,15}$/u;
 const OS_RE = /^(android|windows|macos|linux|ios|other)$/;
 const SEEN_TTL = 7 * 24 * 3600e3;
@@ -139,8 +141,8 @@ function users(req, res, url, h) {
   if (me && FACE_RE.test(face)) faceOf.set(me, face);
   if (me && url.searchParams.get('open') === '1') openAt.set(me, Date.now());
   const now = Date.now();
-  for (const [n, at] of seen) if (now - at > SEEN_TTL) { seen.delete(n); openAt.delete(n); }
-  const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', face: faceOf.get(name) || '', online: now - (openAt.get(name) || 0) < ONLINE })).sort((a, b) => b.at - a.at);
+  for (const [n, at] of seen) if (now - at > SEEN_TTL) { seen.delete(n); openAt.delete(n); artOf.delete(n); }
+  const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', face: faceOf.get(name) || '', art: artOf.get(name) || '', online: now - (openAt.get(name) || 0) < ONLINE })).sort((a, b) => b.at - a.at);
   h.sendJson(req, res, 200, { users: list });
 }
 
@@ -181,6 +183,20 @@ async function read(req, res, h) {
   h.sendJson(req, res, 200, { ok: true });
 }
 
+/** POST /api/chat/face { name, art }: this device's costume SVG. Anything outside the allowed shapes is dropped; an empty [art] clears it. */
+async function face(req, res, h) {
+  let b;
+  try { b = JSON.parse((await h.readBody(req, 8 * 1024)).toString('utf8')); }
+  catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const name = (typeof b?.name === 'string' ? b.name.replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX) : '');
+  if (!name || typeof b?.art !== 'string') return h.sendText(req, res, 400, 'bad name or art');
+  const art = b.art === '' ? '' : cleanArt(b.art);
+  if (b.art !== '' && !art) return h.sendText(req, res, 400, 'bad art');
+  touch(name);
+  if (art) artOf.set(name, art); else artOf.delete(name);
+  h.sendJson(req, res, 200, { ok: true });
+}
+
 /** GET /api/chat/reads?room=: { reads: { name: last read message id } } for the room. */
 function readsOf(req, res, url, h) {
   const rawRoom = url.searchParams.get('room') || '';
@@ -192,7 +208,7 @@ function readsOf(req, res, url, h) {
 /** Test hook. */
 function reset() {
   claims.clear();
-  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); osOf.clear(); reads.clear(); for (const w of [...waiters]) w.done([]); }
+  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); osOf.clear(); artOf.clear(); reads.clear(); for (const w of [...waiters]) w.done([]); }
 
 /** POST /api/chat/file: an attachment, announced to the room as a normal message that carries `file`. */
 async function postFile(req, res, ip, url, h) {
@@ -215,4 +231,4 @@ async function postFile(req, res, ip, url, h) {
   h.sendJson(req, res, 200, msg);
 }
 
-module.exports = { get, post, postFile, rooms, users, claim, read, readsOf, reset };
+module.exports = { get, post, postFile, rooms, users, claim, read, readsOf, face, reset };
