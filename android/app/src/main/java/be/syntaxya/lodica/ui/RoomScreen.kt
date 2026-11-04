@@ -174,7 +174,11 @@ fun RoomScreen() {
                 if (m.id == lastMineId) {
                     val here = Room.reads.filter { (n, id) -> n != Room.name(ctx) && id >= m.id }.keys.toList()
                     if (here.isNotEmpty()) Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
-                        here.forEach { n -> Avatar(n, 20.dp) }
+                        here.forEach { n ->
+                            val f = Room.peers.firstOrNull { it.name == n }?.face.orEmpty()
+                            if (f.isEmpty()) Avatar(n, 20.dp)
+                            else Box(Modifier.size(20.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(f, fontSize = 11.sp) }
+                        }
                         Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
                     }
                 }
@@ -203,10 +207,8 @@ fun RoomScreen() {
             LazyRow(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(others, key = { it.name }) { p ->
                     Box(Modifier.width(48.dp).height(24.dp).clipToBounds().clickable { peek = p }) {
-                        Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter), contentAlignment = Alignment.Center) {
-                            if (p.face.isEmpty()) Avatar(p.name, 48.dp)
-                            else Box(Modifier.size(48.dp).background(GraphiteRaised, androidx.compose.foundation.shape.CircleShape), contentAlignment = Alignment.Center) { Text(p.face, fontSize = 24.sp) }
-                        }
+                        if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
+                        else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     }
                 }
             }

@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.53 (versionCode 213)
+
+- Fixed: The server chat now shows the top half of each online user's character above the typing bar, bigger and without a circle behind it. "Seen by" now shows the character of the person who saw your message, not the old drawn avatar.
+
 ## 1.14.52 (versionCode 212)
 
 - Changed: The server chat now shows only the other online users, as half characters peeking over the typing bar. Tap one to see the full character and open a private chat. "Seen by" now shows only under your last sent message.

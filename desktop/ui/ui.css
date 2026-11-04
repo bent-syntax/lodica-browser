@@ -419,6 +419,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-who{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px}
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
 .chat-peek{width:48px;height:24px;overflow:hidden;cursor:pointer}
+.chat-peek .chat-face{background:none!important;font-size:40px;line-height:48px;align-items:flex-start}
 .chat-me{padding:0 8px;min-height:24px}
 .chat-pop{flex-direction:row;gap:12px;align-items:center;padding:8px 12px;border-radius:20px;background:var(--raised)}
 .chat-pop-b{display:flex;gap:8px}
