@@ -111,7 +111,8 @@ object Room {
     private var extrasTried = ""
     private var artSent = ""
     private var artPostAt = 0L
-    private var artNoRelay = false
+    /** When the server last answered 404 to the costume post; it is tried again after a few minutes, so an upgraded server gets the drawings without an app restart. */
+    private var artNoRelayAt = 0L
     private var typingAt = 0L
     /** Set by the link sync: true while this device waits for the first sync from its linked devices, so it does not make a character that would replace theirs. */
     @Volatile var holdAuto: () -> Boolean = { false }
@@ -295,7 +296,7 @@ object Room {
     /** Sends this device's costume, hands and bubble drawings to the server when it has none or older ones. [own] is this device's entry in the users list. An older server without the endpoint is left alone. */
     private fun syncArt(ctx: Context, me: String, own: JSONObject?) {
         val art = myArt(ctx)
-        if (art.isEmpty() || artNoRelay || own == null) return
+        if (art.isEmpty() || own == null || System.currentTimeMillis() - artNoRelayAt < 300_000) return
         val sent = art + "\u0000" + myHands(ctx) + "\u0000" + myBubble(ctx)
         if (own.optString("art").isNotEmpty() && artSent == sent) return
         val now = System.currentTimeMillis()
@@ -304,7 +305,7 @@ object Room {
         runCatching {
             val b = JSONObject().put("name", me).put("art", art).put("hands", myHands(ctx)).put("bubble", myBubble(ctx)).toString().toByteArray()
             val (code, _) = Relay.request("POST", "/api/chat/face", b, "application/json")
-            if (code == 404) artNoRelay = true else if (code == 200) artSent = sent
+            if (code == 404) artNoRelayAt = now else if (code == 200) artSent = sent
         }
     }
 

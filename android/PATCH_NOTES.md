@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.14.57
+
+- Fixed: Costume characters no longer fall back to emojis after the server is updated or restarted. The app asked the server once, got "not found" from an older server, and never sent the costume again until you restarted the app. It now tries again every few minutes.
+
 ## 1.14.56
 
 - Fixed: Other people's characters now really hold the top of the typing bar. Their hands sit on the edge of the message field instead of floating above it.
