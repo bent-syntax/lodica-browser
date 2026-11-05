@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Close
@@ -100,12 +101,21 @@ fun AgentPanel() {
                 else Icon(Icons.Rounded.AutoAwesome, null, tint = Amber, modifier = Modifier.size(20.dp))
                 Column(Modifier.weight(1f).padding(start = 8.dp)) {
                     Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp)
-                    if (!older) Text("Level: ${AiAgent.levelName(if (AiAgent.running) AiAgent.level else Prefs.aiAgentMode)}", color = Muted, fontSize = 12.sp)
                 }
+                if (!older && !AiAgent.running && AiAgent.steps.isNotEmpty()) IconButton(onClick = { AiAgent.newSession() }) { Icon(Icons.Rounded.Add, "New chat", tint = Muted) }
                 if (!older) IconButton(onClick = { older = true }) { Icon(Icons.Rounded.History, "Older chats", tint = Muted) }
                 IconButton(onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(Icons.Rounded.Fullscreen, "Full screen", tint = Muted) }
                 IconButton(onClick = { AiAgent.minimized = true }) { Icon(Icons.Rounded.Remove, "Minimize", tint = Muted) }
                 IconButton(onClick = { AiAgent.stop(); AiAgent.open = false }) { Icon(Icons.Rounded.Close, "Close", tint = Muted) }
+            }
+            if (!older) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                val cur = if (AiAgent.running) AiAgent.level else Prefs.aiAgentMode
+                for (m in AiAgent.MODES) {
+                    val on = m == cur
+                    Text(AiAgent.levelName(m), color = if (on) OnAmber else Muted, fontSize = 12.sp, maxLines = 1,
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (on) Amber else Graphite).clickable { AiAgent.setLevel(m) }.padding(vertical = 6.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
             }
             if (older) {
                 val chat = Chats.get(viewing)
@@ -126,6 +136,7 @@ fun AgentPanel() {
                     items(AiAgent.steps.toList()) { s ->
                         when (s.kind) {
                             "ai" -> Bubble(s.text, false)
+                            "user" -> Bubble(s.text, true)
                             "act" -> Text("› ${s.text}", color = Amber, fontSize = 12.sp)
                             else -> Text(s.text, color = Muted, fontSize = 12.sp)
                         }

@@ -272,6 +272,21 @@ async function chatSend(id, text) {
   return { id: c.id, ...(r.text ? { text: r.text } : { error: r.error }) };
 }
 
+/** Stores one message of the in-browser agent. Creates the chat when id is empty or gone and returns its id. */
+function chatAppend(id, role, text) {
+  text = String(text || "").trim().slice(0, 4000);
+  const list = chatList();
+  let c = list.find(x => x.id === id && !x.deleted);
+  if (!c) { c = { id: newId(), title: text.slice(0, 48), updated: Date.now(), messages: [] }; list.push(c); }
+  if (!text) return c.id;
+  c.messages.push({ role: role === "assistant" ? "assistant" : "user", text, t: Date.now() });
+  c.updated = Date.now();
+  while (list.length > MAX_CHATS) list.sort((a, b) => a.updated - b.updated).shift();
+  if (c.messages.length > MAX_MSGS) c.messages.splice(0, c.messages.length - MAX_MSGS);
+  saveChats();
+  return c.id;
+}
+
 function chatDelete(id) {
   const list = chatList(), i = list.findIndex(c => c.id === id);
   if (i >= 0) { list[i] = { id, deleted: true, updated: Date.now(), title: "", messages: [] }; saveChats(); }
@@ -312,7 +327,7 @@ function onChatsChange(fn) { onChats = fn; }
 module.exports = {
   init, ask, complete, status, setKey, setHearth, viaHearth, usage, resetUsage,
   memory: { get: memory.get, set: memory.set },
-  chats: { get: chatsGet, send: chatSend, delete: chatDelete, merge: chatMerge, setDir: chatsSetDir, dir: () => chatDir() || "", raw: chatsRaw, onChange: onChatsChange },
+  chats: { get: chatsGet, send: chatSend, append: chatAppend, delete: chatDelete, merge: chatMerge, setDir: chatsSetDir, dir: () => chatDir() || "", raw: chatsRaw, onChange: onChatsChange },
   MODEL,
   SYSTEM,
 };

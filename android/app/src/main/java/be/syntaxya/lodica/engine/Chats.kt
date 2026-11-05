@@ -72,6 +72,19 @@ object Chats {
         }
     }
 
+    /** Stores one message of the in-browser AI agent. Creates the chat when [id] is null or gone and returns its id. */
+    fun append(id: String?, role: String, text: String): String {
+        ensure()
+        val t = text.trim().take(4000)
+        val now = System.currentTimeMillis()
+        val cur = all.firstOrNull { it.id == id && !it.deleted }
+        val cid = cur?.id ?: (java.lang.Long.toString(now, 36) + java.lang.Long.toString((Math.random() * 1679616).toLong(), 36).padStart(4, '0'))
+        if (t.isEmpty()) return cid
+        val base = cur ?: Chat(cid, t.take(48), now, emptyList())
+        commit(all.filter { it.id != cid } + base.copy(messages = (base.messages + ChatMsg(role, t, now)).takeLast(MAX_MSGS), updated = now))
+        return cid
+    }
+
     fun delete(id: String) {
         ensure()
         commit(all.map { if (it.id == id) Chat(id, "", System.currentTimeMillis(), emptyList(), true) else it })

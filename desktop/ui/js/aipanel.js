@@ -5,7 +5,14 @@ const $ = id => document.getElementById(id);
 const LEVELS = { read: "Read only", plan: "Plan", edit: "Edit", auto: "Full auto" };
 const applyPrefs = p => {
   document.documentElement.dataset.theme = (p && p.theme) || "system";
-  $("lvl").textContent = "Level: " + (LEVELS[p && p.aiAgentMode] || LEVELS.edit);
+  const cur = LEVELS[p && p.aiAgentMode] ? p.aiAgentMode : "edit";
+  const box = $("lvl");
+  if (!box.firstChild) for (const k of Object.keys(LEVELS)) {
+    const b = document.createElement("button"); b.dataset.k = k; b.textContent = LEVELS[k]; b.title = LEVELS[k];
+    b.addEventListener("click", () => inv("prefs.set", "aiAgentMode", k));
+    box.append(b);
+  }
+  for (const b of box.children) b.classList.toggle("on", b.dataset.k === cur);
 };
 inv("prefs.all").then(applyPrefs);
 window.lodica.on("prefs", applyPrefs);
@@ -55,12 +62,11 @@ async function browse(goal) {
   P.run = { agent: true, nodes: [el("div", "q", goal)] };
   render(); setBusy(true, "Working in the browser…");
   const r = await inv("ai.agent.start", goal).catch(e => ({ error: String(e.message || e) }));
-  const n = el("div", r && r.text ? "a" : "a err", (r && (r.text || r.error)) || "Done");
-  P.run.nodes.push(n);
-  P.run.agent = false; setBusy(false);
-  const keep = P.run; render();
-  P.run = null; // thread keeps the result until the next render from chats
-  void keep; $("ta").focus();
+  P.run = null; setBusy(false);
+  if (r && r.chat) P.cur = r.chat;
+  await load(); // the run is saved to the chat history, so the thread shows it from there
+  if (r && r.error) $("thread").append(el("div", "a err", r.error));
+  scroll(); $("ta").focus();
 }
 
 window.lodica.on("agent", p => {
@@ -86,7 +92,7 @@ function history() {
 }
 
 $("hb").addEventListener("click", () => { load().then(history); });
-$("nb").addEventListener("click", () => { if (P.busy) return; P.cur = null; P.run = null; $("hist").hidden = true; render(); $("ta").focus(); });
+$("nb").addEventListener("click", () => { if (P.busy) return; inv("ai.agent.new"); P.cur = null; P.run = null; $("hist").hidden = true; render(); $("ta").focus(); });
 $("fb").addEventListener("click", () => inv("ai.panel.full"));
 $("mb").addEventListener("click", () => inv("ai.panel.close"));
 $("stop").addEventListener("click", () => inv("ai.agent.stop"));

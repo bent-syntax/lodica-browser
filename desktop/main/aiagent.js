@@ -122,21 +122,31 @@ async function settle(wc) {
 
 const askUser = async (message, detail, allow) => (await require("electron").dialog.showMessageBox({ type: "question", buttons: [allow || "Allow", "Stop"], defaultId: 1, cancelId: 1, message, detail })).response === 0;
 
-/** deps: { tabs, ai, push(step), mode, confirm(message, detail, allowLabel) } . Resolves {text} or {error}. Only one run at a time. */
+// What happened earlier in this panel session, so a follow-up goal can refer to it. Cleared by newSession().
+const session = { memory: [], chat: null };
+const note = (s) => { session.memory.push(s); if (session.memory.length > 60) session.memory.shift(); };
+function newSession() { if (running) return false; session.memory = []; session.chat = null; return true; }
+const recall = () => session.memory.length ? "Earlier in this session (the user may refer to it):\n" + session.memory.join("\n").slice(-3000) + "\n" : "";
+
+/** deps: { tabs, ai, push(step), mode, confirm(message, detail, allowLabel), save(chatId, role, text) -> chatId } . Resolves {text, chat} or {error, chat}. Only one run at a time. */
 async function start(goal, deps) {
   if (running) return { error: "The agent is already running" };
   goal = String(goal || "").trim().slice(0, 1000);
   if (!goal) return { error: "Say what the agent should do" };
   const run = { stop: false };
   running = run;
-  const { tabs, ai } = deps, say = (s) => deps.push({ step: s });
-  const mode = MODES.includes(deps.mode) ? deps.mode : "edit", confirm = deps.confirm || askUser, system = SYSTEM + " " + LEVEL_TEXT[mode];
+  const { tabs, ai } = deps, say = (s) => { note("Did: " + String(s).slice(0, 160)); deps.push({ step: s }); };
+  const mode = MODES.includes(deps.mode) ? deps.mode : "edit", confirm = deps.confirm || askUser;
+  const system = SYSTEM + " " + LEVEL_TEXT[mode] + "\n" + recall() + "User goal: " + goal;
+  const save = (role, text) => { if (deps.save) { try { session.chat = deps.save(session.chat, role, text) || session.chat; } catch { /* history is best effort */ } } };
+  note("User asked: " + goal.slice(0, 300)); save("user", goal);
+  const finish = (r) => { const t = r.text || r.error; note((r.text ? "AI answered: " : "Run ended: ") + String(t).slice(0, 400)); save("assistant", String(t)); return { ...r, chat: session.chat }; };
   let approved = false;
   say("Level: " + LABELS[mode]);
   const turns = [{ role: "user", content: "Goal: " + goal }];
   try {
     for (let step = 1; step <= MAX_STEPS; step++) {
-      if (run.stop) return { error: "Stopped" };
+      if (run.stop) return finish({ error: "Stopped" });
       let wc = tabs.wcOf();
       glowOn(wc);
       let page = "No page is open in this tab. Use open or newtab.";
@@ -149,11 +159,11 @@ async function start(goal, deps) {
       const tabList = tabs.open().map((t, i) => i + ": " + (t.title || t.url || "New tab").slice(0, 60) + (t === tabs.current() ? " (current)" : "")).join("\n");
       turns.push({ role: "user", content: "Open tabs:\n" + tabList + "\n\n<page>\n" + page.slice(0, 7000) + "\n</page>\n\nStep " + step + " of " + MAX_STEPS + ". Reply with one JSON action." });
       const reply = await ai.complete(turns.slice(-7), system);
-      if (run.stop) return { error: "Stopped" };
+      if (run.stop) return finish({ error: "Stopped" });
       const act = parse(reply);
       turns.push({ role: "assistant", content: act ? JSON.stringify(act) : String(reply).slice(0, 300) });
       if (!act) { say("The assistant gave no valid action, retrying"); continue; }
-      if (act.action === "done") return { text: String(act.text || "Done").slice(0, 2000) };
+      if (act.action === "done") return finish({ text: String(act.text || "Done").slice(0, 2000) });
       let result = "ok";
       if (act.action === "open" || act.action === "newtab") {
         const u = safeUrl(act.url);
@@ -171,7 +181,7 @@ async function start(goal, deps) {
           else {
             if (verdict === "ask") {
               const msg = act.action === "click" ? "The AI wants to click \"" + name + "\"" : "The AI wants to type \"" + typed.slice(0, 80) + "\" into \"" + name + "\"";
-              if (!(await confirm(msg, "Page: " + wc.getURL()))) return { error: "Stopped: you declined " + (act.action === "click" ? "a click" : "typing") };
+              if (!(await confirm(msg, "Page: " + wc.getURL()))) return finish({ error: "Stopped: you declined " + (act.action === "click" ? "a click" : "typing") });
             }
             say(act.action === "click" ? "Clicking " + name : "Typing into " + name);
             result = await wc.executeJavaScript(act.action === "click" ? CLICK(id) : TYPE(id, typed, !!act.enter), true).catch((e) => "failed: " + e.message);
@@ -184,7 +194,7 @@ async function start(goal, deps) {
         else {
           const list = steps.map((x, i) => i + 1 + ". " + x).join("\n");
           say("Plan: " + list.replace(/\n/g, " "));
-          if (!(await confirm("The AI plans to:", list, "Approve plan"))) return { error: "Stopped: you declined the plan" };
+          if (!(await confirm("The AI plans to:", list, "Approve plan"))) return finish({ error: "Stopped: you declined the plan" });
           approved = true; result = "ok: plan approved, carry it out";
         }
       } else if (act.action === "scroll") {
@@ -199,9 +209,9 @@ async function start(goal, deps) {
       wc = tabs.wcOf();
       if (wc && !wc.isDestroyed()) await settle(wc); else await wait(800);
     }
-    return { error: "Stopped after " + MAX_STEPS + " steps without finishing" };
+    return finish({ error: "Stopped after " + MAX_STEPS + " steps without finishing" });
   } catch (e) {
-    return { error: e?.message || "Agent failed" };
+    return finish({ error: e?.message || "Agent failed" });
   } finally {
     glowOff(tabs.wcOf());
     for (const t of tabs.open()) { try { glowOff(tabs.wcOf(t)); } catch { /* tab gone */ } }
@@ -212,4 +222,4 @@ async function start(goal, deps) {
 function stop() { if (running) running.stop = true; return true; }
 const active = () => !!running;
 
-module.exports = { start, stop, active, parse, safeUrl, decide, MODES, LABELS, SYSTEM, RISKY };
+module.exports = { start, stop, newSession, active, parse, safeUrl, decide, MODES, LABELS, SYSTEM, RISKY };
