@@ -79,12 +79,14 @@ struct WebHost: UIViewRepresentable {
 
 struct BrowserView: View {
     @StateObject private var browser = Browser()
+    @StateObject private var updater = Updater()
     @State private var text = ""
     @State private var showTabs = false
     @FocusState private var focused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
+            UpdateBanner(updater: updater)
             if let t = browser.current {
                 if t.url.isEmpty { StartPage(open: go) }
                 else { WebHost(web: t.web).id(t.id) }
@@ -97,6 +99,7 @@ struct BrowserView: View {
         .onChange(of: browser.current?.id) { _ in text = browser.current?.url ?? "" }
         .onChange(of: browser.current?.url) { u in if !focused { text = u ?? "" } }
         .preferredColorScheme(.dark)
+        .task { await updater.check() }
     }
 
     private var bar: some View {
