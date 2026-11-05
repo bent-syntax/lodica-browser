@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.58 (versionCode 218)
+
+- New: Instant answers on Lodica Search. Searching "speedtest" shows a speed test button, "what day is it today" shows the date and week, "when is Christmas" counts the days, and there are cards for timers, stopwatch, calculator, unit conversion, currency, weather, time in another city, moon phase, calendars, dice, coin flip, random number, colour picker, roman numerals and leap years. Currency and weather are skipped in private tabs.
+- New: Describe a custom theme to the linked AI and it builds one with your own colours and tab textures (dots, stripes, grid, paper, waves). Tab text and tab edge colours can be set too.
+- New: Permission levels for the AI that controls the browser. Read only never clicks or types. Plan shows a short plan you approve first. Edit asks before typing and before risky clicks. Full auto never asks. Password fields, non-web pages and the 20 step limit stay in force at every level. Pick the level in Settings and see it in the AI panel.
+
 ## 1.14.57 (versionCode 217)
 
 - Fixed: Costume characters no longer fall back to emojis after the server is updated or restarted. The app asked the server once, got "not found" from an older server, and never sent the costume again until you restarted the app. It now tries again every few minutes.

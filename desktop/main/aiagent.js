@@ -5,6 +5,31 @@
 const MAX_STEPS = 20;
 const RISKY = /\b(buy|pay|purchase|order|checkout|delete|remove|send|submit|confirm|subscribe|bestel|betaal|koop|verwijder|verstuur|bevestig)/i;
 
+// Permission levels, set in Settings > AI. Unknown values fall back to "edit".
+const MODES = ["read", "plan", "edit", "auto"];
+const LABELS = {
+  read: "Read only: reads pages, never clicks or types",
+  plan: "Plan: you approve a plan before anything is clicked or typed",
+  edit: "Edit: asks before typing and before risky clicks",
+  auto: "Full auto: never asks",
+};
+const LEVEL_TEXT = {
+  read: "Permission level: read only. You may open pages, scroll, go back, switch tabs and read. Clicks and typing are refused, so answer from what you read.",
+  plan: 'Permission level: plan. You may open pages and read first. Before your first click or type, send {"action":"plan","steps":["short step","..."]} with the steps you intend to take. The user approves or stops the run.',
+  edit: "Permission level: edit. The user is asked before you type and before you click anything that buys, sends, deletes or confirms. If the user declines, the run stops.",
+  auto: "Permission level: full auto. Nothing asks the user, so act carefully and only as far as the goal needs.",
+};
+
+/** What a click or type may do at a level: "allow", "ask" (confirm with the user), "deny" or "plan" (needs an approved plan first). */
+function decide(mode, action, label, approved) {
+  if (action !== "click" && action !== "type") return "allow";
+  if (mode === "read") return "deny";
+  if (mode === "auto") return "allow";
+  const risky = action === "click" && RISKY.test(label || "");
+  if (mode === "plan") return !approved ? "plan" : risky ? "ask" : "allow";
+  return action === "type" || risky ? "ask" : "allow";
+}
+
 const SYSTEM = [
   "You control a web browser for the user to reach one goal. You see the current page as a numbered list of elements.",
   "Reply with exactly one JSON object and nothing else. Actions:",
@@ -95,7 +120,9 @@ async function settle(wc) {
   await wait(300);
 }
 
-/** deps: { tabs, ai, push(step), win } . Resolves {text} or {error}. Only one run at a time. */
+const askUser = async (message, detail, allow) => (await require("electron").dialog.showMessageBox({ type: "question", buttons: [allow || "Allow", "Stop"], defaultId: 1, cancelId: 1, message, detail })).response === 0;
+
+/** deps: { tabs, ai, push(step), mode, confirm(message, detail, allowLabel) } . Resolves {text} or {error}. Only one run at a time. */
 async function start(goal, deps) {
   if (running) return { error: "The agent is already running" };
   goal = String(goal || "").trim().slice(0, 1000);
@@ -103,6 +130,9 @@ async function start(goal, deps) {
   const run = { stop: false };
   running = run;
   const { tabs, ai } = deps, say = (s) => deps.push({ step: s });
+  const mode = MODES.includes(deps.mode) ? deps.mode : "edit", confirm = deps.confirm || askUser, system = SYSTEM + " " + LEVEL_TEXT[mode];
+  let approved = false;
+  say("Level: " + LABELS[mode]);
   const turns = [{ role: "user", content: "Goal: " + goal }];
   try {
     for (let step = 1; step <= MAX_STEPS; step++) {
@@ -118,7 +148,7 @@ async function start(goal, deps) {
       }
       const tabList = tabs.open().map((t, i) => i + ": " + (t.title || t.url || "New tab").slice(0, 60) + (t === tabs.current() ? " (current)" : "")).join("\n");
       turns.push({ role: "user", content: "Open tabs:\n" + tabList + "\n\n<page>\n" + page.slice(0, 7000) + "\n</page>\n\nStep " + step + " of " + MAX_STEPS + ". Reply with one JSON action." });
-      const reply = await ai.complete(turns.slice(-7), SYSTEM);
+      const reply = await ai.complete(turns.slice(-7), system);
       if (run.stop) return { error: "Stopped" };
       const act = parse(reply);
       turns.push({ role: "assistant", content: act ? JSON.stringify(act) : String(reply).slice(0, 300) });
@@ -134,14 +164,28 @@ async function start(goal, deps) {
         if (!wc || wc.isDestroyed() || !Number.isInteger(id) || id < 0) result = "no such element";
         else {
           const label = String(await wc.executeJavaScript(`(() => { const e = (window.__lodicaAgent || [])[${id}]; return e ? (e.getAttribute("aria-label") || e.innerText || e.value || e.title || "") : ""; })()`, true)).slice(0, 80);
-          let ok = true;
-          if (act.action === "click" && RISKY.test(label)) {
-            const r = await require("electron").dialog.showMessageBox({ type: "question", buttons: ["Allow", "Stop"], defaultId: 1, cancelId: 1, message: "The AI wants to click \"" + label.trim() + "\"", detail: "Page: " + wc.getURL() });
-            ok = r.response === 0;
+          const typed = String(act.text || "").slice(0, 500), name = label.trim() || (act.action === "click" ? "element " : "field ") + id;
+          const verdict = decide(mode, act.action, label, approved);
+          if (verdict === "deny") result = "refused: this is the read-only level, you cannot click or type";
+          else if (verdict === "plan") result = "refused: send a plan first with the plan action";
+          else {
+            if (verdict === "ask") {
+              const msg = act.action === "click" ? "The AI wants to click \"" + name + "\"" : "The AI wants to type \"" + typed.slice(0, 80) + "\" into \"" + name + "\"";
+              if (!(await confirm(msg, "Page: " + wc.getURL()))) return { error: "Stopped: you declined " + (act.action === "click" ? "a click" : "typing") };
+            }
+            say(act.action === "click" ? "Clicking " + name : "Typing into " + name);
+            result = await wc.executeJavaScript(act.action === "click" ? CLICK(id) : TYPE(id, typed, !!act.enter), true).catch((e) => "failed: " + e.message);
           }
-          if (!ok) return { error: "Stopped: you declined a click" };
-          say(act.action === "click" ? "Clicking " + (label.trim() || "element " + id) : "Typing into " + (label.trim() || "field " + id));
-          result = await wc.executeJavaScript(act.action === "click" ? CLICK(id) : TYPE(id, String(act.text || "").slice(0, 500), !!act.enter), true).catch((e) => "failed: " + e.message);
+        }
+      } else if (act.action === "plan") {
+        const steps = (Array.isArray(act.steps) ? act.steps : []).map((x) => String(x).slice(0, 140)).filter(Boolean).slice(0, 10);
+        if (mode !== "plan") result = "ok: no plan is needed at this level, carry on";
+        else if (!steps.length) result = "refused: a plan needs a list of steps";
+        else {
+          const list = steps.map((x, i) => i + 1 + ". " + x).join("\n");
+          say("Plan: " + list.replace(/\n/g, " "));
+          if (!(await confirm("The AI plans to:", list, "Approve plan"))) return { error: "Stopped: you declined the plan" };
+          approved = true; result = "ok: plan approved, carry it out";
         }
       } else if (act.action === "scroll") {
         say("Scrolling");
@@ -168,4 +212,4 @@ async function start(goal, deps) {
 function stop() { if (running) running.stop = true; return true; }
 const active = () => !!running;
 
-module.exports = { start, stop, active, parse, safeUrl, SYSTEM, RISKY };
+module.exports = { start, stop, active, parse, safeUrl, decide, MODES, LABELS, SYSTEM, RISKY };

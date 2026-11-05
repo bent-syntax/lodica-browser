@@ -355,7 +355,10 @@ object Ai {
         "You design colour themes for a browser. Reply with one JSON object and nothing else: " +
         "{\"bg\":\"#rrggbb\",\"text\":\"#rrggbb\",\"accent\":\"#rrggbb\",\"accent2\":\"#rrggbb\"}. " +
         "bg is a dark or light page background, text is readable on it, accent and accent2 are two vivid colours that fit the theme the user names. " +
-        "If the user wants light and dark versions or a theme that follows the system, reply {\"dark\":{...},\"light\":{...}} with those four keys in each. " +
+        "Optional extra keys, also #rrggbb: raised (cards), high (hover surfaces), muted (secondary text), danger (warnings), " +
+        "tab (colour of the tab cards in the tab switcher), tabText (text on the tab cards, easy to read on tab), tabEdge (outline and pattern colour on the tab cards), startBg (start page background). " +
+        "Add \"tabTexture\" as one of stripes, dots, grid, checker, planks, gradient when the user asks for a texture, material or pattern on the tabs (wood is planks, fabric is grid, wavy or dotted is dots). " +
+        "If the user wants light and dark versions or a theme that follows the system, reply {\"dark\":{...},\"light\":{...}} with the four main keys in each, and put the extra keys in dark. " +
         "If the user wants animation, add \"animation\" as one of pulse, glow, drift, float, shimmer."
 
     private fun lum(hex: String): Double {
@@ -364,12 +367,12 @@ object Ai {
     }
     private fun contrast(a: String, b: String): Double { val x = lum(a); val y = lum(b); return (maxOf(x, y) + 0.05) / (minOf(x, y) + 0.05) }
 
-    /** Asks Claude for a four-colour theme for [idea], e.g. "Minecraft". [done] gets it on the main thread. Needs an API key. */
+    /** Asks Claude for a theme for [idea], e.g. "Minecraft with wood tabs": four colours plus optional tab colours and a tab texture. [done] gets it on the main thread. Needs an API key. */
     fun makeTheme(idea: String, done: (Result<CustomTheme>) -> Unit) {
         val key = apiKey ?: return done(Result.failure(IllegalStateException("Add an Anthropic API key first")))
         io.execute {
             val r = runCatching {
-                val body = JSONObject().put("model", MODEL).put("max_tokens", 500).put("system", THEME_SYSTEM)
+                val body = JSONObject().put("model", MODEL).put("max_tokens", 700).put("system", THEME_SYSTEM)
                     .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Theme: ${idea.take(80)}")))
                 val (code, j) = post(key, body)
                 if (code !in 200..299) throw apiError(code, j)
@@ -387,7 +390,13 @@ object Ai {
                 val d = four(root.optJSONObject("dark") ?: root)
                 val l = root.optJSONObject("light")?.let { four(it) }.orEmpty()
                 val an = root.optString("animation").lowercase().takeIf { it in CustomTheme.ANIMS }.orEmpty()
-                CustomTheme(d[0], d[1], d[2], d[3], System.currentTimeMillis(), l, an)
+                val src = root.optJSONObject("dark") ?: root
+                val extra = CustomTheme.cleanExtra(
+                    CustomTheme.EXTRA_KEYS.filter { it != "tabTex" }.associateWith { src.optString(it).uppercase() } +
+                        ("tabTex" to (root.optString("tabTexture").ifEmpty { src.optString("tabTexture") }.lowercase())),
+                ).toMutableMap()
+                extra["tabText"]?.let { if (contrast(it, extra["tab"] ?: extra["raised"] ?: d[0]) < 4.5) extra.remove("tabText") }
+                CustomTheme(d[0], d[1], d[2], d[3], System.currentTimeMillis(), l, an, extra)
             }
             main.post { done(r) }
         }

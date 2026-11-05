@@ -32,3 +32,22 @@ test("ignores an unknown animation and a bad light variant", () => {
   assert.strictEqual(t.anim, undefined);
   assert.strictEqual(t.light, undefined);
 });
+
+const base = '"bg":"#1b2a12","text":"#e8f5d0","accent":"#5ac33a","accent2":"#8b5a2b"';
+test("keeps tab colours and a known texture", () => {
+  const t = parse(`{${base},"tab":"#6b4a2b","tabText":"#fff4e0","tabEdge":"#3a2614","tabTexture":"planks"}`);
+  assert.strictEqual(t.tab, "#6B4A2B");
+  assert.strictEqual(t.tabText, "#FFF4E0");
+  assert.strictEqual(t.tabEdge, "#3A2614");
+  assert.strictEqual(t.tabTex, "planks");
+});
+test("drops an unknown texture and unreadable tab text", () => {
+  const t = parse(`{${base},"tab":"#6b4a2b","tabText":"#6b4a2c","tabTexture":"url(http://x)"}`);
+  assert.strictEqual(t.tabTex, undefined);
+  assert.strictEqual(t.tabText, undefined);
+});
+test("reads the texture of a light and dark reply", () => {
+  const t = parse(`{"dark":{${base},"tabTexture":"dots"},"light":{"bg":"#ffffff","text":"#111111","accent":"#d97706","accent2":"#be185d"}}`);
+  assert.strictEqual(t.tabTex, "dots");
+  assert.ok(t.light);
+});

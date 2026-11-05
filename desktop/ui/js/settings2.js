@@ -30,6 +30,7 @@ function secAi() {
     setRow("API key", ai.hasKey ? "Saved" : "Not set", ico("key", "chev"), () => askAiKey())];
   if (!S.prefs.ai) return out;
   out.push(setToggle("aiAlways", "Always generate AI answers", "Off: search shows a button and only asks Claude when you click it"));
+  out.push(setSelect("Browser control level", "How much the AI may do on its own when it uses the browser. Read only never clicks or types. Plan shows a plan to approve first. Edit asks before typing and risky clicks. Full auto never asks, so it can press buy or send buttons.", [{ key: "read", label: "Read only" }, { key: "plan", label: "Plan" }, { key: "edit", label: "Edit" }, { key: "auto", label: "Full auto" }], "aiAgentMode"));
   out.push(setRow("AI chat", "Chat with Claude, saved here and on your phone", ico("chevron", "chev"), () => openAiChat()));
   out.push(setRow("AI chat location", S.prefs.aiChatDir || "Default (app data folder). Click to choose a folder; click again to pick another.", ico("chevron", "chev"), async () => {
     let reset = false;

@@ -24,7 +24,7 @@ Where things live and what they do. Start here.
 | `app/src/main/AndroidManifest.xml` | Manifest, activities, permissions. |
 | `app/src/main/java/be/syntaxya/lodica/ui/` | All Compose UI (see below). |
 | `app/src/main/java/be/syntaxya/lodica/ui/theme/` | `Theme.kt` (colour palettes, dark and light, wallpaper and custom themes) and `LauncherIcon.kt`. |
-| `app/src/main/assets/extensions/` | Bundled WebExtensions: `helper/` (search, theme, mobile and NFC helpers; `predark.js` paints the page dark before it shows) and `ubo/` (uBlock Origin with filter lists). |
+| `app/src/main/assets/extensions/` | Bundled WebExtensions: `helper/` (search, theme, mobile and NFC helpers; `instant.js` builds the instant answer cards on the search page; `predark.js` paints the page dark before it shows) and `ubo/` (uBlock Origin with filter lists). |
 | `app/src/main/assets/ai/bridge.js` | AI page bridge. |
 | `app/src/main/res/` | Resources (xml, icons, strings). |
 | `app/proguard-rules.pro` | R8 keep rules. |
@@ -56,7 +56,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `installer.nsh` | NSIS include (: removes older Lodica installs, adds the Start menu entry). |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
 | `pdf/` | Built-in PDF viewer. |
-| `search/` | Search support. |
+| `search/` | Search support. `instant.js` builds the instant answer cards (speed test, date, countdowns, timers, converters, calculator). `customtheme.js` applies the custom theme. |
 | `linux/`, `flatpak/` | Linux packaging (AppImage, deb, Flatpak). |
 | `scripts/` | Desktop helper scripts. |
 | `test/` | Desktop tests (`npm test` runs under Electron, so CI uses xvfb). |
@@ -74,6 +74,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `src/testsession.js` | Remote test session: `/api/support/test` (client) and `/api/support/admin/test` (support). Code, 15 minute expiry, command allowlist. Optional permanent session that stays open while the app polls; `GET /api/support/admin/test` lists open sessions. |
 | `src/chat.js`, `src/chatfile.js` | Chat rooms and files. |
 | `src/notebook.js` | The shared notebook notes (`/api/notebook`). |
+| `src/theme.js` | Checks custom themes (colours, tab texture, animation) before they sync or come back from the AI. |
 | `src/enroll.js`, `src/fcm.js` | Device enrollment and push messages. |
 | `src/updates.js` | Update checks. |
 | `src/gate-page.html`, `src/tabs-page.js`, `src/mime.js`, `src/edge.js` | Gate page, tab page, MIME helper, edge handling. |

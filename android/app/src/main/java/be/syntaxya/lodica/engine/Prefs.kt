@@ -36,7 +36,7 @@ data class CustomTheme(
     val light: List<String> = emptyList(),
     /** Optional animation preset, one of [ANIMS], or empty. */
     val anim: String = "",
-    /** Optional extra colours by key: raised, high, muted, danger, tab, startBg. */
+    /** Optional extras by key: colours raised, high, muted, danger, tab, tabText, tabEdge, startBg, and tabTex (a pattern from [TEXTURES]). */
     val extra: Map<String, String> = emptyMap(),
 ) {
     /** This theme with its light variant swapped in, when it has one. */
@@ -46,8 +46,10 @@ data class CustomTheme(
         val ANIMS = listOf("pulse", "glow", "drift", "float", "shimmer")
         fun valid(vararg c: String) = c.all { HEX.matches(it) }
         fun validLight(l: List<String>) = l.size == 4 && valid(*l.toTypedArray())
-        val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "startBg")
-        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && HEX.matches(v) }
+        /** Patterns the tab cards draw themselves; no image is ever loaded. */
+        val TEXTURES = listOf("stripes", "dots", "grid", "checker", "planks", "gradient")
+        val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "tabTex")
+        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && (if (k == "tabTex") v in TEXTURES else HEX.matches(v)) }
         fun pack(c: CustomTheme) = listOf(c.bg, c.text, c.accent, c.accent2, c.at.toString()) +
             (if (c.light.size == 4 || c.anim.isNotEmpty() || c.extra.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList()) +
             c.extra.map { (k, v) -> "$k=$v" }
@@ -63,7 +65,8 @@ data class CustomTheme(
 
 /** A named custom theme kept in the saved list. */
 data class SavedTheme(val name: String, val bg: String, val text: String, val accent: String, val accent2: String,
-                      val light: List<String> = emptyList(), val anim: String = "")
+                      val light: List<String> = emptyList(), val anim: String = "",
+                      val extra: Map<String, String> = emptyMap())
 
 /** App preferences, observable from Compose. */
 object Prefs {
@@ -87,6 +90,8 @@ object Prefs {
     var searchWords by mutableStateOf(""); private set
     var showRedirectOrigin by mutableStateOf(false); private set
     var aiAlways by mutableStateOf(false); private set
+    /** How much the AI may do on its own in the browser: read, plan, edit or auto. */
+    var aiAgentMode by mutableStateOf("edit"); private set
     /** Smartschool planner ICS link shown on the start page; empty means not added. */
     var plannerIcs by mutableStateOf(""); private set
     /** Show the newest Notebook notes on the start page. */
@@ -210,6 +215,7 @@ object Prefs {
         searchWords = sp.getString("searchWords", "") ?: ""
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
+        aiAgentMode = sp.getString("aiAgentMode", "edit").orEmpty().takeIf { it in AiAgent.MODES } ?: "edit"
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
         startPlanner = sp.getBoolean("startPlanner", false)
@@ -244,11 +250,12 @@ object Prefs {
         spellAuto = sp.getBoolean("spellAuto", false)
         spellLangs = sp.getStringSet("spellLangs", null) ?: setOf("en")
         savedThemes = sp.getString("savedThemes", null).orEmpty().lines().mapNotNull { l ->
-            l.split('|').takeIf { (it.size == 5 || it.size == 10) && it[0].isNotBlank() && CustomTheme.valid(it[1], it[2], it[3], it[4]) }
+            l.split('|').takeIf { (it.size == 5 || it.size >= 10) && it[0].isNotBlank() && CustomTheme.valid(it[1], it[2], it[3], it[4]) }
                 ?.let { p ->
                     SavedTheme(p[0], p[1], p[2], p[3], p[4],
                         if (p.size == 10) p.subList(5, 9).takeIf { CustomTheme.validLight(it) } ?: emptyList() else emptyList(),
-                        if (p.size == 10 && p[9] in CustomTheme.ANIMS) p[9] else "")
+                        if (p.size >= 10 && p[9] in CustomTheme.ANIMS) p[9] else "",
+                        CustomTheme.cleanExtra(p.drop(10).mapNotNull { x -> x.split('=', limit = 2).takeIf { kv -> kv.size == 2 }?.let { kv -> kv[0] to kv[1] } }.toMap()))
                 }
         }.take(50)
         customTheme = sp.getString("customTheme", null)?.split(',')?.let { CustomTheme.unpack(it) }
@@ -319,14 +326,14 @@ object Prefs {
         if (clean == savedThemes) return
         savedThemes = clean
         sp.edit().putString("savedThemes", clean.joinToString("\n") { t ->
-            (listOf(t.name, t.bg, t.text, t.accent, t.accent2) + (if (t.light.size == 4 || t.anim.isNotEmpty()) (if (t.light.size == 4) t.light else List(4) { "-" }) + t.anim else emptyList())).joinToString("|") }).apply()
+            (listOf(t.name, t.bg, t.text, t.accent, t.accent2) + (if (t.light.size == 4 || t.anim.isNotEmpty() || t.extra.isNotEmpty()) (if (t.light.size == 4) t.light else List(4) { "-" }) + t.anim + t.extra.map { (k, v) -> "$k=$v" } else emptyList())).joinToString("|") }).apply()
     }
 
     /** Adds or replaces a saved theme by name; newest first. */
-    fun saveTheme(name: String, bg: String, text: String, accent: String, accent2: String, light: List<String> = emptyList(), anim: String = "") {
+    fun saveTheme(name: String, bg: String, text: String, accent: String, accent2: String, light: List<String> = emptyList(), anim: String = "", extra: Map<String, String> = emptyMap()) {
         val n = name.replace('|', ' ').replace('\n', ' ').trim().take(40)
         if (n.isEmpty()) return
-        updateSavedThemes(listOf(SavedTheme(n, bg, text, accent, accent2, light, anim)) + savedThemes.filter { !it.name.equals(n, true) })
+        updateSavedThemes(listOf(SavedTheme(n, bg, text, accent, accent2, light, anim, CustomTheme.cleanExtra(extra))) + savedThemes.filter { !it.name.equals(n, true) })
     }
 
     fun updateCustomTheme(c: CustomTheme?) {
@@ -415,6 +422,7 @@ object Prefs {
     fun updatePlannerTz(v: String) { plannerTz = v.trim().take(64); sp.edit().putString("plannerTz", plannerTz).apply(); Helper.push() }
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
+    fun updateAiAgentMode(v: String) { if (v !in AiAgent.MODES) return; aiAgentMode = v; sp.edit().putString("aiAgentMode", v).apply() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateSearchWords(v: String) { searchWords = v.trim(); sp.edit().putString("searchWords", searchWords).apply(); Helper.push() }
     fun searchWordPairs(): List<List<String>> = searchWords.lines().mapNotNull { l ->

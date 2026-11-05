@@ -121,7 +121,7 @@ internal fun SavedThemeSwatches() {
             val on = Prefs.theme == "custom" && cur != null && cur.bg.equals(t.bg, true) && cur.text.equals(t.text, true) &&
                 cur.accent.equals(t.accent, true) && cur.accent2.equals(t.accent2, true)
             RoundChoice(t.name, on, labelWidth = 84.dp, onLongClick = { Prefs.updateSavedThemes(Prefs.savedThemes.filter { it != t }); Relay.syncThemeNow() }, onClick = {
-                Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis(), t.light, t.anim))
+                Prefs.updateCustomTheme(CustomTheme(t.bg, t.text, t.accent, t.accent2, System.currentTimeMillis(), t.light, t.anim, t.extra))
                 Prefs.updateTheme("custom")
                 Relay.syncThemeNow()
             }) { ColourDot(px(t.bg), px(t.accent), px(t.accent2)) }

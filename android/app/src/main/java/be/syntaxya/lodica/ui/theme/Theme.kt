@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.core.view.WindowCompat
@@ -90,6 +91,65 @@ fun customPalette(c: CustomTheme): Palette {
 fun customExtraColor(key: String): Color? {
     val h = be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key)?.removePrefix("#") ?: return null
     return runCatching { Color(0xFF000000 or h.toLong(16)) }.getOrNull()
+}
+
+/** The tab card pattern of the active custom theme (stripes, dots, grid, checker, planks, gradient), or null. */
+fun customTabTexture(): String? =
+    if (be.syntaxya.lodica.engine.Prefs.theme != "custom") null
+    else be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get("tabTex")?.takeIf { it in be.syntaxya.lodica.engine.CustomTheme.TEXTURES }
+
+/** Draws the tab card pattern over [size] in [color]. Only these shapes exist, nothing is loaded from outside. */
+fun androidx.compose.ui.graphics.drawscope.DrawScope.drawTabTexture(kind: String, color: Color) {
+    val w = size.width
+    val h = size.height
+    val step = 12.dp.toPx()
+    when (kind) {
+        "stripes" -> {
+            var x = -h
+            while (x < w) {
+                drawLine(color, androidx.compose.ui.geometry.Offset(x, h), androidx.compose.ui.geometry.Offset(x + h, 0f), strokeWidth = 4.dp.toPx())
+                x += step
+            }
+        }
+        "dots" -> {
+            var y = step / 2
+            while (y < h) {
+                var x = step / 2
+                while (x < w) { drawCircle(color, 1.5.dp.toPx(), androidx.compose.ui.geometry.Offset(x, y)); x += step }
+                y += step
+            }
+        }
+        "grid" -> {
+            var x = step
+            while (x < w) { drawLine(color, androidx.compose.ui.geometry.Offset(x, 0f), androidx.compose.ui.geometry.Offset(x, h), strokeWidth = 1.dp.toPx()); x += step }
+            var y = step
+            while (y < h) { drawLine(color, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(w, y), strokeWidth = 1.dp.toPx()); y += step }
+        }
+        "checker" -> {
+            val n = (step * 1.5f)
+            var row = 0
+            var y = 0f
+            while (y < h) {
+                var x = if (row % 2 == 0) 0f else n
+                while (x < w) { drawRect(color, androidx.compose.ui.geometry.Offset(x, y), androidx.compose.ui.geometry.Size(n, n)); x += n * 2 }
+                y += n
+                row++
+            }
+        }
+        "planks" -> {
+            val plank = 16.dp.toPx()
+            var y = plank
+            var row = 0
+            while (y < h + plank) {
+                drawLine(color, androidx.compose.ui.geometry.Offset(0f, y), androidx.compose.ui.geometry.Offset(w, y), strokeWidth = 1.5.dp.toPx())
+                val x = if (row % 2 == 0) w * 0.35f else w * 0.7f
+                drawLine(color, androidx.compose.ui.geometry.Offset(x, y - plank), androidx.compose.ui.geometry.Offset(x, y), strokeWidth = 1.5.dp.toPx())
+                y += plank
+                row++
+            }
+        }
+        "gradient" -> drawRect(Brush.verticalGradient(listOf(Color.Transparent, color.copy(alpha = 0.5f))))
+    }
 }
 
 /** Picker entries: "system" first, then every palette. */

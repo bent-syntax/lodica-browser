@@ -447,3 +447,15 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-seen{align-self:flex-end;display:flex;gap:4px;align-items:center;padding:0 12px 4px}
 .chat-seen-t{font-size:11px;color:var(--muted)}
 .chat-mini{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;overflow:hidden}
+
+/* Custom theme: tab text and edge colours, and a pattern on the tab cards. Patterns are drawn with gradients only. */
+.card-top .t{color:var(--tab-text,var(--text))}
+.card-top .fav,.card-top .ib{color:var(--tab-text,var(--muted))}
+.card{--tex:color-mix(in srgb,var(--tab-edge,var(--coral)) 28%,transparent)}
+:root[data-tab-tex] .card:not(.cur){border-color:color-mix(in srgb,var(--tab-edge,var(--coral)) 45%,transparent)}
+:root[data-tab-tex="stripes"] .card{background-image:repeating-linear-gradient(135deg,var(--tex) 0 4px,transparent 4px 12px)}
+:root[data-tab-tex="dots"] .card{background-image:radial-gradient(var(--tex) 2px,transparent 2.5px);background-size:12px 12px}
+:root[data-tab-tex="grid"] .card{background-image:linear-gradient(var(--tex) 1px,transparent 1px),linear-gradient(90deg,var(--tex) 1px,transparent 1px);background-size:12px 12px}
+:root[data-tab-tex="checker"] .card{background-image:conic-gradient(var(--tex) 25%,transparent 0 50%,var(--tex) 0 75%,transparent 0);background-size:16px 16px}
+:root[data-tab-tex="planks"] .card{background-image:linear-gradient(90deg,transparent calc(100% - 2px),var(--tex) 0),linear-gradient(var(--tex) 1px,transparent 1px);background-size:32px 100%,100% 14px}
+:root[data-tab-tex="gradient"] .card{background-image:linear-gradient(160deg,var(--tex),transparent 70%)}

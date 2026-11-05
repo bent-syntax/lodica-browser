@@ -887,6 +887,16 @@ private fun AiSection() {
         )
     }
     SwitchRow("Always ask AI", "Off: search shows a button and only asks the AI when you tap it", Prefs.aiAlways) { Prefs.updateAiAlways(it) }
+    Text("AI browser control level", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
+    Text(
+        "How much the AI may do on its own when it uses the browser. Read only never clicks or types. Plan shows a plan to approve first. Edit asks before typing and risky clicks. Full auto never asks, so it can press buy or send buttons.",
+        color = Muted, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+    )
+    Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        listOf("read" to "Read only", "plan" to "Plan", "edit" to "Edit", "auto" to "Full auto").forEach { (k, label) ->
+            Chip(label, Prefs.aiAgentMode == k) { Prefs.updateAiAgentMode(k) }
+        }
+    }
     SwitchRow("Ask AI via Termux", "No API key? Use your own Claude Code in Termux instead. Off by default, at your own risk", Ai.enabled) {
         Ai.updateEnabled(it)
     }
@@ -1800,7 +1810,7 @@ private fun CustomThemeEditor() {
         var busy by remember { mutableStateOf(false) }
         val ctx = LocalContext.current
         OutlinedTextField(
-            value = idea, onValueChange = { idea = it.take(80) }, label = { Text("Describe a theme, e.g. Minecraft") },
+            value = idea, onValueChange = { idea = it.take(80) }, label = { Text("Describe a theme, e.g. Minecraft with wood tabs") },
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         Button(
@@ -1811,8 +1821,8 @@ private fun CustomThemeEditor() {
                     busy = false
                     r.onSuccess {
                         bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2
-                        Prefs.saveTheme(idea.trim(), it.bg, it.text, it.accent, it.accent2, it.light, it.anim)
-                        if (it.light.isNotEmpty() || it.anim.isNotEmpty()) Prefs.updateCustomTheme(it)
+                        Prefs.saveTheme(idea.trim(), it.bg, it.text, it.accent, it.accent2, it.light, it.anim, it.extra)
+                        if (it.light.isNotEmpty() || it.anim.isNotEmpty() || it.extra.isNotEmpty()) Prefs.updateCustomTheme(it)
                         Relay.syncThemeNow()
                     }.onFailure { Toast.makeText(ctx, it.message ?: "Could not make a theme", Toast.LENGTH_SHORT).show() }
                 }

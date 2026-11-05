@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.AiAgent
 import be.syntaxya.lodica.engine.Chats
+import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -97,7 +98,10 @@ fun AgentPanel() {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (older) IconButton(onClick = { if (viewing != null) viewing = null else older = false }) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Mist) }
                 else Icon(Icons.Rounded.AutoAwesome, null, tint = Amber, modifier = Modifier.size(20.dp))
-                Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                Column(Modifier.weight(1f).padding(start = 8.dp)) {
+                    Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp)
+                    if (!older) Text("Level: ${AiAgent.levelName(if (AiAgent.running) AiAgent.level else Prefs.aiAgentMode)}", color = Muted, fontSize = 12.sp)
+                }
                 if (!older) IconButton(onClick = { older = true }) { Icon(Icons.Rounded.History, "Older chats", tint = Muted) }
                 IconButton(onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(Icons.Rounded.Fullscreen, "Full screen", tint = Muted) }
                 IconButton(onClick = { AiAgent.minimized = true }) { Icon(Icons.Rounded.Remove, "Minimize", tint = Muted) }
@@ -127,11 +131,11 @@ fun AgentPanel() {
                         }
                     }
                 }
-                AiAgent.confirm?.let { label ->
+                AiAgent.confirm?.let { ask ->
                     Column(Modifier.fillMaxWidth().padding(12.dp).clip(RoundedCornerShape(12.dp)).background(Graphite).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("The AI wants to click \"$label\". Allow?", color = Mist, fontSize = 13.sp)
+                        Text(ask, color = Mist, fontSize = 13.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Allow", color = OnAmber, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(Amber).clickable { AiAgent.answer(true) }.padding(horizontal = 16.dp, vertical = 8.dp))
+                            Text(AiAgent.confirmAllow, color = OnAmber, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(50)).background(Amber).clickable { AiAgent.answer(true) }.padding(horizontal = 16.dp, vertical = 8.dp))
                             Text("Stop", color = Danger, fontSize = 13.sp, modifier = Modifier.clip(RoundedCornerShape(50)).border(BorderStroke(1.dp, Danger), RoundedCornerShape(50)).clickable { AiAgent.answer(false) }.padding(horizontal = 16.dp, vertical = 8.dp))
                         }
                     }

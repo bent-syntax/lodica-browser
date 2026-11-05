@@ -122,7 +122,7 @@ function appliedColours() {
 function themeEditor() {
   const c = Object.assign({}, PREVIEW_DEFAULT, S.prefs.customTheme);
   const cur = { bg: c.bg, text: c.text, accent: c.accent, accent2: c.accent2 };
-  for (const k of ["raised", "high", "muted", "danger", "tab", "startBg"]) if (c[k]) cur[k] = c[k];
+  for (const k of ["raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "tabTex"]) if (c[k]) cur[k] = c[k];
   const on = (S.prefs.theme || "system") === "custom";
   const opt = (key, label, mixPct, base) => {
     const fallback = () => cur[key] || (base && cur[base]) || "#" + [0, 1, 2].map((i) => {
@@ -142,12 +142,17 @@ function themeEditor() {
     h("div", { class: "ct-row" }, field("bg", "Background"), field("text", "Text"), field("accent", "Accent"), field("accent2", "Second accent")),
     h("div", { class: "ct-row" }, opt("raised", "Panels", 8), opt("high", "Hover", 16), opt("muted", "Muted text", 60)),
     h("div", { class: "ct-row" }, opt("danger", "Danger", 0, "accent2"), opt("tab", "Tabs", 8, "raised"), opt("startBg", "Start page", 0, "bg")),
+    h("div", { class: "ct-row" }, opt("tabText", "Tab text", 100), opt("tabEdge", "Tab pattern", 0, "accent2"),
+      h("label", { class: "ct-field" }, h("span", { text: "Tab texture" }),
+        h("select", { class: "ct-tex", on: { change: (e) => { if (e.target.value) cur.tabTex = e.target.value; else delete cur.tabTex; inv("theme.custom", cur, (S.prefs.theme || "system") === "custom"); } } },
+          ...[["", "None"], ["stripes", "Stripes"], ["dots", "Dots"], ["grid", "Grid"], ["checker", "Checker"], ["planks", "Wood planks"], ["gradient", "Gradient"]]
+            .map(([v, t]) => h("option", { value: v, selected: (cur.tabTex || "") === v }, t))))),
     h("div", { class: "ct-row" },
       h("button", { class: "ct-btn" + (on ? " sel" : ""), text: on ? "Using your theme" : "Use my theme", act: () => inv("theme.custom", cur, true) }),
       h("button", { class: "ct-btn", text: "Edit the applied theme", title: "Copy the colours of the theme in use into your custom theme", act: () => inv("theme.custom", appliedColours(), true) }),
       S.prefs.customTheme ? h("button", { class: "ct-btn", text: "Remove", act: () => { inv("theme.custom", null); if (on) setPref("theme", "system"); } }) : null),
     S.prefs.ai ? h("div", { class: "ct-row" },
-      h("input", { class: "ct-idea", type: "text", placeholder: "Describe a theme, like Minecraft", maxlength: "200" }),
+      h("input", { class: "ct-idea", type: "text", placeholder: "Describe a theme, like Minecraft with wood tabs", maxlength: "200" }),
       h("button", { class: "ct-btn", text: "Make with AI", act: async (ev, b) => {
         const e = { target: b };
         const box = e.target.parentNode.querySelector(".ct-idea"), msg = e.target.parentNode.nextSibling;

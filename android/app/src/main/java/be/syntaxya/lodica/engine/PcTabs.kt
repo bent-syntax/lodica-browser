@@ -495,9 +495,9 @@ object PcTabs {
     private fun settingsMap(): Map<String, JsonElement> = mapOf(
         "theme" to JsonPrimitive(if (Prefs.theme == "dynamic") "system" else Prefs.theme),
         "customTheme" to (Prefs.customTheme?.let { c -> JsonObject(mapOf("bg" to JsonPrimitive(c.bg), "text" to JsonPrimitive(c.text),
-            "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at)) + themeExtras(c.light, c.anim)) } ?: JsonNull),
+            "accent" to JsonPrimitive(c.accent), "accent2" to JsonPrimitive(c.accent2), "at" to JsonPrimitive(c.at)) + c.extra.mapValues { JsonPrimitive(it.value) } + themeExtras(c.light, c.anim)) } ?: JsonNull),
         "savedThemes" to JsonArray(Prefs.savedThemes.map { t -> JsonObject(mapOf("name" to JsonPrimitive(t.name), "bg" to JsonPrimitive(t.bg),
-            "text" to JsonPrimitive(t.text), "accent" to JsonPrimitive(t.accent), "accent2" to JsonPrimitive(t.accent2)) + themeExtras(t.light, t.anim)) }),
+            "text" to JsonPrimitive(t.text), "accent" to JsonPrimitive(t.accent), "accent2" to JsonPrimitive(t.accent2)) + t.extra.mapValues { JsonPrimitive(it.value) } + themeExtras(t.light, t.anim)) }),
         "language" to JsonPrimitive(Prefs.language.name),
         "darkPages" to JsonPrimitive(Prefs.darkPages),
         "httpsOnly" to JsonPrimitive(Prefs.httpsOnly),
@@ -561,7 +561,7 @@ object PcTabs {
                 val o = e as? JsonObject ?: return@mapNotNull null
                 fun c(k: String) = (o[k] as? JsonPrimitive)?.contentOrNull.orEmpty()
                 if (c("name").isNotBlank() && CustomTheme.valid(c("bg"), c("text"), c("accent"), c("accent2")))
-                    readExtras(o).let { (lo, an) -> SavedTheme(c("name").replace('|', ' ').replace('\n', ' ').trim().take(40), c("bg"), c("text"), c("accent"), c("accent2"), lo, an) } else null
+                    readExtras(o).let { (lo, an) -> SavedTheme(c("name").replace('|', ' ').replace('\n', ' ').trim().take(40), c("bg"), c("text"), c("accent"), c("accent2"), lo, an, CustomTheme.cleanExtra(CustomTheme.EXTRA_KEYS.associateWith { k -> c(k) })) } else null
             }
             Prefs.updateSavedThemes(list)
         }

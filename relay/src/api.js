@@ -19,6 +19,7 @@ const chatfile = require('./chatfile');
 const notebook = require('./notebook');
 const screen = require('./screen');
 const enroll = require('./enroll');
+const { cleanTheme } = require('./theme');
 const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
 
 // Exim delivers every recipient to one maildir (tainted local parts cannot name
@@ -336,7 +337,6 @@ async function aliasesDelete(req, res, id) {
 // ---------- custom theme ----------
 // One user-made theme per token, newest write wins, so every browser on the account shows the same colours.
 const THEME_FILE = path.join(cfg.dataDir, 'theme.json');
-const hex = (v) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
 
 async function themeGet(req, res) {
   let v = null;
@@ -348,16 +348,8 @@ async function themePut(req, res) {
   let b;
   try { b = JSON.parse((await readBody(req, 4 * 1024)).toString('utf8')); }
   catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
-  if (!b || !['bg', 'text', 'accent', 'accent2'].every((k) => hex(b[k]))) return sendText(req, res, 400, 'bad theme');
-  const out = { bg: b.bg, text: b.text, accent: b.accent, accent2: b.accent2, at: Number.isFinite(b.at) ? b.at : Date.now() };
-  for (const k of ['raised', 'high', 'muted', 'danger', 'tab', 'startBg']) if (hex(b[k])) out[k] = b[k];
-  // Optional light variant (system-following theme) and animation preset.
-  const l = b.light;
-  if (l && typeof l === 'object' && ['bg', 'text', 'accent', 'accent2'].every((k) => hex(l[k]))) {
-    out.light = {};
-    for (const k of ['bg', 'text', 'accent', 'accent2', 'raised', 'high', 'muted', 'danger', 'tab', 'startBg']) if (hex(l[k])) out.light[k] = l[k];
-  }
-  if (['pulse', 'glow', 'drift', 'float', 'shimmer'].includes(b.anim)) out.anim = b.anim;
+  const out = cleanTheme(b);
+  if (!out) return sendText(req, res, 400, 'bad theme');
   const tmp = `${THEME_FILE}.${process.pid}.tmp`;
   await fsp.writeFile(tmp, JSON.stringify(out), { mode: 0o600 });
   await fsp.rename(tmp, THEME_FILE);

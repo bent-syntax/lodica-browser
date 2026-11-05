@@ -365,7 +365,8 @@ function init(deps) {
   setInterval(pullTheme, 10 * 60 * 1000).unref?.();
   // Optional extras on a custom theme: a light variant (follows the system) and an animation preset.
   const ANIMS = ["pulse", "glow", "drift", "float", "shimmer"];
-  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "startBg"];
+  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg"];
+  const TEXTURES = require("./aitheme").TEXTURES;
   const themeExtras = (c, out) => {
     const l = c && c.light;
     if (l && typeof l === "object" && ["bg", "text", "accent", "accent2"].every(k => HEX.test(l[k]))) {
@@ -373,6 +374,7 @@ function init(deps) {
       for (const k of THEME_KEYS) if (HEX.test(l[k])) out.light[k] = l[k];
     }
     if (c && ANIMS.includes(c.anim)) out.anim = c.anim;
+    if (c && TEXTURES.includes(c.tabTex)) out.tabTex = c.tabTex;
     return out;
   };
   on("theme.custom", async (c, use) => {
@@ -575,7 +577,7 @@ function init(deps) {
   });
   on("ai.agent.start", (goal) => {
     if (!d.ai.status().connected) return { error: "AI is not connected" };
-    return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, push: (p) => d.ui.push("agent", p) });
+    return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, mode: d.prefs.p.aiAgentMode, push: (p) => d.ui.push("agent", p) });
   });
   on("ai.agent.stop", () => require("./aiagent").stop());
   on("ai.agent.active", () => require("./aiagent").active());

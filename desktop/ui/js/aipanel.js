@@ -2,7 +2,11 @@
 // Right-hand AI panel: chat or browse mode, older chats, full screen and minimize. Runs in its own view.
 const inv = (...a) => window.lodica.invoke(...a);
 const $ = id => document.getElementById(id);
-const applyPrefs = p => { document.documentElement.dataset.theme = (p && p.theme) || "system"; };
+const LEVELS = { read: "Read only", plan: "Plan", edit: "Edit", auto: "Full auto" };
+const applyPrefs = p => {
+  document.documentElement.dataset.theme = (p && p.theme) || "system";
+  $("lvl").textContent = "Level: " + (LEVELS[p && p.aiAgentMode] || LEVELS.edit);
+};
 inv("prefs.all").then(applyPrefs);
 window.lodica.on("prefs", applyPrefs);
 

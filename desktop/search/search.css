@@ -252,3 +252,47 @@ html[data-theme-anim=shimmer] body::before{background:linear-gradient(100deg,tra
 @keyframes tdrift{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
 @keyframes tfloat{0%,100%{transform:translate(0,0)}50%{transform:translate(4%,-4%)}}
 @media (prefers-reduced-motion:reduce){html[data-theme-anim] body::before{animation:none}}
+
+/* Instant answer cards (instant.js) */
+#instant { margin: 12px 0; }
+.inst-card { background: var(--raised); color: var(--text); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.inst-label { font-size: 12px; color: var(--muted); letter-spacing: .02em; text-transform: uppercase; }
+.inst-big { font-size: 26px; font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.inst-sub { font-size: 13px; color: var(--muted); }
+.inst-num { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.inst-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.inst-right { text-align: right; }
+.inst-grow { flex: 1; text-align: center; }
+.inst-done { color: var(--coral); }
+.inst-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.inst-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; }
+.inst-stat { background: var(--high); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 4px; }
+.inst-btn, .inst-ghost { font: inherit; font-size: 15px; border-radius: 999px; padding: 8px 20px; cursor: pointer; border: 1px solid transparent; }
+.inst-btn { background: var(--amber); color: #111827; font-weight: 600; }
+.inst-btn:hover { background: var(--amber-hi, var(--amber)); }
+.inst-ghost { background: transparent; color: var(--text); border-color: var(--high); }
+.inst-ghost:hover { background: var(--high); }
+.inst-btn:disabled, .inst-ghost:disabled { opacity: .5; cursor: default; }
+.inst-in { font: inherit; font-size: 15px; background: var(--bg); color: var(--text); border: 1px solid var(--high); border-radius: 999px; padding: 8px 16px; min-width: 0; flex: 1; }
+.inst-in:focus { outline: 2px solid var(--amber); outline-offset: 0; }
+.inst-sel { flex: 0 1 auto; padding-right: 8px; }
+.inst-laps { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow: auto; }
+.inst-swatch { height: 64px; border-radius: 12px; border: 1px solid var(--high); }
+.inst-range { width: 100%; height: 8px; border-radius: 999px; accent-color: var(--amber); }
+.inst-range-r { accent-color: #F43F5E; }
+.inst-range-g { accent-color: #10B981; }
+.inst-range-b { accent-color: #3B82F6; }
+.inst-dice { display: flex; flex-wrap: wrap; gap: 8px; }
+.inst-die { min-width: 48px; height: 48px; padding: 0 8px; box-sizing: border-box; display: grid; place-items: center; background: var(--high); border-radius: 12px; font-size: 20px; font-weight: 600; }
+.inst-weather { display: flex; flex-direction: column; gap: 8px; }
+.inst-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.inst-cd { font-size: 13px; padding: 8px 0; border-radius: 12px; }
+.inst-cw { font-size: 12px; color: var(--muted); padding: 4px 0; }
+.inst-today { background: var(--amber); color: #111827; font-weight: 600; }
+.inst-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.inst-key { font: inherit; font-size: 20px; padding: 12px 0; border: 0; border-radius: 12px; background: var(--high); color: var(--text); cursor: pointer; }
+.inst-key:hover { background: var(--high); filter: brightness(1.12); }
+.inst-op, .inst-op:hover { background: var(--amber); color: #111827; }
+.inst-moon { align-self: center; }
+.inst-moon-dark { fill: var(--high); }
+.inst-moon-lit { fill: var(--amber); }

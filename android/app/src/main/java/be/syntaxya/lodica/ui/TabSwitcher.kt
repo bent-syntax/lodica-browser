@@ -60,6 +60,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import be.syntaxya.lodica.ui.theme.customExtraColor
+import be.syntaxya.lodica.ui.theme.customTabTexture
+import be.syntaxya.lodica.ui.theme.drawTabTexture
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -237,13 +241,18 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
     val accent = if (incognito) Coral else Amber
+    val customEdge = if (incognito) null else customExtraColor("tabEdge")
+    val texture = if (incognito) null else customTabTexture()
+    val edge = customEdge ?: Coral
+    val tabText = if (incognito) Mist else (customExtraColor("tabText") ?: Mist)
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val grow by animateFloatAsState(if (entered) 1f else 0.82f, tween(260), label = "tab-in")
     Column(
         modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f }
-            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (be.syntaxya.lodica.ui.theme.customExtraColor("tab") ?: GraphiteRaised))
-            .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else Modifier)
+            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (customExtraColor("tab") ?: GraphiteRaised))
+            .then(if (texture != null) Modifier.drawBehind { drawTabTexture(texture, edge.copy(alpha = 0.28f)) } else Modifier)
+            .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else if (customEdge != null) Modifier.border(BorderStroke(1.dp, customEdge), shape) else Modifier)
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -256,14 +265,15 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
                     t.url == TabManager.HOME -> "New tab"
                     else -> t.displayTitle
                 },
-                color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = tabText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onClose, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Rounded.Close, "Close tab", tint = Muted, modifier = Modifier.size(18.dp))
+                Icon(Icons.Rounded.Close, "Close tab", tint = if (tabText == Mist) Muted else tabText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
             }
         }
-        Box(Modifier.fillMaxWidth().aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
+        val framed = texture != null || customEdge != null
+        Box(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).clip(RoundedCornerShape(16.dp)) else Modifier).aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
             val thumb = t.thumbnail
             if (t.locked) {
                 Icon(Icons.Rounded.Lock, "Locked", tint = Amber, modifier = Modifier.size(32.dp))

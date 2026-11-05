@@ -379,6 +379,7 @@ addEventListener("pagehide", () => cachePut({ y: scrollY }));
 
 async function run() {
   if (!setup()) return;
+  if (!cat && page === 1 && window.LodicaInstant) LodicaInstant.show($("instant"), q, { lang, priv });
   const cached = cacheGet();
   if (!cached || !cached.data) skeleton();
   const [data, state] = await Promise.all([
