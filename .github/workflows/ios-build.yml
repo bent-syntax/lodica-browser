@@ -1,0 +1,33 @@
+name: iOS build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "support/**"]
+    paths: ["ios/**", ".github/workflows/ios-build.yml"]
+  pull_request:
+    paths: ["ios/**"]
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate Xcode project
+        run: brew install xcodegen && cd ios && xcodegen generate
+      - name: Build unsigned
+        run: |
+          cd ios
+          xcodebuild -project Lodica.xcodeproj -scheme Lodica -configuration Release \
+            -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -30
+      - name: Package IPA
+        run: |
+          cd ios
+          rm -rf Payload && mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Lodica.app Payload/
+          zip -qry Lodica-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ios/Lodica-unsigned.ipa
