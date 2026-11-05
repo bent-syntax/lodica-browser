@@ -2,11 +2,19 @@ name: iOS build
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to attach the IPA to (leave empty to only build)
+        required: false
   push:
+    tags: ["v*"]
     branches: [main, "support/**"]
     paths: ["ios/**", ".github/workflows/ios-build.yml"]
   pull_request:
     paths: ["ios/**"]
+
+permissions:
+  contents: write
 
 jobs:
   ipa:
@@ -31,3 +39,16 @@ jobs:
         with:
           name: ios-ipa
           path: ios/Lodica-unsigned.ipa
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ inputs.tag }}"
+          if [ -z "$tag" ]; then tag="${GITHUB_REF_NAME}"; fi
+          cp ios/Lodica-unsigned.ipa "Lodica-${tag#v}.ipa"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 && break
+            sleep 60
+          done
+          gh release upload "$tag" "Lodica-${tag#v}.ipa" --clobber --repo "$GITHUB_REPOSITORY"

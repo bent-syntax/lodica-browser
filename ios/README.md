@@ -16,4 +16,6 @@ Free Apple IDs expire the app after 7 days. Repeat the same step to renew it. Al
 
 ## Get the IPA
 
-CI builds it from `ios-build.yml`. Open the latest successful "iOS build" run under the repository's Actions tab and download the `ios-ipa` artifact. Unzip it to get `Lodica-unsigned.ipa`.
+Open the repository's Releases page and download `Lodica-<version>.ipa` from the newest release that lists one. It is attached by `ios-build.yml` after the release is published, so it can show up a few minutes later than the Android and desktop files.
+
+Builds that are not releases: Actions tab, latest successful "iOS build" run, artifact `ios-ipa` (a zip holding `Lodica-unsigned.ipa`).
