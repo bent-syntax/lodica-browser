@@ -1,13 +1,19 @@
 # Lodica for iOS
 
-SwiftUI shell around WKWebView (Apple requires WebKit on iOS). Tabs, private tabs, address bar with search, start page.
+SwiftUI shell around WKWebView (Apple requires WebKit on iOS). Tabs, private tabs, address bar with search, start page. Not tested on a device yet.
 
-## Install without a jailbreak
+## Install (no jailbreak)
 
-CI builds an unsigned IPA (`ios-build.yml`, artifact `ios-ipa`). Sign it on your own computer with a free Apple ID:
+Apple only runs apps that are signed. The shortest route is Sideloadly on a computer:
 
-1. Download the `ios-ipa` artifact and unzip it.
-2. Install it with AltStore or Sideloadly. They sign with your Apple ID and install over USB or Wi-Fi.
-3. Free Apple IDs expire apps after 7 days. Re-sign the same way. A paid developer account lasts a year.
+1. Plug in the iPhone, open Sideloadly, drag `Lodica-unsigned.ipa` onto it, enter your Apple ID, press Start.
 
-On iOS 16 or later, enable Settings > Privacy & Security > Developer Mode first.
+That is the whole install. Sideloadly signs the app with your free Apple ID and puts it on the phone.
+
+First time only: on the phone, turn on Settings > Privacy & Security > Developer Mode, then trust the app under Settings > General > VPN & Device Management.
+
+Free Apple IDs expire the app after 7 days. Repeat the same step to renew it. AltStore can renew it by itself over Wi-Fi if you leave it running on the computer.
+
+## Get the IPA
+
+CI builds it from `ios-build.yml`. Open the latest successful "iOS build" run under the repository's Actions tab and download the `ios-ipa` artifact. Unzip it to get `Lodica-unsigned.ipa`.
