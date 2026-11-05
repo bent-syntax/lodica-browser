@@ -89,6 +89,7 @@ fun customPalette(c: CustomTheme): Palette {
 
 /** A colour from the active custom theme's optional extras (tab, startBg), or null when none is set. */
 fun customExtraColor(key: String): Color? {
+    if (be.syntaxya.lodica.engine.Prefs.theme != "custom") return null
     val h = be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key)?.removePrefix("#") ?: return null
     return runCatching { Color(0xFF000000 or h.toLong(16)) }.getOrNull()
 }
