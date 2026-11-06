@@ -22,6 +22,23 @@ object SiteIcons {
     private val cache = HashMap<String, ImageBitmap>()
     private val failed = HashMap<String, Long>()
 
+    private val dark = HashSet<String>()
+
+    /** True when the logo's visible pixels are mostly dark, so the tile should be light to keep it readable. */
+    fun isDark(host: String): Boolean = synchronized(cache) { key(host) in dark }
+
+    private fun mostlyDark(b: Bitmap): Boolean {
+        val w = b.width; val h = b.height
+        var sum = 0.0; var n = 0
+        for (y in 0 until h step 2) for (x in 0 until w step 2) {
+            val c = b.getPixel(x, y)
+            if ((c ushr 24) < 128) continue
+            sum += (0.299 * ((c shr 16) and 255) + 0.587 * ((c shr 8) and 255) + 0.114 * (c and 255)) / 255.0
+            n++
+        }
+        return n > 0 && sum / n < 0.3
+    }
+
     fun cached(host: String): ImageBitmap? = synchronized(cache) { cache[key(host)] }
 
     /** Blocking: call off the main thread. */
@@ -37,8 +54,9 @@ object SiteIcons {
         val cands = (fromTabs + declared(origin) + "$origin/favicon.ico").distinct().take(8)
         for (u in cands) {
             val bmp = runCatching { fetch(URL(u)) }.getOrNull() ?: continue
-            val img = clearBackground(bmp).asImageBitmap()
-            synchronized(cache) { cache[h] = img; failed.remove(h) }
+            val cleared = clearBackground(bmp)
+            val img = cleared.asImageBitmap()
+            synchronized(cache) { cache[h] = img; failed.remove(h); if (mostlyDark(cleared)) dark.add(h) else dark.remove(h) }
             return img
         }
         synchronized(cache) { failed[h] = System.currentTimeMillis() }
