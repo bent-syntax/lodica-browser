@@ -11,8 +11,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: be.syntaxya.lodica
-        MARKETING_VERSION: "1.14.60"
-        CURRENT_PROJECT_VERSION: "220"
+        MARKETING_VERSION: "1.15.0"
+        CURRENT_PROJECT_VERSION: "221"
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Lodica
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

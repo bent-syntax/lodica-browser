@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.15.0
+
+- New: Shortcut tiles show the site logo with its background removed. Dark logos sit on a light tile so they stay visible.
+- New: AI custom themes can now set colours and textures per element: page background, search bar, tabs and shortcut tiles.
+
 ## 1.14.60
 
 - Fixed: The in-browser AI now has the permission level choice (Read only, Plan, Edit, Full auto) right inside the AI panel, so you no longer need to open Settings.

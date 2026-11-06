@@ -2,6 +2,8 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.0 (versionCode 221)
+
 ## 1.14.60 (versionCode 220)
 
 - Fixed: The in-browser AI now has the permission level choice (Read only, Plan, Edit, Full auto) right inside the AI panel, so you no longer need to open Settings.
