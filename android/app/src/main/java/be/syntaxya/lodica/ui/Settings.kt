@@ -263,6 +263,7 @@ fun SettingsScreen() {
                 2 -> {
             Section("AI")
             AiSection()
+            SwitchRow("Google AI overview", "Answer questions with the AI overview on a Google search instead of your own AI. Used automatically when no AI is linked", Prefs.googleOverview) { Prefs.updateGoogleOverview(it) }
             LinkRow("AI chats (${Chats.list.size})") { Ui.go(Screen.Chats) }
             Section("Emoji keyboard")
             EmojiKeyboardSection()
@@ -315,6 +316,8 @@ fun SettingsScreen() {
                 5 -> {
             Section("Tabs")
             SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
+            SwitchRow("Swipe the address bar to change tab", "Swipe left or right on the URL pill", Prefs.gestureSwipeTabs) { Prefs.updateGestureSwipeTabs(it) }
+            SwitchRow("Hide bars on scroll", "Scrolling down tucks the toolbar away, scrolling up brings it back", Prefs.gestureBarHide) { Prefs.updateGestureBarHide(it) }
                     Text(
                 "Auto-archive tabs unused for", color = Muted, fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
@@ -389,7 +392,6 @@ fun SettingsScreen() {
                 12 -> {
                     Section("Browser identity")
             AgentPicker()
-            SwitchRow("Google AI overview", "Answer questions with the AI overview on a Google search instead of your own AI. Used automatically when no AI is linked", Prefs.googleOverview) { Prefs.updateGoogleOverview(it) }
                     Section("Authenticator")
                     AuthenticatorSection()
                     Section("Backup")
@@ -1710,7 +1712,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("Video quality", 1, "data saver"),
     SettingsEntry("Smoother scrolling", 1, "scroll smooth fast render surface lag jank restart"),
     SettingsEntry("Data use", 8, "meter bandwidth"),
-    SettingsEntry("Ask AI", 2, "ai generate always allow summary assistant"),
+    SettingsEntry("Ask AI", 2, "ai generate always allow summary assistant google overview gemini"),
     SettingsEntry("AI chats", 2, "history assistant"),
     SettingsEntry("Emoji keyboard", 2, "custom emoji lodica keyboard import generate sticker"),
     SettingsEntry("Web apps", 8, "install shortcut silent"),
