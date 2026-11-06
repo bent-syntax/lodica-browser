@@ -359,7 +359,8 @@ object Ai {
         "tab (colour of the tab cards in the tab switcher), tabText (text on the tab cards, easy to read on tab), tabEdge (outline and pattern colour on the tab cards), startBg (start page background). " +
         "Add \"tabTexture\" as one of stripes, dots, grid, checker, planks, gradient when the user asks for a texture, material or pattern on the tabs (wood is planks, fabric is grid, wavy or dotted is dots). " +
         "If the user wants light and dark versions or a theme that follows the system, reply {\"dark\":{...},\"light\":{...}} with the four main keys in each, and put the extra keys in dark. " +
-        "If the user wants animation, add \"animation\" as one of pulse, glow, drift, float, shimmer."
+        "If the user wants animation, add \"animation\" as one of pulse, glow, drift, float, shimmer. " +
+        "Optionally add \"openAnimation\" (how a new tab appears), \"startAnimation\" (when the app opens) and \"closeAnimation\" (when a page or panel closes), each one of fade, slide, zoom, flip, bounce, drop, spin, rise, matching the idea (a bouncy theme gets bounce, a space theme gets zoom). The idea can be long and describe the whole look, so follow all of it."
 
     private fun lum(hex: String): Double {
         fun ch(i: Int): Double { val v = hex.substring(1 + i * 2, 3 + i * 2).toInt(16) / 255.0; return if (v <= 0.03928) v / 12.92 else Math.pow((v + 0.055) / 1.055, 2.4) }
@@ -372,8 +373,8 @@ object Ai {
         val key = apiKey ?: return done(Result.failure(IllegalStateException("Add an Anthropic API key first")))
         io.execute {
             val r = runCatching {
-                val body = JSONObject().put("model", MODEL).put("max_tokens", 900).put("system", THEME_SYSTEM)
-                    .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Theme: ${idea.take(80)}")))
+                val body = JSONObject().put("model", MODEL).put("max_tokens", 1400).put("system", THEME_SYSTEM)
+                    .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Theme: ${idea.take(1000)}")))
                 val (code, j) = post(key, body)
                 if (code !in 200..299) throw apiError(code, j)
                 val a = j.optJSONArray("content") ?: throw IllegalStateException("Empty reply")
@@ -393,6 +394,10 @@ object Ai {
                 val src = root.optJSONObject("dark") ?: root
                 val extra = CustomTheme.cleanExtra(
                     CustomTheme.EXTRA_KEYS.filter { it !in CustomTheme.TEX_KEYS }.associateWith { src.optString(it).uppercase() } +
+                        CustomTheme.MOTION_KEYS.associateWith { k ->
+                            val n = k.removeSuffix("Anim") + "Animation"
+                            root.optString(n).ifEmpty { src.optString(n) }.lowercase()
+                        } +
                         CustomTheme.TEX_KEYS.associateWith { k ->
                             val n = k.removeSuffix("Tex") + "Texture"
                             root.optString(n).ifEmpty { src.optString(n) }.lowercase()

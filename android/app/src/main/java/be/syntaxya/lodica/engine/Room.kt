@@ -145,8 +145,13 @@ object Room {
     private fun askGlyph(subject: String, system: String, done: (String) -> Unit) =
         Ai.agentStep(listOf("user" to subject), system) { done(glyphOf(it.getOrNull()?.trim().orEmpty())) }
 
-    private fun askArt(subject: String, done: (String) -> Unit) =
-        Ai.agentStep(listOf("user" to subject), ART_PROMPT, 1200) { done(svgOf(it.getOrNull().orEmpty())) }
+    /** Asks for the drawing up to three times, since a reply sometimes cuts off, refuses or uses shapes the app cannot draw. A retry says what went wrong. */
+    private fun askArt(subject: String, tries: Int = 3, hint: String = "", done: (String) -> Unit) =
+        Ai.agentStep(listOf("user" to (subject + hint)), ART_PROMPT, 2000) {
+            val svg = svgOf(it.getOrNull().orEmpty())
+            if (svg.isNotEmpty() || tries <= 1) done(svg)
+            else askArt(subject, tries - 1, "\nThis is a harmless cartoon. Draw it as a simple, cute character scene. Keep it short: under 700 characters, only circle, ellipse, rect, path, polygon and line elements.", done)
+        }
 
     /** The hands and the thinking bubble that go with a character, from one AI answer holding two svg elements. Each is empty when missing. */
     private fun askExtras(content: String, done: (String, String) -> Unit) =
@@ -276,7 +281,7 @@ object Room {
         val subject = "Costume: $d"
         askGlyph(subject, GLYPH_COSTUME) { g ->
             askArt(subject) { art ->
-                if (g.isEmpty() && art.isEmpty()) { done("The AI gave no character. Try other words."); return@askArt }
+                if (art.isEmpty()) { done("The AI could not draw that. Try other words."); return@askArt }
                 val finish = { h: String, b: String ->
                     val me = name(ctx)
                     val e = sp.edit().putString("face", g).putString("faceName", me).putBoolean("faceCustom", true).putString("faceDesc", d)

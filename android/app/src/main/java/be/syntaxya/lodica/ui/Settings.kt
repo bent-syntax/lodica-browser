@@ -252,7 +252,6 @@ fun SettingsScreen() {
                 }
                 1 -> {
                     Section("Browsing")
-            SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()
             QualityPicker()
@@ -315,7 +314,8 @@ fun SettingsScreen() {
                 }
                 5 -> {
             Section("Tabs")
-            Text(
+            SwitchRow("Desktop sites", "Request desktop pages in new tabs", Prefs.desktopDefault) { Prefs.updateDesktopDefault(it) }
+                    Text(
                 "Auto-archive tabs unused for", color = Muted, fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
             )
@@ -389,8 +389,11 @@ fun SettingsScreen() {
                 12 -> {
                     Section("Browser identity")
             AgentPicker()
+            SwitchRow("Google AI overview", "Answer questions with the AI overview on a Google search instead of your own AI. Used automatically when no AI is linked", Prefs.googleOverview) { Prefs.updateGoogleOverview(it) }
                     Section("Authenticator")
                     AuthenticatorSection()
+                    Section("Backup")
+                    be.syntaxya.lodica.ui.VaultBackupSection()
 
                 }
                 10 -> {
@@ -1810,8 +1813,8 @@ private fun CustomThemeEditor() {
         var busy by remember { mutableStateOf(false) }
         val ctx = LocalContext.current
         OutlinedTextField(
-            value = idea, onValueChange = { idea = it.take(80) }, label = { Text("Describe a theme, e.g. Minecraft with wood tabs") },
-            singleLine = true, modifier = Modifier.fillMaxWidth(),
+            value = idea, onValueChange = { idea = it.take(1000) }, label = { Text("Describe a theme: colours, textures, tabs, animations. Write as much as you like.") },
+            minLines = 4, maxLines = 12, modifier = Modifier.fillMaxWidth(),
         )
         Button(
             enabled = idea.isNotBlank() && !busy,

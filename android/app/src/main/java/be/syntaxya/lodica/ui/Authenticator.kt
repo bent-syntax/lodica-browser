@@ -238,3 +238,48 @@ fun AuthenticatorSection() {
         )
     }
 }
+
+/** Passphrase-protected copy of passwords and authenticator keys in Documents/Lodica, so a reinstall does not lose them. */
+@Composable
+fun VaultBackupSection() {
+    val ctx = LocalContext.current
+    var pass by remember { mutableStateOf("") }
+    var auto by remember { mutableStateOf(be.syntaxya.lodica.engine.Secret.has("vaultBackupPass")) }
+    var status by remember { mutableStateOf("") }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        be.syntaxya.lodica.engine.VaultBackup.restore(ctx, uri, pass.toCharArray()) { n, err ->
+            status = err ?: "Restored $n items."
+        }
+    }
+    Text(
+        "Keeps a copy in Documents/Lodica that survives uninstalling. It is locked with the passphrase below; without it nobody, including you, can open the file.",
+        color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+    )
+    OutlinedTextField(
+        value = pass, onValueChange = { pass = it }, singleLine = true, label = { Text("Backup passphrase") },
+        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+    )
+    Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(onClick = {
+            be.syntaxya.lodica.engine.VaultBackup.export(ctx, pass.toCharArray()) { err ->
+                if (err == null && auto) be.syntaxya.lodica.engine.Secret.put("vaultBackupPass", pass)
+                status = err ?: "Backed up to Documents/Lodica/${be.syntaxya.lodica.engine.VaultBackup.NAME}."
+            }
+        }) { Text("Back up now", color = Amber) }
+        TextButton(onClick = { pick.launch(arrayOf("*/*")) }) { Text("Restore from file", color = Amber) }
+    }
+    Row(
+        Modifier.fillMaxWidth().clickable {
+            auto = !auto
+            if (auto && pass.length >= 6) be.syntaxya.lodica.engine.Secret.put("vaultBackupPass", pass)
+            if (!auto) be.syntaxya.lodica.engine.Secret.put("vaultBackupPass", null)
+        }.padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Checkbox(checked = auto, onCheckedChange = null)
+        Text("Update the backup when I leave the app", color = Mist, fontSize = 15.sp)
+    }
+    if (status.isNotEmpty()) Text(status, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+}

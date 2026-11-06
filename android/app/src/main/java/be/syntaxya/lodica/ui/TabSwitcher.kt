@@ -1,6 +1,7 @@
 package be.syntaxya.lodica.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import be.syntaxya.lodica.ui.theme.themeEnter
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -247,9 +248,11 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     val tabText = if (incognito) Mist else (customExtraColor("tabText") ?: Mist)
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
+    val motion = be.syntaxya.lodica.ui.theme.themeMotion("openAnim")
     val grow by animateFloatAsState(if (entered) 1f else 0.82f, tween(260), label = "tab-in")
+    val open by animateFloatAsState(if (entered) 1f else 0f, be.syntaxya.lodica.ui.theme.motionSpec(motion), label = "tab-motion")
     Column(
-        modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f }
+        (if (motion.isEmpty()) modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f } else modifier.then(Modifier.themeEnter(motion, open)))
             .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (customExtraColor("tab") ?: GraphiteRaised))
             .then(if (texture != null) Modifier.drawBehind { drawTabTexture(texture, edge.copy(alpha = 0.28f)) } else Modifier)
             .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else if (customEdge != null) Modifier.border(BorderStroke(1.dp, customEdge), shape) else Modifier)

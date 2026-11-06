@@ -255,6 +255,12 @@ private fun RemindAtDialog() {
 
 /** Sends [question] to the Claude Code bridge and shows the answer. [context] defaults to the current page. */
 fun askAi(question: String, context: String? = null) {
+    // Without a linked AI, or when the user prefers it, Google's own AI overview answers in a search tab.
+    if (Prefs.googleOverview || !(Ai.hasKey || Ai.hasHearth || Ai.connected)) {
+        TabManager.open("https://www.google.com/search?q=" + java.net.URLEncoder.encode(question.trim().take(500), "UTF-8"))
+        Ui.screen = Screen.Browser
+        return
+    }
     val ctx = context ?: TabManager.current?.let { t -> listOf(t.title, t.host).filter { it.isNotBlank() }.joinToString(" - ") }.orEmpty()
     val a = Answer(question)
     Ui.answer = a

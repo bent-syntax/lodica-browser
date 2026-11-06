@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -271,3 +272,29 @@ fun LodicaTheme(content: @Composable () -> Unit) {
     }
     MaterialTheme(colorScheme = scheme(p), typography = LodicaTypography, shapes = LodicaShapes, content = content)
 }
+
+/** The motion a custom theme picked for [key] (openAnim, startAnim, closeAnim), or "" when none or animations are off. */
+fun themeMotion(key: String): String {
+    if (be.syntaxya.lodica.engine.Prefs.theme != "custom") return ""
+    return be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key).orEmpty()
+}
+
+/** Animation spec for [kind]: bounce springs, the rest ease over [ms]. */
+fun motionSpec(kind: String, ms: Int = 320): androidx.compose.animation.core.AnimationSpec<Float> =
+    if (kind == "bounce") androidx.compose.animation.core.spring(0.45f, 260f) else androidx.compose.animation.core.tween(ms)
+
+/** Draws a [kind] entrance at progress [p] (0 hidden, 1 settled). Does nothing at 1, so a settled view costs nothing. */
+fun androidx.compose.ui.Modifier.themeEnter(kind: String, p: Float): androidx.compose.ui.Modifier =
+    if (kind.isEmpty() || p >= 1f) this else this.graphicsLayer {
+        val q = p.coerceIn(0f, 1f); val r = 1f - p
+        alpha = if (kind == "bounce") q.coerceAtLeast(0.2f) else q
+        when (kind) {
+            "slide" -> translationX = size.width * r
+            "rise" -> translationY = size.height * 0.4f * r
+            "drop" -> translationY = -size.height * 0.6f * r
+            "zoom" -> { scaleX = 0.3f + 0.7f * p; scaleY = scaleX }
+            "bounce" -> { scaleX = 0.5f + 0.5f * p; scaleY = scaleX }
+            "flip" -> { rotationY = 90f * r; cameraDistance = 12f * density }
+            "spin" -> { rotationZ = -180f * r; scaleX = 0.4f + 0.6f * q; scaleY = scaleX }
+        }
+    }

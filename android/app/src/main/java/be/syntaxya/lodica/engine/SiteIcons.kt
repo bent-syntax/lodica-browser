@@ -51,7 +51,10 @@ object SiteIcons {
         val fromTabs = runCatching {
             TabManager.tabs.toList().filter { key(it.host) == h && !it.private }.flatMap { it.icons }
         }.getOrDefault(emptyList())
-        val cands = (fromTabs + declared(origin) + "$origin/favicon.ico").distinct().take(8)
+        val lower = host.lowercase()
+        val alt = if (lower.startsWith("www.")) lower.removePrefix("www.") else "www.$lower"
+        val origins = listOf(origin, (if (http) "https://" else "http://") + lower, "https://$alt").distinct()
+        val cands = (fromTabs + origins.flatMap { declared(it) + "$it/favicon.ico" + "$it/apple-touch-icon.png" }).distinct().take(14)
         for (u in cands) {
             val bmp = runCatching { fetch(URL(u)) }.getOrNull() ?: continue
             val cleared = clearBackground(bmp)

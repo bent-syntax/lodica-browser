@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Nothing leaves the device: tabs, profile and the password vault are excluded from cloud backup and device transfer. -->
+<!-- Nothing leaves the device through cloud backup or device transfer. The vault key is bound to this device, so passwords survive a reinstall only through the passphrase-locked file the user exports in Settings. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="root" />

@@ -38,6 +38,9 @@ import be.syntaxya.lodica.engine.TestSession
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.tabs.TabStore
 import be.syntaxya.lodica.ui.theme.LodicaTheme
+import be.syntaxya.lodica.ui.theme.themeEnter
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import java.io.File
 
 class MainActivity : HostActivity() {
@@ -80,7 +83,7 @@ class MainActivity : HostActivity() {
                     c.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 } else c.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             }
-            LodicaTheme { HolidayFxHost { Intro { if (Relay.setupDone) LodicaRoot() else SetupScreen() }; TestSessionBar(); LinkConfirmDialog(); UnlockAskDialog() } } }
+            LodicaTheme { HolidayFxHost { Intro { StartMotion { if (Relay.setupDone) LodicaRoot() else SetupScreen() } }; TestSessionBar(); LinkConfirmDialog(); UnlockAskDialog() } } }
     }
 
     /** Shown on the launch after a crash, before the engine starts, so the cause can be read and copied. */
@@ -226,6 +229,7 @@ class MainActivity : HostActivity() {
         TabManager.save()
         TabStore.flushNow()
         PcTabs.flush()
+        be.syntaxya.lodica.engine.VaultBackup.auto(applicationContext)
     }
 
     override fun onDestroy() {
@@ -248,4 +252,14 @@ class MainActivity : HostActivity() {
         const val LOCK_AFTER = 60_000L
         val URL = Regex("""https?://[^\s<>"']+""")
     }
+}
+
+/** Plays the active custom theme's start motion once when the app opens. */
+@androidx.compose.runtime.Composable
+private fun StartMotion(content: @androidx.compose.runtime.Composable () -> Unit) {
+    val kind = androidx.compose.runtime.remember { be.syntaxya.lodica.ui.theme.themeMotion("startAnim") }
+    var go by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(kind.isEmpty()) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { go = true }
+    val p by androidx.compose.animation.core.animateFloatAsState(if (go) 1f else 0f, be.syntaxya.lodica.ui.theme.motionSpec(kind, 600), label = "start-motion")
+    androidx.compose.foundation.layout.Box(androidx.compose.ui.Modifier.themeEnter(kind, p)) { content() }
 }

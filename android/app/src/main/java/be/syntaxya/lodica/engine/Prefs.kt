@@ -50,7 +50,12 @@ data class CustomTheme(
         val TEXTURES = listOf("stripes", "dots", "grid", "checker", "planks", "gradient")
         val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "tabTex", "startTex", "barBg", "barTex", "tileBg", "tileTex")
         val TEX_KEYS = listOf("tabTex", "startTex", "barTex", "tileTex")
-        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && (if (k in TEX_KEYS) v in TEXTURES else HEX.matches(v)) }
+        /** Entrance and exit motions a theme can pick for opening tabs, the app start and closing pages. Fixed list, so a theme never carries code. */
+        val MOTIONS = listOf("fade", "slide", "zoom", "flip", "bounce", "drop", "spin", "rise")
+        val MOTION_KEYS = listOf("openAnim", "startAnim", "closeAnim")
+        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) ->
+            (k in EXTRA_KEYS && (if (k in TEX_KEYS) v in TEXTURES else HEX.matches(v))) || (k in MOTION_KEYS && v in MOTIONS)
+        }
         fun pack(c: CustomTheme) = listOf(c.bg, c.text, c.accent, c.accent2, c.at.toString()) +
             (if (c.light.size == 4 || c.anim.isNotEmpty() || c.extra.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList()) +
             c.extra.map { (k, v) -> "$k=$v" }
@@ -93,6 +98,7 @@ object Prefs {
     var aiAlways by mutableStateOf(false); private set
     /** How much the AI may do on its own in the browser: read, plan, edit or auto. */
     var aiAgentMode by mutableStateOf("edit"); private set
+    var googleOverview by mutableStateOf(false); private set
     /** Smartschool planner ICS link shown on the start page; empty means not added. */
     var plannerIcs by mutableStateOf(""); private set
     /** Show the newest Notebook notes on the start page. */
@@ -216,6 +222,7 @@ object Prefs {
         searchWords = sp.getString("searchWords", "") ?: ""
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
+        googleOverview = sp.getBoolean("googleOverview", false)
         aiAgentMode = sp.getString("aiAgentMode", "edit").orEmpty().takeIf { it in AiAgent.MODES } ?: "edit"
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
@@ -423,6 +430,7 @@ object Prefs {
     fun updatePlannerTz(v: String) { plannerTz = v.trim().take(64); sp.edit().putString("plannerTz", plannerTz).apply(); Helper.push() }
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
+    fun updateGoogleOverview(v: Boolean) { googleOverview = v; sp.edit().putBoolean("googleOverview", v).apply() }
     fun updateAiAgentMode(v: String) { if (v !in AiAgent.MODES) return; aiAgentMode = v; sp.edit().putString("aiAgentMode", v).apply() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateSearchWords(v: String) { searchWords = v.trim(); sp.edit().putString("searchWords", searchWords).apply(); Helper.push() }

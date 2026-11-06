@@ -142,12 +142,43 @@ fun LodicaRoot() {
     }
 }
 
+/** Enter transition for a theme motion name, or null to keep the default. */
+private fun motionIn(kind: String): androidx.compose.animation.EnterTransition? {
+    val t = tween<Float>(320)
+    val o = tween<androidx.compose.ui.unit.IntOffset>(320, easing = FastOutSlowInEasing)
+    return when (kind) {
+        "fade" -> fadeIn(t)
+        "slide" -> androidx.compose.animation.slideInHorizontally(o) { it } + fadeIn(t)
+        "rise" -> androidx.compose.animation.slideInVertically(o) { it / 3 } + fadeIn(t)
+        "drop" -> androidx.compose.animation.slideInVertically(o) { -it / 2 } + fadeIn(t)
+        "zoom", "spin", "flip" -> androidx.compose.animation.scaleIn(tween(320), 0.3f) + fadeIn(t)
+        "bounce" -> androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(0.45f, 260f), 0.5f) + fadeIn(t)
+        else -> null
+    }
+}
+
+/** Exit transition for a theme motion name, or null to keep the default. */
+private fun motionOut(kind: String): androidx.compose.animation.ExitTransition? {
+    val t = tween<Float>(260)
+    val o = tween<androidx.compose.ui.unit.IntOffset>(260, easing = FastOutSlowInEasing)
+    return when (kind) {
+        "fade" -> fadeOut(t)
+        "slide" -> androidx.compose.animation.slideOutHorizontally(o) { it } + fadeOut(t)
+        "rise" -> androidx.compose.animation.slideOutVertically(o) { -it / 3 } + fadeOut(t)
+        "drop" -> androidx.compose.animation.slideOutVertically(o) { it / 2 } + fadeOut(t)
+        "zoom", "spin", "flip", "bounce" -> androidx.compose.animation.scaleOut(tween(260), 0.3f) + fadeOut(t)
+        else -> null
+    }
+}
+
 @Composable
 private fun Overlay(visible: Boolean, content: @Composable () -> Unit) {
+    val inKind = be.syntaxya.lodica.ui.theme.themeMotion("openAnim")
+    val outKind = be.syntaxya.lodica.ui.theme.themeMotion("closeAnim")
     AnimatedVisibility(
         visible,
-        enter = slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 8 } + fadeIn(tween(220)),
-        exit = slideOutVertically(tween(220, easing = FastOutSlowInEasing)) { it / 8 } + fadeOut(tween(180)),
+        enter = motionIn(inKind) ?: (slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 8 } + fadeIn(tween(220))),
+        exit = motionOut(outKind) ?: (slideOutVertically(tween(220, easing = FastOutSlowInEasing)) { it / 8 } + fadeOut(tween(180))),
     ) {
         Surface(Modifier.fillMaxSize(), color = Graphite, contentColor = Mist) {
             Box(Modifier.systemBarsPadding()) { content() }
