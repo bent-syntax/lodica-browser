@@ -146,7 +146,7 @@ object Room {
         Ai.agentStep(listOf("user" to subject), system) { done(glyphOf(it.getOrNull()?.trim().orEmpty())) }
 
     /** Asks for the drawing up to three times, since a reply sometimes cuts off, refuses or uses shapes the app cannot draw. A retry says what went wrong. */
-    private fun askArt(subject: String, tries: Int = 3, hint: String = "", done: (String) -> Unit) =
+    private fun askArt(subject: String, tries: Int = 3, hint: String = "", done: (String) -> Unit): Unit =
         Ai.agentStep(listOf("user" to (subject + hint)), ART_PROMPT, 2000) {
             val svg = svgOf(it.getOrNull().orEmpty())
             if (svg.isNotEmpty() || tries <= 1) done(svg)
