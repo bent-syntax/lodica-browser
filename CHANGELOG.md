@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.14.60 (versionCode 220)
+
+- Fixed: The in-browser AI now has the permission level choice (Read only, Plan, Edit, Full auto) right inside the AI panel, so you no longer need to open Settings.
+- Fixed: Runs with the in-browser AI are now saved to the chat history, and a New chat button starts a fresh session.
+- Fixed: Follow-up questions in the same AI session now remember what the AI said and did earlier.
+
 ## 1.14.59 (versionCode 219)
 
 - New: Instant answers on Lodica Search. Searching "speedtest" shows a speed test button, "what day is it today" shows the date and week, "when is Christmas" counts the days, and there are cards for timers, stopwatch, calculator, unit conversion, currency, weather, time in another city, moon phase, calendars, dice, coin flip, random number, colour picker, roman numerals and leap years. Currency and weather are skipped in private tabs.
