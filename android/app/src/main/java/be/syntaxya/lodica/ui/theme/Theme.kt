@@ -19,6 +19,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -104,8 +107,8 @@ fun customTexture(key: String): String? =
 fun androidx.compose.ui.Modifier.themedFill(colorKey: String, texKey: String, default: Color, shape: androidx.compose.ui.graphics.Shape): androidx.compose.ui.Modifier {
     val tex = customTexture(texKey)
     val edge = customExtraColor("tabEdge") ?: be.syntaxya.lodica.ui.theme.Amber
-    return this.clip(shape).background(customExtraColor(colorKey) ?: default)
-        .then(if (tex != null) androidx.compose.ui.Modifier.drawBehind { drawTabTexture(tex, edge.copy(alpha = 0.28f)) } else androidx.compose.ui.Modifier)
+    val filled = this.clip(shape).background(customExtraColor(colorKey) ?: default)
+    return if (tex != null) filled.drawBehind { drawTabTexture(tex, edge.copy(alpha = 0.28f)) } else filled
 }
 
 /** The tab card pattern of the active custom theme (stripes, dots, grid, checker, planks, gradient), or null. */
