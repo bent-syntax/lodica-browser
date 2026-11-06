@@ -113,7 +113,7 @@ fun AgentPanel() {
                 for (m in AiAgent.MODES) {
                     val on = m == cur
                     Text(AiAgent.levelName(m), color = if (on) OnAmber else Muted, fontSize = 12.sp, maxLines = 1,
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (on) Amber else Graphite).clickable { AiAgent.setLevel(m) }.padding(vertical = 6.dp),
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (on) Amber else Graphite).clickable { AiAgent.chooseLevel(m) }.padding(vertical = 6.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
