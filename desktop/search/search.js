@@ -40,6 +40,34 @@ function img(src, cls, alt) {
 
 // Round site icon, Google style: a letter circle first, swapped for the site's own favicon once the PC has fetched it.
 const iconCache = new Map();
+/** Removes a flat background around a logo (edge flood fill from the corner colour). Returns a data URL, or null when nothing should change. */
+function clearBackground(img) {
+  try {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (w < 8 || h < 8 || w > 512 || h > 512) return null;
+    const cv = document.createElement("canvas");
+    cv.width = w; cv.height = h;
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, h), px = d.data;
+    const at = (x, y) => (y * w + x) * 4;
+    const corners = [at(0, 0), at(w - 1, 0), at(0, h - 1), at(w - 1, h - 1)].filter((i) => px[i + 3] > 200);
+    if (!corners.length) return null;
+    const ref = corners[0];
+    const near = (i, j, t) => Math.abs(px[i] - px[j]) + Math.abs(px[i + 1] - px[j + 1]) + Math.abs(px[i + 2] - px[j + 2]) <= t;
+    if (corners.filter((i) => near(i, ref, 24)).length < 3) return null;
+    const r = px[ref], gr = px[ref + 1], b = px[ref + 2];
+    const seen = new Uint8Array(w * h), stack = [];
+    const push = (x, y) => { if (x < 0 || y < 0 || x >= w || y >= h || seen[y * w + x]) return; seen[y * w + x] = 1; const i = at(x, y); if (px[i + 3] < 16 || Math.abs(px[i] - r) + Math.abs(px[i + 1] - gr) + Math.abs(px[i + 2] - b) <= 40) stack.push(x, y); };
+    for (let x = 0; x < w; x++) { push(x, 0); push(x, h - 1); }
+    for (let y = 0; y < h; y++) { push(0, y); push(w - 1, y); }
+    let n = 0;
+    while (stack.length) { const y = stack.pop(), x = stack.pop(); px[at(x, y) + 3] = 0; n++; push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1); }
+    if (!n || n > w * h * 0.9) return null;
+    g.putImageData(d, 0, 0);
+    return cv.toDataURL("image/png");
+  } catch { return null; }
+}
 function favicon(host) {
   const letter = (host || "?").replace(/^www\./, "").charAt(0).toUpperCase();
   const c = el("span", { class: "fav" }, letter);
@@ -48,7 +76,7 @@ function favicon(host) {
   iconCache.get(host).then((url) => {
     if (!url) return;
     const i = new Image();
-    i.onload = () => { c.textContent = ""; c.append(i); };
+    i.onload = () => { const clear = clearBackground(i); if (clear) i.src = clear; c.textContent = ""; c.append(i); };
     i.alt = "";
     i.src = url;
   });

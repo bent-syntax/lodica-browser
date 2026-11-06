@@ -95,6 +95,7 @@ import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
+import be.syntaxya.lodica.ui.theme.themedFill
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
@@ -176,8 +177,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         Row(
             Modifier.weight(1f).height(40.dp)
                 .graphicsLayer { translationX = drag; alpha = 1f - (kotlin.math.abs(drag) / (threshold * 3)).coerceAtMost(0.5f) }
-                .clip(RoundedCornerShape(50))
-                .background(Graphite)
+                .themedFill("barBg", "barTex", Graphite, RoundedCornerShape(50))
                 .pointerInput(tab, Prefs.gestureSwipeTabs) {
                     if (!Prefs.gestureSwipeTabs) return@pointerInput
                     detectHorizontalDragGestures(

@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.drawTabTexture
+import androidx.compose.ui.draw.drawBehind
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -119,6 +121,10 @@ fun StartBackdrop(modifier: Modifier = Modifier) {
         }
         if (kind != "none" && Prefs.startDim > 0f) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = Prefs.startDim)))
+        }
+        be.syntaxya.lodica.ui.theme.customTexture("startTex")?.let { tex ->
+            val edge = be.syntaxya.lodica.ui.theme.customExtraColor("tabEdge") ?: Color.White
+            Box(Modifier.fillMaxSize().drawBehind { drawTabTexture(tex, edge.copy(alpha = 0.16f)) })
         }
         ThemeAnim()
     }

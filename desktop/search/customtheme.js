@@ -7,7 +7,7 @@ function customVars(c) {
   return {
     "--bg": c.bg, "--raised": c.raised || mix(c.text, c.bg, 8), "--high": c.high || mix(c.text, c.bg, 16), "--mist": c.text, "--text": c.text,
     "--muted": c.muted || mix(c.text, c.bg, 60), "--amber": c.accent, "--coral": c.accent2, "--link": c.accent, "--url": c.accent2, "--sub": c.text,
-    "--danger": c.danger || c.accent2, "--tab": c.tab || "", "--tab-text": c.tabText || "", "--tab-edge": c.tabEdge || "", "--start-bg": c.startBg || "",
+    "--danger": c.danger || c.accent2, "--tab": c.tab || "", "--tab-text": c.tabText || "", "--tab-edge": c.tabEdge || "", "--start-bg": c.startBg || "", "--bar-bg": c.barBg || "", "--tile-bg": c.tileBg || "",
     "color-scheme": lum(c.bg) > 0.5 ? "light" : "dark",
   };
 }
@@ -16,13 +16,15 @@ function applyCustom(root, theme, c) {
   const full = c && c.light && typeof c.light === "object" && typeof matchMedia === "function" && !matchMedia("(prefers-color-scheme: dark)").matches ? Object.assign({}, c, c.light) : c;
   const ok = full && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(full[k]));
   const vars = ok && theme === "custom" ? customVars(full) : null;
-  for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "--danger", "--tab", "--tab-text", "--tab-edge", "--start-bg", "color-scheme"]) {
+  for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "--danger", "--tab", "--tab-text", "--tab-edge", "--start-bg", "--bar-bg", "--tile-bg", "color-scheme"]) {
     if (vars && vars[k] !== "") root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
   }
   const anim = vars && c && ["pulse", "glow", "drift", "float", "shimmer"].includes(c.anim) ? c.anim : "";
   if (anim) root.setAttribute("data-theme-anim", anim); else root.removeAttribute("data-theme-anim");
-  const tex = vars && c && ["stripes", "dots", "grid", "checker", "planks", "gradient"].includes(c.tabTex) ? c.tabTex : "";
-  if (tex) root.setAttribute("data-tab-tex", tex); else root.removeAttribute("data-tab-tex");
+  for (const [k, attr] of [["tabTex", "data-tab-tex"], ["startTex", "data-start-tex"], ["barTex", "data-bar-tex"], ["tileTex", "data-tile-tex"]]) {
+    const tex = vars && c && ["stripes", "dots", "grid", "checker", "planks", "gradient"].includes(c[k]) ? c[k] : "";
+    if (tex) root.setAttribute(attr, tex); else root.removeAttribute(attr);
+  }
   // A light/dark theme re-applies itself when the system switches.
   root.__customArgs = [root, theme, c, sys];
   if (c && c.light && typeof matchMedia === "function" && !applyCustom.watching) {

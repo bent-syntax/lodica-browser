@@ -37,12 +37,44 @@ object SiteIcons {
         val cands = (fromTabs + declared(origin) + "$origin/favicon.ico").distinct().take(8)
         for (u in cands) {
             val bmp = runCatching { fetch(URL(u)) }.getOrNull() ?: continue
-            val img = bmp.asImageBitmap()
+            val img = clearBackground(bmp).asImageBitmap()
             synchronized(cache) { cache[h] = img; failed.remove(h) }
             return img
         }
         synchronized(cache) { failed[h] = System.currentTimeMillis() }
         return null
+    }
+
+    /** Makes the flat background colour around a logo transparent: flood fill from the edges over pixels close to the corner colour. Leaves logos that fill the whole square (no uniform border) alone. */
+    internal fun clearBackground(src: Bitmap): Bitmap {
+        val w = src.width; val h = src.height
+        if (w < 8 || h < 8) return src
+        val px = IntArray(w * h)
+        src.getPixels(px, 0, w, 0, 0, w, h)
+        fun dist(a: Int, b: Int): Int {
+            val da = (a ushr 24) - (b ushr 24); val dr = ((a shr 16) and 255) - ((b shr 16) and 255)
+            val dg = ((a shr 8) and 255) - ((b shr 8) and 255); val db = (a and 255) - (b and 255)
+            return maxOf(maxOf(Math.abs(da), Math.abs(dr)), maxOf(Math.abs(dg), Math.abs(db)))
+        }
+        val corners = intArrayOf(px[0], px[w - 1], px[(h - 1) * w], px[h * w - 1])
+        val ref = corners.firstOrNull { (it ushr 24) >= 200 } ?: return src
+        if (corners.count { dist(it, ref) <= 24 } < 3) return src
+        val seen = BooleanArray(w * h)
+        val stack = IntArray(w * h); var sp = 0
+        fun push(x: Int, y: Int) { val i = y * w + x; if (!seen[i] && dist(px[i], ref) <= 40) { seen[i] = true; stack[sp++] = i } }
+        for (x in 0 until w) { push(x, 0); push(x, h - 1) }
+        for (y in 0 until h) { push(0, y); push(w - 1, y) }
+        var cleared = 0
+        while (sp > 0) {
+            val i = stack[--sp]; px[i] = 0; cleared++
+            val x = i % w; val y = i / w
+            if (x > 0) push(x - 1, y); if (x < w - 1) push(x + 1, y)
+            if (y > 0) push(x, y - 1); if (y < h - 1) push(x, y + 1)
+        }
+        if (cleared == 0 || cleared > w * h * 9 / 10) return src
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        out.setPixels(px, 0, w, 0, 0, w, h)
+        return out
     }
 
     /** Opens [u] and follows up to 4 redirects, including http to https and a changed host, which HttpURLConnection will not do. */

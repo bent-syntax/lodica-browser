@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.themedFill
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.widget.Toast
@@ -547,7 +548,7 @@ private fun StartPage(modifier: Modifier) {
         Spacer(Modifier.height(28.dp))
         OutlinedTextField(
             q, { q = it },
-            Modifier.fillMaxWidth(),
+            Modifier.fillMaxWidth().themedFill("barBg", "barTex", GraphiteRaised, RoundedCornerShape(50)),
             singleLine = true,
             shape = RoundedCornerShape(50),
             placeholder = { Text("Search the web", color = Muted) },
@@ -563,7 +564,7 @@ private fun StartPage(modifier: Modifier) {
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
                 focusedBorderColor = Amber, unfocusedBorderColor = androidx.compose.ui.graphics.Color.Transparent,
-                focusedContainerColor = GraphiteRaised, unfocusedContainerColor = GraphiteRaised,
+                focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent, unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
             ),
         )
         Spacer(Modifier.height(28.dp))
@@ -576,7 +577,7 @@ private fun StartPage(modifier: Modifier) {
                         Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.size(56.dp).clip(CircleShape).background(GraphiteRaised).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
                             Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
                         }
                         if (Prefs.shortcutNames) {
@@ -652,9 +653,9 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
                 if (value == null) kotlinx.coroutines.delay(125_000)
             }
         }
-        Box(Modifier.size(56.dp).clip(CircleShape).background(GraphiteRaised).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
             val ic = icon
-            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(28.dp).clip(RoundedCornerShape(4.dp)))
+            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(36.dp))
             else if (host.firstOrNull()?.isLetter() == true) Text(host.first().uppercase(), color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
             else Icon(Icons.Rounded.Public, null, tint = Muted, modifier = Modifier.size(24.dp))
         }

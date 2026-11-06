@@ -142,7 +142,7 @@ function pickSettings(source, current) {
     const HEX = /^#[0-9a-f]{6}$/i;
     if (!Array.isArray(out.savedThemes)) delete out.savedThemes;
     else out.savedThemes = out.savedThemes.filter((t) => t && typeof t.name === "string" && t.name.trim() && ["bg", "text", "accent", "accent2"].every((k) => HEX.test(t[k]))).slice(0, 50)
-      .map((t) => { const o = { name: str(t.name, 40).trim() }; for (const k of ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg"]) if (HEX.test(t[k])) o[k] = t[k]; if (require("./aitheme").TEXTURES.includes(t.tabTex)) o.tabTex = t.tabTex; return o; });
+      .map((t) => { const o = { name: str(t.name, 40).trim() }; for (const k of ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "barBg", "tileBg"]) if (HEX.test(t[k])) o[k] = t[k]; for (const k of require("./aitheme").TEX_KEYS) if (require("./aitheme").TEXTURES.includes(t[k])) o[k] = t[k]; return o; });
   }
   for (const k of ["plannerPos", "notesPos"]) if (k in out && !["left", "right", "below"].includes(out[k])) delete out[k];
   return out;

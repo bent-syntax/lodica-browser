@@ -36,7 +36,7 @@ data class CustomTheme(
     val light: List<String> = emptyList(),
     /** Optional animation preset, one of [ANIMS], or empty. */
     val anim: String = "",
-    /** Optional extras by key: colours raised, high, muted, danger, tab, tabText, tabEdge, startBg, and tabTex (a pattern from [TEXTURES]). */
+    /** Optional extras by key: colours raised, high, muted, danger, tab, tabText, tabEdge, startBg, barBg (search bar), tileBg (shortcut tiles), and the patterns tabTex, startTex, barTex, tileTex (each from [TEXTURES]). */
     val extra: Map<String, String> = emptyMap(),
 ) {
     /** This theme with its light variant swapped in, when it has one. */
@@ -48,8 +48,9 @@ data class CustomTheme(
         fun validLight(l: List<String>) = l.size == 4 && valid(*l.toTypedArray())
         /** Patterns the tab cards draw themselves; no image is ever loaded. */
         val TEXTURES = listOf("stripes", "dots", "grid", "checker", "planks", "gradient")
-        val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "tabTex")
-        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && (if (k == "tabTex") v in TEXTURES else HEX.matches(v)) }
+        val EXTRA_KEYS = listOf("raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "tabTex", "startTex", "barBg", "barTex", "tileBg", "tileTex")
+        val TEX_KEYS = listOf("tabTex", "startTex", "barTex", "tileTex")
+        fun cleanExtra(m: Map<String, String>) = m.filter { (k, v) -> k in EXTRA_KEYS && (if (k in TEX_KEYS) v in TEXTURES else HEX.matches(v)) }
         fun pack(c: CustomTheme) = listOf(c.bg, c.text, c.accent, c.accent2, c.at.toString()) +
             (if (c.light.size == 4 || c.anim.isNotEmpty() || c.extra.isNotEmpty()) (if (c.light.size == 4) c.light else List(4) { "-" }) + c.anim else emptyList()) +
             c.extra.map { (k, v) -> "$k=$v" }

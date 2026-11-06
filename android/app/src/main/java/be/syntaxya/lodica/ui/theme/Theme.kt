@@ -94,6 +94,20 @@ fun customExtraColor(key: String): Color? {
     return runCatching { Color(0xFF000000 or h.toLong(16)) }.getOrNull()
 }
 
+/** The pattern for [key] (tabTex, startTex, barTex, tileTex) of the active custom theme, or null. */
+fun customTexture(key: String): String? =
+    if (be.syntaxya.lodica.engine.Prefs.theme != "custom") null
+    else be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key)?.takeIf { it in be.syntaxya.lodica.engine.CustomTheme.TEXTURES }
+
+/** Fills with the custom theme colour [colorKey] (or [default]) and draws the pattern [texKey] over it, using the edge colour. */
+@androidx.compose.runtime.Composable
+fun androidx.compose.ui.Modifier.themedFill(colorKey: String, texKey: String, default: Color, shape: androidx.compose.ui.graphics.Shape): androidx.compose.ui.Modifier {
+    val tex = customTexture(texKey)
+    val edge = customExtraColor("tabEdge") ?: be.syntaxya.lodica.ui.theme.Amber
+    return this.clip(shape).background(customExtraColor(colorKey) ?: default)
+        .then(if (tex != null) androidx.compose.ui.Modifier.drawBehind { drawTabTexture(tex, edge.copy(alpha = 0.28f)) } else androidx.compose.ui.Modifier)
+}
+
 /** The tab card pattern of the active custom theme (stripes, dots, grid, checker, planks, gradient), or null. */
 fun customTabTexture(): String? =
     if (be.syntaxya.lodica.engine.Prefs.theme != "custom") null

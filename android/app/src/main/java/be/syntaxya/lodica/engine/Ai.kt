@@ -372,7 +372,7 @@ object Ai {
         val key = apiKey ?: return done(Result.failure(IllegalStateException("Add an Anthropic API key first")))
         io.execute {
             val r = runCatching {
-                val body = JSONObject().put("model", MODEL).put("max_tokens", 700).put("system", THEME_SYSTEM)
+                val body = JSONObject().put("model", MODEL).put("max_tokens", 900).put("system", THEME_SYSTEM)
                     .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", "Theme: ${idea.take(80)}")))
                 val (code, j) = post(key, body)
                 if (code !in 200..299) throw apiError(code, j)
@@ -392,8 +392,11 @@ object Ai {
                 val an = root.optString("animation").lowercase().takeIf { it in CustomTheme.ANIMS }.orEmpty()
                 val src = root.optJSONObject("dark") ?: root
                 val extra = CustomTheme.cleanExtra(
-                    CustomTheme.EXTRA_KEYS.filter { it != "tabTex" }.associateWith { src.optString(it).uppercase() } +
-                        ("tabTex" to (root.optString("tabTexture").ifEmpty { src.optString("tabTexture") }.lowercase())),
+                    CustomTheme.EXTRA_KEYS.filter { it !in CustomTheme.TEX_KEYS }.associateWith { src.optString(it).uppercase() } +
+                        CustomTheme.TEX_KEYS.associateWith { k ->
+                            val n = k.removeSuffix("Tex") + "Texture"
+                            root.optString(n).ifEmpty { src.optString(n) }.lowercase()
+                        },
                 ).toMutableMap()
                 extra["tabText"]?.let { if (contrast(it, extra["tab"] ?: extra["raised"] ?: d[0]) < 4.5) extra.remove("tabText") }
                 CustomTheme(d[0], d[1], d[2], d[3], System.currentTimeMillis(), l, an, extra)

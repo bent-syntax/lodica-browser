@@ -51,3 +51,13 @@ test("reads the texture of a light and dark reply", () => {
   assert.strictEqual(t.tabTex, "dots");
   assert.ok(t.light);
 });
+
+test("per-element colours and textures for page, bar and tiles", () => {
+  const t = parse(`{${base},"barBg":"#223344","tileBg":"#334455","startTexture":"grid","barTexture":"dots","tileTexture":"CHECKER"}`);
+  assert.strictEqual(t.barBg, "#223344".toUpperCase());
+  assert.strictEqual(t.tileBg, "#334455".toUpperCase());
+  assert.strictEqual(t.startTex, "grid");
+  assert.strictEqual(t.barTex, "dots");
+  assert.strictEqual(t.tileTex, "checker");
+  assert.strictEqual(parse(`{${base},"barTexture":"url(x)"}`).barTex, undefined);
+});

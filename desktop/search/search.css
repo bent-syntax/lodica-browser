@@ -296,3 +296,29 @@ html[data-theme-anim=shimmer] body::before{background:linear-gradient(100deg,tra
 .inst-moon { align-self: center; }
 .inst-moon-dark { fill: var(--high); }
 .inst-moon-lit { fill: var(--amber); }
+
+/* Custom theme: colours and patterns for the page, search bar and shortcut tiles (drawn with gradients only). */
+html{--tx:color-mix(in srgb,var(--tab-edge,var(--amber)) 16%,transparent)}
+#f,#top a .fav{--tx:color-mix(in srgb,var(--tab-edge,var(--amber)) 28%,transparent)}
+#f{background-color:var(--bar-bg,var(--raised))}
+#top a .fav{background-color:var(--tile-bg,var(--raised))}
+html[data-start-tex="stripes"] body{background-attachment:fixed;background-image:repeating-linear-gradient(135deg,var(--tx) 0 4px,transparent 4px 12px)}
+html[data-start-tex="dots"] body{background-attachment:fixed;background-image:radial-gradient(var(--tx) 2px,transparent 2.5px);background-size:12px 12px}
+html[data-start-tex="grid"] body{background-attachment:fixed;background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);background-size:12px 12px}
+html[data-start-tex="checker"] body{background-attachment:fixed;background-image:conic-gradient(var(--tx) 25%,transparent 0 50%,var(--tx) 0 75%,transparent 0);background-size:16px 16px}
+html[data-start-tex="planks"] body{background-attachment:fixed;background-image:linear-gradient(90deg,transparent calc(100% - 2px),var(--tx) 0),linear-gradient(var(--tx) 1px,transparent 1px);background-size:32px 100%,100% 14px}
+html[data-start-tex="gradient"] body{background-attachment:fixed;background-image:linear-gradient(160deg,var(--tx),transparent 70%)}
+html[data-bar-tex="stripes"] #f{background-image:repeating-linear-gradient(135deg,var(--tx) 0 4px,transparent 4px 12px)}
+html[data-bar-tex="dots"] #f{background-image:radial-gradient(var(--tx) 2px,transparent 2.5px);background-size:12px 12px}
+html[data-bar-tex="grid"] #f{background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);background-size:12px 12px}
+html[data-bar-tex="checker"] #f{background-image:conic-gradient(var(--tx) 25%,transparent 0 50%,var(--tx) 0 75%,transparent 0);background-size:16px 16px}
+html[data-bar-tex="planks"] #f{background-image:linear-gradient(90deg,transparent calc(100% - 2px),var(--tx) 0),linear-gradient(var(--tx) 1px,transparent 1px);background-size:32px 100%,100% 14px}
+html[data-bar-tex="gradient"] #f{background-image:linear-gradient(160deg,var(--tx),transparent 70%)}
+html[data-tile-tex="stripes"] #top a .fav{background-image:repeating-linear-gradient(135deg,var(--tx) 0 4px,transparent 4px 12px)}
+html[data-tile-tex="dots"] #top a .fav{background-image:radial-gradient(var(--tx) 2px,transparent 2.5px);background-size:12px 12px}
+html[data-tile-tex="grid"] #top a .fav{background-image:linear-gradient(var(--tx) 1px,transparent 1px),linear-gradient(90deg,var(--tx) 1px,transparent 1px);background-size:12px 12px}
+html[data-tile-tex="checker"] #top a .fav{background-image:conic-gradient(var(--tx) 25%,transparent 0 50%,var(--tx) 0 75%,transparent 0);background-size:16px 16px}
+html[data-tile-tex="planks"] #top a .fav{background-image:linear-gradient(90deg,transparent calc(100% - 2px),var(--tx) 0),linear-gradient(var(--tx) 1px,transparent 1px);background-size:32px 100%,100% 14px}
+html[data-tile-tex="gradient"] #top a .fav{background-image:linear-gradient(160deg,var(--tx),transparent 70%)}
+#top a .fav img{width:36px;height:36px;border-radius:0}
+html[data-start-tex] body.home header{background:transparent}

@@ -365,8 +365,8 @@ function init(deps) {
   setInterval(pullTheme, 10 * 60 * 1000).unref?.();
   // Optional extras on a custom theme: a light variant (follows the system) and an animation preset.
   const ANIMS = ["pulse", "glow", "drift", "float", "shimmer"];
-  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg"];
-  const TEXTURES = require("./aitheme").TEXTURES;
+  const THEME_KEYS = ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "barBg", "tileBg"];
+  const { TEXTURES, TEX_KEYS } = require("./aitheme");
   const themeExtras = (c, out) => {
     const l = c && c.light;
     if (l && typeof l === "object" && ["bg", "text", "accent", "accent2"].every(k => HEX.test(l[k]))) {
@@ -374,7 +374,7 @@ function init(deps) {
       for (const k of THEME_KEYS) if (HEX.test(l[k])) out.light[k] = l[k];
     }
     if (c && ANIMS.includes(c.anim)) out.anim = c.anim;
-    if (c && TEXTURES.includes(c.tabTex)) out.tabTex = c.tabTex;
+    for (const k of TEX_KEYS) if (c && TEXTURES.includes(c[k])) out[k] = c[k];
     return out;
   };
   on("theme.custom", async (c, use) => {
