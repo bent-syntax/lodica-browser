@@ -470,21 +470,30 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
     var text by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
+    var alts by remember { mutableStateOf<List<String>>(emptyList()) }
+    fun make(t: String) {
+        busy = true; err = null; alts = emptyList()
+        Room.setFace(ctx, t) { e ->
+            if (e == null) { busy = false; onDone(); onClose() }
+            else { err = e; Room.alternatives(t) { a -> alts = a; busy = false } }
+        }
+    }
     AlertDialog(
         onDismissRequest = { if (!busy) onClose() },
         title = { Text("Your character") },
         text = {
             Column {
                 Text("Describe a costume. Leave empty to use the automatic character.", fontSize = 13.sp)
-                OutlinedTextField(text, { text = it.take(120) }, placeholder = { Text("a pirate cat") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                OutlinedTextField(text, { text = it.take(300) }, placeholder = { Text("a pirate cat") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
                 err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF43F5E), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
+                if (alts.isNotEmpty()) {
+                    Text("Try one of these instead:", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                    alts.forEach { a -> TextButton(enabled = !busy, onClick = { text = a; make(a) }) { Text(a, fontSize = 13.sp) } }
+                }
             }
         },
         confirmButton = {
-            TextButton(enabled = !busy, onClick = {
-                busy = true; err = null
-                Room.setFace(ctx, text) { e -> busy = false; if (e == null) { onDone(); onClose() } else err = e }
-            }) { Text(if (busy) "Making…" else "Make it") }
+            TextButton(enabled = !busy, onClick = { make(text) }) { Text(if (busy) "Making…" else "Make it") }
         },
         dismissButton = { TextButton(enabled = !busy, onClick = onClose) { Text("Cancel") } },
     )

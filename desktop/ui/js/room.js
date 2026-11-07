@@ -148,11 +148,16 @@ function roomFace(u, cls) {
 }
 // Describe a costume; the AI makes the character and everyone sees it. Empty text goes back to the operating system badge.
 async function roomCostume() {
-  const v = await textDialog({ key: "costume", title: "Your character", message: "Describe a costume. Leave empty to use the automatic character.", placeholder: "a pirate cat", ok: "Make it" });
-  if (v === null || v === undefined) return;
-  const r = await inv("room.face", v);
-  if (r && !r.ok) toast({ text: r.error || "Could not make the character" });
-  else { ROOM.state.face = (r && r.glyph) || ""; ROOM.state.art = (r && r.art) || ""; roomRender(); }
+  let v = await textDialog({ key: "costume", title: "Your character", message: "Describe a costume. Leave empty to use the automatic character.", placeholder: "a pirate cat", ok: "Make it" });
+  while (v !== null && v !== undefined) {
+    const r = await inv("room.face", v);
+    if (r && r.ok) { ROOM.state.face = r.glyph || ""; ROOM.state.art = r.art || ""; roomRender(); return; }
+    const alts = (r && r.alternatives) || [];
+    if (!alts.length) { toast({ text: (r && r.error) || "Could not make the character" }); return; }
+    v = await dialog({ key: "costume-alts", title: "Try one of these instead", message: r.error, cancelValue: null }, (d, L) => {
+      d.append(...alts.map((t) => btn(t, () => L.close(t), "muted")), btnRow(btn("Cancel", () => L.close(null), "muted")));
+    });
+  }
 }
 function roomPerson(u) {
   const [face, label, glyph] = roomFace(u, "chat-face");
