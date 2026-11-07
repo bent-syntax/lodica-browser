@@ -1189,6 +1189,93 @@
     const [p, o] = x1 < x2 ? [x1, x2] : [x2, x1];
     return v + " = " + fmt(p) + " or " + fmt(o);
   }
+  // "n=m/M" -> ["m = n*M", "M = m/n"]; every single-letter variable that occurs once, solved for in turn
+  function rearrange(src) {
+    const s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    if (s.length > 80 || (s.match(/=/g) || []).length !== 1) return null;
+    const sides = s.split("=");
+    if (!sides[0].trim() || !sides[1].trim()) return null;
+    const parse = (t) => {
+      const tk = t.match(/\d+\.?\d*|\.\d+|sqrt|[a-z]|[+\-*/^()]|\s+/gi);
+      if (!tk || tk.join("") !== t) return null;
+      const k = tk.filter((x) => !/^\s+$/.test(x));
+      let i = 0;
+      const isOperand = (x) => x !== undefined && (/^[\d.a-z]/i.test(x) || x === "(");
+      const expr = () => {
+        let a = term();
+        while (k[i] === "+" || k[i] === "-") { const o = k[i++]; a = { o, a, b: term() }; }
+        return a;
+      };
+      const term = () => {
+        let a = unary();
+        for (;;) {
+          if (k[i] === "*" || k[i] === "/") { const o = k[i++]; a = { o, a, b: unary() }; }
+          else if (isOperand(k[i])) a = { o: "*", a, b: unary() };
+          else return a;
+        }
+      };
+      const unary = () => (k[i] === "-" ? (i++, { o: "neg", a: unary() }) : power());
+      const power = () => { const b = atom(); if (k[i] === "^") { i++; return { o: "^", a: b, b: unary() }; } return b; };
+      const atom = () => {
+        const x = k[i++];
+        if (x === undefined) throw 0;
+        if (x === "(") { const e = expr(); if (k[i++] !== ")") throw 0; return e; }
+        if (x.toLowerCase() === "sqrt") return { o: "sqrt", a: atom() };
+        if (/^[\d.]/.test(x)) return { n: parseFloat(x) };
+        if (/^[a-z]$/i.test(x)) return { v: x };
+        throw 0;
+      };
+      try { const e = expr(); return i === k.length ? e : null; } catch (e) { return null; }
+    };
+    const L = parse(sides[0]), R = parse(sides[1]);
+    if (!L || !R) return null;
+    const has = (n, x) => n.v === x || (!!n.o && (has(n.a, x) || (!!n.b && has(n.b, x))));
+    const count = (n, x) => (n.v === x ? 1 : n.o ? count(n.a, x) + (n.b ? count(n.b, x) : 0) : 0);
+    const names = [];
+    const walk = (n) => { if (n.v && !names.includes(n.v)) names.push(n.v); if (n.o) { walk(n.a); if (n.b) walk(n.b); } };
+    walk(L); walk(R);
+    if (names.length < 2) return null;
+    const mk = (o, a, b) => {
+      if (o === "neg" && a.n !== undefined) return { n: -a.n };
+      if (b && a.n !== undefined && b.n !== undefined && o !== "^") return { n: o === "+" ? a.n + b.n : o === "-" ? a.n - b.n : o === "*" ? a.n * b.n : a.n / b.n };
+      if (o === "*" && (a.n === 1 || b.n === 1)) return a.n === 1 ? b : a;
+      if (o === "/" && b.n === 1) return a;
+      return b ? { o, a, b } : { o, a };
+    };
+    const prec = { "+": 1, "-": 1, "*": 2, "/": 2, neg: 1, "^": 4 };
+    const pr = (n, min) => {
+      if (n.v) return n.v;
+      if (n.n !== undefined) return n.n < 0 && min > 0 ? "(" + n.n + ")" : String(Number(n.n.toPrecision(10)));
+      let t;
+      if (n.o === "sqrt") return "sqrt(" + pr(n.a, 0) + ")";
+      if (n.o === "neg") t = "-" + pr(n.a, 3);
+      else if (n.o === "^") t = pr(n.a, 5) + "^" + pr(n.b, 4);
+      else t = pr(n.a, prec[n.o]) + (n.o === "*" || n.o === "/" ? n.o : " " + n.o + " ") + pr(n.b, n.o === "-" ? 2 : n.o === "/" ? 3 : prec[n.o]);
+      return prec[n.o] < min ? "(" + t + ")" : t;
+    };
+    const out = [];
+    const norm = (t) => t.replace(/\s+/g, "");
+    for (const x of names) {
+      if (count(L, x) + count(R, x) !== 1) continue;
+      let lhs = has(L, x) ? L : R, rhs = has(L, x) ? R : L, ok = true;
+      while (ok && lhs.v !== x) {
+        const inA = has(lhs.a, x);
+        if (lhs.o === "neg") { rhs = mk("neg", rhs); lhs = lhs.a; }
+        else if (lhs.o === "sqrt") { rhs = mk("^", rhs, { n: 2 }); lhs = lhs.a; }
+        else if (lhs.o === "+") { rhs = mk("-", rhs, inA ? lhs.b : lhs.a); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "-") { rhs = inA ? mk("+", rhs, lhs.b) : mk("-", lhs.a, rhs); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "*") { rhs = mk("/", rhs, inA ? lhs.b : lhs.a); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "/") { rhs = inA ? mk("*", rhs, lhs.b) : mk("/", lhs.a, rhs); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "^" && inA && lhs.b.n !== undefined && lhs.b.n !== 0) {
+          rhs = lhs.b.n === 2 ? { o: "sqrt", a: rhs } : mk("^", rhs, mk("/", { n: 1 }, lhs.b)); lhs = lhs.a;
+        } else ok = false;
+      }
+      if (!ok) continue;
+      const line = x + " = " + pr(rhs, 0);
+      if (norm(line) !== norm(s)) out.push(line);
+    }
+    return out.length ? out : null;
+  }
   // "f(x) = 3x + 14" or "y = x^2" -> { v, f } where f maps the unknown to a number
   function graphOf(src) {
     const s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
@@ -1469,6 +1556,21 @@
         const g = s && graphOf(s.text);
         const cv = g && drawGraph(g);
         if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
+        const alt = s && rearrange(s.text);
+        if (alt) {
+          showBubble(s.x, s.y, (d) => {
+            d.setAttribute("data-kind", "math");
+            for (const line of alt) {
+              const r = document.createElement("div");
+              r.textContent = line; r.title = "Copy";
+              r.style.cssText = "cursor:pointer;padding:1px 0";
+              r.addEventListener("mousedown", (e) => e.preventDefault());
+              r.addEventListener("click", () => { try { navigator.clipboard.writeText(line); } catch (e) { /* blocked */ } });
+              d.appendChild(r);
+            }
+          });
+          return;
+        }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
         if (s && s.text.trim().length > 1 && s.text.length <= 80 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { translateBubble(s); bubble.dataset.t = s.text; }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
