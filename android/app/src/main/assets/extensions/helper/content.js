@@ -1502,13 +1502,16 @@
     return tied[0];
   }
 
-  async function lookupText(text) {
-    const from = await detectLang(text);
-    if (!from) return { error: "Language not recognised" };
-    const to = TR_TARGET[from];
+  // Any language: the bubble offers a picker, and unknown source languages are auto-detected by the service
+  const TR_ALL = "af sq am ar hy az eu be bn bs bg ca zh-CN zh-TW hr cs da nl en et fi fr gl ka de el gu he hi hu is id ga it ja kn kk ko lv lt mk ms ml mt mr ne no fa pl pt ro ru sr si sk sl es sw sv ta te th tr uk ur uz vi cy".split(" ");
+  const trName = (c) => { try { return new Intl.DisplayNames(["en"], { type: "language" }).of(c); } catch (e) { return c; } };
+  async function lookupText(text, target) {
+    const det = await detectLang(text);
+    const from = det || "autodetect";
+    const to = target || TR_TARGET[det] || "en";
     const out = { from, to, text: "", def: "" };
     try {
-      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + from + "|" + to);
+      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + (det || "Autodetect") + "|" + to);
       out.text = (j && j.responseData && j.responseData.translatedText) || "";
     } catch (e) { /* offline */ }
     if (from === "en" && !/\s/.test(text.trim())) {
@@ -1529,9 +1532,9 @@
       b.textContent = "Translate";
       b.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 4px";
       b.addEventListener("mousedown", (e) => e.preventDefault());
-      b.addEventListener("click", async () => {
+      const run = async (target) => {
         b.textContent = "…";
-        const r = await lookupText(s.text);
+        const r = await lookupText(s.text, target);
         showBubble(s.x, s.y, (d2) => {
           d2.setAttribute("data-kind", "translate");
           if (r.error) { d2.textContent = r.error; return; }
@@ -1539,9 +1542,15 @@
           h.textContent = r.from.toUpperCase() + " → " + r.to.toUpperCase() + (r.text ? ": " + r.text : "");
           h.style.cssText = "font-weight:600";
           d2.appendChild(h);
+          const pick = document.createElement("select");
+          pick.style.cssText = "margin-top:4px;font:12px system-ui,sans-serif;max-width:200px";
+          for (const c of TR_ALL) { const o = document.createElement("option"); o.value = c; o.textContent = trName(c); o.selected = c === r.to; pick.appendChild(o); }
+          pick.addEventListener("change", () => run(pick.value));
+          d2.appendChild(pick);
           if (r.def) { const p = document.createElement("div"); p.textContent = r.def; p.style.cssText = "margin-top:4px;opacity:.85;max-width:260px"; d2.appendChild(p); }
         }, true);
-      });
+      };
+      b.addEventListener("click", () => run());
       d.appendChild(b);
     }, true);
   }
