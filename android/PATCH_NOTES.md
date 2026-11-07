@@ -1,5 +1,10 @@
 # Patch notes
 
+## 1.15.2
+
+- New: Select a formula and the page offers rearranged forms of it.
+- New: The translate bubble lets you pick any target language and detects the source language when it is unknown.
+
 ## 1.15.1
 
 - Fixed: When the AI will not draw your character, your current character stays and you get three other wordings to try. It no longer falls back to an emoji.
