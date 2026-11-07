@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.15.3
+
+- Fixed: The desktop translate bubble works again with the new language picker.
+
 ## 1.15.2
 
 - New: Select a formula and the page offers rearranged forms of it.

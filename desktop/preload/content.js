@@ -198,6 +198,72 @@ const lodicaMain = () => {
     if (port) port.postMessage({ type: "email", focused: isEmailField(active()), signup: isSignup() });
   }
 
+
+  // ---- AI agent: numbers visible elements, clicks, types and shows a glow while the agent works. Top frame only. ----
+  const AG_SEL = 'a[href],button,input,textarea,select,summary,[role=button],[role=link],[role=tab],[role=menuitem],[role=treeitem],[role=option],[onclick],[tabindex]:not([tabindex="-1"]),li[class*=menu],li[class*=nav]';
+  let agEls = [];
+  function agentOp(raw) {
+    let o; try { o = JSON.parse(raw); } catch { return; }
+    const reply = (extra) => port && port.postMessage({ type: "agent", value: JSON.stringify(Object.assign({ op: o.op, rid: o.rid }, extra)) });
+    try {
+      if (o.op === "glow") {
+        const ID = "__lodica_agent_glow";
+        for (const id of [ID, ID + "_s"]) document.getElementById(id)?.remove();
+        if (o.on && document.documentElement) {
+          const st = document.createElement("style");
+          st.id = ID + "_s";
+          st.textContent = "@keyframes lodglow{0%,100%{box-shadow:inset 0 0 18px 4px rgba(245,158,11,.55),inset 0 0 60px 8px rgba(245,158,11,.25)}50%{box-shadow:inset 0 0 28px 8px rgba(245,158,11,.85),inset 0 0 90px 16px rgba(245,158,11,.4)}}";
+          const d = document.createElement("div");
+          d.id = ID;
+          d.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;animation:lodglow 2s ease-in-out infinite";
+          document.documentElement.append(st, d);
+        }
+        return;
+      }
+      if (o.op === "snap") {
+        const docs = [document];
+        for (const f of document.querySelectorAll("iframe")) { try { if (f.contentDocument && f.contentDocument.body) docs.push(f.contentDocument); } catch (e) {} }
+        const vis = (e) => { const r = e.getBoundingClientRect(), s = (e.ownerDocument.defaultView || window).getComputedStyle(e); return r.width > 4 && r.height > 4 && s.visibility !== "hidden" && s.display !== "none"; };
+        const all = [];
+        for (const d of docs) {
+          const fr = d === document ? null : [...document.querySelectorAll("iframe")].find((f) => { try { return f.contentDocument === d; } catch (e) { return false; } });
+          const off = fr ? fr.getBoundingClientRect() : { top: 0 };
+          for (const e of d.querySelectorAll(AG_SEL)) {
+            if (!vis(e)) continue;
+            const y = e.getBoundingClientRect().top + off.top;
+            all.push({ e, y, inView: y > -20 && y < innerHeight + 20 });
+          }
+        }
+        all.sort((a, b) => (b.inView - a.inView) || (a.y - b.y));
+        agEls = all.slice(0, 140).map((x) => x.e);
+        const els = agEls.map((e, i) => {
+          const t = (e.getAttribute("aria-label") || e.innerText || e.value || e.placeholder || e.title || e.alt || "").replace(/\s+/g, " ").trim().slice(0, 80);
+          const kind = e.tagName.toLowerCase() + (e.type && e.tagName === "INPUT" ? ":" + e.type : "") + (e.ownerDocument !== document ? " (frame)" : "");
+          return "[" + i + "] " + kind + (t ? " " + JSON.stringify(t) : "");
+        }).join("\n");
+        const txt = (document.body ? document.body.innerText : "") + docs.slice(1).map((d) => "\n" + d.body.innerText).join("");
+        reply({ url: location.href, title: document.title, text: txt.replace(/\n{3,}/g, "\n\n").slice(0, 3000), els });
+        return;
+      }
+      const e = agEls[Number(o.id)];
+      if (o.op === "label") { reply({ label: e ? String(e.getAttribute("aria-label") || e.innerText || e.value || e.title || "").slice(0, 80) : "" }); return; }
+      if (o.op === "scroll") { window.scrollBy(0, (o.dir === "up" ? -1 : 1) * innerHeight * 0.8); reply({ result: "ok" }); return; }
+      if (!e) { reply({ result: "no such element" }); return; }
+      if (o.op === "click") { e.scrollIntoView({ block: "center" }); e.click(); reply({ result: "ok" }); return; }
+      if (o.op === "type") {
+        if (e.type === "password") { reply({ result: "refused: password field" }); return; }
+        e.scrollIntoView({ block: "center" }); e.focus();
+        const proto = e.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const set = Object.getOwnPropertyDescriptor(proto, "value");
+        const text = String(o.text || "").slice(0, 500);
+        if (set && set.set && "value" in e) set.set.call(e, text); else e.textContent = text;
+        e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true }));
+        if (o.enter) { if (e.form && e.form.requestSubmit) e.form.requestSubmit(); else e.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true })); }
+        reply({ result: "ok" });
+      }
+    } catch (err) { reply({ result: "failed: " + err.message }); }
+  }
+
   function connect() {
     if (port) return;
     try {
@@ -214,6 +280,7 @@ const lodicaMain = () => {
       }
       if (msg.type === "signup") startSignup(msg);
       if (msg.type === "reader" && TOP) port.postMessage(article());
+      if (msg.type === "agent" && TOP) agentOp(msg.value);
       if (msg.type === "code") {
         code = { value: msg.value, until: Date.now() + 120000 };
         tryCode();
@@ -937,18 +1004,11 @@ const lodicaMain = () => {
     if (!TOP) return;
     let st = document.getElementById("lodica-dark");
     const want = !!page.dark;
-    // While the page is still loading it starts dark, so back and forward never flash a white page.
-    // Once it has loaded the style is removed, so the site's own dark mode can be measured without it.
-    let pre = document.getElementById("lodica-predark");
-    if (want && !pre && !st && document.readyState === "loading") {
-      pre = document.createElement("style");
-      pre.id = "lodica-predark";
-      pre.textContent = "html{background:#111827!important;color-scheme:dark!important}";
-      (document.head || document.documentElement).appendChild(pre);
-    } else if (pre && document.readyState !== "loading") pre.remove();
-    if (pre && document.readyState === "loading") { document.addEventListener("DOMContentLoaded", applyDark, { once: true }); return; }
+    const pre = document.getElementById("lodica-predark");
+    // The early style would make every page look dark, so measure without it and put it back if the site is dark.
+    if (pre) pre.remove();
     if (want && !st) {
-      if (pageIsDark()) return; // the site brings its own dark mode
+      if (pageIsDark()) return; // the site brings its own dark mode, so the early style stays removed
       st = document.createElement("style");
       st.id = "lodica-dark";
       st.textContent = "html{color-scheme:dark!important}";
@@ -1147,6 +1207,93 @@ const lodicaMain = () => {
     const q = Math.sqrt(D), x1 = (-B - q) / (2 * A), x2 = (-B + q) / (2 * A);
     const [p, o] = x1 < x2 ? [x1, x2] : [x2, x1];
     return v + " = " + fmt(p) + " or " + fmt(o);
+  }
+  // "n=m/M" -> ["m = n*M", "M = m/n"]; every single-letter variable that occurs once, solved for in turn
+  function rearrange(src) {
+    const s = String(src).trim().replace(/[−–—]/g, "-").replace(/[×·⋅]/g, "*").replace(/÷/g, "/").replace(/\*\*/g, "^");
+    if (s.length > 80 || (s.match(/=/g) || []).length !== 1) return null;
+    const sides = s.split("=");
+    if (!sides[0].trim() || !sides[1].trim()) return null;
+    const parse = (t) => {
+      const tk = t.match(/\d+\.?\d*|\.\d+|sqrt|[a-z]|[+\-*/^()]|\s+/gi);
+      if (!tk || tk.join("") !== t) return null;
+      const k = tk.filter((x) => !/^\s+$/.test(x));
+      let i = 0;
+      const isOperand = (x) => x !== undefined && (/^[\d.a-z]/i.test(x) || x === "(");
+      const expr = () => {
+        let a = term();
+        while (k[i] === "+" || k[i] === "-") { const o = k[i++]; a = { o, a, b: term() }; }
+        return a;
+      };
+      const term = () => {
+        let a = unary();
+        for (;;) {
+          if (k[i] === "*" || k[i] === "/") { const o = k[i++]; a = { o, a, b: unary() }; }
+          else if (isOperand(k[i])) a = { o: "*", a, b: unary() };
+          else return a;
+        }
+      };
+      const unary = () => (k[i] === "-" ? (i++, { o: "neg", a: unary() }) : power());
+      const power = () => { const b = atom(); if (k[i] === "^") { i++; return { o: "^", a: b, b: unary() }; } return b; };
+      const atom = () => {
+        const x = k[i++];
+        if (x === undefined) throw 0;
+        if (x === "(") { const e = expr(); if (k[i++] !== ")") throw 0; return e; }
+        if (x.toLowerCase() === "sqrt") return { o: "sqrt", a: atom() };
+        if (/^[\d.]/.test(x)) return { n: parseFloat(x) };
+        if (/^[a-z]$/i.test(x)) return { v: x };
+        throw 0;
+      };
+      try { const e = expr(); return i === k.length ? e : null; } catch (e) { return null; }
+    };
+    const L = parse(sides[0]), R = parse(sides[1]);
+    if (!L || !R) return null;
+    const has = (n, x) => n.v === x || (!!n.o && (has(n.a, x) || (!!n.b && has(n.b, x))));
+    const count = (n, x) => (n.v === x ? 1 : n.o ? count(n.a, x) + (n.b ? count(n.b, x) : 0) : 0);
+    const names = [];
+    const walk = (n) => { if (n.v && !names.includes(n.v)) names.push(n.v); if (n.o) { walk(n.a); if (n.b) walk(n.b); } };
+    walk(L); walk(R);
+    if (names.length < 2) return null;
+    const mk = (o, a, b) => {
+      if (o === "neg" && a.n !== undefined) return { n: -a.n };
+      if (b && a.n !== undefined && b.n !== undefined && o !== "^") return { n: o === "+" ? a.n + b.n : o === "-" ? a.n - b.n : o === "*" ? a.n * b.n : a.n / b.n };
+      if (o === "*" && (a.n === 1 || b.n === 1)) return a.n === 1 ? b : a;
+      if (o === "/" && b.n === 1) return a;
+      return b ? { o, a, b } : { o, a };
+    };
+    const prec = { "+": 1, "-": 1, "*": 2, "/": 2, neg: 1, "^": 4 };
+    const pr = (n, min) => {
+      if (n.v) return n.v;
+      if (n.n !== undefined) return n.n < 0 && min > 0 ? "(" + n.n + ")" : String(Number(n.n.toPrecision(10)));
+      let t;
+      if (n.o === "sqrt") return "sqrt(" + pr(n.a, 0) + ")";
+      if (n.o === "neg") t = "-" + pr(n.a, 3);
+      else if (n.o === "^") t = pr(n.a, 5) + "^" + pr(n.b, 4);
+      else t = pr(n.a, prec[n.o]) + (n.o === "*" || n.o === "/" ? n.o : " " + n.o + " ") + pr(n.b, n.o === "-" ? 2 : n.o === "/" ? 3 : prec[n.o]);
+      return prec[n.o] < min ? "(" + t + ")" : t;
+    };
+    const out = [];
+    const norm = (t) => t.replace(/\s+/g, "");
+    for (const x of names) {
+      if (count(L, x) + count(R, x) !== 1) continue;
+      let lhs = has(L, x) ? L : R, rhs = has(L, x) ? R : L, ok = true;
+      while (ok && lhs.v !== x) {
+        const inA = has(lhs.a, x);
+        if (lhs.o === "neg") { rhs = mk("neg", rhs); lhs = lhs.a; }
+        else if (lhs.o === "sqrt") { rhs = mk("^", rhs, { n: 2 }); lhs = lhs.a; }
+        else if (lhs.o === "+") { rhs = mk("-", rhs, inA ? lhs.b : lhs.a); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "-") { rhs = inA ? mk("+", rhs, lhs.b) : mk("-", lhs.a, rhs); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "*") { rhs = mk("/", rhs, inA ? lhs.b : lhs.a); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "/") { rhs = inA ? mk("*", rhs, lhs.b) : mk("/", lhs.a, rhs); lhs = inA ? lhs.a : lhs.b; }
+        else if (lhs.o === "^" && inA && lhs.b.n !== undefined && lhs.b.n !== 0) {
+          rhs = lhs.b.n === 2 ? { o: "sqrt", a: rhs } : mk("^", rhs, mk("/", { n: 1 }, lhs.b)); lhs = lhs.a;
+        } else ok = false;
+      }
+      if (!ok) continue;
+      const line = x + " = " + pr(rhs, 0);
+      if (norm(line) !== norm(s)) out.push(line);
+    }
+    return out.length ? out : null;
   }
   // "f(x) = 3x + 14" or "y = x^2" -> { v, f } where f maps the unknown to a number
   function graphOf(src) {
@@ -1374,10 +1521,13 @@ const lodicaMain = () => {
     return tied[0];
   }
 
-  async function lookupText(text) {
-    const from = await detectLang(text);
-    if (!from) return { error: "Language not recognised" };
-    const to = TR_TARGET[from];
+  // Any language: the bubble offers a picker, and unknown source languages are auto-detected by the service
+  const TR_ALL = "af sq am ar hy az eu be bn bs bg ca zh-CN zh-TW hr cs da nl en et fi fr gl ka de el gu he hi hu is id ga it ja kn kk ko lv lt mk ms ml mt mr ne no fa pl pt ro ru sr si sk sl es sw sv ta te th tr uk ur uz vi cy".split(" ");
+  const trName = (c) => { try { return new Intl.DisplayNames(["en"], { type: "language" }).of(c); } catch (e) { return c; } };
+  async function lookupText(text, target) {
+    const det = await detectLang(text);
+    const from = det || "autodetect";
+    const to = target || TR_TARGET[det] || "en";
     const out = { from, to, text: "", def: "" };
     try { out.text = (await ipcRenderer.invoke("translate", { text, from, to })) || ""; } catch (e) { /* offline */ }
     if (from === "en" && !/\s/.test(text.trim())) {
@@ -1398,9 +1548,9 @@ const lodicaMain = () => {
       b.textContent = "Translate";
       b.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 4px";
       b.addEventListener("mousedown", (e) => e.preventDefault());
-      b.addEventListener("click", async () => {
+      const run = async (target) => {
         b.textContent = "…";
-        const r = await lookupText(s.text);
+        const r = await lookupText(s.text, target);
         showBubble(s.x, s.y, (d2) => {
           d2.setAttribute("data-kind", "translate");
           if (r.error) { d2.textContent = r.error; return; }
@@ -1408,9 +1558,15 @@ const lodicaMain = () => {
           h.textContent = r.from.toUpperCase() + " → " + r.to.toUpperCase() + (r.text ? ": " + r.text : "");
           h.style.cssText = "font-weight:600";
           d2.appendChild(h);
+          const pick = document.createElement("select");
+          pick.style.cssText = "margin-top:4px;font:12px system-ui,sans-serif;max-width:200px";
+          for (const c of TR_ALL) { const o = document.createElement("option"); o.value = c; o.textContent = trName(c); o.selected = c === r.to; pick.appendChild(o); }
+          pick.addEventListener("change", () => run(pick.value));
+          d2.appendChild(pick);
           if (r.def) { const p = document.createElement("div"); p.textContent = r.def; p.style.cssText = "margin-top:4px;opacity:.85;max-width:260px"; d2.appendChild(p); }
         }, true);
-      });
+      };
+      b.addEventListener("click", () => run());
       d.appendChild(b);
     }, true);
   }
@@ -1425,6 +1581,21 @@ const lodicaMain = () => {
         const g = s && graphOf(s.text);
         const cv = g && drawGraph(g);
         if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
+        const alt = s && rearrange(s.text);
+        if (alt) {
+          showBubble(s.x, s.y, (d) => {
+            d.setAttribute("data-kind", "math");
+            for (const line of alt) {
+              const r = document.createElement("div");
+              r.textContent = line; r.title = "Copy";
+              r.style.cssText = "cursor:pointer;padding:1px 0";
+              r.addEventListener("mousedown", (e) => e.preventDefault());
+              r.addEventListener("click", () => { try { navigator.clipboard.writeText(line); } catch (e) { /* blocked */ } });
+              d.appendChild(r);
+            }
+          });
+          return;
+        }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
         if (s && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { if (!page.selTranslate) { translateBubble(s); bubble.dataset.t = s.text; } }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
@@ -1543,26 +1714,10 @@ const lodicaMain = () => {
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
     watchCookies();
     msLogin();
-    holidayFx();
   }
 
   // Late retries: the page options can arrive after the first paint.
   for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) applyDark(); }, t);
-
-  // Holiday theme effect (snow, hearts...) drawn over the page in an isolated world, so the page cannot see it.
-  let fxSrc = null, fxKind = null;
-  async function holidayFx() {
-    if (window !== window.top || /^lodica:/.test(location.protocol)) return;
-    const kind = page.fx || "";
-    if (kind === fxKind) return;
-    fxKind = kind;
-    if (!kind && fxSrc == null) return;
-    if (fxSrc == null) fxSrc = await ipcRenderer.invoke("fxSrc").catch(() => "");
-    if (!fxSrc || fxKind !== kind) return;
-    const run = () => webFrame.executeJavaScriptInIsolatedWorld(1999, [{ code: "window.__lodicaFxKind=" + JSON.stringify(kind) + ";" + fxSrc }]).catch(() => {});
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", run, { once: true }); else run();
-  }
-
 
   // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
   let msTried = false;
@@ -1729,77 +1884,4 @@ const lodicaMain = () => {
 if (/^https?:$/.test(location.protocol)) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
   else lodicaMain();
-}
-
-// Site notifications: the page's Notification and showNotification calls are passed to the app,
-// which shows them as system notifications (only for sites the user allowed) and focuses the tab
-// on click. Push messages for closed sites are not supported.
-if (/^https?:$/.test(location.protocol)) {
-  const shim = `(() => {
-    const N = window.Notification;
-    if (!N || N.__lodica) return;
-    let seq = 0;
-    const live = new Map();
-    const post = m => window.postMessage(Object.assign({ __lodicaNotify: 1 }, m), location.origin);
-    const abs = u => { try { return u ? new URL(String(u), location.href).href : ""; } catch { return ""; } };
-    const send = (title, o) => {
-      o = o || {};
-      const id = ++seq;
-      post({ op: "show", id, title: String(title == null ? "" : title).slice(0, 200), body: String(o.body == null ? "" : o.body).slice(0, 1000),
-        tag: String(o.tag == null ? "" : o.tag).slice(0, 200), icon: abs(o.icon), silent: !!o.silent });
-      return id;
-    };
-    class LodicaNotification extends EventTarget {
-      constructor(title, o) {
-        super();
-        if (!arguments.length) throw new TypeError("Failed to construct 'Notification': 1 argument required, but only 0 present.");
-        o = o || {};
-        this.title = String(title); this.body = String(o.body == null ? "" : o.body); this.tag = String(o.tag == null ? "" : o.tag);
-        this.icon = abs(o.icon); this.data = o.data === undefined ? null : o.data; this.silent = !!o.silent;
-        this.dir = o.dir || "auto"; this.lang = o.lang || ""; this.badge = abs(o.badge); this.image = abs(o.image);
-        this.requireInteraction = !!o.requireInteraction; this.renotify = !!o.renotify; this.timestamp = Date.now(); this.actions = [];
-        this.onclick = this.onshow = this.onerror = this.onclose = null;
-        if (N.permission !== "granted") { setTimeout(() => this.__fire("error"), 0); return; }
-        this.__id = send(title, o);
-        live.set(this.__id, this);
-        setTimeout(() => this.__fire("show"), 0);
-      }
-      __fire(type) {
-        const e = new Event(type, { cancelable: true });
-        this.dispatchEvent(e);
-        const h = this["on" + type];
-        if (typeof h === "function") { try { h.call(this, e); } catch (err) { setTimeout(() => { throw err; }); } }
-      }
-      close() { if (this.__id) { post({ op: "close", id: this.__id }); live.delete(this.__id); this.__fire("close"); this.__id = 0; } }
-      static get permission() { return N.permission; }
-      static requestPermission(cb) { return N.requestPermission(cb); }
-      static get maxActions() { return 0; }
-    }
-    LodicaNotification.__lodica = true;
-    window.Notification = LodicaNotification;
-    window.addEventListener("message", e => {
-      const d = e.data;
-      if (e.source !== window || !d || d.__lodicaNotifyEvent !== 1) return;
-      const n = live.get(d.id);
-      if (!n) return;
-      if (d.type === "close") { live.delete(d.id); n.__id = 0; }
-      n.__fire(d.type);
-    });
-    const R = window.ServiceWorkerRegistration;
-    if (R && R.prototype.showNotification) {
-      R.prototype.showNotification = function (title, o) {
-        if (N.permission !== "granted") return Promise.reject(new TypeError("No notification permission has been granted for this origin."));
-        send(title, o);
-        return Promise.resolve();
-      };
-      R.prototype.getNotifications = function () { return Promise.resolve([]); };
-    }
-  })();`;
-  webFrame.executeJavaScript(shim).catch(() => {});
-  window.addEventListener("message", e => {
-    const d = e.data;
-    if (e.source !== window || !d || d.__lodicaNotify !== 1) return;
-    ipcRenderer.send("pageNotify", { op: d.op, id: d.id, title: d.title, body: d.body, tag: d.tag, icon: d.icon, silent: d.silent });
-  });
-  ipcRenderer.on("pageNotify", (e, m) => window.postMessage({ __lodicaNotifyEvent: 1, id: m.id, type: m.type }, location.origin));
 }

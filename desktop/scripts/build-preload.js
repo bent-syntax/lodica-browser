@@ -81,7 +81,7 @@ swap(`  try {
 swap('  const trFetch = (u) => fetch(u).then((r) => r.json());', '  const trFetch = (u) => ipcRenderer.invoke("fetchJson", u);');
 swap('const TR_TARGET = { en: "nl", nl: "en", fr: "en" };', 'const TR_TARGET = { en: "nl", nl: "fr", fr: "nl" };');
 swap(`    try {
-      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + from + "|" + to);
+      const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + (det || "Autodetect") + "|" + to);
       out.text = (j && j.responseData && j.responseData.translatedText) || "";
     } catch (e) { /* offline */ }`, `    try { out.text = (await ipcRenderer.invoke("translate", { text, from, to })) || ""; } catch (e) { /* offline */ }`);
 swap("s.text.length <= 80 && /\\p{L}/u.test(s.text)", "s.text.length <= 200 && /\\p{L}/u.test(s.text)");

@@ -2,6 +2,8 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.3 (versionCode 224)
+
 ## 1.15.2 (versionCode 223)
 
 ## 1.15.1 (versionCode 222)
