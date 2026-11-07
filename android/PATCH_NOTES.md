@@ -1,5 +1,9 @@
 # Patch notes
 
+## 1.15.1
+
+- Fixed: When the AI will not draw your character, your current character stays and you get three other wordings to try. It no longer falls back to an emoji.
+
 ## 1.15.0
 
 - New: Shortcut tiles show the site logo with its background removed. Dark logos sit on a light tile so they stay visible.

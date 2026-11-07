@@ -1,3 +1,7 @@
+## 1.15.1
+
+- Fixed: When the AI will not draw your character, your current character stays and you get three other wordings to try. It no longer falls back to an emoji.
+
 ## 1.15.0
 
 - New: Shortcut logos on the start page have their background removed.
