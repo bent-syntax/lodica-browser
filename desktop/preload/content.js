@@ -279,6 +279,7 @@ const lodicaMain = () => {
         if (ok) startSignup(msg);
       }
       if (msg.type === "signup") startSignup(msg);
+      if (msg.type === "autologin") autoLogin(msg.value, msg.pass);
       if (msg.type === "reader" && TOP) port.postMessage(article());
       if (msg.type === "agent" && TOP) agentOp(msg.value);
       if (msg.type === "code") {
@@ -1541,9 +1542,39 @@ const lodicaMain = () => {
     return out;
   }
 
+  // Read the selection out loud in the language it is written in
+  async function speechLang(text) {
+    const sc = [[/[\u0400-\u04ff]/, "ru-RU"], [/[\u0370-\u03ff]/, "el-GR"], [/[\u3040-\u30ff]/, "ja-JP"], [/[\u4e00-\u9fff]/, "zh-CN"],
+      [/[\uac00-\ud7af]/, "ko-KR"], [/[\u0600-\u06ff]/, "ar-SA"], [/[\u0590-\u05ff]/, "he-IL"], [/[\u0e00-\u0e7f]/, "th-TH"], [/[\u0900-\u097f]/, "hi-IN"]];
+    for (const [re, l] of sc) if (re.test(text)) return l;
+    const det = await detectLang(text.slice(0, 600));
+    if (det) return { en: "en-GB", nl: "nl-BE", fr: "fr-FR" }[det];
+    return document.documentElement.lang || navigator.language || "en-US";
+  }
+  async function speak(text) {
+    const ss = window.speechSynthesis;
+    if (!ss) return false;
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 5000));
+    u.lang = await speechLang(text);
+    const base = u.lang.slice(0, 2).toLowerCase();
+    const v = ss.getVoices().find((x) => x.lang.toLowerCase() === u.lang.toLowerCase()) || ss.getVoices().find((x) => x.lang.toLowerCase().startsWith(base));
+    if (v) u.voice = v;
+    ss.speak(u);
+    return true;
+  }
+
   function translateBubble(s) {
     showBubble(s.x, s.y, (d) => {
       d.setAttribute("data-kind", "translate");
+      const rd = document.createElement("button");
+      rd.textContent = "🔊";
+      rd.title = "Read aloud";
+      rd.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 6px 2px 4px";
+      rd.addEventListener("mousedown", (e) => e.preventDefault());
+      rd.addEventListener("click", () => { if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel(); else speak(s.text); });
+      d.appendChild(rd);
+      if (s.text.length > 200 || page.selTranslate) return;
       const b = document.createElement("button");
       b.textContent = "Translate";
       b.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 4px";
@@ -1597,7 +1628,7 @@ const lodicaMain = () => {
           return;
         }
         if (bubble && bubble.getAttribute("data-kind") === "math") hideBubble();
-        if (s && s.text.trim().length > 1 && s.text.length <= 200 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { if (!page.selTranslate) { translateBubble(s); bubble.dataset.t = s.text; } }
+        if (s && s.text.trim().length > 1 && s.text.length <= 5000 && /\p{L}/u.test(s.text) && !(bubble && bubble.getAttribute("data-kind") === "translate" && bubble.dataset.t === s.text)) { translateBubble(s); bubble.dataset.t = s.text; }
         else if (!s && bubble && bubble.getAttribute("data-kind") === "translate") hideBubble();
         return;
       }
@@ -1742,6 +1773,27 @@ const lodicaMain = () => {
   ipcRenderer.invoke("page").then(usePage, () => {});
   ipcRenderer.on("page", (e, p) => usePage(p));
 
+  // Saved login for a trusted site: fill the visible username and password fields and submit once.
+  function autoLogin(name, pass) {
+    if (!name || !pass) return;
+    let tries = 0;
+    const go = () => {
+      const pw = [...document.querySelectorAll("input[type=password]")].find(visible);
+      if (!pw) { if (++tries < 20) setTimeout(go, 500); return; }
+      const scope = pw.form || document;
+      const un = [...scope.querySelectorAll("input")].filter((el) => visible(el) && el !== pw && /^(text|email|tel|)$/.test(attr(el, "type").toLowerCase()))[0];
+      if (un) { un.focus(); typeIn(un, name); }
+      pw.focus(); typeIn(pw, pass);
+      setTimeout(() => {
+        const btn = (pw.form || document).querySelector("button[type=submit], input[type=submit], button:not([type])");
+        if (pw.form && pw.form.requestSubmit) pw.form.requestSubmit(btn || undefined);
+        else if (btn) btn.click();
+        else pw.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", code: "Enter", keyCode: 13, bubbles: true }));
+      }, 300);
+    };
+    go();
+  }
+
   // --- Reader view: the app asks the top frame for the main text ---
 
   function article() {
@@ -1764,6 +1816,12 @@ const lodicaMain = () => {
       const t = el.textContent.replace(/\s+/g, " ").replace(/\s*\[(\d+|[a-z]|citation needed|edit)\]/gi, "").trim();
       if (t.length < (/^H/.test(el.tagName) ? 2 : 25)) continue;
       parts.push(/^H/.test(el.tagName) ? "## " + t : el.tagName === "LI" ? "• " + t : t);
+    }
+    if (parts.join("").length < 200) {
+      // Script-rendered portals have few <p>: fall back to the visible text of the main area.
+      const main = document.querySelector("main, [role=main], #content, .content") || document.body;
+      const raw = (main.innerText || "").split(/\n+/).map((l) => l.trim()).filter((l) => l.length > 1);
+      if (raw.join("").length > parts.join("").length) { parts.length = 0; parts.push(...raw); }
     }
     const title = (document.querySelector("h1") || {}).textContent || document.title;
     return { type: "article", title: (title || "").trim(), text: parts.join("\n\n").slice(0, 200000) };

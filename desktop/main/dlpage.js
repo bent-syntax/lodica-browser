@@ -1,4 +1,4 @@
-// Download start animation drawn over the active page: a sheet of paper in the theme colours lifts off where the cursor is and drops into a folder at the top right, drawn in the theme colours with the shape of the user's operating system folder.
+// Download start animation drawn over the active page: a sheet of paper in the theme colours lifts off where the cursor is and drops into a folder at the bottom of the window, drawn in the theme colours with the shape of the user's operating system folder.
 // Runs in an isolated world with styles from insertCSS and DOM built without innerHTML, so page CSP and Trusted Types cannot block it.
 const WORLD = 1047;
 const ID = "lodica-dl-anim";
@@ -47,8 +47,8 @@ function script(short, c, from, to, os) {
       { transform: "translate(" + dx + "px," + (dy - 24) + "px) scale(1) rotate(0deg)", opacity: 1, offset: .12 },
       { transform: "translate(" + (dx * .35) + "px," + (dy * .35 - 40) + "px) scale(.9) rotate(5deg)", opacity: 1, offset: .45 },
       { transform: "translate(0,-14px) scale(.75) rotate(0deg)", opacity: 1, offset: .68 },
-      { transform: "translate(0,22px) scale(.75)", opacity: 1, offset: .82 },
-      { transform: "translate(0,22px) scale(.75)", opacity: 1 },
+      { transform: "translate(0,2px) scale(.6)", opacity: 1, offset: .82 },
+      { transform: "translate(0,2px) scale(.6)", opacity: 1 },
     ], o).finished,
   ]).then(done, done);
 })()`;
@@ -59,8 +59,8 @@ async function where(wc) {
   const { screen } = require("electron");
   const win = wc.getOwnerBrowserWindow && wc.getOwnerBrowserWindow();
   const [vw, vh] = await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: "[innerWidth, innerHeight]" }]);
-  let from = { x: vw / 2, y: vh - 48 };
-  const to = { x: Math.max(80, vw - 96), y: 88 };
+  let from = { x: vw / 2, y: vh / 2 };
+  const to = { x: vw / 2, y: Math.max(60, vh - 60) };
   if (win) {
     const cb = win.getContentBounds(), p = screen.getCursorScreenPoint();
     const ox = cb.width - vw, oy = cb.height - vh;

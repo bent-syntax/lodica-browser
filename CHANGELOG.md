@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.4 (versionCode 225)
+
+- Fixed: The AI panel input stays above the keyboard on mobile.
+- Fixed: Tapping the mobile search bar keeps the keyboard open until you press back.
+- Fixed: Backspace removes one letter at a time, and Ctrl+Backspace removes a word, in the address bar.
+- Fixed: The download animation ends at the bottom of the window and no longer clips through the folder.
+- New: Pelckmansportaal signs in by itself with your saved login.
+- Fixed: Reader mode works on script-rendered pages such as Pelckmansportaal.
+- New: Selecting text offers a read-aloud button that detects the language.
+
 ## 1.15.3 (versionCode 224)
 
 ## 1.15.2 (versionCode 223)

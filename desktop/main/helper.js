@@ -181,6 +181,20 @@ function forgetTab(tab) {
   for (const [a, t] of owners) if (t === tab) owners.delete(a);
 }
 
+// Sites that sign in by themselves with the saved login (vault must be unlocked or have no PIN).
+const AUTOLOGIN = /(^|\.)pelckmansportaal\.be$/i;
+const tried = new WeakMap();
+function autoLogin(tab, host) {
+  const { vault } = deps;
+  if (!AUTOLOGIN.test(String(host || "")) || tab.private) return;
+  if (tried.get(tab) === host) return;
+  if (vault.pinSet() && !vault.state().unlocked) return;
+  const e = vault.find("https://" + host)[0] || vault.exportAll().find(x => AUTOLOGIN.test(x.origin.replace(/^https?:\/\//, "")));
+  if (!e) return;
+  tried.set(tab, host);
+  for (const f of live(tab)) send(f, { type: "autologin", value: e.user, pass: e.pass });
+}
+
 let totpAsking = false;
 /** A verification-code field got focus: fill the authenticator code saved for this site, or ask which account to use. */
 async function totpFill(tab, host) {
@@ -256,7 +270,10 @@ async function onMessage(tab, frame, m) {
         ui.toast("Compatibility mode on for " + m.host);
       }
       break;
-    case "login": prefs.addDirect([Relay.baseDomain(m.host), Relay.baseDomain(host)].filter(Boolean)); break;
+    case "login":
+      prefs.addDirect([Relay.baseDomain(m.host), Relay.baseDomain(host)].filter(Boolean));
+      autoLogin(tab, m.host);
+      break;
     case "user": if (m.value) users.set(tab, [Relay.baseDomain(m.host), String(m.value)]); break;
     case "creds": {
       if (!m.pass || !web(m.origin) || tab.private) break;

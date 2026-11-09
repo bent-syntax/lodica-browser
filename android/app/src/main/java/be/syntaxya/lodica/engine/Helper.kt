@@ -250,6 +250,19 @@ object Helper {
         Prefs.addDirect(listOf(host, tab.host).filter { it.isNotBlank() }.map { Relay.baseDomain(it) })
     }
 
+    /** Sites that sign in by themselves with the saved login. */
+    private val autoLoginHost = Regex("(^|\\.)pelckmansportaal\\.be$", RegexOption.IGNORE_CASE)
+    private val autoTried = HashSet<String>()
+
+    private fun autoLogin(tab: Tab, frame: Frame, host: String) {
+        if (tab.private || !autoLoginHost.containsMatchIn(host) || !autoTried.add(System.identityHashCode(tab).toString() + host)) return
+        Vault.all().then<Unit>({ list ->
+            val e = list?.firstOrNull { autoLoginHost.containsMatchIn(Uri.parse(it.origin).host ?: "") }
+            if (e != null) frame.port.postMessage(JSONObject().put("type", "autologin").put("value", e.username).put("pass", e.password))
+            GeckoResult.fromValue(Unit)
+        }, { GeckoResult.fromValue(Unit) })
+    }
+
     private fun remember(tab: Tab, host: String, value: String) {
         val v = value.trim()
         if (v.isNotEmpty()) users[tab] = Relay.baseDomain(host.ifBlank { tab.host }) to v
@@ -424,7 +437,7 @@ object Helper {
                         "email" -> { frame.form = true; frame.focus = m.optBoolean("focused"); frame.signup = m.optBoolean("signup"); sync(tab) }
                         "focus" -> { frame.form = true; frame.focus = m.optBoolean("on"); frame.signup = m.optBoolean("signup"); sync(tab) }
                         "filled" -> filled(port, m.optBoolean("ok"))
-                        "login" -> signedIn(tab, m.optString("host"))
+                        "login" -> { signedIn(tab, m.optString("host")); autoLogin(tab, frame, m.optString("host")) }
                         "user" -> remember(tab, m.optString("host"), m.optString("value"))
                         "creds" -> creds(tab, m)
                         "signed" -> signed(tab, m)

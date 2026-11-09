@@ -90,6 +90,14 @@ function editBar() {
         if (e.key === "Enter") { e.preventDefault(); goText(input.value); }
         else if (e.key === "Escape") { e.preventDefault(); exitEdit(); }
         else if (e.key === "ArrowUp" || e.key === "ArrowDown") moveSugg(e);
+        else if (e.key === "Backspace" && !e.altKey && !e.metaKey && input.selectionStart === input.selectionEnd && input.selectionStart > 0) {
+          // One letter per press at a steady pace; Ctrl takes the whole word before the caret.
+          e.preventDefault();
+          const end = input.selectionStart;
+          const start = e.ctrlKey ? input.value.slice(0, end).replace(/(\s*[^\s/.\-_?&=]+|\s*[/.\-_?&=]+|\s+)$/, "").length : end - 1;
+          input.setRangeText("", start, end, "end");
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        }
       } } });
   BAR.edit = input;
   const ask = h("button", { class: "btn ask", act: () => askAI(input.value) }, "Ask AI");

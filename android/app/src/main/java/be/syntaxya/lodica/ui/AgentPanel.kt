@@ -24,6 +24,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -69,6 +71,7 @@ private val Danger = Color(0xFFF43F5E)
  * The AI browser agent. Docked on the right with a phone ratio so the page stays visible beside it.
  * Minimizing shrinks it to a chip and the run goes on. The full-screen button opens the AI chats screen.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun AgentPanel() {
     if (!AiAgent.open) return
@@ -91,7 +94,9 @@ fun AgentPanel() {
     var input by remember { mutableStateOf("") }
     val list = rememberLazyListState()
     LaunchedEffect(AiAgent.steps.size) { if (AiAgent.steps.isNotEmpty()) list.animateScrollToItem(AiAgent.steps.size - 1) }
-    Box(Modifier.fillMaxSize().padding(top = 48.dp, bottom = 88.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+    // The panel sits above the keyboard so the input stays visible while typing.
+    val imeOpen = androidx.compose.foundation.layout.WindowInsets.isImeVisible
+    Box(Modifier.fillMaxSize().imePadding().padding(top = 48.dp, bottom = if (imeOpen) 8.dp else 88.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
         Column(
             Modifier.fillMaxHeight().aspectRatio(9f / 16f).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
                 .border(BorderStroke(1.dp, if (AiAgent.running) Amber else Muted.copy(alpha = 0.3f)), RoundedCornerShape(20.dp)),

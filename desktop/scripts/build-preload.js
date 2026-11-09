@@ -84,9 +84,8 @@ swap(`    try {
       const j = await trFetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(text) + "&langpair=" + (det || "Autodetect") + "|" + to);
       out.text = (j && j.responseData && j.responseData.translatedText) || "";
     } catch (e) { /* offline */ }`, `    try { out.text = (await ipcRenderer.invoke("translate", { text, from, to })) || ""; } catch (e) { /* offline */ }`);
-swap("s.text.length <= 80 && /\\p{L}/u.test(s.text)", "s.text.length <= 200 && /\\p{L}/u.test(s.text)");
-// With the setting on, preload/translate.js translates the selection by itself, so the Translate button stays away.
-swap("{ translateBubble(s); bubble.dataset.t = s.text; }", "{ if (!page.selTranslate) { translateBubble(s); bubble.dataset.t = s.text; } }");
+swap("if (s.text.length > 80) return;", "if (s.text.length > 200 || page.selTranslate) return;");
+// With the setting on, preload/translate.js translates the selection by itself, so the bubble keeps only the read-aloud button.
 
 if (/browser\.storage|wrappedJSObject|openOrClosed/.test(js)) throw new Error("build-preload: Firefox API left");
 fs.mkdirSync(path.join(root, "preload"), { recursive: true });

@@ -28,6 +28,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -359,7 +368,19 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                     autoCorrectEnabled = Prefs.autoCorrect,
                 ),
                 keyboardActions = KeyboardActions(onGo = { go(query.text) }),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus)
+                    // Tapping the field keeps the keyboard up; only the back arrow closes it.
+                    .onFocusChanged { if (it.isFocused) keyboard?.show() }
+                    .onPreviewKeyEvent { ev ->
+                        // Ctrl+Backspace on a hardware keyboard removes the word before the cursor.
+                        if (ev.type == KeyEventType.KeyDown && ev.key == Key.Backspace && ev.isCtrlPressed && query.selection.collapsed && query.selection.start > 0) {
+                            val end = query.selection.start
+                            val start = query.text.substring(0, end).replace(Regex("(\\s*[^\\s/.\\-_?&=]+|\\s*[/.\\-_?&=]+|\\s+)$"), "").length
+                            onQuery(TextFieldValue(query.text.substring(0, start) + query.text.substring(end), TextRange(start)))
+                            true
+                        } else false
+                    }
+                    .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); keyboard?.show() } },
                 decorationBox = { inner ->
                     if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
                     inner()
