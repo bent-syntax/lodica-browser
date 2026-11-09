@@ -26,7 +26,7 @@ enum class UserAgent(val label: String, val value: String?) {
 /** Language pages are asked for: sets Accept-Language and Google's hl parameter. */
 enum class Language(val label: String, val code: String, val accept: Array<String>) {
     EN("English", "en", arrayOf("en-US", "en")),
-    NL("Nederlands", "nl", arrayOf("nl-BE", "nl", "en")),
+    NL("Nederlands (België)", "nl-BE", arrayOf("nl-BE", "nl", "en")),
 }
 
 /** User-made theme: four #RRGGBB colours plus the time they were last changed, so devices can sync newest-wins. */

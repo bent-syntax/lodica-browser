@@ -370,3 +370,7 @@ html[data-start-tex] body.home header{background:transparent}
 .sh-opts { display: flex; flex-wrap: wrap; gap: 8px; }
 .sh-opt { border: 0; border-radius: 999px; padding: 6px 12px; font: 13px system-ui, sans-serif; background: var(--bg); color: var(--text); cursor: pointer; }
 .sh-opt.on { background: var(--amber); color: var(--bg); font-weight: 600; }
+
+.sh-tw { margin-top: 20px; display: flex; flex-direction: column; gap: 4px; }
+.sh-twl { color: var(--link); text-decoration: none; padding: 8px 12px; border-radius: 12px; background: var(--raised); font-size: 13px; }
+.sh-twl:hover { background: var(--high); }

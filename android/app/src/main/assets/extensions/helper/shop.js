@@ -120,6 +120,9 @@
     drawChips(); drawGroups();
 
     let last = null;
+    const tweakers = (d) => (d.tweakers && d.tweakers.length ? el("div", { class: "sh-tw" },
+      el("div", { class: "sh-note" }, "From Tweakers"),
+      ...d.tweakers.map((x) => { const href = safe(x.u); return href ? el("a", { class: "sh-twl", href, target: "_top" }, x.t) : null; })) : null);
     function draw(d) {
       last = d;
       if (!d) return;
@@ -127,7 +130,7 @@
       const score = (x) => (x.m || []).length;
       items.sort(s.sort === "match" ? (a, b) => score(b) - score(a) || a.p - b.p : (a, b) => a.p - b.p);
       if (!items.length) {
-        out.replaceChildren(el("div", { class: "ans" }, "No prices found at trusted " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."));
+        out.replaceChildren(el("div", { class: "ans" }, "No prices found at trusted " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), tweakers(d));
         return;
       }
       const low = Math.min(...items.map((x) => x.p));
@@ -149,7 +152,8 @@
               el("strong", {}, money(x.p, x.cur)),
               best ? null : el("small", { class: "diff" }, "+" + money(x.p - low, x.cur))));
           return card;
-        }));
+        }),
+        tweakers(d));
     }
 
     async function go() {

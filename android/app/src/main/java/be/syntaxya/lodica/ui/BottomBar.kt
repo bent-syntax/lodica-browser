@@ -64,6 +64,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -338,6 +339,7 @@ internal fun selectPathOnWordPick(old: TextFieldValue, new: TextFieldValue): Tex
 private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    var focused by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         focus.requestFocus()
         // Show the keyboard explicitly: the focus request alone can leave it hidden when the bar is opened from a widget or shortcut.
@@ -370,7 +372,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 keyboardActions = KeyboardActions(onGo = { go(query.text) }),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)
                     // Tapping the field keeps the keyboard up; only the back arrow closes it.
-                    .onFocusChanged { if (it.isFocused) keyboard?.show() }
+                    .onFocusChanged { focused = it.isFocused; if (it.isFocused) keyboard?.show() }
                     .onPreviewKeyEvent { ev ->
                         // Ctrl+Backspace on a hardware keyboard removes the word before the cursor.
                         if (ev.type == KeyEventType.KeyDown && ev.key == Key.Backspace && ev.isCtrlPressed && query.selection.collapsed && query.selection.start > 0) {
@@ -380,7 +382,8 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                             true
                         } else false
                     }
-                    .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); keyboard?.show() } },
+                    // Only bring the keyboard back when it is gone: asking again while it is open restarts the input and throws the cursor back.
+                    .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); if (!focused) keyboard?.show() } },
                 decorationBox = { inner ->
                     if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
                     inner()

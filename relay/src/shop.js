@@ -26,7 +26,7 @@ const MAX_PAGE = 600e3;
 const clip = (s, n) => (typeof s === 'string' ? (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s) : '');
 const shopOf = (h, list) => list.find((d) => h === d || h.endsWith('.' + d));
 
-function getPage(u, hops = 0) {
+function getPage(u, hops = 0, extra) {
   return new Promise((resolve, reject) => {
     let url;
     try { url = new URL(u); } catch { return reject(new Error('bad url')); }
@@ -38,14 +38,14 @@ function getPage(u, hops = 0) {
       };
       const req = (url.protocol === 'https:' ? https : http).get(url, {
         lookup, timeout: 7e3,
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LodicaShop/1.0)', Accept: 'text/html,application/xhtml+xml', 'Accept-Language': 'en,nl;q=0.8' },
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LodicaShop/1.0)', Accept: 'text/html,application/xhtml+xml', 'Accept-Language': 'en,nl;q=0.8', ...extra },
       }, (res) => {
         const loc = res.headers.location;
         if (res.statusCode >= 300 && res.statusCode < 400 && loc) {
           res.resume();
           if (hops >= 3) return reject(new Error('redirects'));
           let next; try { next = new URL(loc, url).toString(); } catch { return reject(new Error('bad redirect')); }
-          return getPage(next, hops + 1).then(resolve, reject);
+          return getPage(next, hops + 1, extra).then(resolve, reject);
         }
         if (res.statusCode !== 200 || !/html/i.test(String(res.headers['content-type'] || ''))) { res.resume(); return reject(new Error('not html')); }
         const chunks = []; let n = 0;
@@ -131,6 +131,32 @@ async function searx(q, lang) {
   return Array.isArray(j.results) ? j.results : [];
 }
 
+// vergelijk.be is the Belgian price source. Its search URL redirects to the right category and lists product cards with the lowest shop price.
+const VG_HEAD = { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0', 'Accept-Language': 'nl-BE,nl;q=0.9' };
+const unent = (t) => t.replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+/** Parses the product cards of a vergelijk.be result page. */
+function parseVergelijk(html) {
+  html = html.replace(/<!--[\s\S]*?-->/g, '');
+  const out = [];
+  for (const c of html.split('data-test-id="card"').slice(1)) {
+    const a = /<a href="(\/[^"]+)"[^>]*heading-md[^>]*>([^<]+)<\/a>/.exec(c);
+    const pr = /display-md[^>]*>\s*([\d.,]+)\s*</.exec(c);
+    if (!a || !pr) continue;
+    const price = num(pr[1]);
+    if (!(price > 0)) continue;
+    const img = /<img[^>]+\ssrc="(https:\/\/[^"]+)"/.exec(c);
+    const sh = /<span class="truncate">(?:Laagste prijs bij|Ga naar)\s*([^<]+)<\/span>/.exec(c);
+    out.push({ t: unent(a[2]).trim(), u: 'https://www.vergelijk.be' + a[1], p: price, i: img ? img[1] : undefined, h: sh ? unent(sh[1]).trim().replace(/\.be$/, '') : 'vergelijk.be' });
+  }
+  return out;
+}
+
+async function vergelijk(q) {
+  const html = await getPage('https://www.vergelijk.be/q/' + encodeURIComponent(q) + '/', 0, VG_HEAD);
+  return parseVergelijk(html);
+}
+
 const cache = new Map();
 
 async function shop(url, imgUrl) {
@@ -145,6 +171,23 @@ async function shop(url, imgUrl) {
   const hit = cache.get(ck);
   if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
   const shops = SHOPS[cc];
+  // Tweakers reviews and guides for the same search, shown next to the prices.
+  const tweakers = (cc === 'BE' || cc === 'NL')
+    ? (await searx(`${q} site:tweakers.net`, LANG[cc]).catch(() => [])).filter((x) => x && /^https:\/\/(www\.)?tweakers\.net\//.test(x.url)).slice(0, 4).map((x) => ({ t: clip(x.title, 100), u: x.url }))
+    : [];
+  if (cc === 'BE') {
+    const rows = await vergelijk(q).catch(() => []);
+    const items = rows.filter((r) => (!min || r.p >= min) && (!max || r.p <= max)).map((r) => {
+      const hay = r.t.toLowerCase();
+      return { t: clip(r.t, 140), u: r.u, h: r.h, p: Math.round(r.p * 100) / 100, cur: 'EUR', i: r.i ? imgUrl ? imgUrl(r.i, 160) : r.i : undefined, m: feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f))) };
+    });
+    if (feats.length) items.sort((a, b) => b.m.length - a.m.length || a.p - b.p); else items.sort((a, b) => a.p - b.p);
+    if (items.length) {
+      const v = { q, cc, feats, items, shops: ['vergelijk.be'], tweakers };
+      cache.set(ck, { t: Date.now(), v });
+      return v;
+    }
+  }
   const text = [q, ...feats].join(' ');
   // Two passes keep one big retailer from filling every slot.
   const passes = [shops.slice(0, 5), shops.slice(5)].filter((s) => s.length);
@@ -174,10 +217,10 @@ async function shop(url, imgUrl) {
     });
   }
   items.sort((a, b) => a.p - b.p);
-  const v = { q, cc, feats, items, shops };
+  const v = { q, cc, feats, items, shops, tweakers };
   cache.set(ck, { t: Date.now(), v });
   if (cache.size > 200) cache.delete(cache.keys().next().value);
   return v;
 }
 
-module.exports = { shop, parseProduct, SHOPS, COUNTRIES };
+module.exports = { shop, parseProduct, parseVergelijk, SHOPS, COUNTRIES };

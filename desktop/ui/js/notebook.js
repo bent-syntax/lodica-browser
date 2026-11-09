@@ -76,6 +76,14 @@ function openNotebook() {
       const notes = await inv("notebook.list");
       if (!notes) { L.status.textContent = "Can't read the notes"; return; }
       L.notes = notes;
+      if (!notes.length) {
+        const fresh = await inv("notebook.create");
+        if (!fresh) { L.status.textContent = "Can't add a note."; return; }
+        L.notes = [{ id: fresh.id, title: "", at: fresh.at }];
+        show(fresh);
+        L.status.textContent = "Synced with your linked devices";
+        return;
+      }
       const id = [want, L.id, notes[0] && notes[0].id].find((x) => x && notes.some((n) => n.id === x));
       if (id === L.id && !want) { drawChips(); L.status.textContent = "Synced with your linked devices"; return; }
       const n = await inv("notebook.get", id);
@@ -117,6 +125,7 @@ function openNotebook() {
       if (!left) { L.status.textContent = "Can't delete the note."; return; }
       L.dirty = false; L.id = null;
       L.notes = left;
+      if (!left.length) { await reload(); return; }
       const n = await inv("notebook.get", left[0].id);
       if (n) show(n);
     };

@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.8 (versionCode 229)
+
+- Fixed: The desktop Notebook opens and creates a first note without needing the phone.
+- Fixed: The start page search now redirects like the address bar, including search words and the chosen engine.
+- Fixed: The Android address bar keeps the cursor where you tap it.
+- Changed: Shop lists Tweakers links and takes Belgian prices from vergelijk.be.
+- Changed: The site language is now Nederlands (België), so Belgian sites show in Dutch.
+
 ## 1.15.7 (versionCode 228)
 
 - New: Shop offers spec pickers for the product type, such as RAM, CPU and GPU for laptops or size and panel type for TVs.

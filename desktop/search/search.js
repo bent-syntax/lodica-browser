@@ -101,15 +101,12 @@ function setup() {
     e.preventDefault();
     const v = $("q").value.trim();
     if (!v) return;
+    // Same resolver as the address bar: search words, the chosen engine, the language and the no-server fallback.
+    const to = await ask1({ type: "go", q: v });
+    if (to) { location.href = to; return; }
     const dest = asUrl(v);
     if (dest) { location.href = dest; return; }
-    // Read the chosen engine fresh: the start page's own state load may not have finished or may predate a Settings change.
-    const st = await ask1({ type: "state" });
-    if (st) { engine = st.engine || ""; noServer = st.api === false; }
-    // The engine chosen in Settings wins; Lodica Search is only used when it is the chosen engine.
-    if (engine) { location.href = engine.replace("%s", encodeURIComponent(v)); return; }
-    // No server connected: skip Lodica Search and use a plain web search so the browser works on its own.
-    if (!noServer) location.href = href({ q: v, c: cat });
+    location.href = href({ q: v, c: cat });
   });
   for (const a of $("tabs").querySelectorAll("a")) {
     const c = a.dataset.c;

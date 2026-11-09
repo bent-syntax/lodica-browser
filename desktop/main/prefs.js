@@ -20,7 +20,7 @@ const AGENTS = {
 
 const LANGUAGES = {
   EN: { label: "English", code: "en", accept: ["en-US", "en"] },
-  NL: { label: "Nederlands", code: "nl", accept: ["nl-BE", "nl", "en"] },
+  NL: { label: "Nederlands (België)", code: "nl-BE", accept: ["nl-BE", "nl", "en"] },
 };
 
 const QUALITIES = [144, 240, 360, 480, 720, 1080, 1440, 2160];
