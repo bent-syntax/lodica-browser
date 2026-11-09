@@ -112,6 +112,12 @@ function createView(t) {
     const index = Number.isInteger(t.index) && t.index >= 0 && t.index < t.entries.length ? t.index : undefined;
     wc.navigationHistory.restore({ entries: t.entries, index }).catch(() => {});
   } else wc.loadURL(pdfViewerUrl(t.url) || t.url).catch(() => {});
+  // A restored history can fail without a sound and leave a blank page: load the plain address if nothing arrived.
+  if (t.entries.length) setTimeout(() => {
+    if (t.view !== view || wc.isDestroyed() || wc.isLoading()) return;
+    const u = wc.getURL();
+    if ((!u || u === "about:blank") && t.url && t.url !== "about:blank") wc.loadURL(pdfViewerUrl(t.url) || t.url).catch(() => {});
+  }, 3000);
 }
 
 // Main-frame links to a .pdf open in the bundled viewer instead of Chromium's. A .docx is converted to a PDF first.
@@ -365,7 +371,7 @@ function select(id) {
   if (!alive(t) && !(locked && t.private)) createView(t);
   show();
   if (relock) deps.ui.push("locked", { on: list.some(x => x.private && !x.archived) });
-  if (shown) shown.webContents.focus();
+  if (shown) { shown.webContents.focus(); try { shown.webContents.invalidate(); } catch { /* gone */ } }
   deps.ui.push("find", { cur: 0, total: 0 });
   pushTab(t); pushCount(); persist();
   return info(t);

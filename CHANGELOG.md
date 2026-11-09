@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.10 (versionCode 231)
+
+- Changed: Shop shows review and spec links from several sites in place of one, with prices from the Belgian price comparison.
+- Added: Shop filters sit on the right on desktop, and results switch between list and grid.
+- Added: On phones the Shop filters fold away behind a three-line button that turns into an X.
+- Fixed: A tab left idle for a while no longer comes back black.
+
 ## 1.15.9 (versionCode 230)
 
 - Added: Shop filters like a price comparison site: show or hide shops, shop rating, and counts next to every option.

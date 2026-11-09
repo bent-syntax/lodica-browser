@@ -239,10 +239,10 @@ private fun BrowserScreen() {
         }
     }
     LaunchedEffect(tab) { Ui.showBar() }
-    // A private page can stay unpainted or leave a grey strip after a navigation: wake the compositor and re-send the toolbar height.
-    LaunchedEffect(tab?.url) {
-        if (tab == null || !tab.private || tab.locked) return@LaunchedEffect
-        for (ms in longArrayOf(150, 600)) {
+    // A page (private, or one reloaded after sitting idle) can stay unpainted or leave a grey strip after a navigation: wake the compositor and re-send the toolbar height.
+    LaunchedEffect(tab, tab?.url, tab?.session) {
+        if (tab == null || tab.locked) return@LaunchedEffect
+        for (ms in longArrayOf(150, 600, 1500)) {
             delay(ms)
             tab.session?.setActive(true)
             Ui.gecko?.let { it.requestLayout(); it.setDynamicToolbarMaxHeight(if (TabManager.fullscreen) 0 else Ui.barHeight.toInt()) }

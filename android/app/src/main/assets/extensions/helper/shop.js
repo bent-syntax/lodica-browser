@@ -17,6 +17,7 @@
     s.f = Array.isArray(s.f) ? s.f.filter((x) => typeof x === "string").slice(0, 8) : [];
     s.sort = s.sort === "match" ? "match" : "price";
     s.cond = s.cond === "used" || s.cond === "all" ? s.cond : "new";
+    s.view = s.view === "grid" ? "grid" : "list";
     s.rate = s.rate > 0 ? s.rate : 0;
     s.inc = Array.isArray(s.inc) ? s.inc.filter((x) => typeof x === "string").slice(0, 30) : [];
     s.ex = Array.isArray(s.ex) ? s.ex.filter((x) => typeof x === "string").slice(0, 30) : [];
@@ -151,31 +152,50 @@
         })))));
     }
     const field = (label, ...kids) => el("label", { class: "sh-f" }, el("span", {}, label), ...kids);
-    root.replaceChildren(
-      el("section", { class: "sh-panel" },
-        el("div", { class: "sh-row" }, field("Country", sel), field("From", min), field("To", max)),
-        groups, field("More features", add), chips),
-      condRow, sortRow, side, out);
+    // Filters sit on the right on a wide screen. On a phone they fold away behind a three-line button that turns into an X.
+    const wrap = el("div", { class: "sh-wrap" });
+    const fbtn = el("button", { type: "button", class: "sh-fbtn", "aria-expanded": "false", "aria-label": "Filters" },
+      el("span", { class: "sh-bars", "aria-hidden": "true" }, el("i", {}), el("i", {}), el("i", {})), el("span", {}, "Filters"));
+    fbtn.addEventListener("click", () => {
+      const open = wrap.classList.toggle("open");
+      fbtn.setAttribute("aria-expanded", open ? "true" : "false");
+      fbtn.setAttribute("aria-label", open ? "Close filters" : "Filters");
+    });
+    const viewRow = el("div", { class: "sh-view", role: "group", "aria-label": "Layout" });
+    for (const [k, t] of [["list", "List"], ["grid", "Grid"]]) {
+      const b = el("button", { type: "button", class: s.view === k ? "on" : "", "aria-pressed": s.view === k ? "true" : "false" }, t);
+      b.addEventListener("click", () => { s.view = k; save(s); for (const x of viewRow.children) { x.classList.toggle("on", x === b); x.setAttribute("aria-pressed", x === b ? "true" : "false"); } draw(last); });
+      viewRow.append(b);
+    }
+    wrap.append(
+      el("div", { class: "sh-main" }, el("div", { class: "sh-bar" }, fbtn, sortRow, viewRow), out),
+      el("aside", { class: "sh-filters" },
+        el("section", { class: "sh-panel" },
+          el("div", { class: "sh-row" }, field("Country", sel), field("From", min), field("To", max)),
+          groups, field("More features", add), chips),
+        condRow, side));
+    root.replaceChildren(wrap);
     drawChips(); drawGroups();
 
     let last = null;
-    const tweakers = (d) => (d.tweakers && d.tweakers.length ? el("div", { class: "sh-tw" },
-      el("div", { class: "sh-note" }, "From Tweakers"),
-      ...d.tweakers.map((x) => { const href = safe(x.u); return href ? el("a", { class: "sh-twl", href, target: "_top" }, x.t) : null; })) : null);
+    const guides = (d) => (d.guides && d.guides.length ? el("div", { class: "sh-tw" },
+      el("div", { class: "sh-note" }, "Reviews and specs"),
+      ...d.guides.map((x) => { const href = safe(x.u); return href ? el("a", { class: "sh-twl", href, target: "_top" }, el("b", {}, x.h), " ", x.t) : null; })) : null);
     function draw(d) {
       last = d;
+      out.classList.toggle("grid", s.view === "grid");
       if (!d) return;
       const all = d.items;
       const items = all.filter(shown);
       const score = (x) => (x.m || []).length;
       items.sort(s.sort === "match" ? (a, b) => score(b) - score(a) || a.p - b.p : (a, b) => a.p - b.p);
       if (!items.length) {
-        out.replaceChildren(el("div", { class: "ans" }, all.length ? "No offers match these filters." : "No prices found at " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), tweakers(d));
+        out.replaceChildren(el("div", { class: "ans" }, all.length ? "No offers match these filters." : "No prices found at " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), guides(d));
         return;
       }
       const low = Math.min(...items.map((x) => x.p));
       out.replaceChildren(
-        el("div", { class: "sh-note" }, items.length + " offers in " + COUNTRIES[d.cc] + ", prices as published by each shop."),
+        el("div", { class: "sh-note" }, items.length + " offers in " + COUNTRIES[d.cc] + ", prices from vergelijk.be and each shop."),
         ...items.map((x) => {
           const href = safe(x.u);
           const best = x.p === low;
@@ -193,7 +213,7 @@
               best ? null : el("small", { class: "diff" }, "+" + money(x.p - low, x.cur))));
           return card;
         }),
-        tweakers(d));
+        guides(d));
     }
 
     async function go() {

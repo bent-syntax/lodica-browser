@@ -230,6 +230,24 @@ async function usedOffers(q, cc, feats, min, max, imgUrl) {
   return { items: await fromSearch(found, shops, min, max, mark, imgUrl, true), shops };
 }
 
+const REVIEW_SITES = ['gsmarena.com', 'notebookcheck.net', 'rtings.com', 'techradar.com', 'pocket-lint.com', 'cnet.com'];
+
+/** Review and spec links for a search, one per site, labelled with the site name. */
+async function reviewLinks(q, cc) {
+  const found = await searx(`${q} (${REVIEW_SITES.map((d) => 'site:' + d).join(' OR ')})`, LANG[cc]).catch(() => []);
+  const seen = new Set();
+  const out = [];
+  for (const x of found) {
+    let host;
+    try { host = new URL(x && x.url).hostname.replace(/^www\./, ''); } catch { continue; }
+    const site = REVIEW_SITES.find((d) => host === d || host.endsWith('.' + d));
+    if (!site || seen.has(site) || !/^https:/.test(x.url)) continue;
+    seen.add(site);
+    out.push({ t: clip(x.title, 100), u: x.url, h: site });
+  }
+  return out;
+}
+
 /** cond: new (default), used (second hand and refurbished only), all (both). Anything that looks refurbished is flagged. */
 async function shop(url, imgUrl) {
   const q = (url.searchParams.get('q') || '').trim();
@@ -242,10 +260,8 @@ async function shop(url, imgUrl) {
   const ck = [q.toLowerCase(), cc, cond, min, max, feats.join()].join('|');
   const hit = cache.get(ck);
   if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
-  // Tweakers reviews and guides for the same search, shown next to the prices.
-  const tweakers = (cc === 'BE' || cc === 'NL')
-    ? (await searx(`${q} site:tweakers.net`, LANG[cc]).catch(() => [])).filter((x) => x && /^https:\/\/(www\.)?tweakers\.net\//.test(x.url)).slice(0, 4).map((x) => ({ t: clip(x.title, 100), u: x.url }))
-    : [];
+  // Reviews and spec sheets from sites that allow plain fetches, shown next to the vergelijk.be prices.
+  const guides = await reviewLinks(q, cc);
   const [a, b] = await Promise.all([
     cond === 'used' ? { items: [], shops: [] } : newOffers(q, cc, feats, min, max, imgUrl),
     cond === 'new' ? { items: [], shops: [] } : usedOffers(q, cc, feats, min, max, imgUrl),
@@ -255,7 +271,7 @@ async function shop(url, imgUrl) {
   if (cond === 'new') items = items.filter((x) => !x.s);
   if (cond === 'used') items = items.filter((x) => x.s);
   items.sort((x, y) => x.p - y.p);
-  const v = { q, cc, cond, feats, items, shops: a.shops.concat(b.shops), tweakers };
+  const v = { q, cc, cond, feats, items, shops: a.shops.concat(b.shops), guides };
   cache.set(ck, { t: Date.now(), v });
   if (cache.size > 200) cache.delete(cache.keys().next().value);
   return v;
