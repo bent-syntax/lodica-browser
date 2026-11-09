@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -96,9 +96,11 @@ fun AgentPanel() {
     LaunchedEffect(AiAgent.steps.size) { if (AiAgent.steps.isNotEmpty()) list.animateScrollToItem(AiAgent.steps.size - 1) }
     // The panel sits above the keyboard so the input stays visible while typing.
     val imeOpen = androidx.compose.foundation.layout.WindowInsets.isImeVisible
-    Box(Modifier.fillMaxSize().imePadding().padding(top = 48.dp, bottom = if (imeOpen) 8.dp else 88.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().imePadding().padding(top = 48.dp, bottom = if (imeOpen) 8.dp else 88.dp, end = 8.dp), contentAlignment = Alignment.CenterEnd) {
+        // Width stays the phone-ratio width of the full height; the panel itself is shorter.
+        val panelW = maxHeight * 9f / 16f
         Column(
-            Modifier.fillMaxHeight().aspectRatio(9f / 16f).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
+            Modifier.width(panelW).fillMaxHeight(0.75f).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
                 .border(BorderStroke(1.dp, if (AiAgent.running) Amber else Muted.copy(alpha = 0.3f)), RoundedCornerShape(20.dp)),
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {

@@ -1,5 +1,11 @@
 # Patch notes
 
+## 1.15.7
+
+- New: Shop offers spec pickers for the product type, such as RAM, CPU and GPU for laptops or size and panel type for TVs.
+- Fixed: Shop shows a clear message when the relay does not have Shop yet.
+- Changed: The AI panel on Android is shorter and keeps its width.
+
 ## 1.15.6
 
 - New: Shop tab in Lodica Search. Pick your country, price range and features to compare prices at trusted shops, cheapest first.

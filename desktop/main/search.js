@@ -160,6 +160,7 @@ async function shop(msg) {
   for (const k of ["min", "max", "f"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
   try {
     const r = await fetch(relay.API + "/api/shop?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(40000) });
+    if (r.status === 404) return { error: "Shop is not available on your relay yet. Update the relay server, then try again." };
     if (!r.ok) return { error: "Shop failed (" + r.status + ")" };
     return await r.json();
   } catch {

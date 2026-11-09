@@ -140,6 +140,7 @@ async function shop(url, imgUrl) {
   const min = Math.max(0, Number(url.searchParams.get('min')) || 0);
   const max = Math.max(0, Number(url.searchParams.get('max')) || 0);
   const feats = (url.searchParams.get('f') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8);
+  const compact = (t) => t.replace(/[\s-]+/g, '');
   const ck = [q.toLowerCase(), cc, min, max, feats.join()].join('|');
   const hit = cache.get(ck);
   if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
@@ -169,7 +170,7 @@ async function shop(url, imgUrl) {
     items.push({
       t: clip(p.name || c.t, 140), u: c.u, h: c.d, p: Math.round(p.price * 100) / 100, cur: p.cur || undefined,
       i: imgUrl ? imgUrl(p.img, 160) : undefined, r: p.rating, n: p.reviews,
-      m: feats.filter((f) => hay.includes(f)),
+      m: feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f))),
     });
   }
   items.sort((a, b) => a.p - b.p);

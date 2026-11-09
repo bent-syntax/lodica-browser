@@ -224,3 +224,10 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
   .sh-body { flex-basis: calc(100% - 100px); }
   .sh-price { width: 100%; display: flex; justify-content: space-between; align-items: baseline; text-align: left; }
 }
+
+.sh-groups { display: flex; flex-direction: column; gap: 12px; }
+.sh-groups:empty { display: none; }
+.sh-g > span { display: block; font-size: 12px; color: var(--muted); margin: 0 0 4px 4px; }
+.sh-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.sh-opt { border: 0; border-radius: 999px; padding: 6px 12px; font: 13px system-ui, sans-serif; background: var(--bg); color: var(--text); cursor: pointer; }
+.sh-opt.on { background: var(--amber); color: var(--bg); font-weight: 600; }
