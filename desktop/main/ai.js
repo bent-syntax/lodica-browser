@@ -111,9 +111,9 @@ function sdk() {
 const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b => b.text).join("").trim();
 
 /** One Haiku 5.5 call. Web search is tried first (deep research); when the org has it off the call retries without. */
-async function viaApi(messages, system, search, plain) {
+async function viaApi(messages, system, search, plain, opts = {}) {
   const c = sdk();
-  const base = { model: MODEL, max_tokens: search ? 2048 : 1000, system: search || plain ? system : system + FOLLOW_UP, messages };
+  const base = { model: opts.model || MODEL, max_tokens: opts.maxTokens || (search ? 2048 : 1000), system: search || plain ? system : system + FOLLOW_UP, messages };
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 1 }];
   let input = 0, output = 0, msg, conv = messages.slice();
   const add = m => { const u = m.usage || {}; input += (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0); output += u.output_tokens || 0; };
@@ -134,9 +134,9 @@ async function viaApi(messages, system, search, plain) {
   return { text: textOf(msg), input, output };
 }
 
-function viaCli(prompt, system) {
+function viaCli(prompt, system, model = "claude-haiku-5-5") {
   return new Promise((resolve, reject) => {
-    const p = spawn("claude", ["-p", "--model", "claude-haiku-5-5", "--output-format", "json", "--append-system-prompt", system], {
+    const p = spawn("claude", ["-p", "--model", model, "--output-format", "json", "--append-system-prompt", system], {
       windowsHide: true, shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"],
     });
     let out = "", err = "";
@@ -224,11 +224,17 @@ async function run(history, ctx) {
 }
 
 /** One raw completion over [{role,content}] with a custom system prompt, using the same provider order. Returns the text. */
-async function complete(turns, system) {
+async function complete(turns, system, opts = {}) {
   if (!status().connected) throw new Error("AI is not connected");
+  if (opts.image && turns.length && key && !(hearthAddr && hearthKey)) { // a PNG (base64) goes with the last user turn; only the API key path can send it
+    const t = turns.slice(), l = t[t.length - 1];
+    t[t.length - 1] = { role: l.role, content: [{ type: "image", source: { type: "base64", media_type: "image/png", data: opts.image } }, { type: "text", text: String(l.content) }] };
+    turns = t;
+  }
   const r = hearthAddr && hearthKey ? await viaHearth(turns, system)
-    : key ? await viaApi(turns, system, false, true)
-    : await viaCli(turns.map(t => (t.role === "user" ? "User: " : "Assistant: ") + t.content).join("\n\n") + "\n\nAssistant:", system);
+    : key ? await viaApi(turns, system, false, true, opts)
+    : await viaCli(turns.map(t => (t.role === "user" ? "User: " : "Assistant: ") + (typeof t.content === "string" ? t.content : t.content.map(b => b.text || "").join("")))
+      .join("\n\n") + "\n\nAssistant:", system, opts.model);
   record(r.input, r.output);
   return String(r.text || "");
 }

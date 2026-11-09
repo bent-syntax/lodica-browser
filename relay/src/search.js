@@ -215,4 +215,4 @@ async function sweep() {
   return n;
 }
 
-module.exports = { start, search, image, sweep, stats };
+module.exports = { start, search, image, sweep, stats, imgUrl };

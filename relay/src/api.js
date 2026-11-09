@@ -10,6 +10,7 @@ const { cfg, tokenOk, limited, noteFail } = require('./config');
 const { parseMessage } = require('./mime');
 const page = require('./tabs-page');
 const search = require('./search');
+const shop = require('./shop');
 const adblock = require('./adblock');
 const updates = require('./updates');
 const chat = require('./chat');
@@ -655,6 +656,14 @@ async function route(req, res) {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
     try { return sendJson(req, res, 200, await search.search(url)); } catch (e) {
+      if (e.status) return sendText(req, res, e.status, e.message);
+      throw e;
+    }
+  }
+  if (p === '/api/shop') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    try { return sendJson(req, res, 200, await shop.shop(url, search.imgUrl)); } catch (e) {
       if (e.status) return sendText(req, res, e.status, e.message);
       throw e;
     }

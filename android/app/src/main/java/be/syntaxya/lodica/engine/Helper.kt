@@ -383,12 +383,13 @@ object Helper {
                         // Lodica Search results: fetched by the app itself with its own token, so the page never needs the relay credentials.
                         "search" -> {
                             val id = m.optInt("id"); val qs = m.optString("qs")
+                            val path = if (m.optString("path") == "/api/shop") "/api/shop" else "/api/search"
                             Thread {
                                 val out = JSONObject().put("type", "found").put("id", id)
                                 try {
                                     if (!Relay.available) out.put("error", "Lodica Search needs a linked server. Link one in Settings, or pick another search engine.")
                                     else {
-                                        val (code, body) = Relay.request("GET", "/api/search?$qs", readTimeoutMs = 20_000)
+                                        val (code, body) = Relay.request("GET", "$path?$qs", readTimeoutMs = if (path == "/api/shop") 40_000 else 20_000)
                                         if (code == 200) out.put("data", JSONObject(body)) else out.put("error", "Search failed ($code)")
                                     }
                                 } catch (e: Exception) {

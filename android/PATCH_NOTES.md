@@ -1,5 +1,12 @@
 # Patch notes
 
+## 1.15.6
+
+- New: Shop tab in Lodica Search. Pick your country, price range and features to compare prices at trusted shops, cheapest first.
+- New: Characters are made from a prompt and an optional sketch, no longer human by default, with separate idle, active and typing poses.
+- Fixed: The AI panel header on Android no longer looks broken.
+- Fixed: Read aloud uses a speaker icon instead of an emoji.
+
 ## 1.15.5
 
 - Fixed: Selected text in PDFs offers Translate and Read aloud, and read aloud works for long selections.

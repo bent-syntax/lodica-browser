@@ -420,11 +420,6 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
 .chat-peek{position:relative;width:48px;height:24px;cursor:pointer}
 .chat-clip{width:48px;height:24px;overflow:hidden}
-.chat-hands{position:absolute;left:0;top:-5px;width:48px;height:48px;pointer-events:none}
-.chat-hands img,.chat-think img{width:100%;height:100%;display:block}
-.chat-think{position:absolute;left:30px;top:-34px;width:36px;height:36px;pointer-events:none;animation:chat-think 1.4s ease-in-out infinite}
-@keyframes chat-think{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@media (prefers-reduced-motion:reduce){.chat-think{animation:none}}
 .chat-peek .chat-face{background:none!important;font-size:40px;line-height:48px;align-items:flex-start}
 .chat-peek .chat-face img{height:48px}
 .chat-me{padding:0 8px;min-height:24px}

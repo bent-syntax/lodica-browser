@@ -8,7 +8,7 @@ const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const q = (params.get("q") || "").trim();
 const page = Math.min(10, Math.max(1, parseInt(params.get("p"), 10) || 1));
-const cat = params.get("c") === "images" ? "images" : "";
+const cat = ["images", "shop"].includes(params.get("c")) ? params.get("c") : "";
 const lang = (navigator.language || "").slice(0, 2).toLowerCase();
 
 function el(tag, attrs, ...kids) {
@@ -407,6 +407,14 @@ addEventListener("pagehide", () => cachePut({ y: scrollY }));
 
 async function run() {
   if (!setup()) return;
+  if (cat === "shop") {
+    const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => ({}));
+    if (st && st.base) BASE = st.base;
+    if (st && st.api === false) { $("results").replaceChildren(el("div", { class: "ans" }, "Shop needs a linked server. Link one in Settings.")); return; }
+    if (!q) { $("results").replaceChildren(el("div", { class: "ans" }, "Type a product name to compare prices.")); return; }
+    LodicaShop.run(q, { el, img, safe, root: $("results"), send: (type, p) => browser.runtime.sendMessage(Object.assign({ type }, p)) });
+    return;
+  }
   if (!cat && page === 1 && window.LodicaInstant) LodicaInstant.show($("instant"), q, { lang, priv });
   const cached = cacheGet();
   if (!cached || !cached.data) skeleton();

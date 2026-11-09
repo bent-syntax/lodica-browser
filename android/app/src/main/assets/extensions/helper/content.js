@@ -1552,9 +1552,19 @@
     showBubble(s.x, s.y, (d) => {
       d.setAttribute("data-kind", "translate");
       const rd = document.createElement("button");
-      rd.textContent = "🔊";
+      const NS = "http://www.w3.org/2000/svg";
+      const ic = document.createElementNS(NS, "svg");
+      for (const [k, v] of [["viewBox", "0 0 24 24"], ["width", "18"], ["height", "18"], ["fill", "none"], ["stroke", "#fff"], ["stroke-width", "1.8"], ["stroke-linecap", "round"], ["stroke-linejoin", "round"]]) ic.setAttribute(k, v);
+      ic.style.cssText = "display:block";
+      for (const dd of ["M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z", "M15.5 9a4 4 0 0 1 0 6", "M18 6.5a8 8 0 0 1 0 11"]) {
+        const pa = document.createElementNS(NS, "path");
+        pa.setAttribute("d", dd);
+        ic.appendChild(pa);
+      }
+      rd.appendChild(ic);
       rd.title = "Read aloud";
-      rd.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 6px 2px 4px";
+      rd.setAttribute("aria-label", "Read aloud");
+      rd.style.cssText = "all:initial;cursor:pointer;display:flex;align-items:center;padding:2px 6px 2px 4px";
       rd.addEventListener("mousedown", (e) => e.preventDefault());
       rd.addEventListener("click", () => { if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel(); else speak(s.text); });
       d.appendChild(rd);

@@ -179,18 +179,25 @@ browser.runtime.onMessage.addListener(async (msg) => {
     await configured;
     return { api: true, ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
-  if (msg.type === "search") {
+  if (msg.type === "search" || msg.type === "shop") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.
     for (let k = 0; !native && k < 20; k++) await new Promise((r) => setTimeout(r, 250));
     if (!native) return { error: "Search unavailable: the app is not connected" };
-    const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
-    if (msg.c) qs.set("c", String(msg.c));
-    if (msg.l) qs.set("l", String(msg.l));
+    const shop = msg.type === "shop";
+    const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200) });
+    if (shop) {
+      qs.set("cc", String(msg.cc || "BE").slice(0, 2));
+      for (const k of ["min", "max", "f"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
+    } else {
+      qs.set("p", String(msg.p || 1));
+      if (msg.c) qs.set("c", String(msg.c));
+      if (msg.l) qs.set("l", String(msg.l));
+    }
     const id = ++askId;
     return new Promise((resolve) => {
       asks.set(id, resolve);
-      setTimeout(() => { if (asks.delete(id)) resolve({ error: "Search took too long" }); }, 25000);
-      native.postMessage({ type: "search", id, qs: qs.toString() });
+      setTimeout(() => { if (asks.delete(id)) resolve({ error: "Search took too long" }); }, shop ? 45000 : 25000);
+      native.postMessage({ type: "search", id, qs: qs.toString(), path: shop ? "/api/shop" : "/api/search" });
     });
   }
   if (msg.type === "ask") {

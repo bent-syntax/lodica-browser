@@ -102,16 +102,16 @@ fun AgentPanel() {
                 .border(BorderStroke(1.dp, if (AiAgent.running) Amber else Muted.copy(alpha = 0.3f)), RoundedCornerShape(20.dp)),
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (older) IconButton(onClick = { if (viewing != null) viewing = null else older = false }) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Mist) }
+                if (older) IconButton(modifier = Modifier.size(36.dp), onClick = { if (viewing != null) viewing = null else older = false }) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Mist) }
                 else Icon(Icons.Rounded.AutoAwesome, null, tint = Amber, modifier = Modifier.size(20.dp))
-                Column(Modifier.weight(1f).padding(start = 8.dp)) {
-                    Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp)
+                Column(Modifier.weight(1f).padding(start = 8.dp, end = 4.dp)) {
+                    Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
-                if (!older && !AiAgent.running && AiAgent.steps.isNotEmpty()) IconButton(onClick = { AiAgent.newSession() }) { Icon(Icons.Rounded.Add, "New chat", tint = Muted) }
-                if (!older) IconButton(onClick = { older = true }) { Icon(Icons.Rounded.History, "Older chats", tint = Muted) }
-                IconButton(onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(Icons.Rounded.Fullscreen, "Full screen", tint = Muted) }
-                IconButton(onClick = { AiAgent.minimized = true }) { Icon(Icons.Rounded.Remove, "Minimize", tint = Muted) }
-                IconButton(onClick = { AiAgent.stop(); AiAgent.open = false }) { Icon(Icons.Rounded.Close, "Close", tint = Muted) }
+                if (!older && !AiAgent.running && AiAgent.steps.isNotEmpty()) IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.newSession() }) { Icon(Icons.Rounded.Add, "New chat", tint = Muted) }
+                if (!older) IconButton(modifier = Modifier.size(36.dp), onClick = { older = true }) { Icon(Icons.Rounded.History, "Older chats", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(Icons.Rounded.Fullscreen, "Full screen", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.minimized = true }) { Icon(Icons.Rounded.Remove, "Minimize", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.stop(); AiAgent.open = false }) { Icon(Icons.Rounded.Close, "Close", tint = Muted) }
             }
             if (!older) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 val cur = if (AiAgent.running) AiAgent.level else Prefs.aiAgentMode

@@ -82,6 +82,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.heightIn as heightInMax
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -214,19 +218,17 @@ fun RoomScreen() {
                 containerColor = GraphiteRaised,
             )
         }
-        val bob by rememberInfiniteTransition(label = "think").animateFloat(0f, -3f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "bob")
         val grip = if (Room.uploading == null && sendError == null) 12.dp else 0.dp
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).offset(y = grip).zIndex(1f), verticalAlignment = Alignment.Bottom) {
             Row(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 others.take(5).forEach { p ->
                     Box(Modifier.width(48.dp).height(24.dp).clickable { peek = p }) {
                         Box(Modifier.width(48.dp).height(24.dp).clipToBounds()) {
-                            if (p.art.isNotEmpty()) CostumeArt(p.art, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
+                            val pose = if (p.typing) p.bubble.ifEmpty { p.art } else if (p.online) p.hands.ifEmpty { p.art } else p.art
+                            if (pose.isNotEmpty()) CostumeArt(pose, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
                             else if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
                             else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
-                        CostumeArt(p.hands.ifEmpty { Room.DEFAULT_HANDS }, 48.dp, Modifier.requiredSize(48.dp).offset(y = (-5).dp))
-                        if (p.typing) CostumeArt(p.bubble.ifEmpty { Room.DEFAULT_BUBBLE }, 36.dp, Modifier.requiredSize(36.dp).offset(30.dp, (-34).dp + bob.dp))
                     }
                 }
             }
@@ -471,9 +473,26 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
     var busy by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
     var alts by remember { mutableStateOf<List<String>>(emptyList()) }
+    val strokes = remember { mutableStateListOf<List<androidx.compose.ui.geometry.Offset>>() }
+    val sizePx = remember { mutableStateOf(1f) }
+    fun sketchPng(): String? {
+        if (strokes.isEmpty()) return null
+        val n = 240; val k = n / sizePx.value
+        val bmp = android.graphics.Bitmap.createBitmap(n, n, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(bmp); c.drawColor(android.graphics.Color.WHITE)
+        val paint = android.graphics.Paint().apply { color = 0xFF111827.toInt(); style = android.graphics.Paint.Style.STROKE; strokeWidth = 5f; strokeCap = android.graphics.Paint.Cap.ROUND; strokeJoin = android.graphics.Paint.Join.ROUND; isAntiAlias = true }
+        strokes.forEach { st ->
+            val path = android.graphics.Path()
+            st.forEachIndexed { i, o -> if (i == 0) path.moveTo(o.x * k, o.y * k) else path.lineTo(o.x * k, o.y * k) }
+            if (st.size == 1) path.lineTo(st[0].x * k + 0.1f, st[0].y * k)
+            c.drawPath(path, paint)
+        }
+        val out = java.io.ByteArrayOutputStream(); bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+        return android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP)
+    }
     fun make(t: String) {
         busy = true; err = null; alts = emptyList()
-        Room.setFace(ctx, t) { e ->
+        Room.setFace(ctx, t, if (t == text) sketchPng() else null) { e ->
             if (e == null) { busy = false; onDone(); onClose() }
             else { err = e; Room.alternatives(t) { a -> alts = a; busy = false } }
         }
@@ -483,8 +502,26 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
         title = { Text("Your character") },
         text = {
             Column {
-                Text("Describe a costume. Leave empty to use the automatic character.", fontSize = 13.sp)
+                Text("Describe a character and optionally draw it. Leave both empty for the automatic one. You get three poses: idle, active in the chat and typing.", fontSize = 13.sp)
                 OutlinedTextField(text, { text = it.take(300) }, placeholder = { Text("a pirate cat") }, singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                Text("Sketch (optional)", fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                androidx.compose.foundation.Canvas(
+                    Modifier.size(180.dp).align(Alignment.CenterHorizontally).clip(RoundedCornerShape(12.dp)).background(androidx.compose.ui.graphics.Color.White)
+                        .onSizeChanged { sizePx.value = it.width.toFloat().coerceAtLeast(1f) }
+                        .pointerInput(Unit) {
+                            detectDragGestures(
+                                onDragStart = { strokes.add(listOf(it)) },
+                                onDrag = { ch, _ -> ch.consume(); strokes[strokes.lastIndex] = strokes.last() + ch.position },
+                            )
+                        },
+                ) {
+                    strokes.forEach { st ->
+                        val path = androidx.compose.ui.graphics.Path()
+                        st.forEachIndexed { i, o -> if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y) }
+                        drawPath(path, androidx.compose.ui.graphics.Color(0xFF111827), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f * size.width / 240f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
+                    }
+                }
+                if (strokes.isNotEmpty()) TextButton(enabled = !busy, onClick = { strokes.clear() }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Clear sketch", fontSize = 12.sp) }
                 err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF43F5E), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
                 if (alts.isNotEmpty()) {
                     Text("Try one of these instead:", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))

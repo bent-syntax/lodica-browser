@@ -50,6 +50,7 @@ async function handle(msg) {
   if (msg.type === "noteAdd") return noteAdd(String(msg.text || ""));
   if (msg.type === "auto") { prefs.set("autoTop", !!msg.on); return true; }
   if (msg.type === "search") return search(msg);
+  if (msg.type === "shop") return shop(msg);
   if (msg.type === "ask") return ask(msg);
   if (msg.type === "suggest") return suggest ? suggest(String(msg.q || "").slice(0, 200)) : [];
   if (msg.type === "top") return topSites ? topSites() : [];
@@ -152,6 +153,18 @@ function search(msg) {
   if (hits.size > 40) hits.delete(hits.keys().next().value);
   p.then(r => { if (r && r.error && hits.get(key)?.p === p) hits.delete(key); });
   return p;
+}
+async function shop(msg) {
+  if (!relay.available) return { error: "Shop needs a linked server. Link one in Settings." };
+  const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200), cc: String(msg.cc || "BE").slice(0, 2) });
+  for (const k of ["min", "max", "f"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
+  try {
+    const r = await fetch(relay.API + "/api/shop?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(40000) });
+    if (!r.ok) return { error: "Shop failed (" + r.status + ")" };
+    return await r.json();
+  } catch {
+    return { error: "Search server unreachable" };
+  }
 }
 async function fetchSearch(qs) {
   try {

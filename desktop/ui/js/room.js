@@ -148,16 +148,35 @@ function roomFace(u, cls) {
 }
 // Describe a costume; the AI makes the character and everyone sees it. Empty text goes back to the operating system badge.
 async function roomCostume() {
-  let v = await textDialog({ key: "costume", title: "Your character", message: "Describe a costume. Leave empty to use the automatic character.", placeholder: "a pirate cat", ok: "Make it" });
-  while (v !== null && v !== undefined) {
-    const r = await inv("room.face", v);
+  let ask = await roomSketch();
+  while (ask) {
+    const r = await inv("room.face", ask.text, ask.png);
     if (r && r.ok) { ROOM.state.face = r.glyph || ""; ROOM.state.art = r.art || ""; roomRender(); return; }
     const alts = (r && r.alternatives) || [];
     if (!alts.length) { toast({ text: (r && r.error) || "Could not make the character" }); return; }
-    v = await dialog({ key: "costume-alts", title: "Try one of these instead", message: r.error, cancelValue: null }, (d, L) => {
+    const v = await dialog({ key: "costume-alts", title: "Try one of these instead", message: r.error, cancelValue: null }, (d, L) => {
       d.append(...alts.map((t) => btn(t, () => L.close(t), "muted")), btnRow(btn("Cancel", () => L.close(null), "muted")));
     });
+    ask = v == null ? null : { text: v, png: "" };
   }
+}
+// The "Your character" dialog: a description and an optional sketch. Resolves { text, png } (png is base64, "" when nothing is drawn), or null when cancelled.
+function roomSketch() {
+  return dialog({ key: "costume", title: "Your character", message: "Describe a character and optionally draw it. Leave both empty for the automatic one. The AI makes three poses: idle, active in the chat and typing.", cancelValue: null }, (d, L) => {
+    const text = h("input", { class: "field", maxlength: "300", placeholder: "a pirate cat" });
+    const cv = h("canvas", { width: "240", height: "240", style: "width:240px;height:240px;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair;align-self:center" });
+    const g = cv.getContext("2d"); g.lineWidth = 5; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#111827";
+    let on = false, drawn = false;
+    const at = (e) => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * 240 / b.width, (e.clientY - b.top) * 240 / b.height]; };
+    cv.addEventListener("pointerdown", (e) => { on = true; drawn = true; cv.setPointerCapture(e.pointerId); const [x, y] = at(e); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 0.1, y); g.stroke(); });
+    cv.addEventListener("pointermove", (e) => { if (!on) return; const [x, y] = at(e); g.lineTo(x, y); g.stroke(); });
+    cv.addEventListener("pointerup", () => { on = false; });
+    const clear = btn("Clear sketch", () => { g.clearRect(0, 0, 240, 240); drawn = false; }, "muted");
+    const go = () => { let png = ""; if (drawn) { const o = document.createElement("canvas"); o.width = o.height = 240; const c = o.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, 240, 240); c.drawImage(cv, 0, 0); png = o.toDataURL("image/png").split(",")[1]; } L.close({ text: text.value.trim(), png }); };
+    text.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+    d.append(text, h("div", { class: "muted", text: "Sketch (optional)", style: "font-size:12px" }), cv, btnRow(clear, btn("Cancel", () => L.close(null), "muted"), btn("Make it", go, "primary")));
+    setTimeout(() => text.focus(), 0);
+  });
 }
 function roomPerson(u) {
   const [face, label, glyph] = roomFace(u, "chat-face");
@@ -251,12 +270,9 @@ function roomRender() {
     }
     const row = h("div", { class: "chat-peeks" });
     for (const u of people) {
-      const defs = ROOM.state.defaults || {};
-      const pk = h("div", { class: "chat-peek", title: u.name + (u.typing ? " is typing…" : " is online. Click to see them.") }, h("div", { class: "chat-clip" }, roomFace(u, "chat-face")[0]));
-      // The hands hold the typing bar; a thinking bubble shows while they type.
-      const hands = u.hands || defs.hands, bubble = u.bubble || defs.bubble;
-      if (hands) pk.append(h("div", { class: "chat-hands" }, roomArt(hands)));
-      if (u.typing && bubble) pk.append(h("div", { class: "chat-think" }, roomArt(bubble)));
+      // Idle drawing by default, the active pose while they are in the chat, the typing pose while they type.
+      const pose = (u.typing ? u.bubble : u.online ? u.hands : "") || u.art;
+      const pk = h("div", { class: "chat-peek", title: u.name + (u.typing ? " is typing…" : " is online. Click to see them.") }, h("div", { class: "chat-clip" }, roomFace({ ...u, art: pose }, "chat-face")[0]));
       pk.addEventListener("click", () => { L.peek = u.name; roomRender(); });
       row.append(pk);
     }

@@ -229,14 +229,19 @@ object Ai {
     fun chat(turns: List<Pair<String, String>>, done: (Result<String>) -> Unit) = run(turns, done)
 
     /** One browser-agent step: the caller's own system prompt, no search, no memory, the reply is raw text. */
-    fun agentStep(turns: List<Pair<String, String>>, system: String, maxTokens: Int = 600, done: (Result<String>) -> Unit) {
+    /** [model] defaults to Haiku; [pngB64] is an optional picture sent with the last user turn (API key only, Hearth and the CLI get the text). */
+    fun agentStep(turns: List<Pair<String, String>>, system: String, maxTokens: Int = 600, model: String = MODEL, pngB64: String? = null, done: (Result<String>) -> Unit) {
         val key = apiKey
         io.execute {
             val r = runCatching {
                 var input = 0L; var output = 0L
                 val text = if (hasHearth) viaHearth(turns, system) else if (key != null) {
-                    val msgs = JSONArray().apply { turns.forEach { put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", it.second)) } }
-                    val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", maxTokens).put("system", system).put("messages", msgs))
+                    val msgs = JSONArray().apply { turns.forEachIndexed { i, it ->
+                        val last = i == turns.lastIndex && it.first != "assistant" && pngB64 != null
+                        val c: Any = if (last) JSONArray().put(JSONObject().put("type", "image").put("source", JSONObject().put("type", "base64").put("media_type", "image/png").put("data", pngB64))).put(JSONObject().put("type", "text").put("text", it.second)) else it.second
+                        put(JSONObject().put("role", if (it.first == "assistant") "assistant" else "user").put("content", c))
+                    } }
+                    val (code, j) = post(key, JSONObject().put("model", model).put("max_tokens", maxTokens).put("system", system).put("messages", msgs))
                     if (code !in 200..299) throw apiError(code, j)
                     j.optJSONObject("usage")?.let { u ->
                         input = u.optLong("input_tokens") + u.optLong("cache_creation_input_tokens") + u.optLong("cache_read_input_tokens")
