@@ -1500,7 +1500,7 @@ const lodicaMain = () => {
     const sel = getSelection();
     if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
     const t = sel.toString();
-    if (t.length > 200) return null;
+    if (t.length > 5000) return null;
     const r = sel.getRangeAt(0).getBoundingClientRect();
     if (!r.width && !r.height) return null;
     return { text: t, x: r.left + r.width / 2, y: r.top };
@@ -1607,12 +1607,12 @@ const lodicaMain = () => {
     clearTimeout(selTimer);
     selTimer = setTimeout(() => {
       const s = selected();
-      const ans = s && (solve(s.text) || calc(s.text));
+      const ans = s && s.text.length <= 200 && (solve(s.text) || calc(s.text));
       if (ans == null) {
-        const g = s && graphOf(s.text);
+        const g = s && s.text.length <= 200 && graphOf(s.text);
         const cv = g && drawGraph(g);
         if (cv) { showBubble(s.x, s.y, (d) => { d.appendChild(cv); d.setAttribute("data-kind", "math"); }); return; }
-        const alt = s && rearrange(s.text);
+        const alt = s && s.text.length <= 200 && rearrange(s.text);
         if (alt) {
           showBubble(s.x, s.y, (d) => {
             d.setAttribute("data-kind", "math");
@@ -1939,7 +1939,7 @@ const lodicaMain = () => {
     if (taps >= 3) taps = 0;
   }, { passive: true, capture: true });
 })();
-if (/^https?:$/.test(location.protocol)) {
+if (/^https?:$/.test(location.protocol) || (location.protocol === "lodica:" && location.hostname === "pdf" && /\/viewer\.html$/.test(location.pathname))) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
   else lodicaMain();
 }

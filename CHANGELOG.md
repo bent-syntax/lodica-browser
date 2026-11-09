@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.5 (versionCode 226)
+
+- Fixed: Selected text in PDFs offers Translate and Read aloud, and read aloud works for long selections.
+
 ## 1.15.4 (versionCode 225)
 
 - Fixed: The AI panel input stays above the keyboard on mobile.

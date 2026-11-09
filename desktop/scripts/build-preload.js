@@ -42,7 +42,7 @@ swap("\n(() => {\n  const TOP", "\nconst lodicaMain = () => {\n  const TOP");
 // gestures) stay as they are, so only the first closing line is rewritten.
 if (!js.includes("\n})();\n")) throw new Error("build-preload: IIFE end not found");
 js = js.replace("\n})();\n", "\n};\n");
-js += `if (/^https?:$/.test(location.protocol)) {
+js += `if (/^https?:$/.test(location.protocol) || (location.protocol === "lodica:" && location.hostname === "pdf" && /\\/viewer\\.html$/.test(location.pathname))) {
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
   else lodicaMain();
 }
