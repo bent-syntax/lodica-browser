@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.9 (versionCode 230)
+
+- Added: Shop filters like a price comparison site: show or hide shops, shop rating, and counts next to every option.
+- Added: Shop can include second hand and refurbished offers from second hand sellers, marked Second hand.
+- Changed: The Shop condition switch picks new only, both, or second hand only.
+
 ## 1.15.8 (versionCode 229)
 
 - Fixed: The desktop Notebook opens and creates a first note without needing the phone.

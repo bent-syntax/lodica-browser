@@ -187,7 +187,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
     const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200) });
     if (shop) {
       qs.set("cc", String(msg.cc || "BE").slice(0, 2));
-      for (const k of ["min", "max", "f"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
+      for (const k of ["min", "max", "f", "cond"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
     } else {
       qs.set("p", String(msg.p || 1));
       if (msg.c) qs.set("c", String(msg.c));

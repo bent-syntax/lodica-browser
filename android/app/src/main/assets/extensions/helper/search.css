@@ -235,3 +235,8 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
 .sh-tw { margin-top: 20px; display: flex; flex-direction: column; gap: 4px; }
 .sh-twl { color: var(--link); text-decoration: none; padding: 8px 12px; border-radius: 12px; background: var(--raised); font-size: 13px; }
 .sh-twl:hover { background: var(--high); }
+.sh-sort { flex-wrap: wrap; }
+.sh-opt.ex { background: var(--coral); color: var(--bg); font-weight: 600; }
+.sh-side { display: grid; gap: 12px; margin: 0 0 12px; padding: 12px 16px; border-radius: 20px; background: var(--raised); }
+.sh-side:empty { display: none; }
+.sh-meta em.sh-used { background: var(--high); border-radius: 999px; padding: 0 8px; font-size: 12px; }

@@ -16,6 +16,10 @@
     s.max = s.max > 0 ? s.max : 0;
     s.f = Array.isArray(s.f) ? s.f.filter((x) => typeof x === "string").slice(0, 8) : [];
     s.sort = s.sort === "match" ? "match" : "price";
+    s.cond = s.cond === "used" || s.cond === "all" ? s.cond : "new";
+    s.rate = s.rate > 0 ? s.rate : 0;
+    s.inc = Array.isArray(s.inc) ? s.inc.filter((x) => typeof x === "string").slice(0, 30) : [];
+    s.ex = Array.isArray(s.ex) ? s.ex.filter((x) => typeof x === "string").slice(0, 30) : [];
     return s;
   }
 
@@ -72,6 +76,41 @@
     const out = el("div", { class: "sh-out" });
     const sortBtn = (k, t) => { const b = el("button", { type: "button", class: s.sort === k ? "on" : "" }, t); b.addEventListener("click", () => { s.sort = k; save(s); for (const x of sortRow.children) x.classList.toggle("on", x === b); draw(last); }); return b; };
     const sortRow = el("div", { class: "sh-sort" });
+    const condRow = el("div", { class: "sh-sort", role: "group", "aria-label": "Condition" });
+    for (const [k, t] of [["new", "New"], ["all", "New and second hand"], ["used", "Second hand only"]]) {
+      const b = el("button", { type: "button", class: s.cond === k ? "on" : "" }, t);
+      b.addEventListener("click", () => { s.cond = k; for (const x of condRow.children) x.classList.toggle("on", x === b); go(); });
+      condRow.append(b);
+    }
+    const side = el("div", { class: "sh-side" });
+    const hits = (x, o) => { const h = x.t.toLowerCase(); return h.includes(o) || h.replace(/[\s-]+/g, "").includes(o.replace(/[\s-]+/g, "")); };
+    const shown = (x) => (!s.inc.length || s.inc.includes(x.h)) && !s.ex.includes(x.h) && (!s.rate || (x.r || 0) >= s.rate);
+    /** Filter groups with counts, like a price comparison sidebar: shops (show only or hide) and rating. Spec options show their counts too. */
+    function drawSide(d) {
+      if (!d || !d.items.length) { side.replaceChildren(); return; }
+      const count = {};
+      for (const x of d.items) count[x.h] = (count[x.h] || 0) + 1;
+      const shops = Object.keys(count).sort((a, b) => count[b] - count[a] || a.localeCompare(b));
+      const shopBtn = (h) => {
+        const st = s.inc.includes(h) ? "inc" : s.ex.includes(h) ? "ex" : "";
+        const b = el("button", { type: "button", class: "sh-opt" + (st ? " on " + st : ""), title: "Click to show only, click again to hide" }, (st === "ex" ? "− " : st === "inc" ? "✓ " : "") + h + " (" + count[h] + ")");
+        b.addEventListener("click", () => {
+          s.inc = s.inc.filter((x) => x !== h); s.ex = s.ex.filter((x) => x !== h);
+          if (!st) s.inc.push(h); else if (st === "inc") s.ex.push(h);
+          save(s); drawSide(d); draw(d);
+        });
+        return b;
+      };
+      const rateBtn = (v, t) => {
+        const n = d.items.filter((x) => (x.r || 0) >= v).length;
+        const b = el("button", { type: "button", class: "sh-opt" + (s.rate === v ? " on" : "") }, t + (v ? " (" + n + ")" : ""));
+        b.addEventListener("click", () => { s.rate = v; save(s); drawSide(d); draw(d); });
+        return b;
+      };
+      side.replaceChildren(
+        el("div", { class: "sh-g" }, el("span", {}, "Shops"), el("div", { class: "sh-opts" }, ...shops.map(shopBtn))),
+        el("div", { class: "sh-g" }, el("span", {}, "Shop rating"), el("div", { class: "sh-opts" }, rateBtn(0, "Any"), rateBtn(3, "3★ and up"), rateBtn(4, "4★ and up"))));
+    }
     sortRow.append(sortBtn("price", "Lowest price"), sortBtn("match", "Best match"));
 
     function drawChips() {
@@ -101,7 +140,7 @@
         el("span", {}, g.name),
         el("div", { class: "sh-opts" }, ...g.o.map((o) => {
           const on = s.f.includes(o);
-          const b = el("button", { type: "button", class: "sh-opt" + (on ? " on" : ""), "aria-pressed": on ? "true" : "false" }, o);
+          const b = el("button", { type: "button", class: "sh-opt" + (on ? " on" : ""), "aria-pressed": on ? "true" : "false" }, o + (last && last.items.length ? " (" + last.items.filter((x) => hits(x, o)).length + ")" : ""));
           b.addEventListener("click", () => {
             const was = s.f.includes(o);
             s.f = s.f.filter((x) => !g.o.includes(x));
@@ -116,7 +155,7 @@
       el("section", { class: "sh-panel" },
         el("div", { class: "sh-row" }, field("Country", sel), field("From", min), field("To", max)),
         groups, field("More features", add), chips),
-      sortRow, out);
+      condRow, sortRow, side, out);
     drawChips(); drawGroups();
 
     let last = null;
@@ -126,16 +165,17 @@
     function draw(d) {
       last = d;
       if (!d) return;
-      const items = d.items.slice();
+      const all = d.items;
+      const items = all.filter(shown);
       const score = (x) => (x.m || []).length;
       items.sort(s.sort === "match" ? (a, b) => score(b) - score(a) || a.p - b.p : (a, b) => a.p - b.p);
       if (!items.length) {
-        out.replaceChildren(el("div", { class: "ans" }, "No prices found at trusted " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), tweakers(d));
+        out.replaceChildren(el("div", { class: "ans" }, all.length ? "No offers match these filters." : "No prices found at " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), tweakers(d));
         return;
       }
       const low = Math.min(...items.map((x) => x.p));
       out.replaceChildren(
-        el("div", { class: "sh-note" }, items.length + " offers from trusted shops in " + COUNTRIES[d.cc] + ", prices as published by each shop."),
+        el("div", { class: "sh-note" }, items.length + " offers in " + COUNTRIES[d.cc] + ", prices as published by each shop."),
         ...items.map((x) => {
           const href = safe(x.u);
           const best = x.p === low;
@@ -144,7 +184,7 @@
             el("div", { class: "sh-img" }, img(x.i, "", "") || el("span", {}, "🛒")),
             el("div", { class: "sh-body" },
               el("h3", {}, x.t),
-              el("div", { class: "sh-meta" }, el("b", {}, x.h), el("em", {}, "Trusted shop"),
+              el("div", { class: "sh-meta" }, el("b", {}, x.h), x.s ? el("em", { class: "sh-used" }, "Second hand") : el("em", {}, "Trusted shop"),
                 x.r ? el("span", { class: "sh-rate", title: x.r.toFixed(1) + " out of 5" }, stars(x.r) + (x.n ? " (" + x.n + ")" : "")) : null),
               feats.length ? el("div", { class: "sh-feats" }, ...feats) : null),
             el("div", { class: "sh-price" },
@@ -164,6 +204,7 @@
       if (s.min) params.min = s.min;
       if (s.max) params.max = s.max;
       if (s.f.length) params.f = s.f.join(",");
+      if (s.cond !== "new") params.cond = s.cond;
       let d;
       try { d = await send("shop", params); } catch (e) { d = { error: "Shop unavailable" }; }
       if (my !== token) return;
@@ -171,6 +212,8 @@
         out.replaceChildren(el("div", { class: "ans" }, (d && d.error) || "Shop unavailable"));
         return;
       }
+      drawSide(d);
+      drawGroups();
       draw(d);
     }
     go();

@@ -19,6 +19,21 @@ const SHOPS = {
   ES: ['amazon.es', 'pccomponentes.com', 'mediamarkt.es', 'elcorteingles.es', 'fnac.es'],
   IT: ['amazon.it', 'mediaworld.it', 'unieuro.it', 'eprice.it'],
 };
+// Second-hand and refurbished sellers. Their results carry a "second hand" flag.
+const SECOND = {
+  BE: ['2dehands.be', 'vinted.be', 'swappie.com', 'backmarket.be', 'refurbed.be', 'refurbished.be', 'ebay.be'],
+  NL: ['marktplaats.nl', 'vinted.nl', 'swappie.com', 'backmarket.nl', 'refurbed.nl', 'refurbished.nl', 'ebay.nl'],
+  DE: ['kleinanzeigen.de', 'vinted.de', 'swappie.com', 'backmarket.de', 'refurbed.de', 'rebuy.de', 'ebay.de'],
+  FR: ['leboncoin.fr', 'vinted.fr', 'swappie.com', 'backmarket.fr', 'refurbed.fr', 'rebuy.fr', 'ebay.fr'],
+  GB: ['vinted.co.uk', 'swappie.com', 'backmarket.co.uk', 'refurbed.co.uk', 'musicmagpie.co.uk', 'cex.uk', 'ebay.co.uk'],
+  US: ['swappa.com', 'backmarket.com', 'gazelle.com', 'ebay.com', 'mercari.com', 'decluttr.com'],
+  CA: ['backmarket.ca', 'swappa.com', 'ebay.ca', 'kijiji.ca'],
+  AU: ['backmarket.com.au', 'ebay.com.au', 'gumtree.com.au', 'cashconverters.com.au'],
+  ES: ['wallapop.com', 'vinted.es', 'swappie.com', 'backmarket.es', 'refurbed.es', 'ebay.es'],
+  IT: ['subito.it', 'vinted.it', 'swappie.com', 'backmarket.it', 'refurbed.it', 'ebay.it'],
+};
+const USED_RE = /refurb|renewed|second[\s-]?hand|tweedehands|2dehands|gebruikt|pre-?owned|\bused\b|reconditionn|occasion|gebraucht|generalüberholt|reacondicionad|ricondizionat|marktplaats|vinted/i;
+const USED_HOST = /(^|\.)(vinted|swappie|backmarket|refurbed|refurbished|rebuy|2dehands|marktplaats|kleinanzeigen|leboncoin|swappa|gazelle|mercari|decluttr|wallapop|subito|kijiji|gumtree|musicmagpie|cex|cashconverters)\./;
 const LANG = { BE: 'nl-BE', NL: 'nl-NL', DE: 'de-DE', FR: 'fr-FR', GB: 'en-GB', US: 'en-US', CA: 'en-CA', AU: 'en-AU', ES: 'es-ES', IT: 'it-IT' };
 const COUNTRIES = Object.keys(SHOPS);
 const MAX_PAGE = 600e3;
@@ -159,40 +174,26 @@ async function vergelijk(q) {
 
 const cache = new Map();
 
-async function shop(url, imgUrl) {
-  const q = (url.searchParams.get('q') || '').trim();
-  if (!q || q.length > 200) throw Object.assign(new Error('bad query'), { status: 400 });
-  const cc = COUNTRIES.includes(url.searchParams.get('cc')) ? url.searchParams.get('cc') : 'BE';
-  const min = Math.max(0, Number(url.searchParams.get('min')) || 0);
-  const max = Math.max(0, Number(url.searchParams.get('max')) || 0);
-  const feats = (url.searchParams.get('f') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8);
+async function newOffers(q, cc, feats, min, max, imgUrl) {
   const compact = (t) => t.replace(/[\s-]+/g, '');
-  const ck = [q.toLowerCase(), cc, min, max, feats.join()].join('|');
-  const hit = cache.get(ck);
-  if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
+  const mark = (hay) => feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f)));
   const shops = SHOPS[cc];
-  // Tweakers reviews and guides for the same search, shown next to the prices.
-  const tweakers = (cc === 'BE' || cc === 'NL')
-    ? (await searx(`${q} site:tweakers.net`, LANG[cc]).catch(() => [])).filter((x) => x && /^https:\/\/(www\.)?tweakers\.net\//.test(x.url)).slice(0, 4).map((x) => ({ t: clip(x.title, 100), u: x.url }))
-    : [];
   if (cc === 'BE') {
     const rows = await vergelijk(q).catch(() => []);
-    const items = rows.filter((r) => (!min || r.p >= min) && (!max || r.p <= max)).map((r) => {
-      const hay = r.t.toLowerCase();
-      return { t: clip(r.t, 140), u: r.u, h: r.h, p: Math.round(r.p * 100) / 100, cur: 'EUR', i: r.i ? imgUrl ? imgUrl(r.i, 160) : r.i : undefined, m: feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f))) };
-    });
-    if (feats.length) items.sort((a, b) => b.m.length - a.m.length || a.p - b.p); else items.sort((a, b) => a.p - b.p);
-    if (items.length) {
-      const v = { q, cc, feats, items, shops: ['vergelijk.be'], tweakers };
-      cache.set(ck, { t: Date.now(), v });
-      return v;
-    }
+    const items = rows.filter((r) => (!min || r.p >= min) && (!max || r.p <= max)).map((r) => ({
+      t: clip(r.t, 140), u: r.u, h: r.h, p: Math.round(r.p * 100) / 100, cur: 'EUR', i: r.i ? imgUrl ? imgUrl(r.i, 160) : r.i : undefined, m: mark(r.t.toLowerCase()),
+    }));
+    if (items.length) return { items, shops: ['vergelijk.be'] };
   }
   const text = [q, ...feats].join(' ');
   // Two passes keep one big retailer from filling every slot.
   const passes = [shops.slice(0, 5), shops.slice(5)].filter((s) => s.length);
   const found = (await Promise.all(passes.map((s) =>
     searx(`${text} (${s.map((d) => 'site:' + d).join(' OR ')})`, LANG[cc]).catch(() => [])))).flat();
+  return { items: await fromSearch(found, shops, min, max, mark, imgUrl, false), shops };
+}
+
+async function fromSearch(found, shops, min, max, mark, imgUrl, second) {
   const seen = new Set(), per = {}, cand = [];
   for (const x of found) {
     if (!x || typeof x.url !== 'string' || seen.has(x.url)) continue;
@@ -212,12 +213,49 @@ async function shop(url, imgUrl) {
     const hay = ((p.name || c.t || '') + ' ' + (p.desc || '') + ' ' + (c.t || '')).toLowerCase();
     items.push({
       t: clip(p.name || c.t, 140), u: c.u, h: c.d, p: Math.round(p.price * 100) / 100, cur: p.cur || undefined,
-      i: imgUrl ? imgUrl(p.img, 160) : undefined, r: p.rating, n: p.reviews,
-      m: feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f))),
+      i: imgUrl ? imgUrl(p.img, 160) : undefined, r: p.rating, n: p.reviews, m: mark(hay), s: second ? 1 : undefined,
     });
   }
-  items.sort((a, b) => a.p - b.p);
-  const v = { q, cc, feats, items, shops, tweakers };
+  return items;
+}
+
+async function usedOffers(q, cc, feats, min, max, imgUrl) {
+  const compact = (t) => t.replace(/[\s-]+/g, '');
+  const mark = (hay) => feats.filter((f) => hay.includes(f) || compact(hay).includes(compact(f)));
+  const shops = SECOND[cc];
+  const text = [q, ...feats].join(' ');
+  const passes = [shops.slice(0, 4), shops.slice(4)].filter((s) => s.length);
+  const found = (await Promise.all(passes.map((s) =>
+    searx(`${text} (${s.map((d) => 'site:' + d).join(' OR ')})`, LANG[cc]).catch(() => [])))).flat();
+  return { items: await fromSearch(found, shops, min, max, mark, imgUrl, true), shops };
+}
+
+/** cond: new (default), used (second hand and refurbished only), all (both). Anything that looks refurbished is flagged. */
+async function shop(url, imgUrl) {
+  const q = (url.searchParams.get('q') || '').trim();
+  if (!q || q.length > 200) throw Object.assign(new Error('bad query'), { status: 400 });
+  const cc = COUNTRIES.includes(url.searchParams.get('cc')) ? url.searchParams.get('cc') : 'BE';
+  const cond = ['used', 'all'].includes(url.searchParams.get('cond')) ? url.searchParams.get('cond') : 'new';
+  const min = Math.max(0, Number(url.searchParams.get('min')) || 0);
+  const max = Math.max(0, Number(url.searchParams.get('max')) || 0);
+  const feats = (url.searchParams.get('f') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8);
+  const ck = [q.toLowerCase(), cc, cond, min, max, feats.join()].join('|');
+  const hit = cache.get(ck);
+  if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
+  // Tweakers reviews and guides for the same search, shown next to the prices.
+  const tweakers = (cc === 'BE' || cc === 'NL')
+    ? (await searx(`${q} site:tweakers.net`, LANG[cc]).catch(() => [])).filter((x) => x && /^https:\/\/(www\.)?tweakers\.net\//.test(x.url)).slice(0, 4).map((x) => ({ t: clip(x.title, 100), u: x.url }))
+    : [];
+  const [a, b] = await Promise.all([
+    cond === 'used' ? { items: [], shops: [] } : newOffers(q, cc, feats, min, max, imgUrl),
+    cond === 'new' ? { items: [], shops: [] } : usedOffers(q, cc, feats, min, max, imgUrl),
+  ]);
+  let items = a.items.concat(b.items);
+  for (const x of items) if (!x.s && (USED_RE.test(x.t) || USED_HOST.test(x.h))) x.s = 1;
+  if (cond === 'new') items = items.filter((x) => !x.s);
+  if (cond === 'used') items = items.filter((x) => x.s);
+  items.sort((x, y) => x.p - y.p);
+  const v = { q, cc, cond, feats, items, shops: a.shops.concat(b.shops), tweakers };
   cache.set(ck, { t: Date.now(), v });
   if (cache.size > 200) cache.delete(cache.keys().next().value);
   return v;

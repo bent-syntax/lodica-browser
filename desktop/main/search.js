@@ -158,7 +158,7 @@ function search(msg) {
 async function shop(msg) {
   if (!relay.available) return { error: "Shop needs a linked server. Link one in Settings." };
   const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200), cc: String(msg.cc || "BE").slice(0, 2) });
-  for (const k of ["min", "max", "f"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
+  for (const k of ["min", "max", "f", "cond"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
   try {
     const r = await fetch(relay.API + "/api/shop?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(40000) });
     if (r.status === 404) return { error: "Shop is not available on your relay yet. Update the relay server, then try again." };

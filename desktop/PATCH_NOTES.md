@@ -1,3 +1,9 @@
+## 1.15.9
+
+- Added: Shop filters like a price comparison site: show or hide shops, shop rating, and counts next to every option.
+- Added: Shop can include second hand and refurbished offers from second hand sellers, marked Second hand.
+- Changed: The Shop condition switch picks new only, both, or second hand only.
+
 ## 1.15.8
 
 - Fixed: The desktop Notebook opens and creates a first note without needing the phone.
