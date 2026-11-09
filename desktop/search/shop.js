@@ -94,7 +94,7 @@
       const shops = Object.keys(count).sort((a, b) => count[b] - count[a] || a.localeCompare(b));
       const shopBtn = (h) => {
         const st = s.inc.includes(h) ? "inc" : s.ex.includes(h) ? "ex" : "";
-        const b = el("button", { type: "button", class: "sh-opt" + (st ? " on " + st : ""), title: "Click to show only, click again to hide" }, (st === "ex" ? "− " : st === "inc" ? "✓ " : "") + h + " (" + count[h] + ")");
+        const b = el("button", { type: "button", class: "sh-opt" + (st ? " on " + st : ""), title: "Click to show only, click again to hide" }, h + " (" + count[h] + ")");
         b.addEventListener("click", () => {
           s.inc = s.inc.filter((x) => x !== h); s.ex = s.ex.filter((x) => x !== h);
           if (!st) s.inc.push(h); else if (st === "inc") s.ex.push(h);
@@ -156,11 +156,16 @@
     const wrap = el("div", { class: "sh-wrap" });
     const fbtn = el("button", { type: "button", class: "sh-fbtn", "aria-expanded": "false", "aria-label": "Filters" },
       el("span", { class: "sh-bars", "aria-hidden": "true" }, el("i", {}), el("i", {}), el("i", {})), el("span", {}, "Filters"));
-    fbtn.addEventListener("click", () => {
-      const open = wrap.classList.toggle("open");
+    const setOpen = (open) => {
+      wrap.classList.toggle("open", open);
       fbtn.setAttribute("aria-expanded", open ? "true" : "false");
       fbtn.setAttribute("aria-label", open ? "Close filters" : "Filters");
-    });
+    };
+    fbtn.addEventListener("click", () => setOpen(!wrap.classList.contains("open")));
+    const closeBtn = el("button", { type: "button", class: "sh-close", "aria-label": "Close filters" }, el("span", { class: "sh-bars", "aria-hidden": "true" }, el("i", {}), el("i", {}), el("i", {})));
+    closeBtn.addEventListener("click", () => setOpen(false));
+    const scrim = el("div", { class: "sh-scrim" });
+    scrim.addEventListener("click", () => setOpen(false));
     const viewRow = el("div", { class: "sh-view", role: "group", "aria-label": "Layout" });
     for (const [k, t] of [["list", "List"], ["grid", "Grid"]]) {
       const b = el("button", { type: "button", class: s.view === k ? "on" : "", "aria-pressed": s.view === k ? "true" : "false" }, t);
@@ -169,11 +174,13 @@
     }
     wrap.append(
       el("div", { class: "sh-main" }, el("div", { class: "sh-bar" }, fbtn, sortRow, viewRow), out),
+      scrim,
       el("aside", { class: "sh-filters" },
+        el("div", { class: "sh-fhead" }, el("b", {}, "Features"), closeBtn),
         el("section", { class: "sh-panel" },
           el("div", { class: "sh-row" }, field("Country", sel), field("From", min), field("To", max)),
           groups, field("More features", add), chips),
-        condRow, side));
+        el("div", { class: "sh-g" }, el("span", {}, "Condition"), condRow), side));
     root.replaceChildren(wrap);
     drawChips(); drawGroups();
 

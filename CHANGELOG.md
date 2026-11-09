@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.11 (versionCode 232)
+
+- Changed: Shop features sit in a left column as tick lists with counts, and results fill the right with a sort bar and list or grid.
+- Changed: On phones the features slide in from the right and close with an X or a tap outside.
+- Changed: The desktop AI panel follows the theme fonts and colours.
+- Fixed: The phone AI panel fills the screen width, also with the keyboard open.
+
 ## 1.15.10 (versionCode 231)
 
 - Changed: Shop shows review and spec links from several sites in place of one, with prices from the Belgian price comparison.

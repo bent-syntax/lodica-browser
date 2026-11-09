@@ -7,39 +7,41 @@
 <link rel="stylesheet" href="themes.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Inter",Roboto,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
+button,textarea{font-family:inherit}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:var(--high);border-radius:999px;border:3px solid var(--bg)}
 body{display:flex;flex-direction:column;border-left:1px solid var(--high)}
 header{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 12px;border-bottom:1px solid var(--high);position:relative}
 header h1{flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ib{width:32px;height:32px;border:0;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center}
-.ib:hover{background:var(--raised);color:var(--text)}
+.ib:hover{background:var(--high);color:var(--text)}
 .ib svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 #hist{position:absolute;top:48px;left:8px;right:8px;max-height:60%;overflow:auto;background:var(--raised);border-radius:20px;padding:8px;z-index:5;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 #hist[hidden]{display:none}
-#hist button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);padding:8px 12px;border-radius:12px;font:13px system-ui,sans-serif;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hist button{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);padding:8px 12px;border-radius:12px;font-size:13px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #hist button:hover,#hist button.on{background:var(--high)}
 #hist .none{color:var(--muted);font-size:13px;padding:8px 12px}
 #thread{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
 .empty{color:var(--muted);font-size:13px;text-align:center;margin:auto;padding:0 16px}
-.q{align-self:flex-end;max-width:85%;background:var(--high);padding:8px 12px;border-radius:20px 20px 4px 20px;white-space:pre-wrap;word-break:break-word}
+.q{align-self:flex-end;max-width:85%;background:var(--raised);border:1px solid var(--high);padding:8px 12px;border-radius:20px 20px 4px 20px;white-space:pre-wrap;word-break:break-word}
 .a{max-width:95%;white-space:pre-wrap;word-break:break-word}
 .step{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
 .step:before{content:"";width:6px;height:6px;border-radius:50%;background:var(--amber);flex:none}
 .err{color:var(--coral)}
 footer{padding:8px 12px 12px;border-top:1px solid var(--high);display:flex;flex-direction:column;gap:8px}
 .row{display:flex;gap:8px;align-items:flex-end}
-textarea{flex:1;resize:none;max-height:120px;border:0;outline:0;border-radius:20px;background:var(--raised);color:var(--text);padding:8px 16px;font:15px/1.4 system-ui,sans-serif}
-.go{background:var(--amber);color:#111827}
-.go:hover{background:var(--amber);color:#111827;filter:brightness(1.1)}
+textarea{flex:1;border:1px solid var(--high);resize:none;max-height:120px;outline:0;border-radius:20px;background:var(--raised);color:var(--text);padding:8px 16px;font-size:14px;line-height:1.4}
+.go{background:var(--amber);color:var(--bg)}
+.go:hover{background:var(--amber);color:var(--bg);filter:brightness(1.1)}
 .mode{display:flex;gap:4px;font-size:12px}
-.mode button{border:0;border-radius:999px;padding:4px 12px;background:var(--raised);color:var(--muted);cursor:pointer;font:12px system-ui,sans-serif}
-.mode button.on{background:var(--amber);color:#111827}
+.mode button{border:0;border-radius:999px;padding:4px 12px;background:var(--raised);color:var(--muted);cursor:pointer;font-size:12px}
+.mode button.on{background:var(--amber);color:var(--bg)}
 .mode .sp{flex:1}
 .mode #lvl{display:flex;gap:2px}
 .mode #lvl button{padding:4px 8px}
 .working{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--amber)}
 .working[hidden]{display:none}
-.working button{margin-left:auto;border:0;border-radius:999px;padding:4px 12px;background:var(--coral-bg);color:var(--coral);cursor:pointer;font:12px system-ui,sans-serif}
+.working button{margin-left:auto;border:0;border-radius:999px;padding:4px 12px;background:var(--coral-bg);color:var(--coral);cursor:pointer;font-size:12px}
 </style>
 </head>
 <body>
