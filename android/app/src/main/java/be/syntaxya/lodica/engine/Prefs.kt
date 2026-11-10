@@ -98,6 +98,8 @@ object Prefs {
     var aiAlways by mutableStateOf(false); private set
     /** How much the AI may do on its own in the browser: read, plan, edit or auto. */
     var aiAgentMode by mutableStateOf("edit"); private set
+    /** Most actions the AI may take in one browser task. */
+    var aiAgentMaxSteps by mutableStateOf(20); private set
     var googleOverview by mutableStateOf(false); private set
     /** Smartschool planner ICS link shown on the start page; empty means not added. */
     var plannerIcs by mutableStateOf(""); private set
@@ -224,6 +226,7 @@ object Prefs {
         aiAlways = sp.getBoolean("aiAlways", false)
         googleOverview = sp.getBoolean("googleOverview", false)
         aiAgentMode = sp.getString("aiAgentMode", "edit").orEmpty().takeIf { it in AiAgent.MODES } ?: "edit"
+        aiAgentMaxSteps = sp.getInt("aiAgentMaxSteps", 20).coerceAtLeast(1)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
         startNotes = sp.getBoolean("startNotes", true)
         startPlanner = sp.getBoolean("startPlanner", false)
@@ -432,6 +435,7 @@ object Prefs {
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateGoogleOverview(v: Boolean) { googleOverview = v; sp.edit().putBoolean("googleOverview", v).apply() }
     fun updateAiAgentMode(v: String) { if (v !in AiAgent.MODES) return; aiAgentMode = v; sp.edit().putString("aiAgentMode", v).apply() }
+    fun updateAiAgentMaxSteps(v: Int) { if (v < 1) return; aiAgentMaxSteps = v; sp.edit().putInt("aiAgentMaxSteps", v).apply() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }
     fun updateSearchWords(v: String) { searchWords = v.trim(); sp.edit().putString("searchWords", searchWords).apply(); Helper.push() }
     fun searchWordPairs(): List<List<String>> = searchWords.lines().mapNotNull { l ->

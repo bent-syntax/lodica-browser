@@ -5,6 +5,11 @@
   const COUNTRIES = { BE: "Belgium", NL: "Netherlands", DE: "Germany", FR: "France", GB: "United Kingdom", US: "United States", CA: "Canada", AU: "Australia", ES: "Spain", IT: "Italy" };
   const KEY = "lodica.shop";
 
+  // Search-in categories: [key, label, word]. Keys must match CATEGORIES in relay/src/shop.js.
+  const CATLIST = [["", "All categories", ""], ["laptops", "Laptops", "laptop"], ["phones", "Phones", "smartphone"], ["tablets", "Tablets", "tablet"], ["tvs", "TVs", "televisie"],
+    ["audio", "Audio", "koptelefoon"], ["cameras", "Cameras", "camera"], ["gaming", "Gaming", "game console"], ["monitors", "Monitors", "monitor"],
+    ["components", "PC components", "pc component"], ["printers", "Printers", "printer"], ["appliances", "Appliances", "huishoud"], ["smarthome", "Smart home", "smart home"], ["wearables", "Wearables", "smartwatch"]];
+
   function load() {
     let s = {};
     try { s = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
@@ -18,6 +23,7 @@
     s.sort = s.sort === "match" ? "match" : "price";
     s.cond = s.cond === "used" || s.cond === "all" ? s.cond : "new";
     s.view = s.view === "grid" ? "grid" : "list";
+    s.cat = CATLIST.some((c) => c[0] === s.cat) ? s.cat : "";
     s.rate = s.rate > 0 ? s.rate : 0;
     s.inc = Array.isArray(s.inc) ? s.inc.filter((x) => typeof x === "string").slice(0, 30) : [];
     s.ex = Array.isArray(s.ex) ? s.ex.filter((x) => typeof x === "string").slice(0, 30) : [];
@@ -49,7 +55,8 @@
     [/drone/, [G("Video", "4k", "5.4k"), G("Weight", "under 250g"), G("Extras", "obstacle avoidance", "gps", "gimbal")]],
     [/projector|beamer/, [G("Resolution", "full hd", "4k"), G("Light", "3000 lumens", "5000 lumens"), G("Type", "laser", "short throw", "portable")]],
   ];
-  const specsFor = (q) => { const t = (q || "").toLowerCase(); const c = CATS.find((x) => x[0].test(t)); return c ? c[1] : []; };
+  let curCat = "";
+  const specsFor = (q) => { const t = ((CATLIST.find((c) => c[0] === curCat) || [])[2] + " " + (q || "")).toLowerCase(); const c = CATS.find((x) => x[0].test(t)); return c ? c[1] : []; };
   const save = (s) => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} };
 
   function money(p, cur) {
@@ -133,6 +140,9 @@
     min.addEventListener("change", change);
     max.addEventListener("change", change);
 
+    const catSel = el("select", { "aria-label": "Search in category" }, ...CATLIST.map((c) => el("option", { value: c[0] }, c[1])));
+    catSel.value = s.cat; curCat = s.cat;
+    catSel.addEventListener("change", () => { s.cat = curCat = catSel.value; s.f = []; save(s); drawChips(); drawGroups(); go(); });
     const groups = el("div", { class: "sh-groups" });
     let timer = 0;
     const later = () => { clearTimeout(timer); timer = setTimeout(go, 500); };
@@ -178,6 +188,7 @@
       el("aside", { class: "sh-filters" },
         el("div", { class: "sh-fhead" }, el("b", {}, "Features"), closeBtn),
         el("section", { class: "sh-panel" },
+          el("div", { class: "sh-row" }, field("Search in", catSel)),
           el("div", { class: "sh-row" }, field("Country", sel), field("From", min), field("To", max)),
           groups, field("More features", add), chips),
         el("div", { class: "sh-g" }, el("span", {}, "Condition"), condRow), side));
@@ -228,6 +239,7 @@
       const my = ++token;
       out.replaceChildren(...[0, 1, 2, 3].map(() => el("div", { class: "skel" })));
       const params = { q, cc: s.cc };
+      if (s.cat) params.cat = s.cat;
       if (s.min) params.min = s.min;
       if (s.max) params.max = s.max;
       if (s.f.length) params.f = s.f.join(",");

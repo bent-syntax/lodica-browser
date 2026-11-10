@@ -902,6 +902,19 @@ private fun AiSection() {
             Chip(label, Prefs.aiAgentMode == k) { Prefs.updateAiAgentMode(k) }
         }
     }
+    var stepsText by remember { mutableStateOf(Prefs.aiAgentMaxSteps.toString()) }
+    Text("AI max steps", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp))
+    Text("Most actions the AI may take in one browser task. Any whole number, 1 or more.", color = Muted, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+    OutlinedTextField(
+        stepsText, { t -> stepsText = t.filter { it.isDigit() }.take(6); stepsText.toIntOrNull()?.let { Prefs.updateAiAgentMaxSteps(it) } },
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
+            focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
+        ),
+    )
     SwitchRow("Ask AI via Termux", "No API key? Use your own Claude Code in Termux instead. Off by default, at your own risk", Ai.enabled) {
         Ai.updateEnabled(it)
     }

@@ -1,3 +1,9 @@
+## 1.15.12
+
+- Added: Shop has a "Search in" category picker. Your search word is searched inside that category.
+- Added: The AI agent step limit is a setting. Set any number of steps.
+- Fixed: The desktop Shop fills the window width and the sort and view buttons sit together.
+
 ## 1.15.11
 
 - Changed: Shop features sit in a left column as tick lists with counts, and results fill the right with a sort bar and list or grid.

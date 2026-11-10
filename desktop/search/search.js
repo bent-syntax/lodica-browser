@@ -405,6 +405,7 @@ addEventListener("pagehide", () => cachePut({ y: scrollY }));
 async function run() {
   if (!setup()) return;
   if (cat === "shop") {
+    document.getElementById("main").classList.add("wide");
     const st = await browser.runtime.sendMessage({ type: "state" }).catch(() => ({}));
     if (st && st.base) BASE = st.base;
     if (st && st.api === false) { $("results").replaceChildren(el("div", { class: "ans" }, "Shop needs a linked server. Link one in Settings.")); return; }

@@ -577,7 +577,7 @@ function init(deps) {
   });
   on("ai.agent.start", (goal) => {
     if (!d.ai.status().connected) return { error: "AI is not connected" };
-    return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, mode: d.prefs.p.aiAgentMode, save: (id, role, text) => d.ai.chats.append(id, role, text), push: (p) => d.ui.push("agent", p) });
+    return require("./aiagent").start(str(goal), { tabs: d.tabs, ai: d.ai, mode: d.prefs.p.aiAgentMode, maxSteps: d.prefs.p.aiAgentMaxSteps, save: (id, role, text) => d.ai.chats.append(id, role, text), push: (p) => d.ui.push("agent", p) });
   });
   on("ai.agent.new", () => require("./aiagent").newSession());
   on("ai.agent.stop", () => require("./aiagent").stop());

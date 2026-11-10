@@ -172,6 +172,13 @@ async function vergelijk(q) {
   return parseVergelijk(html);
 }
 
+// Category picker: the typed text is the search word inside the chosen category. The category term is added to the query unless it is already in it.
+const CATEGORIES = {
+  laptops: 'laptop', phones: 'smartphone', tablets: 'tablet', tvs: 'televisie', audio: 'koptelefoon', cameras: 'camera', gaming: 'game console',
+  monitors: 'monitor', components: 'pc component', printers: 'printer', appliances: 'huishoudapparaat', smarthome: 'smart home', wearables: 'smartwatch',
+};
+const withCat = (q, cat) => (CATEGORIES[cat] && !q.toLowerCase().includes(CATEGORIES[cat]) ? CATEGORIES[cat] + ' ' + q : q);
+
 const cache = new Map();
 
 async function newOffers(q, cc, feats, min, max, imgUrl) {
@@ -256,25 +263,27 @@ async function shop(url, imgUrl) {
   const cond = ['used', 'all'].includes(url.searchParams.get('cond')) ? url.searchParams.get('cond') : 'new';
   const min = Math.max(0, Number(url.searchParams.get('min')) || 0);
   const max = Math.max(0, Number(url.searchParams.get('max')) || 0);
+  const cat = Object.hasOwn(CATEGORIES, url.searchParams.get('cat')) ? url.searchParams.get('cat') : '';
   const feats = (url.searchParams.get('f') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8);
-  const ck = [q.toLowerCase(), cc, cond, min, max, feats.join()].join('|');
+  const ck = [q.toLowerCase(), cat, cc, cond, min, max, feats.join()].join('|');
   const hit = cache.get(ck);
   if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
   // Reviews and spec sheets from sites that allow plain fetches, shown next to the vergelijk.be prices.
-  const guides = await reviewLinks(q, cc);
+  const sq = withCat(q, cat);
+  const guides = await reviewLinks(sq, cc);
   const [a, b] = await Promise.all([
-    cond === 'used' ? { items: [], shops: [] } : newOffers(q, cc, feats, min, max, imgUrl),
-    cond === 'new' ? { items: [], shops: [] } : usedOffers(q, cc, feats, min, max, imgUrl),
+    cond === 'used' ? { items: [], shops: [] } : newOffers(sq, cc, feats, min, max, imgUrl),
+    cond === 'new' ? { items: [], shops: [] } : usedOffers(sq, cc, feats, min, max, imgUrl),
   ]);
   let items = a.items.concat(b.items);
   for (const x of items) if (!x.s && (USED_RE.test(x.t) || USED_HOST.test(x.h))) x.s = 1;
   if (cond === 'new') items = items.filter((x) => !x.s);
   if (cond === 'used') items = items.filter((x) => x.s);
   items.sort((x, y) => x.p - y.p);
-  const v = { q, cc, cond, feats, items, shops: a.shops.concat(b.shops), guides };
+  const v = { q, cat, cc, cond, feats, items, shops: a.shops.concat(b.shops), guides };
   cache.set(ck, { t: Date.now(), v });
   if (cache.size > 200) cache.delete(cache.keys().next().value);
   return v;
 }
 
-module.exports = { shop, parseProduct, parseVergelijk, SHOPS, COUNTRIES };
+module.exports = { shop, parseProduct, parseVergelijk, withCat, SHOPS, COUNTRIES, CATEGORIES };

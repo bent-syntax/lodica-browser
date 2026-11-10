@@ -21,3 +21,11 @@ test('parseProduct falls back to meta tags and flags no price', () => {
 test('every country lists shops', () => {
   for (const [k, v] of Object.entries(SHOPS)) assert.ok(v.length >= 4, k);
 });
+
+test('withCat adds the category word once and CATEGORIES is a whitelist', () => {
+  const { withCat, CATEGORIES } = require('../src/shop');
+  assert.strictEqual(withCat('iphone 15', 'phones'), 'smartphone iphone 15');
+  assert.strictEqual(withCat('smartphone x', 'phones'), 'smartphone x');
+  assert.strictEqual(withCat('iphone', ''), 'iphone');
+  assert.ok(!Object.hasOwn(CATEGORIES, 'constructor'));
+});

@@ -2,7 +2,6 @@
 // It works with any provider through a plain JSON reply, one action per step. Page text is untrusted data:
 // the model is told never to follow instructions found in it, and the agent also enforces its own limits.
 
-const MAX_STEPS = 20;
 const RISKY = /\b(buy|pay|purchase|order|checkout|delete|remove|send|submit|confirm|subscribe|bestel|betaal|koop|verwijder|verstuur|bevestig)/i;
 
 // Permission levels, set in Settings > AI. Unknown values fall back to "edit".
@@ -136,6 +135,7 @@ async function start(goal, deps) {
   const run = { stop: false };
   running = run;
   const { tabs, ai } = deps, say = (s) => { note("Did: " + String(s).slice(0, 160)); deps.push({ step: s }); };
+  const MAX_STEPS = Math.max(1, Math.floor(Number(deps.maxSteps)) || 20);
   const mode = MODES.includes(deps.mode) ? deps.mode : "edit", confirm = deps.confirm || askUser;
   const system = SYSTEM + " " + LEVEL_TEXT[mode] + "\n" + recall() + "User goal: " + goal;
   const save = (role, text) => { if (deps.save) { try { session.chat = deps.save(session.chat, role, text) || session.chat; } catch { /* history is best effort */ } } };
