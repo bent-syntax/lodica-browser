@@ -3,8 +3,25 @@
 const inv = (...a) => window.lodica.invoke(...a);
 const $ = id => document.getElementById(id);
 const LEVELS = { read: "Read only", plan: "Plan", edit: "Edit", auto: "Full auto" };
+let pluginVars = [], pluginKey = "";
+const applyPlugin = async id => {
+  const pl = id ? await inv("plugins.active").catch(() => null) : null;
+  const key = pl ? JSON.stringify(pl) : "";
+  if (key === pluginKey) return;
+  pluginKey = key;
+  const root = document.documentElement;
+  for (const k of pluginVars) root.style.removeProperty(k);
+  pluginVars = pl ? Object.keys(pl.vars) : [];
+  for (const k of pluginVars) root.style.setProperty(k, pl.vars[k]);
+  let el = document.getElementById("plugin-css");
+  if (!el) { el = document.createElement("style"); el.id = "plugin-css"; document.head.append(el); }
+  el.textContent = pl ? pl.css : "";
+};
 const applyPrefs = p => {
   document.documentElement.dataset.theme = (p && p.theme) || "system";
+  applyCustom(document.documentElement, (p && p.theme) || "system", p && p.customTheme, p && p.sysAccent);
+  applyPlugin((p && p.themePlugin) || "");
+  document.documentElement.style.setProperty("--ui-a", "1");
   const cur = LEVELS[p && p.aiAgentMode] ? p.aiAgentMode : "edit";
   const box = $("lvl");
   if (!box.firstChild) for (const k of Object.keys(LEVELS)) {

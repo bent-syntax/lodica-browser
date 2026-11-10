@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.13 (versionCode 234)
+
+- Fixed: The AI agent keeps your goal in every step, so it no longer says "no task received".
+- Fixed: The desktop AI panel follows the browser theme.
+
 ## 1.15.12 (versionCode 233)
 
 - Added: Shop has a "Search in" category picker. Your search word is searched inside that category.

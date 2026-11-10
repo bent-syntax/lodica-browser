@@ -157,7 +157,7 @@ async function start(goal, deps) {
         } catch { page = "The page could not be read."; }
       }
       const tabList = tabs.open().map((t, i) => i + ": " + (t.title || t.url || "New tab").slice(0, 60) + (t === tabs.current() ? " (current)" : "")).join("\n");
-      turns.push({ role: "user", content: "Open tabs:\n" + tabList + "\n\n<page>\n" + page.slice(0, 7000) + "\n</page>\n\nStep " + step + " of " + MAX_STEPS + ". Reply with one JSON action." });
+      turns.push({ role: "user", content: "Goal: " + goal + "\n\nOpen tabs:\n" + tabList + "\n\n<page>\n" + page.slice(0, 7000) + "\n</page>\n\nStep " + step + " of " + MAX_STEPS + ". Reply with one JSON action." });
       const reply = await ai.complete(turns.slice(-7), system);
       if (run.stop) return finish({ error: "Stopped" });
       const act = parse(reply);
