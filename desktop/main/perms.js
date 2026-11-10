@@ -70,7 +70,11 @@ function check(wc, permission, origin, details) {
   const h = hostOf(origin || details?.requestingUrl || "");
   const d = h && describe(permission, h, { mediaTypes: details?.mediaType ? [details.mediaType] : [] });
   if (!d) return false;
-  if (permission === "media") return Object.keys(saved).some(k => k.startsWith(h + "|media:") && saved[k] === true);
+  if (permission === "media") {
+    const pre = h + "|media:", cam = details.mediaType === "video";
+    const grants = isPrivate(wc) ? { ...saved, ...temp } : saved;
+    return Object.keys(grants).some(k => k.startsWith(pre) && grants[k] === true && k.slice(pre.length).split(":")[cam ? 0 : 1] === "true");
+  }
   const id = h + "|" + d[0];
   return isPrivate(wc) ? (temp[id] ?? saved[id]) === true : saved[id] === true;
 }
@@ -78,6 +82,12 @@ function check(wc, permission, origin, details) {
 // Site notifications from the page shim in preload/content.js, shown as system notifications.
 const shown = new Map(); // "wcId|id" -> Notification
 const byTag = new Map(); // "wcId|host|tag" -> key in shown
+const watched = new WeakSet();
+function dropPage(wcId) {
+  const pre = wcId + "|";
+  for (const [k, n] of shown) if (k.startsWith(pre)) { shown.delete(k); try { n.close(); } catch { /* gone */ } }
+  for (const k of byTag.keys()) if (k.startsWith(pre)) byTag.delete(k);
+}
 async function iconOf(wc, url) {
   if (!/^https?:/.test(url || "")) return undefined;
   try {
@@ -100,6 +110,7 @@ async function pageNotify(e, m) {
   const h = hostOf(e.senderFrame?.url || wc.getURL());
   const allowId = h + "|notify";
   if (!h || (isPrivate(wc) ? (temp[allowId] ?? saved[allowId]) : saved[allowId]) !== true) return emit(wc, id, "error");
+  if (!watched.has(wc)) { watched.add(wc); const wid = wc.id; wc.once?.("destroyed", () => dropPage(wid)); }
   const tag = String(m.tag || "");
   if (tag) {
     const old = byTag.get(wc.id + "|" + h + "|" + tag);
@@ -163,4 +174,4 @@ function init(d) {
 
 function reset() { saved = {}; for (const k of Object.keys(temp)) delete temp[k]; persist(); return true; }
 
-module.exports = { init, reset, list, set };
+module.exports = { init, check, reset, list, set };

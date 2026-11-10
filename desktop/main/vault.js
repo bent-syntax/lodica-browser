@@ -18,20 +18,27 @@ const hash = (p, salt) => crypto.scryptSync(String(p), Buffer.from(salt, "hex"),
 
 function pinSet() { return !!pin; }
 
-function setPin(p) {
+function setPin(p, old) {
   if (!p || String(p).length < 4) return false;
+  if (pin && !check(old)) return false;
+  const first = !pin;
   const salt = crypto.randomBytes(16).toString("hex");
   pin = { salt, hash: hash(p, salt) };
   store.writeNow("vault-pin", pin);
-  unlockedUntil = Date.now() + UNLOCK_MS;
+  if (first) unlockedUntil = Date.now() + UNLOCK_MS;
   return true;
 }
 
+let fails = 0, blockedUntil = 0;
+
 /** Checks the PIN without unlocking (also used to unlock private tabs). */
 function check(p) {
-  if (!pin || !p) return false;
+  if (!pin || !p || Date.now() < blockedUntil) return false;
   const a = Buffer.from(hash(p, pin.salt), "hex"), b = Buffer.from(pin.hash, "hex");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
+  if (ok) fails = 0;
+  else if (++fails >= 5) { fails = 0; blockedUntil = Date.now() + 30000; }
+  return ok;
 }
 
 function unlock(p) {

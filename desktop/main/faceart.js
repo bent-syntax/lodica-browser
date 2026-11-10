@@ -33,6 +33,7 @@ const SHAPES = {
 };
 const NEEDS = { circle: ['r'], ellipse: ['rx', 'ry'], rect: ['width', 'height'], line: ['x1', 'y1', 'x2', 'y2'], polygon: ['points'], polyline: ['points'], path: ['d'] };
 
+const HEAD = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">';
 /** Returns a clean 64x64 SVG string built only from allowlisted shapes, or '' when [svg] has nothing drawable. */
 function cleanArt(svg) {
   if (typeof svg !== 'string' || svg.length > MAX_IN) return '';
@@ -52,11 +53,12 @@ function cleanArt(svg) {
       if (allowed[k] ? allowed[k](v) : STYLE[k] && STYLE[k](v)) kept[k] = v;
     }
     if (!NEEDS[name].every(k => k in kept)) continue;
-    out.push('<' + name + Object.entries(kept).map(([k, v]) => ' ' + k + '="' + v + '"').join('') + '/>');
+    const el = '<' + name + Object.entries(kept).map(([k, v]) => ' ' + k + '="' + v + '"').join('') + '/>';
+    if (HEAD.length + out.join('').length + el.length + '</svg>'.length > MAX_OUT) break; // keep the shapes that fit
+    out.push(el);
   }
   if (!out.length) return '';
-  const res = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' + out.join('') + '</svg>';
-  return res.length <= MAX_OUT ? res : '';
+  return HEAD + out.join('') + '</svg>';
 }
 
 module.exports = { cleanArt };

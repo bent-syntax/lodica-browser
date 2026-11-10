@@ -56,6 +56,8 @@ function persist() { store.save("prefs", () => p); }
 /** Sets one pref and tells listeners (net, helper, ui) about it. */
 function set(key, value) {
   if (!(key in DEFAULTS)) return;
+  const table = { search: ENGINES, userAgent: AGENTS, language: LANGUAGES }[key];
+  if (table && value !== "" && !(value in table)) return;
   // A holiday theme only applies once it has been claimed.
   if (key === "theme" && HOLIDAY_IDS.includes(value) && !p.claimedThemes.includes(value)) return;
   p[key] = value;
@@ -108,7 +110,7 @@ function withLanguage(url) {
   if (!GOOGLE.test(url)) return url;
   try {
     const u = new URL(url);
-    const code = LANGUAGES[p.language].code;
+    const code = (LANGUAGES[p.language] || LANGUAGES[DEFAULTS.language]).code;
     if (u.searchParams.get("hl") === code) return url;
     u.searchParams.set("hl", code);
     return u.toString();
@@ -129,14 +131,20 @@ const SCHEMES = ["http://", "https://", "about:", "file://", "data:", "view-sour
 function resolve(input, lodicaAvailable) {
   const t = (input || "").trim();
   if (!t) return "about:blank";
-  if (SCHEMES.some(s => t.toLowerCase().startsWith(s))) return t;
+  const web = /^https?:\/\//i.test(t);
+  if (SCHEMES.some(s => t.toLowerCase().startsWith(s)) && !(web && (/\s/.test(t) || !/^https?:\/\/[^\s/?#]/i.test(t)))) return t.replace(/^[a-z-]+:/i, m => m.toLowerCase());
   const word = wordTarget(t);
   if (word) return word;
-  const host = !t.includes(" ") && (/^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(t) || /^\[[0-9a-f:]+\](:\d+)?(\/.*)?$/i.test(t) || t.startsWith("localhost"));
-  if (host) return withLanguage((t.startsWith("localhost") || isBareIp(t.split("/")[0]) ? "http://" : "https://") + t);
+  const hp = t.split(/[/?#]/)[0], hn = hp.replace(/:\d+$/, ""), hl = hn.replace(/\.$/, "");
+  const portOk = !/:\d+$/.test(hp) || Number(hp.slice(hp.lastIndexOf(":") + 1)) <= 65535;
+  const label = /^[\p{L}\p{N}](?:[\p{L}\p{N}-]*[\p{L}\p{N}])?$/u;
+  const ip = /^(\d{1,3}\.){3}\d{1,3}$/.test(hn);
+  const named = hl.includes(".") && hl.split(".").every(l => label.test(l)) && /\p{L}/u.test(hl.split(".").pop());
+  const host = !t.includes(" ") && portOk && (hn === "localhost" || named || (ip && hn.split(".").every(n => n <= 255)) || /^\[[0-9a-f:]+\](:\d+)?$/i.test(hp));
+  if (host) return withLanguage((hn === "localhost" || isBareIp(hp) ? "http://" : "https://") + t);
   const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");
-  let engine = ENGINES[want];
-  if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback];
+  let engine = ENGINES[want] || ENGINES.DUCKDUCKGO;
+  if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback] || ENGINES.DUCKDUCKGO;
   return withLanguage(engine.query.replace("%s", encodeURIComponent(t)));
 }
 
@@ -149,7 +157,7 @@ function searchQuery(url) {
 const CHROME_MAJOR = String(process.versions.chrome || "141").split(".")[0];
 /** Default desktop identity: plain Chrome on Windows, no "Electron" token, reduced version like real Chrome. */
 const DEFAULT_UA = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROME_MAJOR}.0.0.0 Safari/537.36`;
-function userAgentValue() { return AGENTS[p.userAgent].value || DEFAULT_UA; }
+function userAgentValue() { return (AGENTS[p.userAgent] || {}).value || DEFAULT_UA; }
 
 /** Built-in site overrides. User entries in p.siteOverrides win, so an older saved prefs file never hides these. */
 const BUILTIN_OVERRIDES = {

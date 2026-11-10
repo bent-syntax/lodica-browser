@@ -31,7 +31,7 @@ function secAi() {
   if (!S.prefs.ai) return out;
   out.push(setToggle("aiAlways", "Always generate AI answers", "Off: search shows a button and only asks Claude when you click it"));
   out.push(setSelect("Browser control level", "How much the AI may do on its own when it uses the browser. Read only never clicks or types. Plan shows a plan to approve first. Edit asks before typing and risky clicks. Full auto never asks, so it can press buy or send buttons.", [{ key: "read", label: "Read only" }, { key: "plan", label: "Plan" }, { key: "edit", label: "Edit" }, { key: "auto", label: "Full auto" }], "aiAgentMode"));
-  out.push(setRow("AI max steps", "Most actions the AI may take in one browser task. Any whole number, 1 or more.", h("input", { type: "number", min: 1, step: 1, value: S.prefs.aiAgentMaxSteps || 20, style: "width:90px", on: { change: (e) => { const n = Math.floor(Number(e.target.value)); setPref("aiAgentMaxSteps", n >= 1 ? n : 20); } } })));
+  out.push(setRow("AI max steps", "Most actions the AI may take in one browser task. A whole number from 1 to 200.", h("input", { type: "number", min: 1, step: 1, value: S.prefs.aiAgentMaxSteps || 20, style: "width:90px", on: { change: (e) => { const n = Math.floor(Number(e.target.value)), v = Number.isFinite(n) && n >= 1 ? Math.min(n, 200) : 20; e.target.value = v; setPref("aiAgentMaxSteps", v); } } })));
   out.push(setRow("AI chat", "Chat with Claude, saved here and on your phone", ico("chevron", "chev"), () => openAiChat()));
   out.push(setRow("AI chat location", S.prefs.aiChatDir || "Default (app data folder). Click to choose a folder; click again to pick another.", ico("chevron", "chev"), async () => {
     let reset = false;

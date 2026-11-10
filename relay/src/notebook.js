@@ -27,7 +27,7 @@ async function load() {
   try {
     const v = JSON.parse(await fsp.readFile(FILE, 'utf8'));
     // Older files hold one note: { text, rev, at }.
-    notes = (Array.isArray(v.notes) ? v.notes : [{ ...v, id: '1' }]).slice(0, NOTES_MAX).map(clean).filter((n) => n.id);
+    notes = (Array.isArray(v.notes) ? v.notes : [{ ...v, id: '1' }]).filter((n) => n && typeof n === 'object').slice(0, NOTES_MAX).map(clean).filter((n) => n.id);
   } catch { notes = []; }
   if (!notes.length) notes = [{ ...fresh(), id: '1' }];
   return notes;
@@ -54,7 +54,7 @@ async function get(req, res, h) {
 
 async function put(req, res, h) {
   let b;
-  try { b = JSON.parse((await h.readBody(req, 256 * 1024)).toString('utf8')); }
+  try { b = JSON.parse((await h.readBody(req, TEXT_MAX * 4 + 4096)).toString('utf8')); }
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   if (!b || typeof b.text !== 'string' || b.text.length > TEXT_MAX) return h.sendText(req, res, 400, 'bad note');
   const all = await load();
@@ -62,11 +62,12 @@ async function put(req, res, h) {
   const i = id ? all.findIndex((x) => x.id === id) : 0;
   if (i < 0) return h.sendText(req, res, 404, 'no such note');
   const cur = all[i];
-  if (Number.isInteger(b.base) && b.base !== cur.rev) return h.sendJson(req, res, 409, cur);
+  if (b.base !== undefined && !Number.isInteger(b.base)) return h.sendText(req, res, 400, 'bad base');
+  if (b.base !== undefined && b.base !== cur.rev) return h.sendJson(req, res, 409, cur);
   if (b.text === cur.text) return h.sendJson(req, res, 200, cur);
   const next = { id: cur.id, text: b.text, rev: cur.rev + 1, at: Date.now() };
   all[i] = next;
-  await store();
+  try { await store(); } catch (e) { all[i] = cur; throw e; }
   h.sendJson(req, res, 200, next);
 }
 
@@ -76,7 +77,7 @@ async function create(req, res, h) {
   const n = fresh();
   n.at = Date.now();
   all.push(n);
-  await store();
+  try { await store(); } catch (e) { all.pop(); throw e; }
   h.sendJson(req, res, 200, n);
 }
 
@@ -84,9 +85,10 @@ async function remove(req, res, h) {
   const all = await load();
   const i = all.findIndex((x) => x.id === idOf(req));
   if (i < 0) return h.sendText(req, res, 404, 'no such note');
-  if (all.length === 1) all[0] = { id: all[0].id, text: '', rev: all[0].rev + 1, at: Date.now() };
+  const old = all[i];
+  if (all.length === 1) all[0] = { id: old.id, text: '', rev: old.rev + 1, at: Date.now() };
   else all.splice(i, 1);
-  await store();
+  try { await store(); } catch (e) { if (all.length === 1 && all[0].id === old.id) all[0] = old; else all.splice(i, 0, old); throw e; }
   h.sendJson(req, res, 200, { notes: list() });
 }
 

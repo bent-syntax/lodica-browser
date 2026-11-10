@@ -35,7 +35,7 @@ function set(ts) {
   const t = deps?.tabs.current();
   const at = Number(ts);
   if (!t || !/^https?:/.test(t.url)) return { ok: false, text: "Nothing to remind about here" };
-  if (!Number.isFinite(at) || at <= Date.now()) return { ok: false, text: "Pick a time in the future" };
+  if (!Number.isFinite(at) || at <= Date.now() || Number.isNaN(new Date(at).getTime())) return { ok: false, text: "Pick a time in the future" };
   const r = { url: t.url, title: t.title || t.url, at };
   if (!t.private) { items.push(r); persist(); }
   arm(r);

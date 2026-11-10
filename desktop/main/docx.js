@@ -48,7 +48,7 @@ const STYLES = { h1: "Heading1", h2: "Heading2", h3: "Heading3" };
 /** Writes blocks [{tag, list, runs:[{t,b,i,u}]}] as a real .docx (headings, paragraphs, bullets, runs). */
 async function fromBlocks(blocks) {
   const JSZip = require("jszip");
-  const body = blocks.map(b => {
+  const body = blocks.filter(b => b && typeof b === "object").map(b => {
     const style = STYLES[b.tag] ? '<w:pStyle w:val="' + STYLES[b.tag] + '"/>' : "";
     const num = b.list ? '<w:numPr><w:ilvl w:val="0"/><w:numId w:val="' + (b.list === "ol" ? 2 : 1) + '"/></w:numPr>' : "";
     const ppr = style || num ? "<w:pPr>" + style + num + "</w:pPr>" : "";

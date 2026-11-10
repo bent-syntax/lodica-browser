@@ -278,7 +278,7 @@ let aliasWrite = Promise.resolve();
 
 async function loadAliases() {
   if (aliasList) return aliasList;
-  try { const v = JSON.parse(await fsp.readFile(ALIAS_FILE, 'utf8')); aliasList = Array.isArray(v) ? v : []; }
+  try { const v = JSON.parse(await fsp.readFile(ALIAS_FILE, 'utf8')); aliasList = Array.isArray(v) ? v.filter((x) => x && typeof x === 'object' && typeof x.address === 'string').map((x) => ({ ...x, created: Number(x.created) || 0 })) : []; }
   catch { aliasList = []; }
   return aliasList;
 }
@@ -325,8 +325,11 @@ async function aliasesPost(req, res) {
   sendJson(req, res, 200, list);
 }
 
+/** decodeURIComponent that returns '' for a malformed escape instead of throwing (a throw becomes a 500). */
+const unescapePart = (v) => { try { return decodeURIComponent(v); } catch { return ''; } };
+
 async function aliasesDelete(req, res, id) {
-  const local = localOf(decodeURIComponent(id));
+  const local = localOf(unescapePart(id));
   const list = await loadAliases();
   const i = list.findIndex((x) => localOf(x.address) === local);
   if (i < 0) return sendText(req, res, 404, 'not found');
@@ -368,6 +371,7 @@ async function loadEmojis() {
   if (emojiList) return emojiList;
   try { emojiList = JSON.parse(await fsp.readFile(EMOJI_FILE, 'utf8')); } catch { emojiList = []; }
   if (!Array.isArray(emojiList)) emojiList = [];
+  emojiList = emojiList.filter((x) => x && typeof x === 'object' && typeof x.name === 'string');
   return emojiList;
 }
 
@@ -384,14 +388,18 @@ async function emojisPost(req, res) {
   const del = b.del === true;
   const png = typeof b.png === 'string' ? b.png : '';
   if (!del && (!png || png.length > EMOJI_IMG_MAX || !/^[A-Za-z0-9+/=]+$/.test(png))) return sendText(req, res, 400, 'bad image');
-  const entry = { name, png: del ? '' : png, del, at: Number.isFinite(b.at) ? b.at : Date.now() };
+  const entry = { name, png: del ? '' : png, del, at: Number.isFinite(b.at) ? Math.min(b.at, Date.now() + 864e5) : Date.now() };
   const list = await loadEmojis();
   const i = list.findIndex((x) => x.name === name);
   if (i >= 0) { if (list[i].at > entry.at) return sendJson(req, res, 200, list[i]); list[i] = entry; }
   else {
-    if (list.filter((x) => !x.del).length >= EMOJI_MAX && !del) return sendText(req, res, 409, 'emoji limit reached');
+    if (del) return sendJson(req, res, 200, entry); // deleting an unknown name stores nothing
+    if (list.filter((x) => !x.del).length >= EMOJI_MAX) return sendText(req, res, 409, 'emoji limit reached');
     list.push(entry);
   }
+  // Keep at most EMOJI_MAX tombstones: drop the oldest.
+  const dead = list.filter((x) => x.del).sort((a, c) => a.at - c.at).slice(0, Math.max(0, list.filter((x) => x.del).length - EMOJI_MAX));
+  for (const d of dead) list.splice(list.indexOf(d), 1);
   const tmp = `${EMOJI_FILE}.${process.pid}.tmp`;
   await fsp.writeFile(tmp, JSON.stringify(list), { mode: 0o600 });
   await fsp.rename(tmp, EMOJI_FILE);
@@ -576,12 +584,12 @@ async function route(req, res) {
   }
   if ((r = /^\/gate\/state\/([^/]+)$/.exec(p))) {
     if (m !== 'GET') return not('GET, HEAD');
-    return enroll.status(req, res, clientIp(req), decodeURIComponent(r[1]).slice(0, 32), { sendJson, sendText, readBody });
+    return enroll.status(req, res, clientIp(req), unescapePart(r[1]).slice(0, 32), { sendJson, sendText, readBody });
   }
   if ((r = /^\/pending\/([^/]+)$/.exec(p))) {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
-    return enroll.take(req, res, clientIp(req), decodeURIComponent(r[1]).slice(0, 32), { sendJson, sendText, readBody });
+    return enroll.take(req, res, clientIp(req), unescapePart(r[1]).slice(0, 32), { sendJson, sendText, readBody });
   }
   if (p === '/api/theme') {
     if (m !== 'GET' && m !== 'PUT') return not('GET, HEAD, PUT');

@@ -18,6 +18,7 @@ const ENROLL_N = 10, ENROLL_WINDOW = 10 * 60e3;
 const pending = new Map(); // code -> { token, label, at }
 const approved = new Map(); // code -> time it was taken (so the device can show "enrolled")
 const fails = new Map();   // ip -> { start, n }
+const pollFails = new Map(); // ip -> { start, n } for status() polling of expired codes
 const posts = new Map();   // ip -> { start, n }
 
 function newCode() {
@@ -34,7 +35,15 @@ function prune(now = Date.now()) {
 
 function hit(map, ip, max, window, now = Date.now()) {
   const r = map.get(ip);
-  if (!r || now - r.start > window) { map.set(ip, { start: now, n: 1 }); if (map.size > 5000) map.clear(); return true; }
+  if (!r || now - r.start > window) {
+    map.delete(ip); map.set(ip, { start: now, n: 1 });
+    if (map.size > 5000) {
+      // Forget expired windows first, then the oldest; never wipe addresses that are still blocked.
+      for (const [k, v] of map) if (now - v.start > window) map.delete(k);
+      for (const k of map.keys()) { if (map.size <= 5000) break; map.delete(k); }
+    }
+    return true;
+  }
   return ++r.n <= max;
 }
 
@@ -86,10 +95,14 @@ function status(req, res, ip, code, h) {
   prune(now);
   const key = typeof code === 'string' ? code.toUpperCase() : '';
   if (!CODE_RE.test(key)) return h.sendText(req, res, 400, 'bad code');
-  h.sendJson(req, res, 200, { state: pending.has(key) ? 'pending' : approved.has(key) ? 'approved' : 'expired' });
+  const f = pollFails.get(ip);
+  if (f && now - f.start <= FAIL_WINDOW && f.n >= FAIL_N) return h.sendText(req, res, 429, 'too many attempts', { 'Retry-After': '600' });
+  const state = pending.has(key) ? 'pending' : approved.has(key) ? 'approved' : 'expired';
+  if (state === 'expired') hit(pollFails, ip, Infinity, FAIL_WINDOW, now); // own counter: polling an expired code must not block take()
+  h.sendJson(req, res, 200, { state });
 }
 
 /** Test hook. */
-function reset() { pending.clear(); approved.clear(); fails.clear(); posts.clear(); }
+function reset() { pending.clear(); approved.clear(); fails.clear(); pollFails.clear(); posts.clear(); }
 
 module.exports = { start, take, status, reset, parentDomain, TTL };

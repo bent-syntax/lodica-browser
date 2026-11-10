@@ -1,6 +1,6 @@
 // Authenticator: time based one-time codes. Secrets live in an encrypted store and never reach the UI.
 const crypto = require("crypto");
-const store = require("./store");
+const store = { loadSecret: (...a) => require("./store").loadSecret(...a), saveSecret: (...a) => require("./store").saveSecret(...a) }; // lazy: keeps the pure parts usable without Electron
 const migration = require("./otpmigration");
 
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
@@ -49,14 +49,16 @@ function fromText(text) {
       if (!unbase32(secret)) return null;
       const issuer = u.searchParams.get("issuer") || (name.includes(":") ? name.split(":")[0].trim() : "");
       const acct = name.includes(":") ? name.slice(name.indexOf(":") + 1).trim() : name;
-      const digits = Number(u.searchParams.get("digits")) === 8 ? 8 : 6;
-      const period = Math.min(300, Math.max(5, Number(u.searchParams.get("period")) || 30));
+      const dg = u.searchParams.get("digits"), pd = u.searchParams.get("period");
+      const digits = dg == null ? 6 : Number(dg), period = pd == null ? 30 : Number(pd);
       const algo = (u.searchParams.get("algorithm") || "SHA1").toUpperCase();
-      return { label: [...new Set([issuer, acct].filter(Boolean))].join(" · ") || "Account", issuer, name, secret, digits, period, algo: ["SHA1", "SHA256", "SHA512"].includes(algo) ? algo : "SHA1" };
+      // a setting we cannot honour would give wrong codes: refuse the link instead
+      if (![6, 8].includes(digits) || !Number.isInteger(period) || period < 5 || period > 300 || !["SHA1", "SHA256", "SHA512"].includes(algo)) return null;
+      return { label: [...new Set([issuer, acct].filter(Boolean))].join(" · ") || "Account", issuer, name, secret, digits, period, algo };
     } catch { return null; }
   }
   const secret = t.toUpperCase().replace(/[\s=-]/g, "");
-  return unbase32(secret) && secret.length >= 8 ? { label: "Account", issuer: "", name: "", secret, digits: 6, period: 30, algo: "SHA1" } : null;
+  return unbase32(secret) && secret.length >= 16 ? { label: "Account", issuer: "", name: "", secret, digits: 6, period: 30, algo: "SHA1" } : null;
 }
 
 /** Adds accounts from text: an otpauth link, an export link from Google Authenticator, or a secret. Returns how many were new. */
@@ -67,6 +69,7 @@ function add(text, label) {
   const list = all(); let n = 0;
   for (const e of found) {
     if (label && found.length === 1) e.label = String(label).slice(0, 80);
+    else if (e.label === "Account") e.label = "Account " + (list.filter(x => /^Account( \d+)?$/.test(x.label)).length + 1);
     if (list.some(x => x.secret === e.secret)) continue;
     list.push({ id: crypto.randomBytes(6).toString("hex"), ...e }); n++;
   }

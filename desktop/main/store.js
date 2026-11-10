@@ -10,7 +10,11 @@ function file(name) { return path.join(dir(), name + ".json"); }
 
 function load(name, fallback) {
   for (const f of [file(name), file(name) + ".bak"]) {
-    try { return JSON.parse(fs.readFileSync(f, "utf8")); } catch {}
+    try {
+      const v = JSON.parse(fs.readFileSync(f, "utf8"));
+      // Only accept the same shape as the fallback (array vs object), else try .bak then fallback.
+      if (fallback == null || (Array.isArray(v) === Array.isArray(fallback) && typeof v === typeof fallback && v !== null)) return v;
+    } catch {}
   }
   return fallback;
 }

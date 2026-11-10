@@ -306,6 +306,7 @@ function chatMerge(remote) {
   let changed = false;
   for (const r of remote.slice(0, MAX_CHATS)) {
     if (!r || typeof r.id !== "string" || !Array.isArray(r.messages)) continue;
+    r.messages = r.messages.filter(m => m && typeof m === "object");
     const mine = list.find(c => c.id === r.id);
     if (mine && mine.updated >= (Number(r.updated) || 0)) continue;
     const next = {
@@ -315,6 +316,7 @@ function chatMerge(remote) {
     if (mine) Object.assign(mine, next); else list.push(next);
     changed = true;
   }
+  while (list.length > MAX_CHATS) list.sort((a, b) => a.updated - b.updated).shift();
   if (changed) saveChats();
 }
 

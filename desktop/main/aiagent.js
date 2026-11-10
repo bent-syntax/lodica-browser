@@ -2,7 +2,7 @@
 // It works with any provider through a plain JSON reply, one action per step. Page text is untrusted data:
 // the model is told never to follow instructions found in it, and the agent also enforces its own limits.
 
-const RISKY = /\b(buy|pay|purchase|order|checkout|delete|remove|send|submit|confirm|subscribe|bestel|betaal|koop|verwijder|verstuur|bevestig)/i;
+const RISKY = /\b(buy|pay|purchase|order|check\s?out|delete|remove|send|submit|confirm|subscribe|place|bestel|betaal|koop|afrekenen|verwijder|verstuur|bevestig|abonneer|acheter|payer|commander|supprimer|envoyer|confirmer|kaufen|bezahlen|bestellen|l[öo]schen|senden|absenden|bestätigen|comprar|pagar|pedir|eliminar|enviar|confirmar)/i;
 
 // Permission levels, set in Settings > AI. Unknown values fall back to "edit".
 const MODES = ["read", "plan", "edit", "auto"];
@@ -106,9 +106,22 @@ const TYPE = (id, text, enter) => `(() => {
 let running = null;
 
 function parse(text) {
-  const m = String(text).match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  try { const o = JSON.parse(m[0]); return o && typeof o.action === "string" ? o : null; } catch { return null; }
+  const s = String(text);
+  // first balanced {...} that parses; a reply with two actions uses the first
+  for (let i = s.indexOf("{"); i >= 0; i = s.indexOf("{", i + 1)) {
+    let d = 0, q = false;
+    for (let j = i; j < s.length; j++) {
+      const c = s[j];
+      if (q) { if (c === "\\") j++; else if (c === '"') q = false; }
+      else if (c === '"') q = true;
+      else if (c === "{") d++;
+      else if (c === "}" && --d === 0) {
+        try { const o = JSON.parse(s.slice(i, j + 1)); if (o && typeof o.action === "string") return o; } catch {}
+        break;
+      }
+    }
+  }
+  return null;
 }
 const safeUrl = (u) => { try { const x = new URL(String(u)); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -135,7 +148,7 @@ async function start(goal, deps) {
   const run = { stop: false };
   running = run;
   const { tabs, ai } = deps, say = (s) => { note("Did: " + String(s).slice(0, 160)); deps.push({ step: s }); };
-  const MAX_STEPS = Math.max(1, Math.floor(Number(deps.maxSteps)) || 20);
+  const MAX_STEPS = Math.min(200, Math.max(1, Math.floor(Number(deps.maxSteps)) || 20));
   const mode = MODES.includes(deps.mode) ? deps.mode : "edit", confirm = deps.confirm || askUser;
   const system = SYSTEM + " " + LEVEL_TEXT[mode] + "\n" + recall() + "User goal: " + goal;
   const save = (role, text) => { if (deps.save) { try { session.chat = deps.save(session.chat, role, text) || session.chat; } catch { /* history is best effort */ } } };
@@ -170,7 +183,7 @@ async function start(goal, deps) {
         if (!u) result = "refused: only http and https links";
         else { say("Opening " + u); if (act.action === "open" && tabs.current()) tabs.load(u); else tabs.create({ url: u }); }
       } else if (act.action === "click" || act.action === "type") {
-        const id = Number(act.id);
+        const id = typeof act.id === "number" || (typeof act.id === "string" && /^\d+$/.test(act.id)) ? Number(act.id) : NaN;
         if (!wc || wc.isDestroyed() || !Number.isInteger(id) || id < 0) result = "no such element";
         else {
           const label = String(await wc.executeJavaScript(`(() => { const e = (window.__lodicaAgent || [])[${id}]; return e ? (e.getAttribute("aria-label") || e.innerText || e.value || e.title || "") : ""; })()`, true)).slice(0, 80);

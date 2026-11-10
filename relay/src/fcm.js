@@ -20,8 +20,12 @@ function post(host, path, headers, data) {
   });
 }
 
-async function token() {
-  if (tok && Date.now() < tokExp - 60e3) return tok;
+let pending = null;
+function token() {
+  if (tok && Date.now() < tokExp - 60e3) return Promise.resolve(tok);
+  return pending || (pending = fetchToken().finally(() => { pending = null; }));
+}
+async function fetchToken() {
   const now = Math.floor(Date.now() / 1000);
   const head = b64({ alg: 'RS256', typ: 'JWT' });
   const claim = b64({ iss: acct.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 });
@@ -41,7 +45,8 @@ async function send(deviceToken, data) {
     const [st, resp] = await post('fcm.googleapis.com', '/v1/projects/' + acct.project_id + '/messages:send',
       { 'content-type': 'application/json', authorization: 'Bearer ' + (await token()) },
       JSON.stringify({ message: { token: deviceToken, data, android: { priority: 'HIGH' } } }));
-    return !(st === 404 || (st === 400 && /UNREGISTERED|INVALID_ARGUMENT/.test(resp)));
+    // INVALID_ARGUMENT also means a bad payload: only drop the device when the complaint is about the token.
+    return !(st === 404 || (st === 400 && /UNREGISTERED|message\.token|registration token/i.test(resp)));
   } catch { return true; }
 }
 

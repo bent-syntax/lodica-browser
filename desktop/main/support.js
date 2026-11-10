@@ -42,10 +42,10 @@ async function send(text, images = [], resolved = false, category = "", onClick)
   if (!id) body.category = category;
   if (!id) Object.assign(body, { name: require("./room").state.name, app: "desktop", version: require("../package.json").lodicaVersion || require("electron").app.getVersion(), platform: process.platform + " " + os.release() });
   try {
-    const [st, resp] = await relay.request("POST", id ? "/api/support/" + id : "/api/support", 15000, body);
+    const [st, resp] = await relay.request("POST", id ? "/api/support/" + encodeURIComponent(id) : "/api/support", 15000, body);
     if (st === 404 && id) { state.id = ""; state.seen = 0; state.messages = []; persist(); return send(text, images, resolved, category, onClick); }
     if (st !== 200) return { error: resp || "Support refused the message (" + st + ")" };
-    apply(JSON.parse(resp), false);
+    try { apply(JSON.parse(resp), false); } catch { /* stored on the server; the next refresh brings it back */ }
     notify("Message sent to support", id ? "Support has your reply." : "We got your message. You'll be notified when there's an update or a question.", onClick);
     return get();
   } catch { return { error: "Can't reach the server. Try again later." }; }

@@ -144,7 +144,7 @@ function setQuick(list) {
 const hits = new Map();
 function search(msg) {
   if (!relay.available) return { error: "Lodica Search needs a linked server. Link one in Settings, or pick another search engine." };
-  const qs = new URLSearchParams({ q: String(msg.q || ""), p: String(msg.p || 1) });
+  const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200), p: String(Math.min(10, Math.max(1, Math.floor(Number(msg.p)) || 1))) });
   if (msg.c) qs.set("c", String(msg.c));
   if (msg.l) qs.set("l", String(msg.l));
   const key = qs.toString(), hit = hits.get(key);
@@ -157,7 +157,7 @@ function search(msg) {
 }
 async function shop(msg) {
   if (!relay.available) return { error: "Shop needs a linked server. Link one in Settings." };
-  const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200), cc: String(msg.cc || "BE").slice(0, 2) });
+  const qs = new URLSearchParams({ q: String(msg.q || "").slice(0, 200), cc: /^[a-z]{2}$/i.test(msg.cc) ? msg.cc.toUpperCase() : "BE" });
   for (const k of ["min", "max", "f", "cond", "cat"]) if (msg[k]) qs.set(k, String(msg[k]).slice(0, 300));
   try {
     const r = await fetch(relay.API + "/api/shop?" + qs, { headers: { Authorization: "Bearer " + relay.token }, signal: AbortSignal.timeout(40000) });

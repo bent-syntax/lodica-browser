@@ -6,7 +6,7 @@ const persist = () => store.save("meter", () => data);
 
 function add(key, n) { data[key] = (data[key] || 0) + n; persist(); }
 function blocked(host) { if (host) add("b:" + host, 1); }
-function used(host, bytes) { if (host && bytes > 0) add("s:" + host, bytes); }
+function used(host, bytes) { if (host && Number.isFinite(bytes) && bytes > 0 && bytes < 1e10) add("s:" + host, bytes); }
 
 function list() {
   const hosts = new Map();

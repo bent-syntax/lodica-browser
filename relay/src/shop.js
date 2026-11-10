@@ -261,13 +261,14 @@ async function shop(url, imgUrl) {
   if (!q || q.length > 200) throw Object.assign(new Error('bad query'), { status: 400 });
   const cc = COUNTRIES.includes(url.searchParams.get('cc')) ? url.searchParams.get('cc') : 'BE';
   const cond = ['used', 'all'].includes(url.searchParams.get('cond')) ? url.searchParams.get('cond') : 'new';
-  const min = Math.max(0, Number(url.searchParams.get('min')) || 0);
-  const max = Math.max(0, Number(url.searchParams.get('max')) || 0);
+  const price = (k) => { const n = Number(url.searchParams.get(k)); return Number.isFinite(n) ? Math.min(Math.max(0, n), 1e7) : 0; };
+  let min = price('min'), max = price('max');
+  if (max && min > max) [min, max] = [max, min]; // reversed range: swap instead of an empty result (max 0 = no limit)
   const cat = Object.hasOwn(CATEGORIES, url.searchParams.get('cat')) ? url.searchParams.get('cat') : '';
   const feats = (url.searchParams.get('f') || '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean).slice(0, 8);
   const ck = [q.toLowerCase(), cat, cc, cond, min, max, feats.join()].join('|');
   const hit = cache.get(ck);
-  if (hit && Date.now() - hit.t < 30 * 60e3) return hit.v;
+  if (hit && Date.now() - hit.t < (hit.v.items.length || hit.v.guides.length ? 30 * 60e3 : 30e3)) return hit.v; // an empty answer is likely an upstream hiccup
   // Reviews and spec sheets from sites that allow plain fetches, shown next to the vergelijk.be prices.
   const sq = withCat(q, cat);
   const guides = await reviewLinks(sq, cc);

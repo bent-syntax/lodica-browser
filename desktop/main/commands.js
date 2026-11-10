@@ -504,7 +504,7 @@ function init(deps) {
   on("history.clearSuggest", () => { history.clearSearches(); return true; });
 
   on("vault.state", () => vault.state());
-  on("vault.setPin", pin => vault.setPin(str(pin)));
+  on("vault.setPin", (pin, old) => vault.setPin(str(pin), str(old)));
   on("vault.unlock", pin => vault.unlock(str(pin)));
   on("vault.unlockLink", () => pctabs.unlockVault());
   on("vault.list", () => vault.list());

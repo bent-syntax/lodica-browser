@@ -46,13 +46,16 @@ function targetOf(url) {
 function parseVer(v) {
   return String(v || '').replace(/^v/i, '').split('-')[0].split('.').map((n) => parseInt(n, 10) || 0);
 }
+const isVer = (v) => /^v?\d+(\.\d+)*(-.+)?$/i.test(String(v || ''));
+const pre = (v) => String(v || '').includes('-');
 function newer(a, b) {
+  if (!isVer(a) || !isVer(b)) return false; // a tag that is not a version is never an update
   const x = parseVer(a), y = parseVer(b);
   for (let i = 0; i < Math.max(x.length, y.length); i++) {
     const d = (x[i] || 0) - (y[i] || 0);
     if (d) return d > 0;
   }
-  return false;
+  return pre(b) && !pre(a); // a final release beats its own pre-release
 }
 
 async function gh(path, accept = 'application/vnd.github+json') {
@@ -82,9 +85,19 @@ async function sha256Of(release, asset) {
   return null;
 }
 
+const failed = new Map();      // target -> { at, e }, so an upstream outage is not hammered by every client check
+const FAIL_MS = 45e3;
+
 async function latest(key) {
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.info;
+  const bad = failed.get(key);
+  if (bad && Date.now() - bad.at < FAIL_MS) throw bad.e;
+  try { return await fetchLatest(key); }
+  catch (e) { if (e.status) failed.set(key, { at: Date.now(), e }); throw e; }
+}
+
+async function fetchLatest(key) {
   const t = TARGETS[key];
   const r = await gh(`/repos/${OWNER}/${t.repo}/releases/latest`);
   if (r.status === 404) throw err(404, 'no release published');
@@ -107,6 +120,7 @@ async function latest(key) {
     repo: t.repo,
   };
   cache.set(key, { at: Date.now(), info });
+  failed.delete(key);
   return info;
 }
 
@@ -115,7 +129,7 @@ async function check(url) {
   if (!configured()) throw err(503, 'updates not configured');
   const key = targetOf(url);
   const info = await latest(key);
-  const cur = url.searchParams.get('version') || '';
+  const cur = (url.searchParams.get('version') || '').trim();
   return {
     version: info.version, name: info.name, notes: info.notes, published: info.published,
     file: info.file, size: info.size, sha256: info.sha256,

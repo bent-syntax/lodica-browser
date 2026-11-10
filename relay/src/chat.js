@@ -44,8 +44,11 @@ const SEEN_TTL = 7 * 24 * 3600e3;
 
 function touch(name) {
   seen.set(name, Date.now());
-  if (seen.size > 500) { const old = [...seen].sort((a, b) => a[1] - b[1])[0]; seen.delete(old[0]); }
+  if (seen.size > 500) { const old = [...seen].sort((a, b) => a[1] - b[1])[0]; forget(old[0]); }
 }
+
+/** Drops every per-device record for [name]. */
+function forget(name) { for (const m of [seen, openAt, artOf, handsOf, bubbleOf, typingAt, osOf, faceOf]) m.delete(name); }
 
 function prune(now = Date.now()) {
   while (log.length && (log.length > MAX_LOG || now - log[0].at > TTL)) log.shift();
@@ -54,6 +57,9 @@ function prune(now = Date.now()) {
 function cleanRoom(v) {
   return typeof v === 'string' && ROOM_RE.test(v) ? v : '';
 }
+
+/** True when a room value was sent (any type) but is not a valid room name. */
+const badRoom = (v) => v != null && v !== '' && !cleanRoom(v);
 
 function since(after, room = '') {
   prune();
@@ -108,13 +114,13 @@ async function post(req, res, ip, h) {
   let b;
   try { b = JSON.parse((await h.readBody(req, 8 * 1024)).toString('utf8')); }
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
-  const clean = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '');
+  const clean = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, max) : '');
   const text = typeof b?.text === 'string' ? b.text.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, '').trim().slice(0, TEXT_MAX) : '';
   const name = clean(b?.name, NAME_MAX) || 'Anonymous';
   if (!text) return h.sendText(req, res, 400, 'empty message');
   // A room that is named but invalid must fail loudly: falling back to the main room would leak a private message.
   const room = cleanRoom(b?.room);
-  if (!room && typeof b?.room === 'string' && b.room !== '') return h.sendText(req, res, 400, 'bad room');
+  if (badRoom(b?.room)) return h.sendText(req, res, 400, 'bad room');
   const msg = { id: ++seq, name, text, at: Date.now(), room };
   touch(name);
   log.push(msg);
@@ -147,7 +153,7 @@ function users(req, res, url, h) {
   if (me && url.searchParams.get('open') === '1') openAt.set(me, Date.now());
   if (me && url.searchParams.get('typing') === '1') typingAt.set(me, Date.now());
   const now = Date.now();
-  for (const [n, at] of seen) if (now - at > SEEN_TTL) { seen.delete(n); openAt.delete(n); artOf.delete(n); handsOf.delete(n); bubbleOf.delete(n); typingAt.delete(n); }
+  for (const [n, at] of seen) if (now - at > SEEN_TTL) forget(n);
   const list = [...seen].map(([name, at]) => ({ name, at, os: osOf.get(name) || 'other', face: faceOf.get(name) || '', art: artOf.get(name) || '', hands: handsOf.get(name) || '', bubble: bubbleOf.get(name) || '', online: now - (openAt.get(name) || 0) < ONLINE, typing: now - (typingAt.get(name) || 0) < TYPING })).sort((a, b) => b.at - a.at);
   h.sendJson(req, res, 200, { users: list });
 }
@@ -178,7 +184,7 @@ async function read(req, res, h) {
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   const name = (typeof b?.name === 'string' ? b.name.replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX) : '');
   const room = cleanRoom(b?.room);
-  if (!name || (!room && typeof b?.room === 'string' && b.room !== '')) return h.sendText(req, res, 400, 'bad name or room');
+  if (!name || badRoom(b?.room)) return h.sendText(req, res, 400, 'bad name or room');
   if (!Number.isInteger(b?.id) || b.id < 0) return h.sendText(req, res, 400, 'bad id');
   b.id = Math.min(b.id, seq); // a client that outlived a relay restart still counts as having read everything
   touch(name);
@@ -215,7 +221,7 @@ function readsOf(req, res, url, h) {
 /** Test hook. */
 function reset() {
   claims.clear();
-  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); osOf.clear(); artOf.clear(); handsOf.clear(); bubbleOf.clear(); typingAt.clear(); reads.clear(); for (const w of [...waiters]) w.done([]); }
+  chatfile.reset(); seq = 0; log.length = 0; rate.clear(); seen.clear(); osOf.clear(); faceOf.clear(); openAt.clear(); artOf.clear(); handsOf.clear(); bubbleOf.clear(); typingAt.clear(); reads.clear(); for (const w of [...waiters]) w.done([]); }
 
 /** POST /api/chat/file: an attachment, announced to the room as a normal message that carries `file`. */
 async function postFile(req, res, ip, url, h) {
@@ -226,7 +232,7 @@ async function postFile(req, res, ip, url, h) {
   if (!room && rawRoom) return h.sendText(req, res, 400, 'bad room');
   const r = await chatfile.put(req, q.get('name'));
   if (!r.file) return h.sendText(req, res, r.status, r.error, { Connection: 'close' });
-  const name = (q.get('from') || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, NAME_MAX) || 'Anonymous';
+  const name = (q.get('from') || '').replace(/[\u0000-\u001f\u007f|]/g, ' ').trim().slice(0, NAME_MAX) || 'Anonymous';
   const dim = (k) => { const n = Number(q.get(k)); return Number.isInteger(n) && n > 0 && n <= 20000 ? n : 0; };
   const w = dim('w'); const hh = dim('h');
   const file = /^image\//.test(r.file.type) && w && hh ? { ...r.file, w, h: hh } : r.file;

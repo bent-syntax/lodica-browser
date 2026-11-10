@@ -41,10 +41,10 @@ function combo(e) {
   return (e.ctrl ? "Ctrl+" : "") + (e.alt ? "Alt+" : "") + (e.shift ? "Shift+" : "") + k;
 }
 
-const fromInput = i => combo({ key: i.key, ctrl: i.control || i.meta, alt: i.alt, shift: i.shift });
-const fromEvent = e => combo({ key: e.key, ctrl: e.ctrlKey || e.metaKey, alt: e.altKey, shift: e.shiftKey });
+const fromInput = i => !i ? "" : combo({ key: i.key, ctrl: i.control || i.meta, alt: i.alt, shift: i.shift });
+const fromEvent = e => !e ? "" : combo({ key: e.key, ctrl: e.ctrlKey || e.metaKey, alt: e.altKey, shift: e.shiftKey });
 
-const valid = c => typeof c === "string" && /^(Ctrl\+)?(Alt\+)?(Shift\+)?[^+\s]+$|^(Ctrl\+)?(Alt\+)?(Shift\+)?\+$/.test(c) && c.length < 40;
+const valid = c => typeof c === "string" && /^(Ctrl\+)?(Alt\+)?(Shift\+)?[^+\s]+$|^(Ctrl\+)?(Alt\+)?(Shift\+)?\+$/.test(c) && c.length < 40 && !/(^|\+)(Ctrl|Alt|Shift|Meta|Dead|Unidentified)$/.test(c);
 
 // Effective combos per action: user override (even an empty list) wins over the default.
 function effective(over) {
@@ -64,7 +64,7 @@ function map(over) {
 // New override object after binding `combos` to `id`: they are taken off every other action.
 function bind(over, id, combos) {
   if (!ACTIONS.some(a => a.id === id)) return over;
-  const mine = (Array.isArray(combos) ? combos : []).filter(valid);
+  const mine = [...new Set((Array.isArray(combos) ? combos : []).filter(valid))];
   const eff = effective(over), next = {};
   for (const a of ACTIONS) {
     if (a.id === id) next[a.id] = mine;

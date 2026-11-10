@@ -52,7 +52,7 @@ function ownDns(url) {
     const t = r && String(r.to || "").trim();
     if (!t) return null;
     const rest = u.pathname + u.search + u.hash;
-    if (/^https?:\/\//i.test(t)) return rest === "/" ? t : new URL(rest, t).toString();
+    if (/^https?:\/\//i.test(t)) return rest === "/" ? t : new URL(t).origin + rest;
     const bare = /^[\d.]+(:\d+)?$/.test(t) || t.startsWith("[");
     return (bare ? "http:" : u.protocol) + "//" + t + rest;
   } catch { return null; }

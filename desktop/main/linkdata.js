@@ -39,7 +39,7 @@ const str = (v, n = 300) => String(v == null ? "" : v).slice(0, n);
 // ---- pure merges ----
 /** Passwords: one per site and user name, the newer one wins. */
 function mergePasswords(local, remote) {
-  const out = new Map(local.map((e) => [e.origin + "\n" + e.user, e]));
+  const out = new Map((Array.isArray(local) ? local : []).filter(Boolean).map((e) => [e.origin + "\n" + e.user, e]));
   let changed = 0;
   for (const r of Array.isArray(remote) ? remote : []) {
     if (!r || typeof r.origin !== "string" || typeof r.pass !== "string" || !r.pass) continue;
@@ -62,8 +62,8 @@ function mergeTotp(local, remote, newId) {
 }
 /** Plain lists of text: the union. */
 function union(local, remote, max = 500) {
-  const out = Array.isArray(local) ? local.slice() : [];
-  const seen = new Set(out.map(String));
+  const out = Array.isArray(local) ? local.map(String) : [];
+  const seen = new Set(out);
   let changed = 0;
   for (const v of Array.isArray(remote) ? remote : []) { const s = str(v, 300); if (s && !seen.has(s) && out.length < max) { seen.add(s); out.push(s); changed++; } }
   return { list: out, changed };

@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.14 (versionCode 235)
+
+- Fixed: Changing the vault PIN needs the old PIN, and five wrong PIN tries lock the vault for 30 seconds.
+- Fixed: Support messages, data meter and AI agent step limit reject bad values.
+- Fixed: Safer checks on data sent from pages, the relay and settings.
+
 ## 1.15.13 (versionCode 234)
 
 - Fixed: The AI agent keeps your goal in every step, so it no longer says "no task received".

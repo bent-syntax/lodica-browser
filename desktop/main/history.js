@@ -96,15 +96,17 @@ function merge(list) {
   let changed = false;
   for (const r of list.slice(0, 1000)) {
     if (!r || !web(r.url) || typeof r.url !== "string" || r.url.length > 2000) continue;
-    const time = Number(r.time) || 0;
+    const time = Number(r.time);
+    if (!Number.isFinite(time) || time <= 0 || time > Date.now() + 5 * 60e3) continue;
+    const title = typeof r.title === "string" ? r.title : "";
+    const visits = Math.max(1, Math.min(Math.floor(Number(r.visits)) || 1, 100000));
     const k = key(r.url);
     const e = entries.find(x => key(x.url) === k);
     if (e) {
-      if (time > e.time) { e.time = time; e.title = String(r.title || e.title).slice(0, 300); changed = true; }
-      const v = Math.min(Number(r.visits) || 1, 100000);
-      if (v > e.visits) { e.visits = v; changed = true; }
+      if (time > e.time) { e.time = time; e.title = (title || e.title).slice(0, 300); changed = true; }
+      if (visits > e.visits) { e.visits = visits; changed = true; }
     } else {
-      entries.push({ url: r.url, title: String(r.title || r.url).slice(0, 300), time, visits: Math.min(Number(r.visits) || 1, 100000) });
+      entries.push({ url: r.url, title: (title || r.url).slice(0, 300), time, visits });
       changed = true;
     }
   }

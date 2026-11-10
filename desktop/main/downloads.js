@@ -48,7 +48,7 @@ function track(item, d) {
     live.delete(d.id);
     persist(); push(true);
     if (state === "completed" && ui) {
-      ui.toast("Downloaded " + d.name, "Open").then(ok => { if (ok) shell.openPath(d.path); }).catch(() => {});
+      ui.toast("Downloaded " + d.name, "Open").then(ok => { if (ok) open(d.id); }).catch(() => {});
     } else if (state === "interrupted" && ui) ui.toast("Download failed: " + d.name);
   });
 }
@@ -72,7 +72,7 @@ function onWillDownload(e, item, wc) {
     received: 0, total: item.getTotalBytes(), path: p, time: Date.now(), private: !!priv,
   };
   items.unshift(d);
-  if (items.length > 200) items.length = 200;
+  if (items.length > 200) items = items.filter((d, i) => i < 200 || live.has(d.id));
   track(item, d);
   persist(); push(true);
   anim?.(wc, d.total);
@@ -81,8 +81,18 @@ function onWillDownload(e, item, wc) {
 
 const find = id => items.find(d => d.id === String(id));
 
-function open(id) { const d = find(id); if (d) shell.openPath(d.path).catch(() => {}); return !!d; }
-function show(id) { const d = find(id); if (d) shell.showItemInFolder(d.path); return !!d; }
+const gone = () => ui && ui.toast("File is gone").catch(() => {});
+function open(id) {
+  const d = find(id);
+  if (d) shell.openPath(d.path).then(err => { if (err) gone(); }, gone);
+  return !!d;
+}
+function show(id) {
+  const d = find(id);
+  if (!d) return false;
+  if (fs.existsSync(d.path)) shell.showItemInFolder(d.path); else gone();
+  return true;
+}
 function pause(id) { const it = live.get(String(id)); if (it && !it.isPaused()) it.pause(); push(true); return !!it; }
 function cancel(id) { const it = live.get(String(id)); if (it) it.cancel(); return !!it; }
 

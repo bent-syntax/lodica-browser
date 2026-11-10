@@ -39,7 +39,7 @@ async function put(req, res, h) {
 
 function get(req, res, h) {
   const q = new URL(req.url, 'http://x').searchParams;
-  if (q.get('status')) return h.sendJson(req, res, 200, { live: live(), seq: live() ? frame.seq : 0 });
+  if (q.get('status') === '1') return h.sendJson(req, res, 200, { live: live(), seq: live() ? frame.seq : 0 });
   const after = Number(q.get('after')) || 0;
   const wait = Math.min(25, Math.max(0, Number(q.get('wait')) || 0));
   // A cursor ahead of the relay means the relay restarted, so any frame counts as new.
@@ -61,6 +61,7 @@ function remove(req, res) {
   frame = null;
   queue = [];
   wake();
+  wakeInput();
   res.writeHead(204); res.end();
 }
 

@@ -26,6 +26,11 @@ function parseId(input) {
 
 /** Strip the CRX2/CRX3 header and return the zip bytes. */
 function crxToZip(buf) {
+  try { return crxToZipRaw(buf); } catch (e) { throw ownError(e); }
+}
+const MAX_UNPACKED = 200 * 1024 * 1024;
+const ownError = e => /archive|Chrome extension|version|Unsafe|Unsupported/.test(e.message) ? e : new Error("Broken extension archive");
+function crxToZipRaw(buf) {
   if (buf.length > 4 && buf.toString("latin1", 0, 2) === "PK") return buf;
   if (buf.toString("latin1", 0, 4) !== "Cr24") throw new Error("Not a Chrome extension file");
   const ver = buf.readUInt32LE(4);
@@ -36,6 +41,10 @@ function crxToZip(buf) {
 
 /** Minimal zip reader (stored and deflate entries). Rejects paths that leave the target folder. */
 function unzip(buf, target) {
+  try { unzipRaw(buf, target); } catch (e) { throw ownError(e); }
+}
+function unzipRaw(buf, target) {
+  let total = 0;
   let eocd = -1;
   for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
   if (eocd < 0) throw new Error("Broken extension archive");
@@ -54,8 +63,9 @@ function unzip(buf, target) {
     if (name.endsWith("/")) { fs.mkdirSync(out, { recursive: true }); continue; }
     const start = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28);
     const raw = buf.subarray(start, start + csize);
-    const data = method === 0 ? raw : method === 8 ? zlib.inflateRawSync(raw) : null;
+    const data = method === 0 ? raw : method === 8 ? zlib.inflateRawSync(raw, { maxOutputLength: MAX_UNPACKED }) : null;
     if (!data) throw new Error("Unsupported compression in extension archive");
+    if ((total += data.length) > MAX_UNPACKED) throw new Error("Extension archive too large");
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, data);
   }

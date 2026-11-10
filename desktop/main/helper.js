@@ -315,7 +315,7 @@ async function onMessage(tab, frame, m) {
       ui.push("tab", deps.tabs.info(tab));
       break;
     }
-    case "data": if (!tab.private && m.host) meter.used(m.host, Number(m.used) || 0); break;
+    case "data": if (!tab.private && m.host) meter.used(tab.host || m.host, Number(m.used) || 0); break;
     case "article": if (readerWait && readerWait.tab === tab) readerWait.resolve({ title: m.title || "", text: m.text || "" }); break;
   }
 }
