@@ -1,3 +1,8 @@
+## 1.15.13
+
+- Fixed: The AI agent keeps your goal in every step, so it no longer says "no task received".
+- Fixed: The desktop AI panel follows the browser theme.
+
 ## 1.15.12
 
 - Added: Shop has a "Search in" category picker. Your search word is searched inside that category.
