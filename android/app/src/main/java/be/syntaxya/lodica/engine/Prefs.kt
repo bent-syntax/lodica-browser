@@ -154,7 +154,7 @@ object Prefs {
     var customTheme by mutableStateOf<CustomTheme?>(null); private set
     var savedThemes by mutableStateOf<List<SavedTheme>>(emptyList()); private set
     /** Menu items pinned to the quick menu (keys from MenuSheet). */
-    var menuPins by mutableStateOf(setOf("find", "downloads", "history", "passwords", "settings")); private set
+    var menuPins by mutableStateOf(setOf("find", "downloads", "history", "passwords", "settings", "compat")); private set
     var noDummy by mutableStateOf<Set<String>>(emptySet()); private set
     /** Sites where the user chose not to auto-fill an authenticator code. */
     var totpSkip by mutableStateOf<Set<String>>(emptySet()); private set
@@ -589,8 +589,10 @@ object Prefs {
     }
     fun setCompat(host: String, on: Boolean) {
         val h = host.removePrefix("www.")
-        if (h.isBlank() || (h in compat) == on) return
-        compat = if (on) compat + h else compat - h
+        if (h.isBlank()) return
+        val next = if (on) compat + h else compat.filterNot { h == it || h.endsWith(".$it") }.toSet()
+        if (next == compat) return
+        compat = next
         sp.edit().putStringSet("compat", compat).apply()
     }
     fun addDirect(domains: Collection<String>) {

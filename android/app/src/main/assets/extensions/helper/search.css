@@ -285,6 +285,10 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
   .sh-wrap { grid-template-columns: 1fr; gap: 0; }
   .sh-main { grid-column: 1; }
   .sh-fbtn { display: inline-flex; }
+  .sh-bar { justify-content: space-between; }
+  .sh-bar .sh-sort { order: 3; flex: 1 0 100%; }
+  .sh-bar .sh-sort button { flex: 1; padding: 8px 12px; }
+  .sh-fbtn, .sh-view button { min-height: 36px; }
   .sh-filters { position: fixed; z-index: 30; top: 0; right: 0; bottom: 0; left: auto; width: min(88vw, 360px); max-height: none; padding: 16px; box-sizing: border-box; background: var(--bg); transform: translateX(100%); visibility: hidden; transition: transform .25s cubic-bezier(.2, .8, .2, 1), visibility 0s .25s; align-content: start; }
   .sh-wrap.open .sh-filters { transform: none; visibility: visible; transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
   .sh-fhead { display: flex; align-items: center; justify-content: space-between; font-size: 20px; }

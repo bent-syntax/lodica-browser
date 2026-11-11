@@ -1,0 +1,15 @@
+[package]
+name = "lodica-core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+regex = "1"
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+url = "2"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = true

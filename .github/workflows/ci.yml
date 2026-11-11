@@ -22,6 +22,28 @@ jobs:
         working-directory: desktop
         run: xvfb-run -a npm test
 
+  relay-native:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Test core
+        working-directory: core
+        run: cargo test --release
+      - name: Build addon
+        working-directory: relay/native
+        run: cargo build --release
+      - name: Install addon and run relay tests
+        run: |
+          cp relay/native/target/release/liblodica_relay_native.so relay/native/lodica_native.node
+          node --test relay/test/*.test.js
+      - uses: actions/upload-artifact@v5
+        with:
+          name: relay-native-linux-x64
+          path: relay/native/lodica_native.node
+
   android-debug:
     runs-on: ubuntu-24.04
     steps:

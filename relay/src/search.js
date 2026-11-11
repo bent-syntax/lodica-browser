@@ -36,15 +36,25 @@ function imgUrl(u, w) {
 }
 
 const clip = (s, n) => (typeof s === 'string' ? (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s) : '');
-function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } }
+function hostJs(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } }
 
 // Queries that ask for something current: these get a recent-only pass and recent results first.
 const FRESH = /\b(latest|newest|news|today|tonight|yesterday|this (week|month|year)|current|currently|now|breaking|update[sd]?|release[sd]?|price|prices|score|scores|weather|forecast|results?|live|20\d\d)\b/i;
+
+// Optional Rust addon (relay/native, built in CI); the JS helpers above are the fallback and the reference for the parity test.
+let native = null;
+try { native = require('../native/lodica_native.node'); } catch { /* not built: use JS */ }
+const host = native ? (u) => native.host(String(u)) : hostJs;
+const wantsFresh = native ? (q) => native.wantsFresh(q) : (q) => FRESH.test(q);
+function freshFirst(list) {
+  if (!native) return freshFirstJs(list);
+  return native.freshOrder(list.map((x) => (typeof x.d === 'string' ? x.d : '')), Date.now()).map((i) => list[i]);
+}
 const RANGES = new Set(['day', 'week', 'month', 'year']);
 const DAY = 864e5;
 
 /** Moves results published in the last 30 days ahead of the rest; each group keeps its order. */
-function freshFirst(list) {
+function freshFirstJs(list) {
   const now = Date.now();
   const recent = (x) => { const t = Date.parse(x.d || ''); return t > 0 && now - t < 30 * DAY; };
   return [...list.filter(recent), ...list.filter((x) => !recent(x))];
@@ -58,7 +68,7 @@ async function search(url) {
   const images = url.searchParams.get('c') === 'images';
   const lang = /^[a-z]{2}(-[A-Z]{2})?$/.test(url.searchParams.get('l') || '') ? url.searchParams.get('l') : 'all';
   const asked = url.searchParams.get('t') || '';
-  const intent = !images && FRESH.test(q);
+  const intent = !images && wantsFresh(q);
   let range = RANGES.has(asked) ? asked : intent ? 'month' : '';
   const ask = async (tr) => {
     const su = new URL('/search', cfg.searxUrl);
@@ -215,4 +225,4 @@ async function sweep() {
   return n;
 }
 
-module.exports = { start, search, image, sweep, stats, imgUrl };
+module.exports = { start, search, image, sweep, stats, imgUrl, _native: native, _js: { host: hostJs, wantsFresh: (q) => FRESH.test(q), freshFirst: freshFirstJs } };
