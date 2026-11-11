@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const { clipboard } = require("electron");
 const store = require("./store");
 
-const UNLOCK_MS = 5 * 60 * 1000;
+const UNLOCK_MS = 30 * 1000;
 let entries = null; // {origin,user,pass,saved}
 let pin = store.load("vault-pin", null); // {salt,hash}
 let unlockedUntil = 0;

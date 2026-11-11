@@ -71,8 +71,7 @@ async function refreshDownloads(list) {
 async function openPasswords() {
   let st = (await inv("vault.state")) || {};
   if (st.pinSet && !st.unlocked && ((S.prefs && S.prefs.pcUnlock) || "pin") !== "pin") {
-    toast("Waiting for your phone…");
-    const r = await inv("vault.unlockLink");
+    const r = await phoneUnlock();
     if (r && r.ok) st = (await inv("vault.state")) || {}; else if (r && r.error) toast(r.error);
   }
   if (!st.pinSet) {
@@ -85,6 +84,7 @@ async function openPasswords() {
     if (!(await inv("vault.unlock", pin))) { toast("Wrong PIN"); return; }
   }
   return sheet({ title: "Passwords", key: "passwords", tall: true }, (b, L) => {
+    setTimeout(() => L.close(), 30000); // vault relocks after 30 s
     const load = async () => {
       const rows = (await inv("vault.list")) || [];
       clear(b);

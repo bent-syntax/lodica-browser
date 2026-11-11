@@ -1,3 +1,7 @@
+## 1.15.16
+
+- Maintenance release, no Android changes.
+
 ## 1.15.15
 
 - Fixed: Quick results work with Dutch phrasing (timer, dice, random number, leap year, dates).

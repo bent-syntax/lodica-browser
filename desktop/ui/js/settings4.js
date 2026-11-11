@@ -11,8 +11,7 @@ function secAuth() {
 async function authUnlock() {
   let st = (await inv("vault.state")) || {};
   if (st.pinSet && !st.unlocked && ((S.prefs && S.prefs.pcUnlock) || "pin") !== "pin") {
-    toast("Waiting for your phone…");
-    const r = await inv("vault.unlockLink");
+    const r = await phoneUnlock();
     if (r && r.ok) st = (await inv("vault.state")) || {}; else if (r && r.error) toast(r.error);
   }
   if (!st.pinSet) {
@@ -44,8 +43,9 @@ async function authAddText() {
 
 async function openAuthenticator() {
   if (!(await authUnlock())) return;
-  return sheet({ title: "Authenticator", key: "authenticator", tall: true }, (b) => {
+  return sheet({ title: "Authenticator", key: "authenticator", tall: true }, (b, L) => {
     let timer = 0;
+    setTimeout(() => L.close(), 30000); // vault relocks after 30 s
     const load = async () => {
       if (!b.isConnected) { clearInterval(timer); return; }
       const rows = await inv("auth.list");

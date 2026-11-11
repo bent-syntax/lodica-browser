@@ -470,7 +470,7 @@ async function unlockVault() {
   const mode = prefs.p.pcUnlock || "pin";
   if (mode === "pin") return { error: "Unlocking with the PIN only" };
   if (!enabled()) return { error: "Turn on linking first" };
-  if (mode !== "phone" && !linkkey.hasKey()) return { error: "Link this device with a code first" };
+  if (mode !== "phone" && mode !== "pinphone" && !linkkey.hasKey()) return { error: "Link this device with a code first" };
   if (mode === "key") { require("./vault").grant(); return { ok: true }; }
   const id = crypto.randomBytes(8).toString("hex"), t = Date.now();
   if (!(await put("ur", { id, t }))) return { error: "Could not reach the phone" };

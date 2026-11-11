@@ -204,7 +204,7 @@ function secPcTabs() {
   if (!on) { out.push(h("div", { class: "chips" }, enterCodeBtn())); return out; }
   if (!SET.pcSub) {
     SET.pcSub = true;
-    window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; SET.linkCats = null; refreshSettings(); });
+    window.lodica.on("pctabs.remote", (d) => { SET.pcRemote = d || { tabs: [], updated: 0 }; refreshSettings(); });
   }
   if (SET.pcRemote == null) {
     SET.pcRemote = false;
@@ -276,7 +276,7 @@ function linkRows() {
   if (L.error) out.push(setRow("Sharing stopped", L.error, null));
   const mode = S.prefs.pcUnlock || "pin";
   out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
-    [["pin", "PIN only"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
+    [["pin", "PIN only"], ["pinphone", "PIN or phone"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
   out.push(setRow("Link key", hasKey ? "This device has link key " + (L.key.keyId || "") + ". Both devices show the same number when they share it" : "No key on this device yet. Get it from the other device", null));
   const keyBtns = [];
   if (!hasKey || L.keyMissing || L.keyDiffers) keyBtns.push(btn("Get key from the other device", async () => {

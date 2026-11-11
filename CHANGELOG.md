@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.16 (versionCode 237)
+
+- Fixed: Shop tab loads items again.
+- Fixed: Settings no longer keep reloading.
+- New: Unlock passwords and authenticator with "PIN or phone". A popup tells you to verify on your phone, with a Use PIN button.
+- Changed: Passwords and authenticator lock again 30 seconds after unlocking.
+
 ## 1.15.15 (versionCode 236)
 
 - Fixed: Quick results work with Dutch phrasing (timer, dice, random number, leap year, dates).

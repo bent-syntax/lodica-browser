@@ -1,3 +1,10 @@
+## 1.15.16
+
+- Fixed: Shop tab loads items again.
+- Fixed: Settings no longer keep reloading.
+- New: Unlock passwords and authenticator with "PIN or phone". A popup tells you to verify on your phone, with a Use PIN button.
+- Changed: Passwords and authenticator lock again 30 seconds after unlocking.
+
 ## 1.15.15
 
 - Fixed: Quick results work with Dutch phrasing (timer, dice, random number, leap year, dates).

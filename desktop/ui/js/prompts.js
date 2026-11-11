@@ -19,6 +19,18 @@ function dialog(opts, build) {
 }
 function btnRow(...b) { return h("div", { class: "btns" }, b); }
 
+// Popup while the phone confirms the unlock. "Use PIN" gives up waiting. Resolves {ok} or {error}; null when cancelled.
+async function phoneUnlock() {
+  let L;
+  const dlg = dialog({ title: "Verify on your phone", message: "Open Lodica on your phone and confirm the unlock.", cancelValue: null }, (d, l) => {
+    L = l;
+    d.append(btnRow(btn("Use PIN", () => l.close(null), "muted")));
+  });
+  const r = await Promise.race([inv("vault.unlockLink"), dlg]);
+  if (L) L.close(r);
+  return r;
+}
+
 function confirmDialog(o) {
   return dialog(Object.assign({ cancelValue: false }, o), (d, L) => {
     L.submit = () => L.close(true);

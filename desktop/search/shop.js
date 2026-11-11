@@ -74,6 +74,7 @@
     const { el, img, send, safe, root } = ctx;
     const s = load();
     let token = 0;
+    let last = null;
 
     const sel = el("select", { "aria-label": "Country" }, ...Object.keys(COUNTRIES).map((k) => el("option", { value: k }, COUNTRIES[k])));
     sel.value = s.cc;
@@ -195,7 +196,6 @@
     root.replaceChildren(wrap);
     drawChips(); drawGroups();
 
-    let last = null;
     const guides = (d) => (d.guides && d.guides.length ? el("div", { class: "sh-tw" },
       el("div", { class: "sh-note" }, "Reviews and specs"),
       ...d.guides.map((x) => { const href = safe(x.u); return href ? el("a", { class: "sh-twl", href, target: "_top" }, el("b", {}, x.h), " ", x.t) : null; })) : null);
