@@ -2,6 +2,16 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.19 (versionCode 240)
+
+- Fixed: Google sign-in is no longer blocked as an insecure browser.
+- Fixed: Search suggestions no longer overflow the box.
+- Fixed: Translate searches show the translate widget.
+- Changed: Search results are cached for 60 seconds on the relay.
+- Fixed: Shop on Android loads item images.
+- Fixed: Theme no longer switches to nord by default.
+- Changed: Search results are cached for 60 seconds on the relay.
+
 ## 1.15.18 (versionCode 239)
 
 - Fixed: Shop shows a Clear shop filters button when saved filters hide every offer.

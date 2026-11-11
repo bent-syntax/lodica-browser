@@ -1,3 +1,9 @@
+## 1.15.19
+
+- Fixed: Shop on Android loads item images.
+- Fixed: Theme no longer switches to nord by default.
+- Changed: Search results are cached for 60 seconds on the relay.
+
 ## 1.15.18
 
 - Fixed: Shop shows a Clear shop filters button when saved filters hide every offer.

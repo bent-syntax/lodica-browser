@@ -177,7 +177,7 @@ browser.runtime.onMessage.addListener(async (msg) => {
   }
   if (msg.type === "state") {
     await configured;
-    return { api: true, ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
+    return { api: true, base: domain ? "https://lodica." + domain + (legacy ? ":44741" : "") : "", ai: cfg.ai, aiAlways: !!cfg.aiAlways, theme: cfg.theme, engine: cfg.engine, fallback: cfg.fallback, planner: cfg.planner, plannerOpts: cfg.plannerOpts, notes: cfg.notes, pos: cfg.pos };
   }
   if (msg.type === "search" || msg.type === "shop") {
     // The app fetches the results with its own token; wait briefly for the native port if it is still connecting.

@@ -71,6 +71,9 @@ html.hasbg body.home::before { content: ""; position: fixed; inset: -40px; z-ind
 html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) var(--bgdim), transparent); }
 #sg { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--raised); border-radius: 16px; padding: 6px; z-index: 5; box-shadow: 0 8px 28px rgba(0,0,0,.25); }
 #sg a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; font-size: 15px; }
+#sg { overflow: hidden; }
+#sg a > span { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sg a small { flex: none; max-width: 40%; }
 #sg a:hover, #sg a.sel { background: var(--bg); }
 #sg a small { color: var(--muted); margin-left: auto; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #fw { position: relative; }
@@ -438,3 +441,9 @@ html[data-start-tex] body.home header{background:transparent}
   .sh-out.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .sh-bars i, .sh-filters, .sh-scrim { transition: none !important; } }
+
+.inst-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.inst-ta { font: inherit; font-size: 15px; border-radius: 12px !important; padding: 12px; min-height: 120px; resize: vertical; white-space: pre-wrap; overflow-wrap: anywhere; }
+.inst-out { background: var(--high); color: var(--text); }
+.inst-swap { padding: 8px 14px; }
+@media (max-width: 560px) { .inst-two { grid-template-columns: 1fr; } }

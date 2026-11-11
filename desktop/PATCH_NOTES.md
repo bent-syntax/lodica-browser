@@ -1,3 +1,11 @@
+## 1.15.19
+
+- Fixed: Google sign-in is no longer blocked as an insecure browser.
+- Fixed: Search suggestions no longer overflow the box.
+- Fixed: Translate searches show the translate widget.
+- Fixed: Lock popup toggles look right and the menu opens on the right.
+- Changed: Search results are cached for 60 seconds on the relay.
+
 ## 1.15.18
 
 - Fixed: Shop shows a Clear shop filters button when saved filters hide every offer.

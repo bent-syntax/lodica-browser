@@ -221,7 +221,8 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .stat.acc .ico,.stat.acc b{color:var(--amber)}
 .srow{display:flex;align-items:center;gap:12px;height:44px;padding:0 4px;font-size:13px;text-align:left;border-radius:12px}
 .srow:hover{background:var(--hover)}
-.srow span{flex:1}
+.srow span:not(.sw-t){flex:1}
+.srow .sw-t{flex:none}
 .srow .ico{width:20px;height:20px;color:var(--muted)}
 .pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid var(--high)}
 .pop-foot .clr{display:flex;align-items:center;gap:6px;color:var(--coral);font-size:13px;font-weight:600;height:36px;padding:0 8px;border-radius:12px}

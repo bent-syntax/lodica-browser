@@ -785,21 +785,27 @@
   };
 
   R.translate = (d, c) => {
-    const L = T(c.lang), src = h("input", "inst-in"), to = select(TR_LANGS, d.to), out = h("div", "inst-sub");
-    src.type = "text"; src.value = d.text; src.placeholder = L.translateHint;
-    let seq = 0;
-    const go = () => {
+    const L = T(c.lang), from = select(["auto", ...TR_LANGS], "auto"), to = select(TR_LANGS, d.to);
+    const src = h("textarea", "inst-in inst-ta"), out = h("div", "inst-ta inst-out");
+    src.placeholder = L.translateHint; src.value = d.text; src.rows = 5;
+    const swap = btn("⇄", () => {
+      const f = from.value === "auto" ? (to.value === "en" ? "es" : "en") : from.value;
+      from.value = to.value; to.value = f; go();
+    }, "inst-ghost inst-swap");
+    swap.setAttribute("aria-label", "Swap languages");
+    let seq = 0, timer = 0;
+    const run = () => {
       const q = src.value.trim(), n = ++seq;
       if (!q) { out.textContent = ""; return; }
       out.textContent = L.loading;
-      fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q) + "&langpair=Autodetect|" + to.value)
+      fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q) + "&langpair=" + (from.value === "auto" ? "Autodetect" : from.value) + "|" + to.value)
         .then(r => r.json()).then(j => { if (n === seq) out.textContent = j.responseData.translatedText; })
         .catch(() => { if (n === seq) out.textContent = L.translateFail; });
     };
-    src.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
-    to.addEventListener("change", go);
-    if (d.text) go();
-    return card(L.translate, row(src, to, btn(L.translateGo, go)), out);
+    const go = () => { clearTimeout(timer); timer = setTimeout(run, 400); };
+    src.addEventListener("input", go); from.addEventListener("change", go); to.addEventListener("change", go);
+    if (d.text) run();
+    return card(L.translate, row(from, swap, to), h("div", "inst-two", src, out));
   };
 
   R.weather = (d, c) => {

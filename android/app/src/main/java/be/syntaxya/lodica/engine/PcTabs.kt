@@ -250,7 +250,7 @@ object PcTabs {
         shareHistory = sp.getBoolean("shareHistory", false)
         if (shareHistory && !sp.contains("share.history")) sp.edit().putBoolean("share.history", true).putBoolean("shareHistory", false).apply()
         shareHistory = sp.getBoolean("share.history", false)
-        themeFrom = sp.getString("themeFrom", "newest").takeIf { it in listOf("newest", "this", "other") } ?: "newest"
+        themeFrom = sp.getString("themeFrom", "this").takeIf { it in listOf("newest", "this", "other") } ?: "this"
         // Before 1.14.17 passwords and authenticator keys were off by default, so an old "off" was rarely a choice. Reset them once.
         if (!sp.getBoolean("shareReset17", false)) sp.edit().remove("share.passwords").remove("share.totp").putBoolean("shareReset17", true).apply()
         linkShare = SHARE_IDS.associateWith { sp.getBoolean("share.$it", it in DEFAULT_SHARE) }
@@ -524,7 +524,7 @@ object PcTabs {
     }
 
     /** Where the theme comes from: "newest" change, "this" device or "other" device. */
-    var themeFrom by mutableStateOf("newest"); private set
+    var themeFrom by mutableStateOf("this"); private set
     fun updateThemeFrom(v: String) {
         if (v !in listOf("newest", "this", "other")) return
         themeFrom = v

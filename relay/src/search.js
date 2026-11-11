@@ -61,7 +61,20 @@ function freshFirstJs(list) {
 }
 
 /** Runs a search; returns the trimmed JSON object or throws (status 400/502). */
-async function search(url) {
+// Repeat queries within 60 s reuse the finished (or in-flight) answer; the wait is the SearXNG round trip, not our code.
+const memo = new Map();
+function search(url) {
+  const k = [...url.searchParams].filter(([n]) => 'qpclt'.includes(n) && n.length === 1).map((e) => e.join('=')).sort().join('&');
+  const hit = memo.get(k);
+  if (hit && Date.now() - hit.at < 60e3) return hit.v;
+  const v = searchLive(url);
+  memo.set(k, { at: Date.now(), v });
+  v.catch(() => memo.delete(k));
+  if (memo.size > 200) memo.delete(memo.keys().next().value);
+  return v;
+}
+
+async function searchLive(url) {
   const q = (url.searchParams.get('q') || '').trim();
   if (!q || q.length > 400) throw Object.assign(new Error('bad query'), { status: 400 });
   const p = Math.min(10, Math.max(1, Number(url.searchParams.get('p')) || 1));
