@@ -8,6 +8,7 @@
 
   const TXT = {
     en: {
+      translate: "Translate", translateGo: "Translate", translateHint: "Text to translate", translateFail: "Translation failed.",
       speed: "Internet speed test", run: "Run speed test", stopTest: "Stop", again: "Test again", testing: "Testing…",
       speedNote: "Measured against Cloudflare. Uses up to about 100 MB.", speedFail: "The test failed. Check your connection.",
       down: "Download", up: "Upload", ping: "Ping", jitter: "Jitter",
@@ -29,6 +30,7 @@
       calculator: "Calculator", error: "Error", roman: "Roman numerals", daysIn: "days"
     },
     nl: {
+      translate: "Vertalen", translateGo: "Vertaal", translateHint: "Tekst om te vertalen", translateFail: "Vertalen mislukt.",
       speed: "Internetsnelheid testen", run: "Start snelheidstest", stopTest: "Stop", again: "Opnieuw testen", testing: "Bezig met testen…",
       speedNote: "Gemeten via Cloudflare. Gebruikt tot ongeveer 100 MB.", speedFail: "De test is mislukt. Controleer je verbinding.",
       down: "Downloaden", up: "Uploaden", ping: "Ping", jitter: "Jitter",
@@ -69,9 +71,9 @@
   }
   function parseDur(s) {
     let t = 0, hit = false;
-    s.replace(/(\d+(?:[.,]\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)(?![a-z])/g, (_, n, u) => {
+    s.replace(/(\d+(?:[.,]\d+)?)\s*(hours?|hrs?|h|uur|minutes?|minuut|minuten|mins?|m|seconds?|seconden?|secs?|s)(?![a-z])/g, (_, n, u) => {
       hit = true;
-      t += parseFloat(n.replace(",", ".")) * (u[0] === "h" ? 3600 : u[0] === "m" ? 60 : 1);
+      t += parseFloat(n.replace(",", ".")) * (u[0] === "h" || u[0] === "u" ? 3600 : u[0] === "m" ? 60 : 1);
       return "";
     });
     return hit ? Math.round(t) : 0;
@@ -230,6 +232,9 @@
   }
 
   const CUR = ["AUD", "BGN", "BRL", "CAD", "CHF", "CNY", "CZK", "DKK", "EUR", "GBP", "HKD", "HUF", "IDR", "ILS", "INR", "ISK", "JPY", "KRW", "MXN", "MYR", "NOK", "NZD", "PHP", "PLN", "RON", "SEK", "SGD", "THB", "TRY", "USD", "ZAR"];
+  const TR_LANGS = ["ar", "de", "en", "es", "fr", "it", "ja", "nl", "pl", "pt", "ru", "tr", "zh"];
+  const TR_NAME = {};
+  for (const [k, v] of Object.entries({ ar: "arabic arabisch", de: "german duits deutsch", en: "english engels", es: "spanish spaans", fr: "french frans français", it: "italian italiaans", ja: "japanese japans", nl: "dutch nederlands", pl: "polish pools", pt: "portuguese portugees", ru: "russian russisch", tr: "turkish turks", zh: "chinese chinees" })) for (const n of v.split(" ")) TR_NAME[n] = k;
   const CUR_NAME = {
     dollar: "USD", dollars: "USD", "us dollar": "USD", "us dollars": "USD", euro: "EUR", euros: "EUR", pound: "GBP", pounds: "GBP",
     "british pound": "GBP", "british pounds": "GBP", sterling: "GBP", yen: "JPY", franc: "CHF", francs: "CHF", "swiss franc": "CHF",
@@ -368,13 +373,13 @@
       "what's today", "whats today", "what is today", "what is the date", "what's the date", "what is the date today", "what's the date today",
       "what is today's date", "what's today's date", "what date is it", "what date is it today", "what is the current date", "which day is it",
       "which day is it today", "what day of the week is it", "what is the day today", "what's the day today", "welke dag is het", "welke dag is het vandaag",
-      "wat is de datum", "wat is de datum vandaag", "datum vandaag"],
-    week: ["what week is it", "what week number is it", "week number", "current week", "what is the week number", "what's the week number", "which week is it", "welke week is het", "weeknummer"],
-    year: ["what year is it", "what's the year", "what is the year", "current year", "which year is it", "welk jaar is het"],
-    month: ["what month is it", "current month", "which month is it", "what's the month", "welke maand is het"]
+      "wat is de datum", "wat is de datum vandaag", "datum vandaag", "welke datum is het", "welke datum is het vandaag", "welke datum is het nu", "vandaag", "de datum", "huidige datum"],
+    week: ["what week is it", "what week number is it", "week number", "current week", "what is the week number", "what's the week number", "which week is it", "welke week is het", "weeknummer", "welk weeknummer is het", "weeknummer vandaag"],
+    year: ["what year is it", "what's the year", "what is the year", "current year", "which year is it", "welk jaar is het", "welk jaar zijn we", "in welk jaar zitten we"],
+    month: ["what month is it", "current month", "which month is it", "what's the month", "welke maand is het", "welke maand zijn we", "in welke maand zitten we"]
   };
-  const DUR = "(?:\\d+(?:[.,]\\d+)?\\s?(?:hours?|hrs?|h|minutes?|mins?|m|seconds?|secs?|s)(?![a-z])(?:,? and | )?)+";
-  const TIMER = new RegExp("^(?:set (?:a |an |the )?)?(?:online )?(?:" + DUR + ")?(?:timer|countdown(?: timer)?)(?: (?:for |of )?(?:" + DUR + "|\\d{1,3}))?$");
+  const DUR = "(?:\\d+(?:[.,]\\d+)?\\s?(?:hours?|hrs?|h|uur|minutes?|minuut|minuten|mins?|m|seconds?|seconden?|secs?|s)(?![a-z])(?:,? and | en | )?)+";
+  const TIMER = new RegExp("^(?:(?:set|zet) (?:a |an |the |een |de )?)?(?:online )?(?:" + DUR + ")?(?:timer|kookwekker|countdown(?: timer)?)(?: (?:for |of |voor |van )?(?:" + DUR + "|\\d{1,3}))?$");
   const MATH_WORDS = new Set(Object.keys(FN).concat(["pi", "e", "mod", "x"]));
 
   // Each matcher takes the normalised query and returns card data or null. Order matters.
@@ -382,7 +387,7 @@
     function speed(s) {
       return /^(?:(?:internet |wifi |wi-fi |broadband |network |my )?(?:speed ?test)|test (?:my )?(?:internet |wifi )?speed|how fast is my (?:internet|wifi|connection)|(?:internet|wifi|wi-fi) speed(?: test)?|check (?:my )?internet speed|snelheidstest|internetsnelheid(?: test)?|internet snelheid test)$/.test(s) ? { type: "speed" } : null;
     },
-    function stopwatch(s) { return /^(?:online )?stop ?watch$/.test(s) ? { type: "stopwatch" } : null; },
+    function stopwatch(s) { return /^(?:online )?(?:stop ?watch|chronometer|stopwatch)$/.test(s) ? { type: "stopwatch" } : null; },
     function timer(s) {
       if (!TIMER.test(s)) return null;
       let sec = parseDur(s);
@@ -391,7 +396,7 @@
     },
     function color(s) {
       let m;
-      if (/^colou?r ?picker$/.test(s)) return { type: "color", r: 245, g: 158, b: 11 };
+      if (/^(?:colou?r ?picker|kleurkiezer|kleur kiezer)$/.test(s)) return { type: "color", r: 245, g: 158, b: 11 };
       if ((m = /^(?:#|(?:hex|colou?r) #?)([0-9a-f]{6}|[0-9a-f]{3})$/.exec(s))) {
         let x = m[1];
         if (x.length === 3) x = x.replace(/./g, "$&$&");
@@ -402,17 +407,17 @@
     },
     function dice(s, c) {
       if (s === "die") return null;
-      const m = /^(?:(?:roll|throw) (?:a |an |the |some )?)?(?:(\d{1,2})?d(\d{1,3})|dice|die)$|^dice roll$/.exec(s);
+      const m = /^(?:(?:roll|throw|gooi) (?:a |an |the |some |een |de )?)?(?:(\d{1,2})?d(\d{1,3})|dice|die|dobbelsteen|dobbelstenen)$|^dice roll$/.exec(s);
       if (!m) return null;
       const n = m[1] ? +m[1] : 1, sides = m[2] ? +m[2] : 6;
       return n >= 1 && n <= 20 && sides >= 2 && sides <= 1000 ? rollDice(n, sides, c.rand) : null;
     },
     function coin(s, c) { return /^(?:(?:flip|toss) (?:a |the )?coin|coin (?:flip|toss)|heads or tails|kop of munt|munt werpen)$/.test(s) ? flipCoin(c.rand) : null; },
     function random(s, c) {
-      const m = /^(?:random number(?: generator)?|rng|pick a (?:random )?number)\b\s*(.*)$/.exec(s);
+      const m = /^(?:random number(?: generator)?|rng|pick a (?:random )?number|willekeurig(?:e)? ?(?:getal|nummer)|toevalsgetal|random getal)\b\s*(.*)$/.exec(s);
       if (!m) return null;
       let lo = 1, hi = 10;
-      const r = /(-?\d+)\s*(?:and|to|-|–)\s*(-?\d+)/.exec(m[1]);
+      const r = /(-?\d+)\s*(?:and|to|-|–|en|tot)\s*(-?\d+)/.exec(m[1]);
       if (r) { lo = +r[1]; hi = +r[2]; if (lo > hi) [lo, hi] = [hi, lo]; }
       else if (m[1]) return null;
       return Math.abs(lo) <= 1e9 && Math.abs(hi) <= 1e9 ? pickNumber(lo, hi, c.rand) : null;
@@ -453,10 +458,10 @@
     function leap(s, c) {
       const L = T(c.lang), y0 = c.now.getFullYear();
       let m, y;
-      if ((m = /^is (\d{3,4}) a leap year$|^leap year (\d{3,4})$/.exec(s))) y = +(m[1] || m[2]);
-      else if ((m = /^is (this|next|last) year a leap year$/.exec(s))) y = y0 + (m[1] === "next" ? 1 : m[1] === "last" ? -1 : 0);
-      else if (/^(?:leap year|schrikkeljaar|is it a leap year)$/.test(s)) y = y0;
-      else if (/^(?:when is )?(?:the )?next leap year$/.test(s)) {
+      if ((m = /^is (\d{3,4}) a leap year$|^leap year (\d{3,4})$|^is (\d{3,4}) een schrikkeljaar$|^schrikkeljaar (\d{3,4})$/.exec(s))) y = +(m[1] || m[2] || m[3] || m[4]);
+      else if ((m = /^is (this|next|last) year a leap year$|^is (dit|volgend|vorig) jaar een schrikkeljaar$/.exec(s))) { const w = m[1] || m[2]; y = y0 + (w === "next" || w === "volgend" ? 1 : w === "last" || w === "vorig" ? -1 : 0); }
+      else if (/^(?:leap year|schrikkeljaar|is it a leap year|is het een schrikkeljaar|is het dit jaar een schrikkeljaar)$/.test(s)) y = y0;
+      else if (/^(?:when is |wanneer is )?(?:the |het )?(?:next leap year|volgende schrikkeljaar)$/.test(s)) {
         y = y0 + 1;
         while (!isLeap(y)) y++;
         return fact_("leap", L.calendar, String(y), L.leapNext + " " + y + ".", { year: y, leap: true });
@@ -475,7 +480,7 @@
       return { type: "calendar", y, m: mo, today: [n.getFullYear(), n.getMonth(), n.getDate()] };
     },
     function monthDays(s, c) {
-      const m = /^how many days (?:are )?in (?:the month of )?([a-z]+)(?: (\d{4}))?$/.exec(s);
+      const m = /^(?:how many days (?:are )?in (?:the month of )?|hoeveel dagen (?:heeft|zijn er in|telt) )([a-z]+)(?: (\d{4}))?$/.exec(s);
       if (!m) return null;
       const mo = monthIdx(m[1]);
       if (mo < 0) return null;
@@ -483,7 +488,7 @@
       return fact_("days", dateText(c.lang, y, mo, 1, { month: "long", year: "numeric" }), daysIn(y, mo) + " " + L.daysIn, "");
     },
     function countdown(s, c) {
-      let m = /^(?:how (?:many )?(?:days?|weeks?|sleeps?|long|much time)(?: (?:is it|are there|is there|are|is))?(?: left)? (?:until|till|to|before)|(?:days?|time)(?: left)? (?:until|till|to|before)|countdown (?:to|until|till)|hoeveel dagen (?:tot|nog tot|nog voor)|dagen tot|aftellen naar) (.+)$|^when is (.+)$|^(.+) countdown$/.exec(s);
+      let m = /^(?:how (?:many )?(?:days?|weeks?|sleeps?|long|much time)(?: (?:is it|are there|is there|are|is))?(?: left)? (?:until|till|to|before)|(?:days?|time)(?: left)? (?:until|till|to|before)|countdown (?:to|until|till)|hoeveel dagen (?:tot|nog tot|nog voor)|dagen tot|aftellen naar) (.+)$|^(?:when is|wanneer is|wanneer valt) (.+)$|^(.+) countdown$/.exec(s);
       if (!m) return null;
       const t = target(m[1] || m[2] || m[3], c.now, c.lang);
       if (!t) return null;
@@ -507,6 +512,16 @@
       const from = curOf(m[2]), to = curOf(m[3]);
       if (from && to && !c.priv) return { type: "currency", amount, from, to };
       return null;
+    },
+    function translate(s, c) {
+      if (c.priv) return null;
+      const m = /^(?:(?:google |online )?translat(?:e|or|ion)|vertaal|vertaler|vertalen)(?: (.+))?$/.exec(s);
+      if (!m) return null;
+      let text = m[1] || "", to = c.lang === "en" ? "es" : "en";
+      const t = /^(.*?)\s*\b(?:to|into|in|naar)\s+([a-zé]+)$/.exec(text);
+      if (t && TR_NAME[t[2]]) { text = t[1]; to = TR_NAME[t[2]]; }
+      else if (TR_NAME[text]) { to = TR_NAME[text]; text = ""; }
+      return { type: "translate", text, to };
     },
     function weather(s, c) {
       if (c.priv) return null;
@@ -767,6 +782,24 @@
     sa.addEventListener("change", load); sb.addEventListener("change", load);
     load();
     return card(L.currency, row(a, sa), row(b, sb), note);
+  };
+
+  R.translate = (d, c) => {
+    const L = T(c.lang), src = h("input", "inst-in"), to = select(TR_LANGS, d.to), out = h("div", "inst-sub");
+    src.type = "text"; src.value = d.text; src.placeholder = L.translateHint;
+    let seq = 0;
+    const go = () => {
+      const q = src.value.trim(), n = ++seq;
+      if (!q) { out.textContent = ""; return; }
+      out.textContent = L.loading;
+      fetch("https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q) + "&langpair=Autodetect|" + to.value)
+        .then(r => r.json()).then(j => { if (n === seq) out.textContent = j.responseData.translatedText; })
+        .catch(() => { if (n === seq) out.textContent = L.translateFail; });
+    };
+    src.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    to.addEventListener("change", go);
+    if (d.text) go();
+    return card(L.translate, row(src, to, btn(L.translateGo, go)), out);
   };
 
   R.weather = (d, c) => {

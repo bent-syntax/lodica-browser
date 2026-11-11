@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.15 (versionCode 236)
+
+- Fixed: Quick results work with Dutch phrasing (timer, dice, random number, leap year, dates).
+- New: Typing "translate" or "vertaal" shows a quick translate card.
+
 ## 1.15.14 (versionCode 235)
 
 - Fixed: Changing the vault PIN needs the old PIN, and five wrong PIN tries lock the vault for 30 seconds.

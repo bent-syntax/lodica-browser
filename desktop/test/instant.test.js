@@ -111,3 +111,25 @@ test("ordinary searches stay untouched", () => {
     assert.strictEqual(ask(q), null, q);
   }
 });
+
+test("dutch phrasing triggers quick results", () => {
+  const nl = (q, o) => ask(q, Object.assign({ lang: "nl" }, o || {}));
+  assert.strictEqual(nl("wanneer is kerstmis").type, "countdown");
+  assert.strictEqual(nl("timer 5 minuten").type, "timer");
+  assert.strictEqual(nl("kookwekker").type, "timer");
+  assert.strictEqual(nl("dobbelsteen").type, "dice");
+  assert.strictEqual(nl("willekeurig getal").type, "random");
+  assert.strictEqual(nl("kleurkiezer").type, "color");
+  assert.strictEqual(nl("chronometer").type, "stopwatch");
+  assert.strictEqual(nl("hoeveel dagen heeft februari").type, "days");
+  assert.strictEqual(nl("is 2028 een schrikkeljaar").type, "leap");
+  assert.strictEqual(nl("welke datum is het").type, "date");
+});
+
+test("translate shows a quick result, not in private tabs", () => {
+  assert.deepStrictEqual(ask("translate"), { type: "translate", text: "", to: "es" });
+  assert.deepStrictEqual(ask("vertaal", { lang: "nl" }), { type: "translate", text: "", to: "en" });
+  assert.deepStrictEqual(ask("translate hello to french"), { type: "translate", text: "hello", to: "fr" });
+  assert.deepStrictEqual(ask("vertaal hallo naar engels", { lang: "nl" }), { type: "translate", text: "hallo", to: "en" });
+  assert.strictEqual(ask("translate", { priv: true }), null);
+});
