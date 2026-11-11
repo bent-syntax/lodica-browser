@@ -36,6 +36,8 @@ jobs:
         working-directory: relay/native
         run: cargo build --release
       - name: Install addon and run relay tests
+        env:
+          LODICA_DATA_DIR: ${{ runner.temp }}
         run: |
           cp relay/native/target/release/liblodica_relay_native.so relay/native/lodica_native.node
           node --test relay/test/*.test.js
