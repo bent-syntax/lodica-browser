@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.18 (versionCode 239)
+
+- Fixed: Shop shows a Clear shop filters button when saved filters hide every offer.
+
 ## 1.15.17 (versionCode 238)
 
 - Fixed: Shop tab loads items on Android.

@@ -208,7 +208,9 @@
       const score = (x) => (x.m || []).length;
       items.sort(s.sort === "match" ? (a, b) => score(b) - score(a) || a.p - b.p : (a, b) => a.p - b.p);
       if (!items.length) {
-        out.replaceChildren(el("div", { class: "ans" }, all.length ? "No offers match these filters." : "No prices found at " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."), guides(d));
+        const clear = el("button", { type: "button", class: "sh-opt" }, "Clear shop filters");
+        clear.addEventListener("click", () => { s.inc = []; s.ex = []; s.rate = 0; save(s); drawSide(d); draw(d); });
+        out.replaceChildren(el("div", { class: "ans" }, ...(all.length ? ["No offers match these filters. ", clear] : ["No prices found at " + COUNTRIES[d.cc] + " shops for “" + d.q + "”. Try a broader name or a wider price range."])), guides(d));
         return;
       }
       const low = Math.min(...items.map((x) => x.p));

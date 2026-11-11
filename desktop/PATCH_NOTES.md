@@ -1,3 +1,7 @@
+## 1.15.18
+
+- Fixed: Shop shows a Clear shop filters button when saved filters hide every offer.
+
 ## 1.15.17
 
 - Fixed: Shop bar buttons line up on narrow windows.
