@@ -1,3 +1,8 @@
+## 1.15.17
+
+- Fixed: Shop bar buttons line up on narrow windows.
+- Changed: Search ranking and parsing start moving to a Rust core, with a JS fallback.
+
 ## 1.15.16
 
 - Fixed: Shop tab loads items again.

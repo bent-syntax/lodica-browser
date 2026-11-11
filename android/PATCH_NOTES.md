@@ -1,3 +1,9 @@
+## 1.15.17
+
+- Fixed: Shop tab loads items.
+- Fixed: Shop buttons line up.
+- New: Compat mode is in the quick menu.
+
 ## 1.15.16
 
 - Maintenance release, no Android changes.

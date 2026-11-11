@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.17 (versionCode 238)
+
+- Fixed: Shop tab loads items on Android.
+- Fixed: Shop buttons line up on phones.
+- New: Compat mode is in the quick menu on Android.
+- Changed: Search ranking and parsing start moving to a Rust core, with a JS fallback.
+
 ## 1.15.16 (versionCode 237)
 
 - Fixed: Shop tab loads items again.
