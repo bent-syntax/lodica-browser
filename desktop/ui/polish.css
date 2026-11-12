@@ -184,7 +184,7 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 .pill .pib[disabled]{opacity:.35;pointer-events:none}
 .pill .pib .ico{width:18px;height:18px}
 .pill .pib.amber{color:var(--amber)}
-.pill .ico.ok{color:#86EFAC}
+.pill .ico.ok{color:var(--ok)}
 .pill .ico.amber{color:var(--amber)}
 .pill .txt{font-size:14px}
 .pill .txt.muted{color:var(--muted)}
@@ -213,7 +213,7 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .pop-fav{width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--amber)}
 .pop-head .main{flex:1;min-width:0}
 .pop-head .t1{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.pop-head .t2{font-size:12px;color:#86EFAC;display:flex;align-items:center;gap:4px}
+.pop-head .t2{font-size:12px;color:var(--ok);display:flex;align-items:center;gap:4px}
 .pop-head .t2 .ico{width:14px;height:14px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stat{background:var(--bg);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}

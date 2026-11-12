@@ -3,7 +3,8 @@
 const inv = (cmd, ...a) => window.lodica.invoke(cmd, ...a).catch(() => undefined);
 const box = document.getElementById("tabs"), mailBtn = document.getElementById("mail");
 let timer = 0, busy = false, again = false;
-let vert = false, folded = false;
+let vert = false, folded = false, privTabs = [];
+const privLabel = document.querySelector("#priv .al");
 const foldBtn = document.getElementById("fold"), grip = document.getElementById("grip");
 // Community theme plugin variables and stylesheet, same as the bar.
 let pluginVars = [], pluginKey = "";
@@ -37,12 +38,9 @@ const applyPrefs = p => {
   foldBtn.title = folded ? "Expand panel" : "Collapse panel";
   soon();
 };
-const backBtn = document.getElementById("back"), fwdBtn = document.getElementById("fwd"), relBtn = document.getElementById("rel");
 const PATHS = {
   back: "M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z",
   fwd: "M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z",
-  rel: "M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
-  stop: "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
 };
 function icon(btn, path) {
   const ns = "http://www.w3.org/2000/svg";
@@ -51,18 +49,6 @@ function icon(btn, path) {
   p.setAttribute("d", path);
   svg.append(p);
   btn.replaceChildren(svg);
-}
-icon(backBtn, PATHS.back); icon(fwdBtn, PATHS.fwd); icon(relBtn, PATHS.rel);
-let loadingNow = false;
-function navState(c) {
-  backBtn.disabled = !(c && c.canBack);
-  fwdBtn.disabled = !(c && c.canForward);
-  const l = !!(c && c.loading);
-  if (l !== loadingNow) {
-    loadingNow = l;
-    icon(relBtn, l ? PATHS.stop : PATHS.rel);
-    relBtn.title = l ? "Stop" : "Reload (F5)";
-  }
 }
 
 function el(tag, cls, text) {
@@ -114,15 +100,16 @@ async function refresh() {
     const list = await inv("tab.list");
     if (!list?.tabs) return;
     render(list.tabs);
+    privTabs = list.tabs.filter(t => t.private);
+    const nl = privTabs.filter(t => t.locked).length;
+    privLabel.textContent = !privTabs.length ? "Private tabs" : nl ? `Private tabs \u00b7 ${nl} locked` : `Private tabs \u00b7 ${privTabs.length} open`;
     const c = list.tabs.find(t => t.current);
-    navState(c);
     mailBtn.classList.toggle("hidden", !(c && c.emailForm && !c.locked));
   } finally { busy = false; if (again) { again = false; refresh(); } }
 }
 const soon = () => { clearTimeout(timer); timer = setTimeout(refresh, 80); };
 
 window.lodica.on("tab", t => {
-  if (t && t.current !== false) navState(t);
   mailBtn.classList.toggle("hidden", !(t && t.emailForm && !t.locked));
   soon();
 });
@@ -144,9 +131,6 @@ window.lodica.on("tabs", soon);
 }
 window.lodica.on("locked", soon);
 document.getElementById("add").addEventListener("click", () => inv("tab.new", {}));
-backBtn.addEventListener("click", () => inv("back"));
-fwdBtn.addEventListener("click", () => inv("forward"));
-relBtn.addEventListener("click", e => inv(loadingNow ? "stop" : "reload", e.shiftKey));
 mailBtn.addEventListener("click", () => inv("email.fill"));
 foldBtn.addEventListener("click", () => inv("prefs.set", "vertCollapsed", !folded));
 let gripRaf = 0;
@@ -185,7 +169,11 @@ document.addEventListener("drop", e => {
 // Sidebar extras: icons for the new-tab rows and the bottom icon row (vertical mode only).
 document.getElementById("add").prepend(ico("add"));
 document.getElementById("priv").prepend(ico("private"));
-document.getElementById("priv").addEventListener("click", () => inv("tab.new", { private: true }));
+// No private tabs: open one. Otherwise select one; a locked one raises the existing unlock prompt.
+document.getElementById("priv").addEventListener("click", () => {
+  const t = privTabs.find(x => x.locked) || privTabs[0];
+  inv(t ? "tab.select" : "tab.new", t ? t.id : { private: true });
+});
 const foot = document.getElementById("foot");
 [["history", "History", "history"], ["downloads", "Downloads", "download"], ["passwords", "Passwords", "key"], ["settings", "Settings", "settings", "end"]].forEach(([act, title, ic, cls]) => {
   const b = document.createElement("button");

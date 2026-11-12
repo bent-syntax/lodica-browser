@@ -14,11 +14,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outlin
 #tabs::-webkit-scrollbar{display:none}
 .t{flex:0 0 180px;width:180px;min-width:0;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
 .t:hover{background:var(--hover2)}
-.t.cur{background:var(--high);color:var(--amber);font-weight:600;box-shadow:inset 0 -3px 0 var(--amber),0 0 0 1px color-mix(in srgb,var(--amber) 55%,transparent)}
-.t:not(.cur){opacity:.8}
 .t.dragging{opacity:.55;transform:scale(.96);box-shadow:0 0 0 2px var(--amber)}
 body.tabdrag .t{transition:transform .12s}
-.t.drop-before::before,.t.drop-after::after{content:"";position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.t.drop-before::before,.t.drop-after::after{content:"";position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;background:var(--amber)}
 .t.drop-before::before{left:-3px}
 .t.drop-after::after{right:-3px}
 body.vert .t.drop-before::before,body.vert .t.drop-after::after{left:0;right:0;width:auto;height:3px;top:auto;bottom:auto}
@@ -31,7 +29,8 @@ body.vert .t.drop-after::after{bottom:-3px}
 .t .x:hover{background:var(--hover2);color:var(--mist)}
 .add,.mail{height:28px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center}
 .add{width:28px;font-size:18px;color:var(--muted)}.add:hover{background:var(--hover);color:var(--mist)}
-.mail{margin-left:auto;padding:0 12px;background:var(--amber);color:var(--bg);font-weight:600}
+.mail{margin-left:auto;padding:0 12px;background:var(--raised);color:var(--mist);font-weight:500;box-shadow:0 0 0 1px var(--line)}
+.mail:hover{background:var(--hover2)}
 .nav{display:flex;gap:2px;flex:none}
 .nb{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--mist)}
 .nb:hover{background:var(--hover)}
@@ -69,7 +68,6 @@ body.vert.fold .mail::before{content:"@";font-size:14px}
 #upd.busy b{width:35%!important;animation:updslide 1.2s ease-in-out infinite alternate}
 @keyframes updslide{from{margin-left:0}to{margin-left:65%}}
 /* page 1: tab strip above the toolbar; the toolbar owns back/forward/reload */
-body.bt #back,body.bt #fwd,body.bt #rel{display:none}
 body.bt .t .fv,body.bt .t .fl{border-radius:4px}
 body.bt .t .x{border-radius:999px}
 
@@ -82,7 +80,6 @@ body.vert .t.split{box-shadow:inset 0 -2px var(--amber)}
 body.vert .t .x{opacity:0;border-radius:6px}
 body.vert .t.cur .x,body.vert .t:hover .x{opacity:1}
 body.vert .t .fv,body.vert .t .fl{border-radius:4px}
-.t.drop-before::before,.t.drop-after::after{box-shadow:none}
 .add kbd{font:12px/1 system-ui,"Segoe UI",sans-serif;color:var(--muted);margin-left:auto}
 .add .al,.add kbd{display:none}
 body.vert .add{height:34px;border-radius:8px;width:100%;display:flex;align-items:center;gap:8px;padding:0 8px;font-size:13px;color:var(--muted);text-align:left}
@@ -91,7 +88,6 @@ body.vert .add .al,body.vert .add kbd{display:inline}
 .add svg,.fb svg{width:16px;height:16px;flex:none}
 body.vert #priv{color:var(--private)}
 body.vert #priv kbd{display:none}
-body.vert #back,body.vert #fwd,body.vert #rel{display:none}
 body.vert .nav{justify-content:flex-start}
 body.vert #list{flex:1 1 auto}
 body.vert #mail{margin:0}
@@ -122,12 +118,9 @@ body.frameless button,body.frameless #tabs,body.frameless #grip,body.frameless .
 </head>
 <body>
 <div class="nav">
-<button id="back" class="nb" title="Back (Alt+Left)" disabled></button>
-<button id="fwd" class="nb" title="Forward (Alt+Right)" disabled></button>
-<button id="rel" class="nb" title="Reload (F5)"></button>
 <button id="fold" class="nb hidden" title="Collapse panel"></button>
 </div>
-<div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab"><span class="al">New tab</span><kbd>Ctrl+T</kbd></button><button id="priv" class="add hidden" title="New private tab"><span class="al">Private tab</span></button></div>
+<div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab"><span class="al">New tab</span><kbd>Ctrl+T</kbd></button><button id="priv" class="add hidden" title="New private tab"><span class="al">Private tabs</span></button></div>
 <button id="mail" class="mail hidden" title="Fill the sign-up form with the dummy mail">Use dummy mail</button>
 <div id="upd" class="hidden" title="Updating Lodica"><span id="updt"></span><i><b id="updb"></b></i></div>
 <div id="foot" class="hidden"></div>
