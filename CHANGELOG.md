@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.20 (versionCode 241)
+
+- Fixed: Shop item images load for lazy, protocol-relative and escaped image URLs.
+
 ## 1.15.19 (versionCode 240)
 
 - Fixed: Google sign-in is no longer blocked as an insecure browser.

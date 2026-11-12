@@ -29,3 +29,11 @@ test('withCat adds the category word once and CATEGORIES is a whitelist', () => 
   assert.strictEqual(withCat('iphone', ''), 'iphone');
   assert.ok(!Object.hasOwn(CATEGORIES, 'constructor'));
 });
+
+test('parseVergelijk finds lazy, protocol-relative and entity-escaped images', () => {
+  const card = (img) => 'data-test-id="card"<img ' + img + '><a href="/p/1" class="heading-md">Phone</a><span class="display-md">199,00</span>';
+  const { parseVergelijk } = require('../src/shop');
+  const get = (img) => parseVergelijk(card(img))[0].i;
+  assert.strictEqual(get('src="data:image/gif;base64,AA" data-src="https://c/i.jpg?a=1&amp;b=2"'), 'https://c/i.jpg?a=1&b=2');
+  assert.strictEqual(get('src="//c/i.jpg"'), 'https://c/i.jpg');
+});

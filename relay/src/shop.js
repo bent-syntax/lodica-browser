@@ -160,7 +160,12 @@ function parseVergelijk(html) {
     if (!a || !pr) continue;
     const price = num(pr[1]);
     if (!(price > 0)) continue;
-    const img = /<img[^>]+\ssrc="(https:\/\/[^"]+)"/.exec(c);
+    // Lazy cards put the real picture in data-src and a placeholder in src; URLs may be protocol-relative or hold &amp;.
+    let img = null;
+    for (const t of c.match(/<img\b[^>]*>/g) || []) {
+      const m = /\s(?:data-src|data-lazy-src|src)="((?:https?:)?\/\/[^"]+)"/.exec(t) || /\ssrcset="((?:https?:)?\/\/[^\s",]+)/.exec(t);
+      if (m) { img = [0, unent(m[1]).replace(/^\/\//, 'https://')]; break; }
+    }
     const sh = /<span class="truncate">(?:Laagste prijs bij|Ga naar)\s*([^<]+)<\/span>/.exec(c);
     out.push({ t: unent(a[2]).trim(), u: 'https://www.vergelijk.be' + a[1], p: price, i: img ? img[1] : undefined, h: sh ? unent(sh[1]).trim().replace(/\.be$/, '') : 'vergelijk.be' });
   }

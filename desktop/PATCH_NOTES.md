@@ -1,3 +1,7 @@
+## 1.15.20
+
+- Fixed: Shop item images load for lazy, protocol-relative and escaped image URLs.
+
 ## 1.15.19
 
 - Fixed: Google sign-in is no longer blocked as an insecure browser.
