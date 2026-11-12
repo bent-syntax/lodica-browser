@@ -88,6 +88,11 @@ swap("if (s.text.length > 80) return;", "if (s.text.length > 200 || page.selTran
 // With the setting on, preload/translate.js translates the selection by itself, so the bubble keeps only the read-aloud button.
 
 if (/browser\.storage|wrappedJSObject|openOrClosed/.test(js)) throw new Error("build-preload: Firefox API left");
+// Desktop-only code with no Android counterpart lives in scripts/overlay/ so regenerating keeps it.
+const overlay = (f) => fs.readFileSync(path.join(__dirname, "overlay", f), "utf8");
+const ipcLine = 'const { ipcRenderer, webFrame } = require("electron");\n';
+swap(ipcLine, ipcLine + overlay("google-ua.js"));
+js += overlay("draw.js");
 fs.mkdirSync(path.join(root, "preload"), { recursive: true });
 fs.writeFileSync(path.join(root, "preload", "content.js"), js);
 console.log("preload/content.js generated");
