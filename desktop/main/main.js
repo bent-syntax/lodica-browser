@@ -318,6 +318,10 @@ function onView(t, wc) {
     if (i.type === "keyDown" && i.control && i.alt && i.shift && i.key.toLowerCase() === "d") {
       global.lodicaSwipeDebug = !global.lodicaSwipeDebug; dbg.counts = {}; e.preventDefault(); return;
     }
+    const k = i.key.toLowerCase();
+    if (i.type === "keyDown" && i.control && i.shift && !i.alt && !i.meta && (k === "d" || k === "m")) {
+      e.preventDefault(); wc.send("drawToggle", k === "d" ? "draw" : "move"); return;
+    }
     shortcut(e, i);
   });
   swipeNav(wc);

@@ -1,3 +1,7 @@
+## 1.16.1
+
+- No Android changes. Draw and move on a page are desktop only for now.
+
 ## 1.16.0
 
 - Draw and move on a page (Ctrl+Shift+D and Ctrl+Shift+M) are desktop only for now.

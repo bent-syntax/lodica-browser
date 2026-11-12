@@ -1,3 +1,7 @@
+## 1.16.1
+
+- Fixed: Ctrl+Shift+D (draw) and Ctrl+Shift+M (move) now work whichever part of the window has focus.
+
 ## 1.16.0
 
 - New: Draw on a page. Press Ctrl+Shift+D for a tools bar with pen, highlighter, eraser, colour, size, undo and Erase from tab. The page still scrolls and the drawing stays put on the page. Drawings come back after a reload or when the tab is reopened. Private tabs do not save them.

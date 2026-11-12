@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.16.1 (versionCode 244)
+
+- Fixed (desktop): Ctrl+Shift+D and Ctrl+Shift+M now work whichever part of the window has focus.
+
 ## 1.16.0 (versionCode 243)
 
 - New (desktop): draw on a page with Ctrl+Shift+D and move page spots with Ctrl+Shift+M. Both are saved per page and cleared by Erase from tab.

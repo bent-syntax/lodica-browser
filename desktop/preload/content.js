@@ -2091,6 +2091,8 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     ensureSvg();
   }
 
+  // The main process catches Ctrl+Shift+D/M even when the page does not own focus.
+  ipcRenderer.on("drawToggle", (e, m) => { if (m === "draw" || m === "move") { if (mode && mode !== m) mode = ""; setMode(m); } });
   const onBar = e => e.composedPath().includes(host);
   let cur = null, dragEl = null, start = null, hover = null;
 
