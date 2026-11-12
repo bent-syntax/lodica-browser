@@ -45,11 +45,18 @@ class Palette(
     val text: Long,
     val muted: Long,
     val danger: Long = accent2,
+    /** 1px borders. */
+    val line: Long = mix(bg, text, 0.14f),
+    /** Private tabs. */
+    val priv: Long = if (dark) 0xFFA79BFF else 0xFF5B4BDB,
+    val ok: Long = if (dark) 0xFF5FCF8B else 0xFF157F3C,
+    /** Accent used as text or icon colour; [accent] is for fills only. */
+    val ink: Long = accent,
 )
 
 val Palettes: List<Palette> = listOf(
-    Palette("dark", "Dark", true, 0xFF111827, 0xFF1F2937, 0xFF374151, 0xFFF59E0B, 0xFFF43F5E, 0xFFE5E7EB, 0xFF9CA3AF),
-    Palette("light", "Light", false, 0xFFF9FAFB, 0xFFE5E7EB, 0xFFD1D5DB, 0xFFD97706, 0xFFE11D48, 0xFF111827, 0xFF606775),
+    Palette("dark", "Dark", true, 0xFF17181B, 0xFF202226, 0xFF2B2E33, 0xFFF59E0B, 0xFFF87185, 0xFFECEDEE, 0xFFA0A4AB, line = 0xFF33363C, ink = 0xFFF5A524),
+    Palette("light", "Light", false, 0xFFECECEA, 0xFFFFFFFF, 0xFFF3F3F1, 0xFFF59E0B, 0xFFC81E3F, 0xFF1B1C1F, 0xFF5F636A, line = 0xFFDADAD6, ink = 0xFF9A4B08),
     Palette("everforest_dark", "Everforest Dark", true, 0xFF2D353B, 0xFF343F44, 0xFF3D484D, 0xFFA7C080, 0xFFE67E80, 0xFFD3C6AA, 0xFFA9AA98),
     Palette("everforest_light", "Everforest Light", false, 0xFFFDF6E3, 0xFFF4F0D9, 0xFFE6E2CC, 0xFF8DA101, 0xFFF85552, 0xFF5C6A72, 0xFF606E74),
     Palette("nord", "Nord", true, 0xFF2E3440, 0xFF3B4252, 0xFF434C5E, 0xFF88C0D0, 0xFFBF616A, 0xFFECEFF4, 0xFFA6B0C1),
@@ -60,7 +67,7 @@ val Palettes: List<Palette> = listOf(
     Palette("solarized_dark", "Solarized Dark", true, 0xFF002B36, 0xFF073642, 0xFF124856, 0xFFB58900, 0xFFDC322F, 0xFFEEE8D5, 0xFF93A1A1),
 )
 
-private fun mix(a: Long, b: Long, t: Float): Long {
+fun mix(a: Long, b: Long, t: Float): Long {
     fun ch(s: Int) = (((a shr s) and 0xFF) * (1 - t) + ((b shr s) and 0xFF) * t).toInt().coerceIn(0, 255).toLong()
     return 0xFF000000 or (ch(16) shl 16) or (ch(8) shl 8) or ch(0)
 }
@@ -217,13 +224,18 @@ val Coral: Color get() = Color(ThemeState.palette.accent2)
 val Danger: Color get() = Color(ThemeState.palette.danger)
 val Mist: Color get() = Color(ThemeState.palette.text)
 val Muted: Color get() = Color(ThemeState.palette.muted)
+val Line: Color get() = Color(ThemeState.palette.line)
+val Private: Color get() = Color(ThemeState.palette.priv)
+val Ok: Color get() = Color(ThemeState.palette.ok)
+val AmberInk: Color get() = Color(ThemeState.palette.ink)
 
 /** Black or white, whichever reads better on a filled accent (the point where both give the same contrast is luminance 0.179). */
 fun onFill(c: Color): Color = if (c.luminance() > 0.179f) Color.Black else Color.White
 val OnAmber: Color get() = onFill(Amber)
 val OnCoral: Color get() = onFill(Coral)
 
-val KiteGradient: Brush get() = Brush.horizontalGradient(listOf(Amber, Coral))
+/** Flat accent; the redesign has no gradients. */
+val KiteGradient: Brush get() = Brush.horizontalGradient(listOf(Amber, Amber))
 
 private fun scheme(p: Palette) = if (p.dark) {
     darkColorScheme(
@@ -234,7 +246,7 @@ private fun scheme(p: Palette) = if (p.dark) {
         surfaceVariant = Color(p.raised), onSurfaceVariant = Color(p.muted),
         surfaceContainer = Color(p.raised), surfaceContainerHigh = Color(p.raised),
         surfaceContainerHighest = Color(p.high), surfaceContainerLow = Color(p.bg),
-        outline = Color(p.high), error = Color(p.accent2),
+        outline = Color(p.line), error = Color(p.danger),
     )
 } else {
     lightColorScheme(
@@ -245,7 +257,7 @@ private fun scheme(p: Palette) = if (p.dark) {
         surfaceVariant = Color(p.raised), onSurfaceVariant = Color(p.muted),
         surfaceContainer = Color(p.raised), surfaceContainerHigh = Color(p.raised),
         surfaceContainerHighest = Color(p.high), surfaceContainerLow = Color(p.bg),
-        outline = Color(p.high), error = Color(p.accent2),
+        outline = Color(p.line), error = Color(p.danger),
     )
 }
 

@@ -1,5 +1,5 @@
 "use strict";
-// Outline 24px glyphs (1.8 stroke, round caps and joins, stroke = currentColor) and the Lodica kite.
+// Outline 24px glyphs (1.75 stroke, round caps and joins, stroke = currentColor) and the Lodica kite.
 const ICONS = {
   chat: "M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z",
   palette: "M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4-4-8-9-8zM6.9 11a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM9.4 7.5a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM13.9 7.5a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0z",
@@ -10,6 +10,7 @@ const ICONS = {
   close: "M6 6l12 12M18 6L6 18",
   share: "M12 15V3M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7",
   add: "M12 5v14M5 12h14",
+  moreH: "M5 11.4a0.6 0.6 0 1 0 0 1.2a0.6 0.6 0 1 0 0 -1.2zM12 11.4a0.6 0.6 0 1 0 0 1.2a0.6 0.6 0 1 0 0 -1.2zM19 11.4a0.6 0.6 0 1 0 0 1.2a0.6 0.6 0 1 0 0 -1.2z",
   more: "M11.4 5a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM11.4 12a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM11.4 19a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0z",
   search: "M4 11a7 7 0 1 0 14 0a7 7 0 1 0 -14 0zM20.5 20.5 16 16",
   lock: "M6 11h12a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7a1 1 0 0 1 1-1zM8 11V8a4 4 0 0 1 8 0v3",
@@ -27,7 +28,7 @@ const ICONS = {
   serial: "M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM7 10l3 2-3 2M12.5 15h4.5",
   history: "M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4.5H8M12 7.5V12l3 2",
   key: "M4 15a4 4 0 1 0 8 0a4 4 0 1 0 -8 0zM11 12l9-9M16 7l3 3M14 9l2 2",
-  settings: "M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z",
+  settings: "M4 7h9M17 7h3M4 17h3M11 17h9M13 5v4h4V5zM7 15v4h4v-4z",
   email: "M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM3 7l9 6.5L21 7",
   inbox: "M3 13l3-8h12l3 8v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1zM3 13h5a4 4 0 0 0 8 0h5",
   reader: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8 9h8M8 12.5h8M8 16h5",
@@ -70,7 +71,7 @@ function ico(name, cls) {
   s.setAttribute("aria-hidden", "true");
   const p = document.createElementNS(SVGNS, "path");
   p.setAttribute("d", ICONS[name] || ICONS.globe);
-  p.setAttribute("fill", "none"); p.setAttribute("stroke", "currentColor"); p.setAttribute("stroke-width", "1.8");
+  p.setAttribute("fill", "none"); p.setAttribute("stroke", "currentColor"); p.setAttribute("stroke-width", "1.75");
   p.setAttribute("stroke-linecap", "round"); p.setAttribute("stroke-linejoin", "round");
   s.append(p);
   return s;

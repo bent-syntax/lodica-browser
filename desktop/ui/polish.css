@@ -1,6 +1,6 @@
 /* Visual layer over ui.css: type, spacing, cards, motion. Colours still come from the theme variables. */
 /* Design tokens: one scale for space, radius, type, motion. Reduce-motion sets --mo to 0. */
-html:root[data-theme]{--grad:var(--amber);--ease:cubic-bezier(.2,.8,.2,1);--mo:1;
+html:root[data-theme]{--ease:cubic-bezier(.2,.8,.2,1);--mo:1;
 --s1:4px;--s2:6px;--s3:8px;--s4:12px;--s5:16px;
 --r-s:8px;--r-m:12px;--r-l:20px;--r-pill:999px;--radius:var(--r-m);--r1:var(--r-m);--r2:var(--r-l);
 --fs-s:12px;--fs-m:14px;--fs-l:16px;--fs-xl:22px;

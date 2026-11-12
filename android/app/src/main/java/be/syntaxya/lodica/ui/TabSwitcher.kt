@@ -80,6 +80,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Private
 import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
@@ -163,7 +164,7 @@ fun TabSwitcher() {
                     )
                 }
                 item(key = "new-tab") {
-                    val accent = if (private) Coral else Amber
+                    val accent = if (private) Private else Amber
                     val shape = RoundedCornerShape(22.dp)
                     Box(
                         Modifier.animateItem().fillMaxWidth().aspectRatio(0.8f).clip(shape)
@@ -228,7 +229,7 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (p) {
-                    Icon(Icons.Rounded.VisibilityOff, null, tint = if (private) Coral else Muted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Rounded.VisibilityOff, null, tint = if (private) Private else Muted, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                 }
                 val n = TabManager.tabs.count { it.private == p }
@@ -241,10 +242,10 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 @Composable
 private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
     val shape = RoundedCornerShape(22.dp)
-    val accent = if (incognito) Coral else Amber
+    val accent = if (incognito) Private else Amber
     val customEdge = if (incognito) null else customExtraColor("tabEdge")
     val texture = if (incognito) null else customTabTexture()
-    val edge = customEdge ?: Coral
+    val edge = customEdge ?: Private
     val tabText = if (incognito) Mist else (customExtraColor("tabText") ?: Mist)
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
@@ -253,9 +254,9 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     val open by animateFloatAsState(if (entered) 1f else 0f, be.syntaxya.lodica.ui.theme.motionSpec(motion), label = "tab-motion")
     Column(
         (if (motion.isEmpty()) modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f } else modifier.then(Modifier.themeEnter(motion, open)))
-            .clip(shape).background(if (incognito) Coral.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (customExtraColor("tab") ?: GraphiteRaised))
+            .clip(shape).background(if (incognito) Private.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (customExtraColor("tab") ?: GraphiteRaised))
             .then(if (texture != null) Modifier.drawBehind { drawTabTexture(texture, edge.copy(alpha = 0.28f)) } else Modifier)
-            .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Coral.copy(alpha = 0.35f)), shape) else if (customEdge != null) Modifier.border(BorderStroke(1.dp, customEdge), shape) else Modifier)
+            .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Private.copy(alpha = 0.35f)), shape) else if (customEdge != null) Modifier.border(BorderStroke(1.dp, customEdge), shape) else Modifier)
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {

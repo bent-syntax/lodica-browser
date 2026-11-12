@@ -88,6 +88,7 @@ import be.syntaxya.lodica.tabs.ContextMenuRequest
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Private
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -145,7 +146,7 @@ fun MenuSheet() {
                 add(MenuItem("new", Icons.Outlined.Add, "New tab") {
                     TabManager.open(TabManager.HOME); Ui.screen = Screen.Browser
                 })
-                add(MenuItem("private", Icons.Outlined.VisibilityOff, "Private tab", Coral) {
+                add(MenuItem("private", Icons.Outlined.VisibilityOff, "Private tab", Private) {
                     TabManager.open(TabManager.HOME, private = true); Ui.screen = Screen.Browser
                 })
                 add(MenuItem("find", Icons.Outlined.Search, "Find in page") { Ui.finding = true })
@@ -298,7 +299,7 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
                 Action(Icons.AutoMirrored.Rounded.OpenInNew, "Open in new tab") {
                     TabManager.open(link, private = req.tab.private, select = false, parent = req.tab)
                 }
-                if (!req.tab.private) Action(Icons.Rounded.VisibilityOff, "Open in private tab", Coral) {
+                if (!req.tab.private) Action(Icons.Rounded.VisibilityOff, "Open in private tab", Private) {
                     TabManager.open(link, private = true, select = false, parent = req.tab)
                 }
                 Action(Icons.Rounded.Visibility, "Preview link") { Ui.preview = link }

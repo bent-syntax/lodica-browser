@@ -20,12 +20,14 @@ Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for 
 
 ## Design tokens
 
-- Dark: bg `#111827`, surface `#1F2937`, raised `#374151`, text `#E5E7EB`, muted `#9CA3AF`, accent `#F59E0B`, danger `#F43F5E`.
-- Light: `#FFFFFF`, `#F3F4F6`, `#E5E7EB`, text `#111827`, accent `#D97706`.
-- Type sizes: 26, 20, 15, 13, 12.
-- Radius: 12 for controls, 20 for cards, full pills for chips and fields.
-- Spacing: multiples of 4.
-- Icons: 24 grid, 1.8 stroke, round caps and joins.
+- Dark / light: chrome `#17181B` / `#ECECEA`, surface `#202226` / `#FFFFFF`, raised `#2B2E33` / `#F3F3F1`, line `#33363C` / `#DADAD6`, text `#ECEDEE` / `#1B1C1F`, muted `#A0A4AB` / `#5F636A`.
+- Accent `#F59E0B` (fills only), accent-ink `#F5A524` / `#9A4B08` (amber text and icons), on-accent `#1A1300`.
+- Private `#A79BFF` / `#5B4BDB`. Danger `#F87185` / `#C81E3F` (destructive and errors only). Ok `#5FCF8B` / `#157F3C`.
+- Amber only for focus ring, progress, toggles on, shield chip, and one primary button per screen. No gradients, no glows. Shadows only on floating layers.
+- Type sizes: 26, 20, 15, 13, 12. Weights 400, 500, 600.
+- Radius: 6 menu rows, 8 buttons and tabs, 10 address bar and toasts, 12 cards, popovers and dialogs, 16 top of Android sheets, full pills only for chips and toggles.
+- Spacing: multiples of 4 (2 for tight gaps).
+- Icons: 24 grid, 1.75 stroke, round caps and joins, no fills.
 - Colour roles live in `android/app/src/main/java/be/syntaxya/lodica/ui/theme/Theme.kt`.
 
 ## Models

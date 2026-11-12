@@ -46,7 +46,7 @@ function mainBar() {
     S.prefs.ai ? h("button", { class: "ib tile", title: "Ask AI", act: () => inv("ai.panel.toggle") }, ico("ai")) : null,
     dlButton(),
     h("button", { class: "ib", title: "Tabs", act: () => openSwitcher() }, tc),
-    ib("more", "Menu", () => openMenu())];
+    ib("moreH", "Menu", () => openMenu())];
 }
 const placeholder = () => (S.prefs.search ? "Search " + engineLabel() + " or type URL" : "Search or type URL");
 

@@ -109,6 +109,7 @@ import be.syntaxya.lodica.ui.theme.themedFill
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
+import be.syntaxya.lodica.ui.theme.Private
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -219,7 +220,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             val home = tab == null || tab.url == TabManager.HOME
             val locked = tab?.locked == true
             val (icon, tint) = when {
-                locked -> Icons.Rounded.Lock to Coral
+                locked -> Icons.Rounded.Lock to Private
                 home -> Icons.Rounded.Search to Muted
                 tab!!.url.startsWith("https://") && tab.secure -> Icons.Rounded.Lock to Muted
                 tab.url.startsWith("http://") -> Icons.Rounded.Warning to Coral
@@ -253,7 +254,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             }
             if (tab?.private == true) {
                 if (routed) Spacer(Modifier.width(6.dp))
-                Text("Private", color = Coral, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+                Text("Private", color = Private, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }
         }
         IconButton(onClick = { TabManager.open(TabManager.HOME, private = tab?.private == true); Ui.editing = false }) {
@@ -314,7 +315,7 @@ private fun TabCount(tab: Tab?) {
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(24.dp).border(1.5.dp, if (private) Coral else Mist, RoundedCornerShape(6.dp)),
+            Modifier.size(24.dp).border(1.5.dp, if (private) Private else Mist, RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Text(if (n > 99) ":D" else "$n", color = Mist, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
