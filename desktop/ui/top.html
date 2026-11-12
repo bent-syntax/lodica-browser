@@ -70,12 +70,6 @@ body.vert.fold .mail::before{content:"@";font-size:14px}
 @keyframes updslide{from{margin-left:0}to{margin-left:65%}}
 /* page 1: tab strip above the toolbar; the toolbar owns back/forward/reload */
 body.bt #back,body.bt #fwd,body.bt #rel{display:none}
-body.bt:not(.vert){padding:0 8px;gap:8px;align-items:flex-end;background:var(--bg)}
-body.bt:not(.vert) #list{align-items:flex-end;height:100%;padding-top:6px}
-body.bt:not(.vert) .t{height:30px;background:transparent;border-radius:12px 12px 0 0;padding:0 6px 0 10px}
-body.bt:not(.vert) .t:hover{background:var(--hover)}
-body.bt:not(.vert) .t.cur{background:var(--raised);box-shadow:inset 0 3px 0 var(--amber)}
-body.bt:not(.vert) .add{height:30px;border-radius:12px}
 body.bt .t .fv,body.bt .t .fl{border-radius:4px}
 body.bt .t .x{border-radius:999px}
 
@@ -94,7 +88,7 @@ body.vert .t .fv,body.vert .t .fl{border-radius:4px}
 body.vert .add{height:34px;border-radius:8px;width:100%;display:flex;align-items:center;gap:8px;padding:0 8px;font-size:13px;color:var(--muted);text-align:left}
 body.vert .add:hover{background:var(--hover);color:var(--mist)}
 body.vert .add .al,body.vert .add kbd{display:inline}
-body.vert .add svg,.fb svg{width:16px;height:16px;flex:none}
+.add svg,.fb svg{width:16px;height:16px;flex:none}
 body.vert #priv{color:var(--private)}
 body.vert #priv kbd{display:none}
 body.vert #back,body.vert #fwd,body.vert #rel{display:none}
@@ -110,6 +104,16 @@ body.vert.fold #foot{flex-direction:column;align-items:center}
 body.vert.fold #foot .fb.end{margin-left:0}
 body.vert.fold .add{width:34px;padding:0;justify-content:center}
 body.vert.fold .add .al,body.vert.fold .add kbd{display:none}
+/* Redesign phase 2: horizontal strip, 44px, 216px tabs */
+body:not(.vert){padding:0 8px;gap:4px;align-items:center;background:var(--bg)}
+body:not(.vert) #list{align-items:center;height:100%;padding-top:0;gap:4px}
+body:not(.vert) .t{flex:0 1 216px;width:216px;height:34px;border-radius:8px;background:transparent;padding:0 4px 0 10px;font-weight:400;opacity:1;box-shadow:none;color:var(--mist)}
+body:not(.vert) .t:hover{background:var(--hover)}
+body:not(.vert) .t.cur{background:var(--raised);box-shadow:0 0 0 1px var(--line);font-weight:500;color:var(--mist)}
+body:not(.vert) .t.split{box-shadow:inset 0 -2px var(--amber)}
+body:not(.vert) .t .x{border-radius:6px;width:24px;height:24px;visibility:hidden}
+body:not(.vert) .t.cur .x,body:not(.vert) .t:hover .x{visibility:visible}
+body:not(.vert) .add{width:32px;height:32px;border-radius:8px}
 </style>
 </head>
 <body>
