@@ -83,7 +83,7 @@ function roomSave(f) {
 }
 function roomFile(f) {
   if (/^image\//.test(f.type)) {
-    const box = h("div", { style: "position:relative;display:inline-block;max-width:100%;min-width:96px;min-height:96px;border-radius:12px;overflow:hidden;background:var(--raised,#374151)" + (f.w && f.h ? ";aspect-ratio:" + f.w + "/" + f.h + ";width:min(100%," + Math.round(f.w) + "px);max-height:calc(260px * var(--chat-scale, 1))" : "") });
+    const box = h("div", { style: "position:relative;display:inline-block;max-width:100%;min-width:96px;min-height:96px;border-radius:12px;overflow:hidden;background:var(--raised,#33363C)" + (f.w && f.h ? ";aspect-ratio:" + f.w + "/" + f.h + ";width:min(100%," + Math.round(f.w) + "px);max-height:calc(260px * var(--chat-scale, 1))" : "") });
     const dl = h("button", { class: "ib", title: "Download " + f.name, "aria-label": "Download " + f.name, style: "position:absolute;top:8px;right:8px;background:rgba(17,24,39,.7);color:#fff;border-radius:12px", act: () => roomSave(f) }, ico("download"));
     const show = (u) => {
       const img = h("img", { src: u, alt: f.name, style: "display:block;max-width:100%;width:" + (f.w && f.h ? "100%;height:100%" : "auto;height:auto") + ";object-fit:contain;max-height:calc(260px * var(--chat-scale, 1))" });
@@ -165,7 +165,7 @@ function roomSketch() {
   return dialog({ key: "costume", title: "Your character", message: "Describe a character and optionally draw it. Leave both empty for the automatic one. The AI makes three poses: idle, active in the chat and typing.", cancelValue: null }, (d, L) => {
     const text = h("input", { class: "field", maxlength: "300", placeholder: "a pirate cat" });
     const cv = h("canvas", { width: "240", height: "240", style: "width:240px;height:240px;border-radius:12px;background:#fff;touch-action:none;cursor:crosshair;align-self:center" });
-    const g = cv.getContext("2d"); g.lineWidth = 5; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#111827";
+    const g = cv.getContext("2d"); g.lineWidth = 5; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#17181B";
     let on = false, drawn = false;
     const at = (e) => { const b = cv.getBoundingClientRect(); return [(e.clientX - b.left) * 240 / b.width, (e.clientY - b.top) * 240 / b.height]; };
     cv.addEventListener("pointerdown", (e) => { on = true; drawn = true; cv.setPointerCapture(e.pointerId); const [x, y] = at(e); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 0.1, y); g.stroke(); });

@@ -2061,11 +2061,11 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     host.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;display:flex;justify-content:center;pointer-events:none";
     const r = host.attachShadow({ mode: "closed" });
     r.innerHTML = `<style>
-      .b{pointer-events:auto;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 12px;background:#1F2937;color:#E5E7EB;border:1px solid #374151;border-radius:20px;font:13px system-ui,sans-serif;box-shadow:0 4px 16px #0006}
-      button{all:unset;cursor:pointer;padding:4px 12px;border-radius:999px;background:#374151;color:#E5E7EB;font:13px system-ui,sans-serif}
-      button.on{background:#F59E0B;color:#111827}button.x{background:#F43F5E;color:#fff}
+      .b{pointer-events:auto;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 12px;background:#2B2E33;color:#ECEDEE;border:1px solid #33363C;border-radius:12px;font:13px system-ui,sans-serif;box-shadow:0 12px 32px #00000073}
+      button{all:unset;cursor:pointer;padding:4px 12px;border-radius:999px;background:#33363C;color:#ECEDEE;font:13px system-ui,sans-serif}
+      button.on{background:#F59E0B;color:#1A1300}button.x{background:#F87185;color:#fff}
       input[type=color]{width:28px;height:28px;border:0;padding:0;background:none;cursor:pointer}
-      input[type=range]{width:80px;accent-color:#F59E0B}.m{color:#9CA3AF}
+      input[type=range]{width:80px;accent-color:#F59E0B}.m{color:#A0A4AB}
     </style><div class="b"></div>`;
     document.documentElement.appendChild(host);
     return r.querySelector(".b");

@@ -40,7 +40,7 @@ function openMenu() {
     $$(".ib.dis", top).forEach((x) => (x.disabled = true));
     const cells = [
       cell("add", "New tab", () => inv("tab.new", { private: false })),
-      cell("private", "Private tab", () => inv("tab.new", { private: true }), "coral"),
+      cell("private", "Private tab", () => inv("tab.new", { private: true }), "private"),
       cell("find", "Find in page", openFind, "", home),
       cell("download", "Downloads", () => openDownloads()),
       cell("history", "History", () => openHistory()),
@@ -92,7 +92,7 @@ function openContext(d) {
   const items = [];
   if (link) {
     items.push(["add", "Open in new tab", () => inv("link.open", link, false)]);
-    items.push(["private", "Open in private tab", () => inv("link.open", link, true), "coral"]);
+    items.push(["private", "Open in private tab", () => inv("link.open", link, true), "private"]);
     items.push(["preview", "Preview link", () => openPreview(link)],
       ["copy", "Copy link", () => { inv("copyLink", link); }],
       ["download", "Download link", () => inv("link.download", link)]);

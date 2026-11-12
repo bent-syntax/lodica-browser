@@ -144,6 +144,7 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 .mcell{flex-direction:column;justify-content:center;gap:8px;padding:14px 6px 12px;min-height:84px;border-radius:16px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 60%,transparent);text-align:center}
 .mcell .ico{width:36px;height:36px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber);box-sizing:border-box}
 .mcell.coral .ico{background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--coral)}
+.mcell.private .ico{background:color-mix(in srgb,var(--private) 16%,transparent);color:var(--private)}
 .mcell.amber{background:color-mix(in srgb,var(--amber) 10%,var(--bg))}
 .mcell span{font-size:13px;font-weight:500;text-align:center}
 .mcell:hover{background:var(--hover2)}
@@ -152,6 +153,7 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 .row>.ico:first-child{flex:none;width:36px;height:36px;padding:8px;border-radius:12px;background:var(--high);box-sizing:border-box}
 .ctx .row>.ico:first-child{width:28px;height:28px;padding:5px;border-radius:8px}
 .row.coral>.ico:first-child{background:color-mix(in srgb,var(--coral) 16%,transparent)}
+.row.private>.ico:first-child{background:color-mix(in srgb,var(--private) 16%,transparent)}
 .row.amber>.ico:first-child{background:color-mix(in srgb,var(--amber) 16%,transparent)}
 .set-card>.set-row{min-height:64px}
 #bar{background:var(--raised);height:64px;border-top:1px solid color-mix(in srgb,var(--high) 70%,transparent)}
@@ -250,9 +252,9 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .chat-a{font-size:15px;line-height:1.6}
 
 /* ---- pages 5-7, 13, 14, 16 ---- */
-.set-hero{display:flex;align-items:center;gap:16px;padding:20px;margin-bottom:16px;border-radius:20px;background:var(--raised);border:1px solid color-mix(in srgb,var(--coral) 40%,transparent)}
+.set-hero{display:flex;align-items:center;gap:16px;padding:20px;margin-bottom:16px;border-radius:20px;background:var(--raised);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
 .set-hero.on{background:color-mix(in srgb,var(--amber) 10%,var(--raised));border-color:color-mix(in srgb,var(--amber) 40%,transparent)}
-.set-hero .hero-ico{flex:none;width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--coral-bg);color:var(--coral)}
+.set-hero .hero-ico{flex:none;width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:var(--amber-bg);color:var(--amber-ink)}
 .set-hero.on .hero-ico{background:var(--amber-bg);color:var(--amber)}
 .set-hero .hero-ico .ico{width:24px;height:24px}
 .set-hero .main{flex:1;min-width:0}

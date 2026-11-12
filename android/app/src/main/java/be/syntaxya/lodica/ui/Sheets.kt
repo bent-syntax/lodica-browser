@@ -87,6 +87,7 @@ import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.tabs.ContextMenuRequest
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Private
 import be.syntaxya.lodica.ui.theme.Graphite
@@ -158,7 +159,7 @@ fun MenuSheet() {
                 add(MenuItem("history", Icons.Outlined.History, "History") { Ui.go(Screen.History) })
                 add(MenuItem("aichats", Icons.Outlined.AutoAwesome, "AI chats") { Ui.go(Screen.Chats) })
                 add(MenuItem("passwords", Icons.Outlined.Key, "Passwords") { Ui.go(Screen.Passwords) })
-                add(MenuItem("settings", Icons.Outlined.Settings, "Settings") { Ui.screen = Screen.Settings })
+                add(MenuItem("settings", LodicaIcons.Sliders, "Settings") { Ui.screen = Screen.Settings })
                 if (Relay.available) {
                     if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", Icons.Outlined.AlternateEmail, "Hidden email", Amber) {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()

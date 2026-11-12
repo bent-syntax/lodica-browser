@@ -3,9 +3,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/bent-syntax/lodica-browser/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/bent-syntax/lodica-browser?color=F59E0B&labelColor=1F2937"></a>
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-F59E0B?labelColor=1F2937"></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20%7C%20Windows%20%7C%20Linux-F59E0B?labelColor=1F2937">
+  <a href="https://github.com/bent-syntax/lodica-browser/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/bent-syntax/lodica-browser?color=F59E0B&labelColor=17181B"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-F59E0B?labelColor=17181B"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Android%20%7C%20Windows%20%7C%20Linux-F59E0B?labelColor=17181B">
 </p>
 
 **Lodica** is a privacy-focused browser with vertical tabs, a password vault, built-in ad blocking and its own search page. It runs on Android (GeckoView) and on Windows and Linux (Electron). Everything works without a server; an optional self-hosted relay adds search, chat, tab sharing and update notices.

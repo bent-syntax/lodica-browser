@@ -28,7 +28,7 @@ function show() {
   } else {
     win = new BrowserWindow({
       width: 340, height: 300, show: false, frame: false, resizable: false, skipTaskbar: true, alwaysOnTop: true,
-      backgroundColor: "#111827",
+      backgroundColor: "#17181B",
       webPreferences: { sandbox: true, contextIsolation: true, preload: path.join(__dirname, "..", "preload", "emojipicker.js") },
     });
     win.setMenuBarVisibility(false);

@@ -6,7 +6,7 @@
     if (!r.page || !r.page.dark || document.getElementById("lodica-predark")) return;
     const st = document.createElement("style");
     st.id = "lodica-predark";
-    st.textContent = "html{background:#111827!important;color-scheme:dark!important}";
+    st.textContent = "html{background:#17181B!important;color-scheme:dark!important}";
     (document.head || document.documentElement).appendChild(st);
   }, () => {});
 })();

@@ -74,7 +74,7 @@ async function draw(wc, short) {
   let key = null;
   try {
     key = await wc.insertCSS(CSS);
-    const t = global.lodicaTheme || { bg: "#1F2937", amber: "#F59E0B", text: "#E5E7EB" };
+    const t = global.lodicaTheme || { bg: "#2B2E33", amber: "#F59E0B", text: "#ECEDEE" };
     const { from, to } = await where(wc);
     await wc.executeJavaScriptInIsolatedWorld(WORLD, [{ code: script(short, t, from, to, process.platform) }], true);
   } catch {}

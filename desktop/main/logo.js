@@ -37,7 +37,7 @@ const barA = pill(20, 32, 28), barB = pill(20, 56, 32), barC = pill(20, 80, 42);
 
 /** PNG buffer of the mark on a rounded tile. [c] = {bg, text, amber} as #rrggbb: tile, mark body, accent bar. */
 function render(SIZE = 256, c = {}, SS = 4) {
-  const TILE = hex(c.bg || "#111827"), INK = hex(c.text || "#E5E7EB"), ACCENT = hex(c.amber || "#F59E0B");
+  const TILE = hex(c.bg || "#17181B"), INK = hex(c.text || "#ECEDEE"), ACCENT = hex(c.amber || "#F59E0B");
   const roundRect = (x, y, r) => {
     const x0 = VIEW.x, y0 = VIEW.y, x1 = VIEW.x + VIEW.w, y1 = VIEW.y + VIEW.w;
     const cx = Math.max(x0 + r, Math.min(x1 - r, x)), cy = Math.max(y0 + r, Math.min(y1 - r, y));

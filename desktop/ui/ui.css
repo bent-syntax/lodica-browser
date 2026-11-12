@@ -27,7 +27,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .pill .ico{width:16px;height:16px}
 .pill .txt{flex:1;min-width:0;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill input{flex:1;min-width:0;background:none;border:0;padding:0;font-size:15px;caret-color:var(--amber);border-radius:0}
-.pill .tag{font-size:11px;font-weight:600;color:var(--coral)}
+.pill .tag{font-size:11px;font-weight:600;color:var(--private)}
 .pill .cnt{font-size:12px;color:var(--muted)}
 .pill .ib{width:32px;height:32px;margin-right:-8px}
 .tc{width:24px;height:24px;border:1.5px solid var(--mist);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600}
@@ -108,14 +108,14 @@ body.ov #layers{z-index:60}
 .mcell{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;color:var(--mist);min-width:0;text-align:left}
 .mcell:hover{background:var(--hover)}
 .mcell span{font-size:14px;color:var(--mist);line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mcell.amber{color:var(--amber)}.mcell.coral{color:var(--coral)}
+.mcell.amber{color:var(--amber)}.mcell.coral{color:var(--coral)}.mcell.private{color:var(--private)}
 
 /* context menu / generic rows */
 .ctx-head{font-size:12px;color:var(--muted);padding:14px 20px 10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
 .row{display:flex;align-items:center;gap:16px;padding:14px 20px;width:100%;text-align:left;color:var(--mist);font-size:15px;min-width:0}
 button.row:hover,.row.click:hover{background:var(--hover)}
 .row .ico{width:22px;height:22px}
-.row.coral{color:var(--coral)}.row.amber{color:var(--amber)}
+.row.coral{color:var(--coral)}.row.amber{color:var(--amber)}.row.private{color:var(--private)}
 .row .main{flex:1;min-width:0}
 .row .t1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .t2{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -252,7 +252,7 @@ textarea.mem{width:calc(100% - 40px);margin:0 20px;min-height:220px;resize:verti
 .mcell[disabled]{opacity:.35;pointer-events:none}
 .row-end{display:flex;align-items:center;gap:4px}
 .set-row.danger-row .t1{color:var(--danger,var(--coral))}
-html.mock body{background:linear-gradient(135deg,#dbeafe,#fef3c7)}
+html.mock body{background:var(--bg)}
 
 .ser-log{margin-top:6px}
 .ser-bar{display:flex;gap:8px;margin:0 20px 10px;align-items:center}
@@ -314,7 +314,7 @@ html.mock body{background:linear-gradient(135deg,#dbeafe,#fef3c7)}
 .tp-search{width:70%;padding:6px 12px;border-radius:16px;border:1px solid var(--amber);font-size:11px;color:var(--muted);background:var(--raised)}
 .tp-tiles{display:flex;gap:8px}
 .tp-tiles i{width:28px;height:28px;border-radius:8px;background:var(--raised)}
-.tp-tiles i:first-child{background:var(--amber)}.tp-tiles i:nth-child(2){background:var(--coral)}
+.tp-tiles i:first-child{background:var(--amber)}.tp-tiles i:nth-child(2){background:var(--private)}
 .tp-line{width:60%;height:6px;border-radius:3px;background:var(--high)}.tp-line.short{width:35%}
 .ct{padding:0 20px 12px;display:flex;flex-direction:column;gap:10px}
 .ct-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -414,7 +414,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 @media (prefers-reduced-motion:reduce){.ib.dlp.on .dlf-arrow,.ib.dlp.done .dlf-arrow{animation:none}}
 .ct-idea{flex:1;min-width:160px;padding:6px 12px;border-radius:999px;background:var(--raised);border:1px solid var(--high);color:var(--text);font-size:13px}
 
-#banner .testbar{background:var(--danger,#F43F5E);color:#fff}
+#banner .testbar{background:var(--danger,#F87185);color:#fff}
 
 .chat-who{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px;margin-bottom:-20px}
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
@@ -446,8 +446,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 /* Custom theme: tab text and edge colours, and a pattern on the tab cards. Patterns are drawn with gradients only. */
 .card-top .t{color:var(--tab-text,var(--text))}
 .card-top .fav,.card-top .ib{color:var(--tab-text,var(--muted))}
-.card{--tex:color-mix(in srgb,var(--tab-edge,var(--coral)) 28%,transparent)}
-:root[data-tab-tex] .card:not(.cur){border-color:color-mix(in srgb,var(--tab-edge,var(--coral)) 45%,transparent)}
+.card{--tex:color-mix(in srgb,var(--tab-edge,var(--amber)) 28%,transparent)}
+:root[data-tab-tex] .card:not(.cur){border-color:color-mix(in srgb,var(--tab-edge,var(--amber)) 45%,transparent)}
 :root[data-tab-tex="stripes"] .card{background-image:repeating-linear-gradient(135deg,var(--tex) 0 4px,transparent 4px 12px)}
 :root[data-tab-tex="dots"] .card{background-image:radial-gradient(var(--tex) 2px,transparent 2.5px);background-size:12px 12px}
 :root[data-tab-tex="grid"] .card{background-image:linear-gradient(var(--tex) 1px,transparent 1px),linear-gradient(90deg,var(--tex) 1px,transparent 1px);background-size:12px 12px}

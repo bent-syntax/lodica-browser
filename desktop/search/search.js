@@ -504,7 +504,7 @@ const plannerDone = () => { try { return new Set(JSON.parse(localStorage.getItem
 /** A short burst of confetti from the middle of the page. */
 function confetti() {
   const box = el("div", { class: "confetti" });
-  const colours = ["#F59E0B", "#F43F5E", "#E5E7EB", "#34D399", "#60A5FA"];
+  const colours = ["#F59E0B", "#F87185", "#ECEDEE", "#34D399", "#60A5FA"];
   for (let i = 0; i < 60; i++) {
     const p = el("i");
     p.style.cssText = "--dx:" + Math.round((Math.random() - 0.5) * 700) + "px;--dy:" + Math.round(-120 - Math.random() * 280) + "px;--r:" + Math.round(Math.random() * 720) + "deg;background:" + colours[i % colours.length] + ";animation-delay:" + Math.round(Math.random() * 150) + "ms";

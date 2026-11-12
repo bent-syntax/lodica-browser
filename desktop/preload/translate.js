@@ -50,7 +50,7 @@ if (/^https?:$/.test(location.protocol)) {
   }
 
   function show(s, r, theme) {
-    const bg = (theme && theme.bg) || "#1F2937", fg = (theme && theme.text) || "#E5E7EB", accent = (theme && theme.amber) || "#F59E0B";
+    const bg = (theme && theme.bg) || "#2B2E33", fg = (theme && theme.text) || "#ECEDEE", accent = (theme && theme.amber) || "#F59E0B";
     host = document.createElement("div");
     host.setAttribute("style", "all:initial;position:fixed;z-index:2147483647;left:0;top:0;visibility:hidden");
     const root = host.attachShadow({ mode: "closed" });

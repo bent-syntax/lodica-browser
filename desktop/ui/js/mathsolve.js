@@ -208,14 +208,14 @@ function graphRoots(f) {
   return out;
 }
 
-const GRAPH_COLORS = ["#F59E0B", "#38BDF8", "#34D399", "#F43F5E", "#A78BFA"];
+const GRAPH_COLORS = ["#F59E0B", "#38BDF8", "#34D399", "#F87185", "#A78BFA"];
 
 /** Draws f (or a list of functions, all on one graph) on canvas [cv]: axes, the curves and the points where they cross the axes. Zoomed so the x-intercept and the y-intercept both show, with their labels apart. With exactly two functions the points where they meet are marked instead. Keep in step with the Graph composable in the Android app. */
 function drawGraph(cv, fl) {
   const fs = (Array.isArray(fl) ? fl : [fl]).slice(0, GRAPH_COLORS.length), multi = fs.length > 1, f = fs[0];
   const w = cv.width, hh = cv.height, c = cv.getContext("2d");
   const css = getComputedStyle(cv);
-  const muted = css.getPropertyValue("--muted").trim() || "#9CA3AF", amber = css.getPropertyValue("--amber").trim() || "#F59E0B";
+  const muted = css.getPropertyValue("--muted").trim() || "#A0A4AB", amber = css.getPropertyValue("--amber").trim() || "#F59E0B";
   const roots = graphRoots(f), y0 = f(0);
   const few = (a) => (a.length <= 4 ? a : []);
   const marks = multi ? [] : few(roots);

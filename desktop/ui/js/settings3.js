@@ -86,7 +86,7 @@ function paintPreview(c) {
 function presetColours(id) {
   const t = THEMES.find((x) => x[0] === id) || THEMES[1];
   const light = parseInt(t[2].slice(1), 16) > 0x808080;
-  return { bg: t[2], text: light ? "#111827" : "#e5e7eb", accent: t[4], accent2: t[4] };
+  return { bg: t[2], text: light ? "#1B1C1F" : "#ECEDEE", accent: t[4], accent2: t[4] };
 }
 function currentColours() {
   const id = S.prefs.theme || "system";
@@ -116,8 +116,8 @@ function appliedColours() {
     const d = cx.getImageData(0, 0, 1, 1).data;
     return d[3] ? "#" + [d[0], d[1], d[2]].map((n) => n.toString(16).padStart(2, "0")).join("") : fb;
   };
-  return { bg: hexOf("--bg", "#111827"), text: hexOf("--text", "#e5e7eb"), accent: hexOf("--amber", "#f59e0b"), accent2: hexOf("--coral", "#f43f5e"),
-    raised: hexOf("--raised", "#1f2937"), high: hexOf("--high", "#374151"), muted: hexOf("--muted", "#9ca3af"), danger: hexOf("--danger", hexOf("--coral", "#f43f5e")) };
+  return { bg: hexOf("--bg", "#17181B"), text: hexOf("--text", "#ECEDEE"), accent: hexOf("--amber", "#f59e0b"), accent2: hexOf("--coral", "#F87185"),
+    raised: hexOf("--raised", "#2B2E33"), high: hexOf("--high", "#33363C"), muted: hexOf("--muted", "#A0A4AB"), danger: hexOf("--danger", hexOf("--coral", "#F87185")) };
 }
 function themeEditor() {
   const c = Object.assign({}, PREVIEW_DEFAULT, S.prefs.customTheme);
@@ -268,7 +268,7 @@ function secStart() {
           refreshSettings();
         } })))));
   } else if (bg.type === "color") {
-    out.push(setRow("Colour", null, h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(bg.value) ? bg.value : "#1f2937",
+    out.push(setRow("Colour", null, h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(bg.value) ? bg.value : "#2B2E33",
       on: { change: (e) => setBg({ value: e.target.value }) } })));
   }
   if (bg.type !== "none") {

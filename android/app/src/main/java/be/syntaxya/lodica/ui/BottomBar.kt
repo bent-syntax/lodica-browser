@@ -106,6 +106,7 @@ import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.themedFill
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
@@ -268,7 +269,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             }
         }
         TabCount(tab)
-        IconButton(onClick = { Ui.menuOpen = true }) { Icon(Icons.Rounded.MoreVert, "Menu", tint = Mist) }
+        IconButton(onClick = { Ui.menuOpen = true }) { Icon(LodicaIcons.MoreVertical, "Menu", tint = Mist) }
     }
 }
 

@@ -1,6 +1,7 @@
 package be.syntaxya.lodica.ui
 
 import be.syntaxya.lodica.ui.theme.DlgDanger
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import be.syntaxya.lodica.ui.theme.IconTile
@@ -1336,7 +1337,7 @@ internal fun rowIcon(title: String): ImageVector {
         has("notification") -> Icons.Rounded.Notifications
         has("battery") -> Icons.Rounded.BatteryChargingFull
         has("disconnect") -> Icons.Rounded.LinkOff
-        has("set up", "setup") -> Icons.Rounded.Settings
+        has("set up", "setup") -> LodicaIcons.Sliders
         has("instant") -> Icons.Rounded.Bolt
         has("anthropic", "api key") -> Icons.Rounded.Key
         has("memory") -> Icons.Rounded.Memory
@@ -1366,7 +1367,7 @@ internal fun rowIcon(title: String): ImageVector {
         has("extension") -> Icons.Rounded.Extension
         has("web app", "install") -> Icons.Rounded.Apps
         has("import") -> Icons.Rounded.Download
-        has("set up", "setup") -> Icons.Rounded.Settings
+        has("set up", "setup") -> LodicaIcons.Sliders
         else -> Icons.Rounded.Tune
     }
 }
@@ -1809,10 +1810,10 @@ private fun WidgetEditor() {
 @Composable
 private fun CustomThemeEditor() {
     val saved = Prefs.customTheme
-    var bg by remember { mutableStateOf(saved?.bg ?: "#111827") }
-    var text by remember { mutableStateOf(saved?.text ?: "#E5E7EB") }
+    var bg by remember { mutableStateOf(saved?.bg ?: "#17181B") }
+    var text by remember { mutableStateOf(saved?.text ?: "#ECEDEE") }
     var accent by remember { mutableStateOf(saved?.accent ?: "#F59E0B") }
-    var accent2 by remember { mutableStateOf(saved?.accent2 ?: "#F43F5E") }
+    var accent2 by remember { mutableStateOf(saved?.accent2 ?: "#F87185") }
     // A theme pulled from another device replaces the fields.
     androidx.compose.runtime.LaunchedEffect(saved) {
         saved?.let { bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2 }

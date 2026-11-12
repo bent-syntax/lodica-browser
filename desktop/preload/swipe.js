@@ -26,7 +26,7 @@ if (window === window.top) {
   const reset = () => { clearTimeout(idle); sum = 0; sy = 0; prev = 0; run = 0; peak = 0; done = false; armed = false; gone(); };
   const draw = (p, back) => {
     if (!document.documentElement) return;
-    const bg = (theme && theme.bg) || "#1F2937", fg = (theme && theme.amber) || "#F59E0B", full = p >= LIMIT;
+    const bg = (theme && theme.bg) || "#2B2E33", fg = (theme && theme.amber) || "#F59E0B", full = p >= LIMIT;
     if (!arrow) {
       arrow = document.createElement("div");
       arrow.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
