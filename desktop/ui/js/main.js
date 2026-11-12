@@ -120,6 +120,8 @@ const applyTheme = () => {
   const P = S.prefs || {}, bt = !P.barBottom;
   const side = P.vertTabs ? (P.vertCollapsed ? 52 : Math.min(480, Math.max(200, P.vertWidth || 256))) : 0;
   document.body.classList.toggle("bt", bt);
+  document.body.classList.toggle("frameless", !!S.frameless);
+  document.body.classList.toggle("vtabs", !!P.vertTabs);
   document.documentElement.style.setProperty("--side", side + "px");
   document.documentElement.style.setProperty("--dock-y", (P.vertTabs ? 0 : 44) + "px");
   document.documentElement.style.setProperty("--bar-h", (P.vertTabs ? 52 : 44) + "px");
@@ -163,6 +165,7 @@ try { matchMedia("(prefers-color-scheme:light)").addEventListener("change", () =
 async function start() {
   const r = await inv("init");
   if (r) {
+    S.frameless = !!r.frameless;
     for (const k of ["prefs", "engines", "agents", "languages", "version", "chromium", "ghostery"]) if (r[k] != null) S[k] = r[k];
     if (Array.isArray(r.qualities)) S.qualities = r.qualities;
     if (r.tab) S.tab = r.tab;

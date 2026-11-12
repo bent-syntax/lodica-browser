@@ -28,6 +28,7 @@ const applyPrefs = p => {
   vert = !!(p && p.vertTabs); folded = vert && !!p.vertCollapsed;
   document.body.classList.toggle("vert", vert);
   document.body.classList.toggle("fold", folded);
+  document.body.classList.toggle("frameless", !!(p && p.frameless));
   document.body.classList.toggle("bt", !(p && p.barBottom));
   foldBtn.classList.toggle("hidden", !vert);
   for (const id of ["foot", "priv"]) document.getElementById(id).classList.toggle("hidden", !vert);

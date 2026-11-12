@@ -362,11 +362,15 @@ function createWindow() {
   // A see-through window must be created that way, so changing transparency or blur applies after a restart.
   const pp = (M && M.prefs.p) || {};
   const seeThrough = !!pp.uiBlur;
+  // Windows only: hide the title bar and let the OS draw the caption buttons over our own top strip.
+  // Linux and macOS keep the native frame; a see-through window keeps it too.
+  global.lodicaFrameless = process.platform === "win32" && !seeThrough;
   win = new BaseWindow({
     width: 1200, height: 800, minWidth: 400, minHeight: 500, backgroundColor: seeThrough ? "#00000000" : "#17181B",
     ...(seeThrough ? { transparent: true } : {}),
     ...(seeThrough && pp.uiBlur && process.platform === "win32" ? { backgroundMaterial: "acrylic" } : {}),
     ...(seeThrough && pp.uiBlur && process.platform === "darwin" ? { vibrancy: "under-window" } : {}),
+    ...(global.lodicaFrameless ? { titleBarStyle: "hidden", titleBarOverlay: { color: "#17181B", symbolColor: "#ECEDEE", height: 44 } } : {}),
     title: "Lodica", autoHideMenuBar: true, ...(fs.existsSync(ICON) ? { icon: ICON } : {}),
   });
   win.setMenuBarVisibility?.(false);

@@ -342,3 +342,7 @@ body.bt .sugg{border-radius:12px;top:4px}
 .pill .txt .path{color:var(--muted)}
 .pill input{outline:none;box-shadow:none}
 .pill .btn.ask{padding:0 8px;background:var(--accent-soft,color-mix(in srgb,var(--amber) 14%,transparent))}
+
+/* ---- redesign phase 2: frameless window (Windows). The bar drags the window; the OS draws caption buttons in the right 140px ---- */
+body.frameless.vtabs.bt #bar{-webkit-app-region:drag;padding-right:148px}
+body.frameless.vtabs.bt #bar button,body.frameless.vtabs.bt #bar input,body.frameless.vtabs.bt #bar #pill,body.frameless.vtabs.bt #bar .navg{-webkit-app-region:no-drag}

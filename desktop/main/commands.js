@@ -184,6 +184,7 @@ function initPayload() {
     tabs: { count: o.filter(x => !x.private).length, privateCount: o.filter(x => x.private).length },
     version: require("../package.json").lodicaVersion || app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
     relay: { available: !!d.relay.available, domain: d.relay.DOMAIN }, ai: d.ai.status(),
+    frameless: !!global.lodicaFrameless,
     locked: d.tabs.isLocked() && o.some(x => x.private), pinSet: d.vault.pinSet(),
   };
 }
@@ -199,6 +200,9 @@ function init(deps) {
     const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
     if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
     global.lodicaTheme = { bg: c.bg, amber: c.amber, text: c.text }; // read by the page preloads (swipe arrow)
+    if (global.lodicaFrameless) {
+      try { const w = d.win(); if (w && !w.isDestroyed()) w.setTitleBarOverlay({ color: c.bg, symbolColor: c.text, height: 44 }); } catch {}
+    }
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => {
@@ -288,7 +292,7 @@ function init(deps) {
   on("suggest", suggest);
   on("topSites", () => history.topSites());
   on("prefs.set", (k, v) => { prefs.set(str(k), v); return true; });
-  on("prefs.all", () => Object.assign({}, prefs.p, { sysAccent: sysAccentCache ??= systemAccent() }));
+  on("prefs.all", () => Object.assign({}, prefs.p, { frameless: !!global.lodicaFrameless, sysAccent: sysAccentCache ??= systemAccent() }));
   on("bg.pick", async () => {
     const { dialog } = require("electron");
     const fs = require("fs"), path = require("path");
