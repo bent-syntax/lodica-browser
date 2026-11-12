@@ -1,3 +1,7 @@
+## 1.16.2
+
+- Fixed: "Draw on tab" and "Move page part" are now in Settings → Shortcuts. Rebind or reset them there.
+
 ## 1.16.1
 
 - Fixed: Ctrl+Shift+D (draw) and Ctrl+Shift+M (move) now work whichever part of the window has focus.

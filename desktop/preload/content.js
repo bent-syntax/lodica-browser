@@ -2164,12 +2164,6 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
 
   addEventListener("keydown", e => {
     if (e.key === "Escape" && mode) { stop(e); setMode(mode); return; }
-    if (!e.ctrlKey || !e.shiftKey || e.altKey) return;
-    const k = e.key.toLowerCase();
-    if (k !== "d" && k !== "m") return;
-    stop(e);
-    if (mode && mode !== (k === "d" ? "draw" : "move")) mode = "";
-    setMode(k === "d" ? "draw" : "move");
   }, true);
 
   addEventListener("resize", fit);

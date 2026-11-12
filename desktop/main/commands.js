@@ -56,6 +56,7 @@ function runKey(id) {
     case "devtools": { const wc = tabs.wcOf(); if (wc && !wc.isDestroyed()) wc.toggleDevTools(); break; }
     case "osk": openKeyboard(); break;
     case "toggleVertical": prefs.set("vertTabs", !prefs.p.vertTabs); break;
+    case "draw": case "move": { const wc = tabs.wcOf(); if (wc && !wc.isDestroyed()) wc.send("drawToggle", id); break; }
     case "toggleSplit": if (tabs.toggleSplit) tabs.toggleSplit(); break;
     default: return false;
   }

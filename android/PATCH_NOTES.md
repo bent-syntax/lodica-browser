@@ -1,3 +1,7 @@
+## 1.16.2
+
+- No Android changes. Draw and move on a page are desktop only for now.
+
 ## 1.16.1
 
 - No Android changes. Draw and move on a page are desktop only for now.

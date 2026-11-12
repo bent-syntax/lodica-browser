@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.16.2 (versionCode 245)
+
+- Fixed (desktop): Draw and Move are now in Settings → Shortcuts, so you can rebind them.
+
 ## 1.16.1 (versionCode 244)
 
 - Fixed (desktop): Ctrl+Shift+D and Ctrl+Shift+M now work whichever part of the window has focus.

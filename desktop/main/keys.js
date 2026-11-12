@@ -28,6 +28,8 @@ const ACTIONS = [
   { id: "osk", label: "On-screen keyboard", def: ["Ctrl+Alt+K"] },
   { id: "toggleVertical", label: "Vertical tabs on/off", def: ["Ctrl+Shift+V"] },
   { id: "toggleSplit", label: "Split view on/off", def: ["Ctrl+Shift+S"] },
+  { id: "draw", label: "Draw on tab", def: ["Ctrl+Shift+D"] },
+  { id: "move", label: "Move page part", def: ["Ctrl+Shift+M"] },
 ];
 
 const MODS = new Set(["Control", "Alt", "Shift", "Meta", "AltGraph"]);
