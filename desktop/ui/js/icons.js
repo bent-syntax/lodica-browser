@@ -83,6 +83,6 @@ function kite(size) {
   s.setAttribute("viewBox", "20 8 70 90");
   s.setAttribute("width", size); s.setAttribute("height", size);
   s.setAttribute("class", "kite");
-  s.innerHTML = `<path d="M28,8 H40 Q44,8 46.5,12 L49,16 L46.5,20 Q44,24 40,24 H28 A8,8 0 0 1 28,8 Z M28,32 H40 A8,8 0 0 1 40,48 H28 A8,8 0 0 1 28,32 Z M28,80 H54 A8,8 0 0 1 54,96 H28 A8,8 0 0 1 28,80 Z M77,68.5 C84.5,68.5 89,79 89,86.5 C89,92.5 84,96 77,96 C70,96 65,92.5 65,86.5 C65,79 69.5,68.5 77,68.5 Z" style="fill:var(--text,#E5E7EB)"/><path d="M28,56 H44 A8,8 0 0 1 44,72 H28 A8,8 0 0 1 28,56 Z" style="fill:var(--amber,#F59E0B)"/>`;
+  s.innerHTML = `<path d="M28,8 H40 Q44,8 46.5,12 L49,16 L46.5,20 Q44,24 40,24 H28 A8,8 0 0 1 28,8 Z M28,32 H40 A8,8 0 0 1 40,48 H28 A8,8 0 0 1 28,32 Z M28,80 H54 A8,8 0 0 1 54,96 H28 A8,8 0 0 1 28,80 Z M77,68.5 C84.5,68.5 89,79 89,86.5 C89,92.5 84,96 77,96 C70,96 65,92.5 65,86.5 C65,79 69.5,68.5 77,68.5 Z" style="fill:var(--text,#ECEDEE)"/><path d="M28,56 H44 A8,8 0 0 1 44,72 H28 A8,8 0 0 1 28,56 Z" style="fill:var(--amber,#F59E0B)"/>`;
   return s;
 }
