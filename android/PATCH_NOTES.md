@@ -1,3 +1,7 @@
+## 1.16.0
+
+- Draw and move on a page (Ctrl+Shift+D and Ctrl+Shift+M) are desktop only for now.
+
 ## 1.15.21
 
 - Fixed: Shop no longer shows "No offers match these filters" when saved shop picks from an earlier search match none of the new shops.

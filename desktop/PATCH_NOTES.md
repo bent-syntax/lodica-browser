@@ -1,3 +1,8 @@
+## 1.16.0
+
+- New: Draw on a page. Press Ctrl+Shift+D for a tools bar with pen, highlighter, eraser, colour, size, undo and Erase from tab. The page still scrolls and the drawing stays put on the page. Drawings come back after a reload or when the tab is reopened. Private tabs do not save them.
+- New: Press Ctrl+Shift+M and drag any spot on the page to move it. Moves are saved the same way and also cleared by Erase from tab.
+
 ## 1.15.21
 
 - Fixed: Shop no longer shows "No offers match these filters" when saved shop picks from an earlier search match none of the new shops.
