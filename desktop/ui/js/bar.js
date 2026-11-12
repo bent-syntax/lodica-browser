@@ -21,6 +21,12 @@ function renderBar() {
   else add(bar, mainBar());
 }
 
+// host in text colour, path muted
+function hostPath(t) {
+  const i = t.search(/[\/?#]/);
+  return i < 0 ? [t] : [t.slice(0, i), h("span", { class: "path", text: t.slice(i) })];
+}
+
 function mainBar() {
   const t = S.tab, off = !!t.trusted, n = t.blocked || 0;
   const nav = [
@@ -38,7 +44,7 @@ function mainBar() {
   const pill = h("div", { class: "pill", act: () => enterEdit() },
     h("button", { class: "pib lead", title: "Site info", act: (e) => { e.stopPropagation(); if (t.home || t.locked) enterEdit(); else openSiteInfo(); } }, lead),
     t.private ? h("span", { class: "tag", text: "Private" }) : null,
-    h("span", { class: "txt" + (txt ? "" : " muted"), text: txt || placeholder() }),
+    h("span", { class: "txt" + (txt ? "" : " muted") }, ...(txt ? hostPath(txt) : [placeholder()])),
     t.routed ? h("button", { class: "pib amber", title: "Routed through VPS", act: (e) => { e.stopPropagation(); toast("Routed through VPS"); } }, ico("vpn")) : null,
     shield, rd);
   const tc = h("span", { class: "tc" + (t.private ? " priv" : ""), text: cap(S.tabs.count || 0, ":D") });

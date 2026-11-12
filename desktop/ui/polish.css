@@ -321,3 +321,24 @@ body:not(.bt) #bar{padding:4px 8px 0}
 .navg .ib,.ib{width:32px;height:32px;border-radius:8px}
 .ib .ico{width:18px;height:18px}
 #loadline,#loadline i{height:2px}
+/* ---- redesign phase 2: address bar ---- */
+.pill,#bar.m-edit .pill,#bar.m-find .pill{height:34px;border-radius:10px;background:var(--raised);border:1px solid var(--line);box-shadow:none;padding:0 4px 0 6px;gap:4px;transition:none}
+.pill:hover{border-color:var(--line)}
+.pill:focus-within{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+.pill .pib{width:26px;height:26px;border-radius:6px}
+.pill .pib .ico{width:16px;height:16px}
+.pill .txt,.pill input{font-size:13px}
+.pill .txt{padding-left:2px}
+.pill .ico.ok{color:var(--ok)}
+.pill .shd{height:24px;min-width:24px;padding:0 8px;background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber-ink)}
+.pill .shd .ico{width:14px;height:14px}
+.pill .shd.off{background:transparent;color:var(--muted)}
+.pill .btn.ask{height:24px;border-radius:6px;font-size:12px;color:var(--amber-ink)}
+.sugg{background:var(--raised);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);left:8px;right:8px;padding:4px 0}
+body.bt .sugg{border-radius:12px;top:4px}
+.sugg .row{border-radius:6px;margin:0 4px;padding:8px 12px;gap:12px;font-size:13px}
+.sugg .row .t2{font-size:12px}
+.sugg .row.sel{background:var(--hover)}
+.pill .txt .path{color:var(--muted)}
+.pill input{outline:none;box-shadow:none}
+.pill .btn.ask{padding:0 8px;background:var(--accent-soft,color-mix(in srgb,var(--amber) 14%,transparent))}
