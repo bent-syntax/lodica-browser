@@ -30,6 +30,7 @@ const applyPrefs = p => {
   document.body.classList.toggle("fold", folded);
   document.body.classList.toggle("bt", !(p && p.barBottom));
   foldBtn.classList.toggle("hidden", !vert);
+  for (const id of ["foot", "priv"]) document.getElementById(id).classList.toggle("hidden", !vert);
   grip.classList.toggle("hidden", !vert);
   icon(foldBtn, folded ? PATHS.fwd : PATHS.back);
   foldBtn.title = folded ? "Expand panel" : "Collapse panel";
@@ -178,4 +179,17 @@ document.addEventListener("drop", e => {
   if (!u) return;
   e.preventDefault();
   inv("tab.new", { url: u });
+});
+
+// Sidebar extras: icons for the new-tab rows and the bottom icon row (vertical mode only).
+document.getElementById("add").prepend(ico("add"));
+document.getElementById("priv").prepend(ico("private"));
+document.getElementById("priv").addEventListener("click", () => inv("tab.new", { private: true }));
+const foot = document.getElementById("foot");
+[["history", "History", "history"], ["downloads", "Downloads", "download"], ["passwords", "Passwords", "key"], ["settings", "Settings", "settings", "end"]].forEach(([act, title, ic, cls]) => {
+  const b = document.createElement("button");
+  b.className = "fb" + (cls ? " " + cls : ""); b.title = title; b.setAttribute("aria-label", title);
+  b.append(ico(ic));
+  b.addEventListener("click", () => inv("key.act", act));
+  foot.append(b);
 });

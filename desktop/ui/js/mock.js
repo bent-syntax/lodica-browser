@@ -8,6 +8,11 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
   const now = Date.now(), H = 3600e3;
   const prefs = { search: "DUCKDUCKGO", userAgent: "DEFAULT", language: "AUTO", autoArchiveDays: 7, pcTabs: false,
     speed: 1, quality: 720, ai: true };
+  // Dev only: #vert, #vert,fold, #bottom in the URL pick the tab layout for screenshots.
+  const hash = location.hash;
+  if (hash.includes("vert")) prefs.vertTabs = true;
+  if (hash.includes("fold")) prefs.vertCollapsed = true;
+  if (hash.includes("bottom")) prefs.barBottom = true;
   let tabs = [
     { id: 1, title: "Lodica — Home", url: "https://lodica.app/", private: false },
     { id: 2, title: "Wikipedia, the free encyclopedia", url: "https://en.wikipedia.org/wiki/Kite", private: false },
@@ -94,6 +99,7 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     reader: () => ({ title: "Kite", text: "A kite is a tethered heavier-than-air craft.\n\nKites have a long history." }),
     "webapps.list": () => [{ id: "w1", name: "Mail", url: "https://mail.example.com" }],
     "webapps.install": () => ({ name: "Example" }),
+    "prefs.all": () => prefs,
     "prefs.set": (k, v) => { prefs[k] = v; emit("prefs", prefs); return true; },
   };
 

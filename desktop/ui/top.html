@@ -78,6 +78,38 @@ body.bt:not(.vert) .t.cur{background:var(--raised);box-shadow:inset 0 3px 0 var(
 body.bt:not(.vert) .add{height:30px;border-radius:12px}
 body.bt .t .fv,body.bt .t .fl{border-radius:4px}
 body.bt .t .x{border-radius:999px}
+
+/* Redesign phase 2: sidebar rows, new-tab and private rows, bottom icon row */
+.t .x{width:24px;height:24px;border-radius:6px}
+body.vert .t{height:34px;background:transparent;border-radius:8px;padding:0 4px 0 8px;font-weight:400;color:var(--mist);box-shadow:none;opacity:1}
+body.vert .t:hover{background:var(--hover)}
+body.vert .t.cur{background:var(--raised);font-weight:500;box-shadow:0 0 0 1px var(--line)}
+body.vert .t.split{box-shadow:inset 0 -2px var(--amber)}
+body.vert .t .x{opacity:0;border-radius:6px}
+body.vert .t.cur .x,body.vert .t:hover .x{opacity:1}
+body.vert .t .fv,body.vert .t .fl{border-radius:4px}
+.t.drop-before::before,.t.drop-after::after{box-shadow:none}
+.add kbd{font:12px/1 system-ui,"Segoe UI",sans-serif;color:var(--muted);margin-left:auto}
+.add .al,.add kbd{display:none}
+body.vert .add{height:34px;border-radius:8px;width:100%;display:flex;align-items:center;gap:8px;padding:0 8px;font-size:13px;color:var(--muted);text-align:left}
+body.vert .add:hover{background:var(--hover);color:var(--mist)}
+body.vert .add .al,body.vert .add kbd{display:inline}
+body.vert .add svg,.fb svg{width:16px;height:16px;flex:none}
+body.vert #priv{color:var(--private)}
+body.vert #priv kbd{display:none}
+body.vert #back,body.vert #fwd,body.vert #rel{display:none}
+body.vert .nav{justify-content:flex-start}
+body.vert #list{flex:1 1 auto}
+body.vert #mail{margin:0}
+#foot{display:flex;gap:2px;padding-top:6px;border-top:1px solid var(--line)}
+#foot .fb{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:none;border:0;color:var(--muted);cursor:pointer}
+#foot .fb:hover{background:var(--hover);color:var(--mist)}
+#foot .fb:focus-visible{outline:2px solid var(--amber);outline-offset:-2px}
+#foot .fb.end{margin-left:auto}
+body.vert.fold #foot{flex-direction:column;align-items:center}
+body.vert.fold #foot .fb.end{margin-left:0}
+body.vert.fold .add{width:34px;padding:0;justify-content:center}
+body.vert.fold .add .al,body.vert.fold .add kbd{display:none}
 </style>
 </head>
 <body>
@@ -87,13 +119,15 @@ body.bt .t .x{border-radius:999px}
 <button id="rel" class="nb" title="Reload (F5)"></button>
 <button id="fold" class="nb hidden" title="Collapse panel"></button>
 </div>
-<div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab">+</button></div>
+<div id="list"><div id="tabs"></div><button id="add" class="add" title="New tab"><span class="al">New tab</span><kbd>Ctrl+T</kbd></button><button id="priv" class="add hidden" title="New private tab"><span class="al">Private tab</span></button></div>
 <button id="mail" class="mail hidden" title="Fill the sign-up form with the dummy mail">Use dummy mail</button>
 <div id="upd" class="hidden" title="Updating Lodica"><span id="updt"></span><i><b id="updb"></b></i></div>
+<div id="foot" class="hidden"></div>
 <div id="grip" class="hidden"></div>
 <script src="js/boot.js"></script>
 <script src="js/customtheme.js"></script>
 <script src="js/drag.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/top.js"></script>
 </body>
 </html>
