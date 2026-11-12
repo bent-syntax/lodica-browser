@@ -5,7 +5,7 @@ html:root[data-theme]{--ease:cubic-bezier(.2,.8,.2,1);--mo:1;
 --r-s:8px;--r-m:12px;--r-l:20px;--r-pill:999px;--radius:var(--r-m);--r1:var(--r-m);--r2:var(--r-l);
 --fs-s:12px;--fs-m:14px;--fs-l:16px;--fs-xl:22px;
 --t-fast:calc(120ms*var(--mo));--t-base:calc(180ms*var(--mo));--t-slow:calc(240ms*var(--mo));
---line:color-mix(in srgb,var(--high) 60%,transparent);
+
 --shadow:0 8px 24px rgba(0,0,0,.22)}
 body{font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Inter",Roboto,sans-serif;-webkit-font-smoothing:antialiased;letter-spacing:-.005em}
 button{transition:background var(--t-base) var(--ease),color var(--t-base) var(--ease),border-color var(--t-base) var(--ease),transform var(--t-base) var(--ease),box-shadow var(--t-base) var(--ease)}
@@ -195,19 +195,19 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 
 /* top-mode dock */
 body.bt #dock{top:0;bottom:auto;left:0}
-body.bt.ov #dock{top:var(--dock-y,36px);left:var(--side,0)} /* overlay view covers the window; bar view is already placed under the tabs */
+body.bt.ov #dock{top:var(--dock-y,44px);left:var(--side,0)} /* overlay view covers the window; bar view is already placed under the tabs */
 body.bt #loadline{position:absolute;left:0;right:0;bottom:0}
-body.bt #banner{bottom:auto;top:calc(var(--dock-y,36px) + 64px);left:var(--side,0)}
-body.bt.ov #banner{bottom:auto;top:calc(var(--dock-y,36px) + 70px)}
+body.bt #banner{bottom:auto;top:calc(var(--dock-y,44px) + var(--bar-h,44px));left:var(--side,0)}
+body.bt.ov #banner{bottom:auto;top:calc(var(--dock-y,44px) + var(--bar-h,44px) + 6px)}
 body.bt #banner>.toast{top:6px}
-body.bt .layer.above{top:calc(var(--dock-y,36px) + 58px);bottom:0}
+body.bt .layer.above{top:calc(var(--dock-y,44px) + var(--bar-h,44px));bottom:0}
 body.bt .layer.above>.dim{top:0}
-body.bt .layer.screenL{bottom:0;top:calc(var(--dock-y,36px) + 58px);left:var(--side,0)}
+body.bt .layer.screenL{bottom:0;top:calc(var(--dock-y,44px) + var(--bar-h,44px));left:var(--side,0)}
 body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20px}
 
 /* ---- page 4: site info popover ---- */
 .layer.popL>.dim{background:transparent}
-.pop{position:absolute;right:12px;top:calc(var(--dock-y,36px) + 62px);width:340px;max-width:calc(100% - 24px);background:var(--raised);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+.pop{position:absolute;right:12px;top:calc(var(--dock-y,44px) + var(--bar-h,44px) + 4px);width:340px;max-width:calc(100% - 24px);background:var(--raised);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
 body:not(.bt) .pop{top:auto;bottom:66px}
 .pop-head{display:flex;align-items:center;gap:12px}
 .pop-fav{width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--amber)}
@@ -313,3 +313,11 @@ html[data-theme-anim=shimmer] body::before{background:linear-gradient(100deg,tra
 @keyframes tdrift{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}
 @keyframes tfloat{0%,100%{transform:translate(0,0)}50%{transform:translate(4%,-4%)}}
 @media (prefers-reduced-motion:reduce){html[data-theme-anim] body::before{animation:none}}
+
+/* ---- redesign phase 2: shared bar rules (win over earlier layers) ---- */
+#bar{height:var(--bar-h,44px);padding:0 8px 4px;gap:8px;background:var(--bg);border-top:0;box-shadow:none}
+body:not(.bt) #bar{padding:4px 8px 0}
+.navg{gap:0}
+.navg .ib,.ib{width:32px;height:32px;border-radius:8px}
+.ib .ico{width:18px;height:18px}
+#loadline,#loadline i{height:2px}

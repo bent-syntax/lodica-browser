@@ -117,10 +117,11 @@ const applyTheme = () => {
   document.documentElement.style.setProperty("--ui-a", "1");
   document.documentElement.style.setProperty("--ui-blur", S.prefs && S.prefs.uiBlur ? "18px" : "0px");
   const P = S.prefs || {}, bt = !P.barBottom;
-  const side = P.vertTabs ? (P.vertCollapsed ? 44 : Math.min(480, Math.max(160, P.vertWidth || 220))) : 0;
+  const side = P.vertTabs ? (P.vertCollapsed ? 52 : Math.min(480, Math.max(200, P.vertWidth || 256))) : 0;
   document.body.classList.toggle("bt", bt);
   document.documentElement.style.setProperty("--side", side + "px");
-  document.documentElement.style.setProperty("--dock-y", (P.vertTabs ? 0 : 36) + "px");
+  document.documentElement.style.setProperty("--dock-y", (P.vertTabs ? 0 : 44) + "px");
+  document.documentElement.style.setProperty("--bar-h", (P.vertTabs ? 52 : 44) + "px");
   reportColors();
   applyPlugin();
 };

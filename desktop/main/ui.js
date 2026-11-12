@@ -1,9 +1,12 @@
 // Bridge to the renderer bar (ui/): command registry, events, layout, prompts and toasts.
 const { ipcMain } = require("electron");
 
-const BAR = 58;
-const TOP = 36; // tab strip above the page
-const COLLAPSED = 44; // vertical panel when collapsed
+const BAR = 44; // toolbar height with horizontal tabs
+const BAR_V = 52; // top bar height next to the vertical tab panel
+const TOP = 44; // tab strip above the page
+const COLLAPSED = 52; // vertical panel when collapsed (rail)
+const INSET = 8; // chrome showing around the page card
+const RADIUS = 12; // page card corner radius
 const handlers = new Map();
 const waits = new Map(); // id -> resolve
 let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", seq = 0, ready = false, topReady = false;
@@ -72,8 +75,12 @@ function pageRect() {
   if (full) return { x: 0, y: 0, width, height };
   const left = sideWidth();
   const bt = barTop();
-  if (left) return { x: left, y: bt ? BAR : 0, width: Math.max(0, width - left), height: Math.max(0, height - BAR) };
-  return { x: 0, y: bt ? TOP + BAR : TOP, width, height: Math.max(0, height - BAR - TOP) };
+  const bar = left ? BAR_V : BAR;
+  // The card keeps an 8px inset on the sides it does not share with the sidebar or tab strip.
+  const x = left || INSET;
+  const y = left ? (bt ? bar : INSET) : (bt ? TOP + bar : TOP);
+  const bottom = bt ? INSET : bar;
+  return { x, y, width: Math.max(0, width - x - INSET), height: Math.max(0, height - y - bottom) };
 }
 
 /** True when the toolbar sits under the tab strip (default); false = classic bottom bar. */
@@ -83,7 +90,7 @@ function barTop() { return !require("./prefs").p.barBottom; }
 function sideWidth() {
   const p = require("./prefs").p;
   if (!p.vertTabs) return 0;
-  return p.vertCollapsed ? COLLAPSED : Math.min(480, Math.max(160, p.vertWidth || 220));
+  return p.vertCollapsed ? COLLAPSED : Math.min(480, Math.max(200, p.vertWidth || 256));
 }
 
 function fit() {
@@ -96,9 +103,10 @@ function fit() {
     return;
   }
   const bt = barTop();
-  top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : BAR)) } : { x: 0, y: 0, width, height: TOP });
+  const bar = left ? BAR_V : BAR;
+  top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : bar)) } : { x: 0, y: 0, width, height: TOP });
   view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
-    : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - BAR), width: Math.max(0, width - (bt ? left : 0)), height: BAR });
+    : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - bar), width: Math.max(0, width - (bt ? left : 0)), height: bar });
   placePanel();
 }
 
@@ -106,6 +114,7 @@ function fit() {
 function placePanel() {
   if (!panel || panel.webContents.isDestroyed()) return;
   const r = pageRect();
+  panel.setBorderRadius(full ? 0 : RADIUS);
   panel.setBounds(panelW && !full ? { x: r.x + r.width - panelW, y: r.y, width: panelW, height: r.height } : { x: 0, y: 0, width: 0, height: 0 });
 }
 
@@ -160,4 +169,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { chrome: () => view && !view.webContents.isDestroyed() ? view.webContents : null, setRefocus: fn => { refocus = fn; }, BAR, TOP, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { chrome: () => view && !view.webContents.isDestroyed() ? view.webContents : null, setRefocus: fn => { refocus = fn; }, BAR, BAR_V, TOP, INSET, RADIUS, radius: () => full ? 0 : RADIUS, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };

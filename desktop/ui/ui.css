@@ -337,7 +337,7 @@ button:active:not([disabled]){transform:scale(.96)}
 input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0 0 3px color-mix(in srgb,var(--amber) 22%,transparent)}
 ::-webkit-scrollbar-thumb{border:2px solid transparent;background-clip:padding-box;border-radius:8px}
 #bar{height:60px;padding:0 10px;gap:4px;border-top:1px solid color-mix(in srgb,var(--high) 55%,transparent);box-shadow:0 -6px 24px rgba(0,0,0,.18)}
-#dock{height:62px}
+#dock{height:var(--bar-h,44px)}
 .ib{border-radius:14px}
 .pill{height:40px;border-radius:20px;padding:0 16px;border:1px solid transparent;transition:border-color .16s,background .16s,box-shadow .16s}
 .pill:hover{border-color:var(--high)}

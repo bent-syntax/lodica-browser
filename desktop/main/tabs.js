@@ -280,7 +280,10 @@ function splitRects() {
 
 function place() {
   if (!shown) return;
+  const r = deps.ui.radius();
+  shown.setBorderRadius(r);
   if (!shownOther) { shown.setBounds(deps.ui.pageBounds()); return; }
+  shownOther.setBorderRadius(r);
   const rc = splitRects();
   const curIsA = cur.id === split.a;
   shown.setBounds(curIsA ? rc.a : rc.b);

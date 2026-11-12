@@ -35,7 +35,7 @@ const DEFAULTS = {
   emojiPicker: true, claimedThemes: [], holidayFx: true,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,
-  theme: "system", vertTabs: false, barBottom: false, vertWidth: 220, vertCollapsed: true, historySuggest: true,
+  theme: "system", vertTabs: false, barBottom: false, vertWidth: 256, vertCollapsed: true, historySuggest: true,
   bg: { type: "none", value: "", dim: 0, blur: 0 }, keybinds: {}, mouse: { middle: "closeTab", back: "back", forward: "forward" },
 };
 
