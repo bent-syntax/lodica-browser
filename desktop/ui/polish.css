@@ -316,7 +316,7 @@ html[data-theme-anim=shimmer] body::before{background:linear-gradient(100deg,tra
 
 /* ---- redesign phase 2: shared bar rules (win over earlier layers) ---- */
 #bar{height:var(--bar-h,44px);padding:0 8px 4px;gap:8px;background:var(--bg);border-top:0;box-shadow:none}
-body:not(.bt) #bar{padding:4px 8px 0}
+body:not(.bt) #bar{padding:0 8px}
 .navg{gap:0}
 .navg .ib,.ib{width:32px;height:32px;border-radius:8px}
 .ib .ico{width:18px;height:18px}
