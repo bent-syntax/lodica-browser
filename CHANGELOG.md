@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.15.21 (versionCode 242)
+
+- Fixed: Shop no longer shows "No offers match these filters" when saved shop picks from an earlier search match none of the new shops.
+
 ## 1.15.20 (versionCode 241)
 
 - Fixed: Shop item images load for lazy, protocol-relative and escaped image URLs.

@@ -204,6 +204,8 @@
       out.classList.toggle("grid", s.view === "grid");
       if (!d) return;
       const all = d.items;
+      // Saved shop picks from an earlier search can match none of these shops; drop them rather than hide every offer.
+      if (s.inc.length && !all.some((x) => s.inc.includes(x.h))) { s.inc = []; save(s); }
       const items = all.filter(shown);
       const score = (x) => (x.m || []).length;
       items.sort(s.sort === "match" ? (a, b) => score(b) - score(a) || a.p - b.p : (a, b) => a.p - b.p);
