@@ -113,5 +113,11 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     on: (ev, fn) => { (subs[ev] = subs[ev] || []).push(fn); return () => { subs[ev] = subs[ev].filter((f) => f !== fn); }; },
   };
   window.mockEmit = emit;
+  // Dev only: #sugg opens the address bar with suggestions showing.
+  if (hash.includes("sugg")) setTimeout(() => {
+    document.querySelector(".pill")?.click();
+    const i = document.querySelector("input[type=text]");
+    if (i) { i.value = "kite"; i.dispatchEvent(new Event("input", { bubbles: true })); }
+  }, 600);
   document.documentElement.classList.add("mock");
 })();
