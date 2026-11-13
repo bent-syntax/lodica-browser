@@ -10,9 +10,9 @@
 html,body{height:100%;overflow:hidden;background:color-mix(in srgb,var(--bg) calc(var(--ui-a,1)*100%),transparent)}
 body{font:13px/1 system-ui,"Segoe UI",sans-serif;color:var(--mist);user-select:none;display:flex;align-items:center;gap:4px;padding:0 6px}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;outline:none}
-#tabs{flex:0 1 auto;min-width:0;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#tabs{flex:0 1 auto;min-width:0;max-width:90%;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
 #tabs::-webkit-scrollbar{display:none}
-.t{flex:0 0 180px;width:180px;min-width:0;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
+.t{flex:0 1 180px;width:180px;min-width:28px;height:28px;border-radius:8px;background:var(--raised);display:flex;align-items:center;gap:6px;padding:0 4px 0 10px;cursor:pointer;position:relative}
 .t:hover{background:var(--hover2)}
 .t.dragging{opacity:.55;transform:scale(.96);box-shadow:0 0 0 2px var(--amber)}
 body.tabdrag .t{transition:transform .12s}
