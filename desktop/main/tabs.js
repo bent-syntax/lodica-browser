@@ -170,7 +170,8 @@ function wire(t, wc) {
   });
   wc.on("did-navigate", (_, navUrl) => {
     const isErr = errorpage.isErrorUrl(navUrl);
-    const url = isErr ? errorpage.failedOf(navUrl) || t.url : navUrl;
+    let url = isErr ? errorpage.failedOf(navUrl) || t.url : navUrl;
+    if (isSettingsUrl(url)) url = SETTINGS;
     Object.assign(t, { url, host: hostOf(url), blocked: 0, emailForm: false, emailFocus: false, icons: iconCache.get(hostOf(url)) || [], crashed: false, failUrl: isErr ? url : null });
     const from = t.navStart ? hostOf(t.navStart) : "";
     t.origin = !isErr && /^https?:/i.test(t.navStart || "") && from && from !== t.host ? from : "";
