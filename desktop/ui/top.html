@@ -101,7 +101,9 @@ body.vert.fold #foot .fb.end{margin-left:0}
 body.vert.fold .add{width:34px;padding:0;justify-content:center}
 body.vert.fold .add .al,body.vert.fold .add kbd{display:none}
 /* Redesign phase 2: horizontal strip, 44px, 216px tabs */
-body:not(.vert){padding:0 8px;gap:4px;align-items:center;background:var(--bg)}
+html:has(body:not(.vert)),body:not(.vert){background:var(--bg)}
+body:not(.vert){padding:0 8px;gap:4px;align-items:center}
+.t:focus,.t:focus-visible{outline:0}
 body:not(.vert) #list{align-items:center;height:100%;padding-top:0;gap:4px}
 body:not(.vert) #tabs{max-width:calc(90vw - 60px)}
 body:not(.vert) .t{flex:0 1 216px;width:216px;height:34px;border-radius:8px;background:transparent;padding:0 4px 0 10px;font-weight:400;opacity:1;box-shadow:none;color:var(--mist)}
