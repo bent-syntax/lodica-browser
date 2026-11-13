@@ -530,6 +530,7 @@ async function thumb(id) {
 }
 
 function discardIdle() {
+  if (!prefs.p.ramSaving) return;
   const cut = Date.now() - IDLE_MS;
   for (const t of list) {
     if (t === cur || inSplit(t) || !t.view || t.audio || t.lastUsed > cut) continue;

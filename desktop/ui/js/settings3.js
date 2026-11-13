@@ -376,7 +376,8 @@ function secBlocking() {
 }
 function secSuggest() {
   return [secHead("Address bar suggestions", "suggest"),
-    setToggle("historySuggest", "Suggest from history", "Offer visited pages and past searches while typing. Stays on this device"),
+    setToggle("ramSaving", "RAM saving", "Unload tabs you have not used for 10 minutes. Turn off to keep them loaded, using more memory"),
+    setToggle("historySuggest","Suggest from history", "Offer visited pages and past searches while typing. Stays on this device"),
     setRow("Clear suggestions", "Forget past searches used for suggestions", null, async () => {
       await inv("history.clearSuggest"); toast("Suggestions cleared");
     })];
