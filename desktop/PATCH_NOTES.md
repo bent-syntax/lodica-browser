@@ -1,3 +1,7 @@
+## 1.17.3
+
+- The buttons on the draw and move toolbar work again, and the colour you pick is used for new strokes.
+
 ## 1.17.2
 
 - The AI panel follows the theme. Hidden mail addresses can be rerolled. Draw and move keybinds no longer fail silently.

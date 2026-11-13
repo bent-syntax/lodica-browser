@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.3 (versionCode 249)
+
+- Fixed (desktop): the draw and move toolbar buttons and the colour picker did nothing.
+
 ## 1.17.2 (versionCode 248)
 
 - Fixed (desktop): installer build failed after the translate bubble length change.

@@ -2059,7 +2059,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   function buildBar() {
     host = document.createElement("div");
     host.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;display:flex;justify-content:center;pointer-events:none";
-    const r = host.attachShadow({ mode: "closed" });
+    const r = host.attachShadow({ mode: "open" });
     r.innerHTML = `<style>
       .b{pointer-events:auto;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 12px;background:#2B2E33;color:#ECEDEE;border:1px solid #33363C;border-radius:12px;font:13px system-ui,sans-serif;box-shadow:0 12px 32px #00000073}
       button{all:unset;cursor:pointer;padding:4px 12px;border-radius:999px;background:#33363C;color:#ECEDEE;font:13px system-ui,sans-serif}

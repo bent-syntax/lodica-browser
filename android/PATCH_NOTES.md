@@ -1,3 +1,7 @@
+## 1.17.3
+
+- Version bump to match desktop. No Android changes.
+
 ## 1.17.2
 
 - Lock icon in the address bar opens the site menu. The widget logo opens the start page. The tab switcher has Normal and Private views; private tabs lock as soon as it opens and unlock one by one. The menu scrolls, bars have rounder corners, translate accepts longer text, and hidden addresses can be rerolled.
