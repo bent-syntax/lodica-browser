@@ -105,7 +105,7 @@ function onBeforeSendHeaders(details, cb) {
   h["User-Agent"] = ua;
   const hints = prefs.clientHints(ua);
   for (const k of Object.keys(h)) if (k.toLowerCase().startsWith("sec-ch-ua")) delete h[k];
-  if (hints) for (const k of ["sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform"]) h[k] = hints[k];
+  if (hints) for (const k of ["sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-ch-ua-full-version-list", "sec-ch-ua-platform-version", "sec-ch-ua-model"]) h[k] = hints[k];
   cb({ requestHeaders: h });
 }
 
