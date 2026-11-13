@@ -1,3 +1,7 @@
+## 1.17.11
+
+- Settings opens as a tab from `lodica://settings`, pages fill the whole area with no edge padding, the support chat docks on the right like the AI panel, and unsent support text, images and category now survive switching away and back.
+
 ## 1.17.10
 
 - Mobile and desktop already have the manual controls — the mobile site sheet (tap the lock) has a Compatibility mode switch and per-site Allow/Block/Ask permission rows. The earlier rounds covered the rest: 90% tab width, `lodica://settings` opening as a tab without a trailing slash, chat docked like
