@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.2 (versionCode 248)
+
+- Fixed (desktop): installer build failed after the translate bubble length change.
+
 ## 1.17.1 (versionCode 247)
 
 - Changed (Android): site menu from the lock, start page from the widget logo, Normal and Private tab views with per-tab unlock, scrolling menu, rounder bars and tab cards, reroll for hidden addresses.

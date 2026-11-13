@@ -1,4 +1,4 @@
-## 1.17.1
+## 1.17.2
 
 - The AI panel follows the theme. Hidden mail addresses can be rerolled. Draw and move keybinds no longer fail silently.
 
