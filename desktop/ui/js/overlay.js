@@ -15,7 +15,7 @@ let covered = false;
 function syncCover() {
   const on = STACK.some((l) => l.el.classList.contains("spage-layer") && !l.el.classList.contains("settings-tab"));
   if (on !== covered) { covered = on; inv("cover", on); }
-  const dim = STACK.some((l) => l.el.querySelector(":scope>.dim"));
+  const dim = STACK.some((l) => !l.el.classList.contains("popL") && !l.el.classList.contains("ctxL") && l.el.querySelector(":scope>.dim"));
   if (dim !== dimmed) { dimmed = dim; inv("capdim", dim); }
 }
 let dimmed = false;
