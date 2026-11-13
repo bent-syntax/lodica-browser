@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.9 (versionCode 255)
+
+- Tabs in the desktop tab bar now shrink so together they take at most about 80% of the window width, and typing `lodica://settings` in the address bar opens Settings.
+
 ## 1.17.8 (versionCode 254)
 
 - Added (desktop): setting to turn off RAM saving tab unloading.
