@@ -1,3 +1,8 @@
+## 1.17.7
+
+- Settings, notebook and chat cover the whole window. Close button works.
+- Removed the light-blue ring around the active tab.
+
 ## 1.17.6
 
 - The search button on the new tab page shows its icon again.

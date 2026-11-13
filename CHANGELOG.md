@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.7 (versionCode 253)
+
+- Fixed (desktop): settings, notebook and chat now take over the whole window and hide the tab strip and toolbar. Their close button works. Removed the light-blue ring around the active tab.
+
 ## 1.17.6 (versionCode 252)
 
 - Fixed (desktop): the search button on the new tab page was blank; its icon had no contrast. Filled buttons keep readable text on older Chromium.

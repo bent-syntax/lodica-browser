@@ -9,7 +9,7 @@ const INSET = 8; // chrome showing around the page card
 const RADIUS = 12; // page card corner radius
 const handlers = new Map();
 const waits = new Map(); // id -> resolve
-let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", seq = 0, ready = false, topReady = false;
+let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", cover = false, seq = 0, ready = false, topReady = false;
 let refocus = () => {};
 let full = false; // page (e.g. a video) is fullscreen: hide the tab strip and bar
 const queue = [];
@@ -28,6 +28,7 @@ function init(window, uiView) {
     return fn(...args);
   });
   handle("layout", m => layout(m));
+  handle("cover", on => { cover = !!on; fit(); });
   handle("prompt.answer", (id, result) => answer(id, result));
 }
 
@@ -104,7 +105,7 @@ function fit() {
   }
   const bt = barTop();
   const bar = left ? BAR_V : BAR;
-  top?.setBounds(left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : bar)) } : { x: 0, y: 0, width, height: TOP });
+  top?.setBounds(cover && mode === "overlay" ? { x: 0, y: 0, width: 0, height: 0 } : left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : bar)) } : { x: 0, y: 0, width, height: TOP });
   view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - bar), width: Math.max(0, width - (bt ? left : 0)), height: bar });
   placePanel();

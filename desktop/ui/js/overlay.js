@@ -10,6 +10,12 @@ async function ensureOverlay() {
   document.body.classList.add("ov");
   if (!mainOverlay) await inv("layout", "overlay");
 }
+// Full-page layers (settings, notebook, chat) hide the tab strip so they take over the window.
+let covered = false;
+function syncCover() {
+  const on = STACK.some((l) => l.el.classList.contains("spage-layer"));
+  if (on !== covered) { covered = on; inv("cover", on); }
+}
 function maybeBar() {
   if (STACK.length) return;
   clearTimeout(barTimer);
@@ -41,9 +47,11 @@ function openLayer(opts, build) {
     L.el.classList.remove("on"); L.el.classList.add("out");
     setTimeout(() => L.el.remove(), 125);
     try { L.onClose && L.onClose(result); } catch (e) { console.warn(e); }
+    syncCover();
     maybeBar();
   };
   STACK.push(L);
+  syncCover();
   const content = build(L);
   if (content) L.el.append(content);
   // Show synchronously in the DOM; the window grows to overlay layout in parallel.
