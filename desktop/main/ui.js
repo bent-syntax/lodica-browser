@@ -5,8 +5,8 @@ const BAR = 44; // toolbar height with horizontal tabs
 const BAR_V = 52; // top bar height next to the vertical tab panel
 const TOP = 44; // tab strip above the page
 const COLLAPSED = 52; // vertical panel when collapsed (rail)
-const INSET = 8; // chrome showing around the page card
-const RADIUS = 12; // page card corner radius
+const INSET = 0; // pages fill the whole page area
+const RADIUS = 0; // no card corners
 const handlers = new Map();
 const waits = new Map(); // id -> resolve
 let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", cover = false, seq = 0, ready = false, topReady = false;
