@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.6 (versionCode 252)
+
+- Fixed (desktop): the search button on the new tab page was blank; its icon had no contrast. Filled buttons keep readable text on older Chromium.
+
 ## 1.17.5 (versionCode 251)
 
 - Fixed (desktop): the close button in settings, notebooks and server chat did nothing because the tab strip drag area covered it; those pages now open below the tab strip.

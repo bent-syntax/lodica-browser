@@ -1,3 +1,7 @@
+## 1.17.6
+
+- The search button on the new tab page shows its icon again.
+
 ## 1.17.5
 
 - The close button in settings, notebooks and server chat works again.

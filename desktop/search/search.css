@@ -198,7 +198,7 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
 a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 #f button, #topbar button, .chips a, #pages a { cursor: pointer; }
 #topbar button { min-height: 30px; }
-#f button { background: var(--amber); color: contrast-color(var(--amber)); border-radius: 50%; }
+#f button { background: var(--amber); color:#1A1300;color:contrast-color(var(--amber)); border-radius: 50%; }
 #f button:hover { background: var(--amber-hi); }
 /* 1.13.1 redesign: new-tab shortcut tiles as cards. */
 #top a { padding: 14px 8px 10px; border-radius: 42px; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
@@ -453,7 +453,7 @@ body.home .brand { font-size: 26px; font-weight: 600; letter-spacing: 0; }
 .brand { font-size: 20px; }
 #f { height: 44px; border-radius: 10px; padding: 0 4px 0 16px; border: 1px solid var(--high); }
 #q { height: 42px; font-size: 15px; }
-#f button { width: 36px; height: 36px; border-radius: 8px; color: var(--amber-ink, var(--amber)); }
+#f button { width: 36px; height: 36px; border-radius: 8px; background: var(--amber); color: var(--on-amber, #1A1300); }
 #tabs a { font-size: 13px; border-bottom-width: 2px; border-radius: 0; }
 .r h3 { font-size: 15px; font-weight: 500; }
 .r p { font-size: 13px; }
@@ -465,3 +465,4 @@ body.home .brand { font-size: 26px; font-weight: 600; letter-spacing: 0; }
 #sg a { border-radius: 6px; }
 #pages a { border-radius: 8px; }
 .grid a, .r img { border-radius: 8px; }
+#f button#clr { background: none; }
