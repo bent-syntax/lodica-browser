@@ -566,6 +566,7 @@ function load(url, t = cur) {
 }
 
 function go(text) {
+  if (/^lodica:\/\/settings\/?$/i.test(String(text || "").trim())) { deps.ui.push("shortcut", "settings"); return true; }
   if (cur && !cur.private && prefs.p.historySuggest) history.addSearch(text);
   const url = prefs.resolve(String(text || ""), relay.available);
   load(url);
