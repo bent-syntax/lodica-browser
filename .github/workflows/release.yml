@@ -11,6 +11,8 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
+    outputs:
+      prebuilt: ${{ steps.prebuilt.outputs.found }}
     steps:
       - uses: actions/checkout@v5
       - name: Check tag, versions and patch notes
@@ -28,8 +30,16 @@ jobs:
             if [ "$n" -eq 0 ]; then echo "::error::$f has no non-empty '## $v' section"; fail=1; fi
           done
           exit $fail
+      - name: Look for an already built and tested APK on the release
+        id: prebuilt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          if gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "Lodica-$v.apk"; then echo found=true >> "$GITHUB_OUTPUT"; fi
   android:
     needs: verify
+    if: needs.verify.outputs.prebuilt != 'true'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -107,6 +117,7 @@ jobs:
 
   release:
     needs: [verify, android, desktop]
+    if: ${{ !cancelled() && needs.verify.result == 'success' && needs.desktop.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.android.result) }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -121,7 +132,7 @@ jobs:
       - name: Checksum for the APK
         run: |
           cd artifacts
-          for f in Lodica-*.apk; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; done
+          for f in Lodica-*.apk; do [ -e "$f" ] || continue; [ -e "$f.sha256" ] || sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; done
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
