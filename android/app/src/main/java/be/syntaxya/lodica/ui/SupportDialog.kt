@@ -134,13 +134,18 @@ private fun LinkEmail(onLinked: (String) -> Unit) {
     }
 }
 
+// unsent draft lives outside the dialog so closing it or switching to the browser keeps it
+private var draftText by mutableStateOf("")
+private var draftPics by mutableStateOf<List<Uri>>(emptyList())
+private var draftCat by mutableStateOf("")
+
 /** Contact support: write what is wrong or missing, and read the team's answers and questions. */
 @Composable
 internal fun SupportDialog(onClose: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    var text by remember { mutableStateOf("") }
-    var pics by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var text by ::draftText
+    var pics by ::draftPics
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { pics = (pics + it).take(3) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -150,7 +155,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
     // a new request needs a linked email, so answers can always reach the user
     var linked by remember { mutableStateOf(Support.linkedEmail(ctx)) }
     val canWrite = linked.isNotEmpty()
-    var cat by remember { mutableStateOf("") }
+    var cat by ::draftCat
     // full screen: a floating box moves with the keyboard and leaves little room to read answers
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = Graphite) {
