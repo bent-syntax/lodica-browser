@@ -9,7 +9,7 @@ const INSET = 0; // pages fill the whole page area
 const RADIUS = 0; // no card corners
 const handlers = new Map();
 const waits = new Map(); // id -> resolve
-let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, mode = "bar", cover = false, seq = 0, ready = false, topReady = false;
+let win = null, view = null, top = null, divider = null, panel = null, panelW = 0, dockW = 0, mode = "bar", cover = false, seq = 0, ready = false, topReady = false;
 let refocus = () => {};
 let full = false; // page (e.g. a video) is fullscreen: hide the tab strip and bar
 const queue = [];
@@ -47,6 +47,8 @@ function initPanel(v) { panel = v; }
 /** Width reserved on the right of the page for the AI panel; 0 = hidden. */
 function setPanelWidth(w) { panelW = Math.max(0, Math.round(w) || 0); fit(); }
 const panelWidth = () => panelW;
+/** Width the support chat takes on the right; the page shrinks like it does for the AI panel. */
+function setDockWidth(w) { dockW = Math.max(0, Math.round(w) || 0); fit(); }
 
 function handle(cmd, fn) { handlers.set(cmd, fn); }
 
@@ -68,7 +70,8 @@ function size() {
 /** Page area: the window minus the tab strip and the bar. */
 function pageBounds() {
   const r = pageRect();
-  return panelW && !full ? { ...r, width: Math.max(0, r.width - panelW) } : r;
+  const w = Math.max(panelW, dockW);
+  return w && !full ? { ...r, width: Math.max(0, r.width - w) } : r;
 }
 
 function pageRect() {
@@ -170,4 +173,4 @@ function prompt(opts) {
   return wait(id);
 }
 
-module.exports = { chrome: () => view && !view.webContents.isDestroyed() ? view.webContents : null, setRefocus: fn => { refocus = fn; }, BAR, BAR_V, TOP, INSET, RADIUS, radius: () => full ? 0 : RADIUS, init, initTop, initDivider, initPanel, setPanelWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };
+module.exports = { chrome: () => view && !view.webContents.isDestroyed() ? view.webContents : null, setRefocus: fn => { refocus = fn; }, BAR, BAR_V, TOP, INSET, RADIUS, radius: () => full ? 0 : RADIUS, init, initTop, initDivider, initPanel, setPanelWidth, setDockWidth, panelWidth, handle, push, layout, fit, pageBounds, setFull, sideWidth, barTop, toast, prompt, answer, get mode() { return mode; } };

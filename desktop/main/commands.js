@@ -615,6 +615,7 @@ function init(deps) {
     d.ui.push("aipanel", { open: !!on_ });
     return !!on_;
   };
+  on("ui.dock", w => { d.ui.setDockWidth(Math.min(Number(w) || 0, PANEL_W)); d.tabs.fit(); });
   on("ai.panel.toggle", () => panelShow(!d.ui.panelWidth()));
   on("ai.panel.open", () => panelShow(true));
   on("ai.panel.close", () => panelShow(false));
