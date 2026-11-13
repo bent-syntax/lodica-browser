@@ -141,6 +141,7 @@ private fun MailList() {
                 )
             }
             items(Relay.aliases.sortedByDescending { it.created }, key = { "a" + it.address }) { a ->
+                val ctx = LocalContext.current
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         SelectionContainer { Text(a.address, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
