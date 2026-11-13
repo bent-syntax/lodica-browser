@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.12 (versionCode 258)
+
+- `lodica://settings` now opens Settings as a closeable tab and the address stays without the trailing slash (fix is in `desktop/main/tabs.js`, not built or run). The full-page layout, docked support chat and kept support draft were already on `main` from earlier commits (`4fc80fb`, `315046d`, `a099e1
+
 ## 1.17.11 (versionCode 257)
 
 - Settings opens as a tab from `lodica://settings`, pages fill the whole area with no edge padding, the support chat docks on the right like the AI panel, and unsent support text, images and category now survive switching away and back.
