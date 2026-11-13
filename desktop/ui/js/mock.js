@@ -119,5 +119,8 @@ let mockChats = [{ id: "c1", title: "Best pizza dough", updated: 1, messages: [{
     const i = document.querySelector("input[type=text]");
     if (i) { i.value = "kite"; i.dispatchEvent(new Event("input", { bubbles: true })); }
   }, 600);
+  if (hash.includes("menu")) setTimeout(() => openMenu(), 600);
+  if (hash.includes("site")) setTimeout(() => openSiteInfo(), 600);
+  if (hash.includes("settings")) setTimeout(() => openSettings(), 600);
   document.documentElement.classList.add("mock");
 })();

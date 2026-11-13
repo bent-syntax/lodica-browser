@@ -22,8 +22,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .layer>.dim{animation:fadeIn var(--t-base) var(--ease)}
 .sheet,.dialog{border-radius:var(--r-l);box-shadow:var(--shadow)}
 .dialog{animation:popIn .2s var(--ease)}
-.opt,.mcell{border-radius:10px;transition:background var(--t-base) var(--ease)}
-.opt:hover,.mcell:hover{background:var(--hover2)}
+.opt{border-radius:10px;transition:background var(--t-base) var(--ease)}
+.opt:hover{background:var(--hover2)}
 .btn{border-radius:12px}
 .toast{border-radius:var(--r-m);box-shadow:var(--shadow);animation:popIn var(--t-base) var(--ease)}
 
@@ -82,7 +82,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @keyframes paneIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){html:root[data-theme]{--mo:0}*{animation:none!important}}
 .theme-prev,.bg-prev{margin:16px auto;max-width:440px}
-.mcell.pinned{background:var(--hover);outline:1px solid var(--amber)}
 .dns-row{display:flex;gap:6px;align-items:center}.dns-row input{width:150px}
 .sp-group{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);opacity:.75;padding:14px 12px 4px}
 .sp-group:first-child{padding-top:2px}
@@ -137,18 +136,6 @@ button,.ib,.chip,.opt,.sp-tab,.sw-t{cursor:pointer}
 
 /* 1.13.1 redesign: popover-style menu with tile grid, icon-tile rows, elevated bar, rounded cards. */
 .sheet{border:1px solid color-mix(in srgb,var(--high) 70%,transparent);box-shadow:0 16px 40px rgba(0,0,0,.35);background:var(--raised)}
-.menu .mtop{gap:8px;padding:14px 16px 10px;justify-content:stretch}
-.menu .mtop .ib{flex:1;height:44px;border-radius:12px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 70%,transparent)}
-.menu .mtop .ib:hover{background:var(--hover2)}
-.mgrid{grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 16px 16px}
-.mcell{flex-direction:column;justify-content:center;gap:8px;padding:14px 6px 12px;min-height:84px;border-radius:16px;background:var(--bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--high) 60%,transparent);text-align:center}
-.mcell .ico{width:36px;height:36px;padding:8px;border-radius:12px;background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber);box-sizing:border-box}
-.mcell.coral .ico{background:color-mix(in srgb,var(--coral) 16%,transparent);color:var(--coral)}
-.mcell.private .ico{background:color-mix(in srgb,var(--private) 16%,transparent);color:var(--private)}
-.mcell.amber{background:color-mix(in srgb,var(--amber) 10%,var(--bg))}
-.mcell span{font-size:13px;font-weight:500;text-align:center}
-.mcell:hover{background:var(--hover2)}
-.mcell.pinned{outline:0;box-shadow:inset 0 0 0 1.5px var(--amber)}
 .row{border-radius:12px}
 .row>.ico:first-child{flex:none;width:36px;height:36px;padding:8px;border-radius:12px;background:var(--high);box-sizing:border-box}
 .ctx .row>.ico:first-child{width:28px;height:28px;padding:5px;border-radius:8px}
@@ -207,16 +194,15 @@ body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20p
 
 /* ---- page 4: site info popover ---- */
 .layer.popL>.dim{background:transparent}
-.pop{position:absolute;right:12px;top:calc(var(--dock-y,44px) + var(--bar-h,44px) + 4px);width:340px;max-width:calc(100% - 24px);background:var(--raised);border-radius:20px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
-body:not(.bt) .pop{top:auto;bottom:66px}
+.pop{position:absolute;width:328px;max-width:calc(100% - 16px);background:var(--raised);border-radius:12px;box-shadow:var(--shadow);padding:12px;display:flex;flex-direction:column;gap:8px}
 .pop-head{display:flex;align-items:center;gap:12px}
-.pop-fav{width:40px;height:40px;border-radius:12px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--amber)}
+.pop-fav{width:40px;height:40px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--amber)}
 .pop-head .main{flex:1;min-width:0}
 .pop-head .t1{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pop-head .t2{font-size:12px;color:var(--ok);display:flex;align-items:center;gap:4px}
 .pop-head .t2 .ico{width:14px;height:14px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{background:var(--bg);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.stat{background:var(--bg);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:2px}
 .stat .ico{width:18px;height:18px;color:var(--muted)}
 .stat b{font-size:20px;font-weight:600}
 .stat span{font-size:12px;color:var(--muted)}
@@ -227,7 +213,7 @@ body:not(.bt) .pop{top:auto;bottom:66px}
 .srow .sw-t{flex:none}
 .srow .ico{width:20px;height:20px;color:var(--muted)}
 .pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:8px;border-top:1px solid var(--high)}
-.pop-foot .clr{display:flex;align-items:center;gap:6px;color:var(--coral);font-size:13px;font-weight:600;height:36px;padding:0 8px;border-radius:12px}
+.pop-foot .clr{display:flex;align-items:center;gap:6px;color:var(--danger,var(--coral));font-size:13px;font-weight:600;height:36px;padding:0 8px;border-radius:12px}
 .pop-foot .clr:hover{background:var(--hover)}
 .pop-foot .clr .ico{width:18px;height:18px}
 .pop-foot .chip{display:flex;align-items:center;gap:4px;height:32px;padding:0 12px;border-radius:999px;background:var(--bg);font-size:12px}
@@ -341,8 +327,54 @@ body.bt .sugg{border-radius:12px;top:4px}
 .sugg .row.sel{background:var(--hover)}
 .pill .txt .path{color:var(--muted)}
 .pill input{outline:none;box-shadow:none}
-.pill .btn.ask{padding:0 8px;background:var(--accent-soft,color-mix(in srgb,var(--amber) 14%,transparent))}
+.pill .btn.ask{padding:0 8px;background:var(--amber-soft,color-mix(in srgb,var(--amber) 14%,transparent))}
 
 /* ---- redesign phase 2: frameless window (Windows). The bar drags the window; the OS draws caption buttons in the right 140px ---- */
 body.frameless.vtabs.bt #bar{-webkit-app-region:drag;padding-right:148px}
 body.frameless.vtabs.bt #bar button,body.frameless.vtabs.bt #bar input,body.frameless.vtabs.bt #bar #pill,body.frameless.vtabs.bt #bar .navg{-webkit-app-region:no-drag}
+
+/* Main menu popover */
+.menu-pop{width:300px;max-height:calc(100% - 72px);overflow-y:auto;padding:8px;gap:4px}
+.mtiles{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.mtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:64px;border-radius:8px;background:var(--bg);font-size:12px;color:var(--mist)}
+.mtile:hover{background:var(--hover2)}
+.mtile .ico{width:20px;height:20px}
+.mtile.private{color:var(--private)}
+.mtile[disabled]{opacity:.35;pointer-events:none}
+.mgroup{display:flex;flex-direction:column;padding-top:4px;border-top:1px solid var(--high)}
+.mgroup:empty{display:none}
+.menu-pop .srow{height:36px;padding:0 8px;border-radius:6px}
+.menu-pop .srow[disabled]{opacity:.35;pointer-events:none}
+.menu-pop .srow .val{flex:none;font-size:12px;color:var(--muted)}
+
+/* Redesign phase 3: settings page. 248px side, 680px content, 12px cards, 48px rows. */
+.sp-side{width:248px;padding:20px 12px 16px}
+.sp-head{padding:20px 32px 0}
+.sp-head h2{font-size:20px;font-weight:600}
+.sp-title{font-size:20px}
+.sp-body .set-pane{max-width:680px;padding:0 32px 40px;margin:0 auto 0 0}
+.set-card{border-radius:12px;background:var(--surface,var(--raised));border:1px solid var(--high)}
+.set-card>.set-row{min-height:48px;padding:8px 16px}
+.set-card>*+*{border-top:1px solid var(--high)}
+.set-row .t1{font-size:15px;font-weight:400}
+.set-row .t2{font-size:13px}
+.set-row select,.set-row .set-input{height:36px;border-radius:8px}
+.set-sec{font-size:13px;font-weight:600}
+.chip.sel{background:var(--amber-soft,var(--amber-bg));color:var(--amber-ink,var(--amber));border-color:var(--amber-ink,var(--amber))}
+.sp-tab.sel .ico{color:var(--amber-ink,var(--amber))}
+
+/* Redesign phase 3: components. Switch 36x20, 8px buttons, 12px dialogs, 10px toasts, flat shadows. */
+.sw-t{width:36px;height:20px;border-radius:10px}
+.sw-t::after{width:14px;height:14px;top:3px;left:3px;box-shadow:none}
+.sw-t.on::after{transform:translateX(16px);background:var(--on-amber,#1A1300)}
+.btn{border-radius:8px;padding:8px 16px;font-size:13px;font-weight:500;color:var(--text,var(--mist));background:var(--raised);border:1px solid var(--high)}
+.btn:hover{background:var(--hover)}
+.btn.muted{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.danger{background:transparent;color:var(--danger,var(--coral))}.btn.danger:hover{background:var(--hover)}
+.btn.fill{background:var(--amber);border-color:var(--amber);color:var(--on-amber,#1A1300);font-weight:600}.btn.fill:hover{background:var(--amber-hi)}
+.dialog{border-radius:12px;padding:20px 20px 12px}
+.dialog h3{font-size:15px;font-weight:600}
+.dialog p{font-size:13px}
+.toast{border-radius:10px;box-shadow:var(--shadow)}
+.toast .act{color:var(--amber-ink,var(--amber));font-weight:500}
+.dl-prog{height:2px}
