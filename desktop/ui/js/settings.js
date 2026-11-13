@@ -4,7 +4,7 @@ const SET = { find: "", tab: "search", keys: null, cap: null, capture: null, L: 
 
 function openSettings(section) {
   if (SET.L) return SET.L;
-  SET.L = openLayer({ key: "settings", cls: "spage-layer", dim: false, onClose: () => { SET.L = null; document.removeEventListener("keydown", setSlash, true); } }, (L) => {
+  SET.L = openLayer({ key: "settings", cls: "spage-layer settings-tab", dim: false, onClose: () => { SET.L = null; document.removeEventListener("keydown", setSlash, true); } }, (L) => {
     L.nav = h("div", { class: "sp-nav" });
     const find = h("input", { class: "sp-find", type: "search", placeholder: "Find a setting", "aria-label": "Find a setting", value: SET.find || "",
       on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } });
@@ -15,7 +15,7 @@ function openSettings(section) {
     L.body = h("div", { class: "sp-body" });
     return h("div", { class: "spage" }, L.side,
       h("div", { class: "sp-main" },
-        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" }), ib("close", "Close settings", () => L.close())),
+        h("div", { class: "sp-head" }, h("h2", { id: "sp-title" })),
         L.body));
   });
   document.addEventListener("keydown", setSlash, true);

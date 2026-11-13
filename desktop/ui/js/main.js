@@ -48,6 +48,7 @@ function onTab(d) {
   const prevId = S.tab && S.tab.id;
   S.tab = d;
   if (prevId !== d.id && S.mode === "find") closeFind(true);
+  if (prevId && prevId !== d.id && SET.L) SET.L.close(); // settings acts as a tab: picking another tab leaves it
   renderBar();
   refreshSwitcher();
   checkCrash();

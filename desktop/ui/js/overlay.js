@@ -13,7 +13,7 @@ async function ensureOverlay() {
 // Full-page layers (settings, notebook, chat) hide the tab strip so they take over the window.
 let covered = false;
 function syncCover() {
-  const on = STACK.some((l) => l.el.classList.contains("spage-layer"));
+  const on = STACK.some((l) => l.el.classList.contains("spage-layer") && !l.el.classList.contains("settings-tab"));
   if (on !== covered) { covered = on; inv("cover", on); }
   const dim = STACK.some((l) => l.el.querySelector(":scope>.dim"));
   if (dim !== dimmed) { dimmed = dim; inv("capdim", dim); }
