@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.AnimatedVisibility
 import be.syntaxya.lodica.ui.theme.themeEnter
 import androidx.compose.animation.animateColorAsState
@@ -37,15 +38,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Inventory2
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Unarchive
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -143,7 +135,7 @@ fun TabSwitcher() {
                     item(span = { GridItemSpan(2) }) {
                         Text(
                             if (private) "No private tabs" else "No tabs",
-                            color = Muted, modifier = Modifier.padding(32.dp), fontSize = 14.sp,
+                            color = Muted, modifier = Modifier.padding(32.dp), fontSize = 15.sp,
                         )
                     }
                 }
@@ -165,7 +157,7 @@ fun TabSwitcher() {
                 }
                 item(key = "new-tab") {
                     val accent = if (private) Private else Amber
-                    val shape = RoundedCornerShape(22.dp)
+                    val shape = RoundedCornerShape(12.dp)
                     Box(
                         Modifier.animateItem().fillMaxWidth().aspectRatio(0.8f).clip(shape)
                             .border(BorderStroke(1.5.dp, accent.copy(alpha = 0.5f)), shape)
@@ -173,7 +165,7 @@ fun TabSwitcher() {
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Rounded.Add, "New tab", tint = accent, modifier = Modifier.size(32.dp))
+                            Icon(LodicaIcons.Add, "New tab", tint = accent, modifier = Modifier.size(32.dp))
                             Text(if (private) "New private tab" else "New tab", color = accent, fontSize = 13.sp)
                         }
                     }
@@ -184,7 +176,7 @@ fun TabSwitcher() {
                             Modifier.fillMaxWidth().padding(top = 20.dp).animateItem(),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Rounded.Inventory2, null, tint = Muted, modifier = Modifier.size(18.dp))
+                            Icon(LodicaIcons.Archive, null, tint = Muted, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text("Archived (${TabManager.archived.size})", color = Muted, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             Spacer(Modifier.weight(1f))
@@ -206,7 +198,7 @@ fun TabSwitcher() {
         ) {
             Surface(shape = RoundedCornerShape(12.dp), color = GraphiteHigh, contentColor = Mist, shadowElevation = 4.dp) {
                 Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Tab closed", fontSize = 14.sp)
+                    Text("Tab closed", fontSize = 15.sp)
                     Spacer(Modifier.width(24.dp))
                     TextButton(onClick = {
                         TabManager.undoClose()?.let { private = it.private }
@@ -220,16 +212,16 @@ fun TabSwitcher() {
 
 @Composable
 private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.clip(RoundedCornerShape(50)).background(GraphiteRaised).padding(3.dp)) {
+    Row(Modifier.clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).padding(3.dp)) {
         listOf(false to "Tabs", true to "Private").forEach { (p, label) ->
             val bg by animateColorAsState(if (p == private) GraphiteHigh else GraphiteRaised, tween(200), label = "mode")
             Row(
-                Modifier.clip(RoundedCornerShape(50)).background(bg).clickable { onChange(p) }
+                Modifier.clip(RoundedCornerShape(8.dp)).background(bg).clickable { onChange(p) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (p) {
-                    Icon(Icons.Rounded.VisibilityOff, null, tint = if (private) Private else Muted, modifier = Modifier.size(16.dp))
+                    Icon(LodicaIcons.Private, null, tint = if (private) Private else Muted, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                 }
                 val n = TabManager.tabs.count { it.private == p }
@@ -241,7 +233,7 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(12.dp)
     val accent = if (incognito) Private else Amber
     val customEdge = if (incognito) null else customExtraColor("tabEdge")
     val texture = if (incognito) null else customTabTexture()
@@ -273,14 +265,14 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onClose, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Rounded.Close, "Close tab", tint = if (tabText == Mist) Muted else tabText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+                Icon(LodicaIcons.Close, "Close tab", tint = if (tabText == Mist) Muted else tabText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
             }
         }
         val framed = texture != null || customEdge != null
-        Box(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).clip(RoundedCornerShape(16.dp)) else Modifier).aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).clip(RoundedCornerShape(8.dp)) else Modifier).aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
             val thumb = t.thumbnail
             if (t.locked) {
-                Icon(Icons.Rounded.Lock, "Locked", tint = Amber, modifier = Modifier.size(32.dp))
+                Icon(LodicaIcons.Lock, "Locked", tint = Amber, modifier = Modifier.size(32.dp))
             } else if (thumb != null) {
                 Image(
                     thumb.asImageBitmap(), null, Modifier.fillMaxSize(),
@@ -303,13 +295,13 @@ private fun SiteIcon(host: String, url: String) {
     val ic = icon
     if (ic != null) Image(ic, null, Modifier.size(16.dp))
     else if (h.firstOrNull()?.isLetter() == true) Text(h.first().uppercase(), color = Amber, fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-    else Icon(Icons.Rounded.Public, null, tint = Muted, modifier = Modifier.size(16.dp))
+    else Icon(LodicaIcons.Globe, null, tint = Muted, modifier = Modifier.size(16.dp))
 }
 
 @Composable
 private fun ArchivedRow(r: TabRecord, modifier: Modifier) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(GraphiteRaised)
+        modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(GraphiteRaised)
             .clickable { TabManager.unarchive(r); Ui.screen = Screen.Browser }
             .padding(start = 14.dp, top = 4.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -318,13 +310,13 @@ private fun ArchivedRow(r: TabRecord, modifier: Modifier) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(r.title.ifBlank { r.url }, color = Mist, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (r.title.isNotBlank() && r.title != r.url) Text(r.url, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (r.title.isNotBlank() && r.title != r.url) Text(r.url, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         IconButton(onClick = { TabManager.unarchive(r); Ui.screen = Screen.Browser }) {
-            Icon(Icons.Rounded.Unarchive, "Restore", tint = Amber, modifier = Modifier.size(20.dp))
+            Icon(LodicaIcons.Unarchive, "Restore", tint = Amber, modifier = Modifier.size(20.dp))
         }
         IconButton(onClick = { TabManager.archived.remove(r); TabManager.save() }) {
-            Icon(Icons.Rounded.Delete, "Delete", tint = Muted, modifier = Modifier.size(20.dp))
+            Icon(LodicaIcons.Delete, "Delete", tint = Muted, modifier = Modifier.size(20.dp))
         }
     }
 }

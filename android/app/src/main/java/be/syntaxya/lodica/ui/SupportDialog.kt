@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import androidx.compose.ui.window.Dialog
@@ -18,8 +19,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
@@ -157,7 +156,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
         Surface(Modifier.fillMaxSize(), color = Graphite) {
             Column(Modifier.fillMaxSize().systemBarsPadding().imePadding().padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                    IconTile(Icons.Rounded.ChatBubbleOutline, 40, Amber)
+                    IconTile(LodicaIcons.Chat, 40, Amber)
                     Spacer(Modifier.width(12.dp))
                     Text("Contact support", fontSize = 20.sp, color = Mist)
                 }
@@ -167,7 +166,7 @@ internal fun SupportDialog(onClose: () -> Unit) {
                         val steps = listOf("Sent", "Reviewing", "Asking", "Fixing", "Confirming", "Done")
                         val at = when (Support.status) { "seen" -> 1; "needs-info" -> 2; "fixing" -> 3; "awaiting-confirm" -> 4; "done", "closed" -> 5; else -> 0 }
                         LinearProgressIndicator(progress = { (at + 1f) / steps.size }, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp))
-                        Text(steps.mapIndexed { i, x -> if (i == at) "[$x]" else x }.joinToString(" > "), Modifier.padding(bottom = 8.dp), fontSize = 11.sp, color = Muted)
+                        Text(steps.mapIndexed { i, x -> if (i == at) "[$x]" else x }.joinToString(" > "), Modifier.padding(bottom = 8.dp), fontSize = 12.sp, color = Muted)
                         Support.messages.forEach { m ->
                             Box(Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = if (m.fromUser) Alignment.CenterEnd else Alignment.CenterStart) {
                                 Column(horizontalAlignment = if (m.fromUser) Alignment.End else Alignment.Start) {

@@ -112,10 +112,10 @@ fun PlannerCard(modifier: Modifier = Modifier) {
                     if (i == cur) {
                         val f = (minute - r.from).toFloat() / (r.to - r.from).coerceAtLeast(1)
                         Box(Modifier.fillMaxWidth().offset(y = (ROW_H - 4.dp) * f).height(2.dp).background(Amber))
-                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (ROW_H - 4.dp) * f - 7.dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
+                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (ROW_H - 4.dp) * f - 7.dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
                     } else if (i == next) {
                         Box(Modifier.fillMaxWidth().offset(y = (-3).dp).height(2.dp).background(Amber))
-                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (-10).dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
+                        Text(PlannerWidget.hhmm(minute), color = Amber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.align(Alignment.TopEnd).offset(y = (-10).dp, x = (-6).dp).background(GraphiteRaised).padding(horizontal = 4.dp))
                     }
                 }
                 Box(Modifier.height(4.dp))

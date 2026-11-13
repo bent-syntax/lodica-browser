@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -13,9 +14,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -141,7 +139,7 @@ fun NotebookScreen() {
         TopBar("Notebook") { Ui.screen = Ui.returnTo }
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(status, color = Muted, fontSize = 12.sp, modifier = Modifier.weight(1f))
-            if (loaded) IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Rounded.Delete, "Delete note", tint = Muted) }
+            if (loaded) IconButton(onClick = { confirmDelete = true }) { Icon(LodicaIcons.Delete, "Delete note", tint = Muted) }
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             for (n in notes) {
@@ -162,7 +160,7 @@ fun NotebookScreen() {
                     notes = notes + NoteInfo(c.id, "")
                     show(c)
                 }
-            }) { Icon(Icons.Rounded.Add, "New note", tint = Amber) }
+            }) { Icon(LodicaIcons.Add, "New note", tint = Amber) }
         }
         // Math shows its answer above the note, with a button that writes it after the math. It reads the selection,
         // or the line with the cursor when nothing is selected.

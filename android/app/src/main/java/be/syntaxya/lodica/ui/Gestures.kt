@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -10,13 +11,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -172,12 +166,12 @@ private fun usable(a: GestureAction, t: Tab) = when (a) {
 }
 
 private fun gestureIcon(a: GestureAction) = when (a) {
-    GestureAction.BACK, GestureAction.PREV_TAB -> Icons.AutoMirrored.Rounded.ArrowBack
-    GestureAction.FORWARD, GestureAction.NEXT_TAB -> Icons.AutoMirrored.Rounded.ArrowForward
-    GestureAction.RELOAD -> Icons.Rounded.Refresh
-    GestureAction.NEW_TAB -> Icons.Rounded.Add
-    GestureAction.CLOSE_TAB -> Icons.Rounded.Close
-    GestureAction.NONE -> Icons.Rounded.Check
+    GestureAction.BACK, GestureAction.PREV_TAB -> LodicaIcons.Back
+    GestureAction.FORWARD, GestureAction.NEXT_TAB -> LodicaIcons.Forward
+    GestureAction.RELOAD -> LodicaIcons.Reload
+    GestureAction.NEW_TAB -> LodicaIcons.Add
+    GestureAction.CLOSE_TAB -> LodicaIcons.Close
+    GestureAction.NONE -> LodicaIcons.Check
 }
 
 @Composable

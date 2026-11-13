@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.Manifest
@@ -40,12 +41,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Notifications
 import be.syntaxya.lodica.ui.theme.IconTile
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -114,11 +110,11 @@ fun ReaderSheet(title: String, text: String) {
                             speaking = true
                         }
                     }) {
-                        Icon(if (speaking) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                        Icon(if (speaking) LodicaIcons.Close else LodicaIcons.Play,
                             if (speaking) "Stop reading" else "Read aloud", tint = Amber)
                     }
                     IconButton(onClick = { Ui.reader = null }) {
-                        Icon(Icons.Rounded.Close, "Close reader", tint = Muted, modifier = Modifier.size(18.dp))
+                        Icon(LodicaIcons.Close, "Close reader", tint = Muted, modifier = Modifier.size(18.dp))
                     }
                 }
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp, vertical = 8.dp)) {
@@ -170,7 +166,7 @@ fun PickerDialog(p: Picker) {
     Dialog(onDismissRequest = { Ui.picker = null }) {
         Column(Modifier.width(300.dp).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised).padding(vertical = 10.dp)) {
             if (p == Picker.Remind) Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconTile(Icons.Rounded.Notifications, 40)
+                IconTile(LodicaIcons.Alarm, 40)
                 Spacer(Modifier.size(12.dp))
                 Text(heading, color = Mist, fontSize = 20.sp)
             } else Text(heading, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
@@ -280,16 +276,16 @@ fun AnswerSheet(a: Answer) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Ask AI", color = Amber, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 IconButton(onClick = { Ui.answer = null }, modifier = Modifier.size(44.dp)) {
-                    Icon(Icons.Rounded.Close, "Close", tint = Muted, modifier = Modifier.size(18.dp))
+                    Icon(LodicaIcons.Close, "Close", tint = Muted, modifier = Modifier.size(18.dp))
                 }
             }
-            Text(a.question, color = Muted, fontSize = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            Text(a.question, color = Muted, fontSize = 15.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.padding(6.dp))
             Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
                 when {
-                    a.loading -> Text("Thinking…", color = Muted, fontSize = 16.sp)
+                    a.loading -> Text("Thinking…", color = Muted, fontSize = 15.sp)
                     a.error != null -> Text(a.error, color = Amber, fontSize = 15.sp)
-                    else -> Text(a.text, color = Mist, fontSize = 16.sp, lineHeight = 23.sp)
+                    else -> Text(a.text, color = Mist, fontSize = 15.sp, lineHeight = 23.sp)
                 }
             }
             if (a.error != null) {

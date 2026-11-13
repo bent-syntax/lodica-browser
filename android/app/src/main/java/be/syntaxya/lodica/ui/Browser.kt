@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.themedFill
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
@@ -40,17 +41,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.AlternateEmail
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.material.icons.rounded.MarkEmailUnread
-import androidx.compose.material.icons.rounded.SentimentDissatisfied
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -91,7 +82,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import kotlinx.coroutines.delay
-import androidx.compose.material.icons.rounded.Public
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.mozilla.geckoview.GeckoSession
@@ -337,9 +327,9 @@ private fun HiddenEmailChip(tab: Tab) {
             }.padding(horizontal = 14.dp, vertical = 9.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(Icons.Rounded.AlternateEmail, null, tint = Amber, modifier = Modifier.size(16.dp))
+            Icon(LodicaIcons.Email, null, tint = Amber, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Hidden email", fontSize = 14.sp)
+            Text("Hidden email", fontSize = 15.sp)
         }
     }
 }
@@ -352,7 +342,7 @@ private fun InstallChip(tab: be.syntaxya.lodica.tabs.Tab) {
     val name = remember(tab.manifest) { tab.manifest?.let { m -> listOf("short_name", "name").map { if (m.isNull(it)) "" else m.optString(it).trim() }.firstOrNull { it.isNotEmpty() } }.orEmpty() }
     Surface(shape = RoundedCornerShape(20.dp), color = GraphiteRaised, contentColor = Mist, shadowElevation = 4.dp, modifier = Modifier.padding(bottom = 6.dp)) {
         Row(Modifier.padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Install ${name.ifEmpty { tab.host }} as an app", fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            Text("Install ${name.ifEmpty { tab.host }} as an app", fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             TextButton(onClick = { Ui.installDismissed += tab.host; WebApps.install(ctx, tab) }) { Text("Install", color = Amber, fontSize = 13.sp) }
             TextButton(onClick = { Ui.installDismissed += tab.host }) { Text("Not now", color = Muted, fontSize = 13.sp) }
         }
@@ -374,9 +364,9 @@ private fun ClipChip(link: String) {
                 Modifier.clickable { Ui.clipLink = null; TabManager.open(link) }.padding(vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.Link, null, tint = Amber, modifier = Modifier.size(16.dp))
+                Icon(LodicaIcons.Link, null, tint = Amber, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Open copied link", fontSize = 14.sp)
+                Text("Open copied link", fontSize = 15.sp)
                 if (host.isNotEmpty()) {
                     Spacer(Modifier.width(6.dp))
                     Text(host, color = Muted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -384,7 +374,7 @@ private fun ClipChip(link: String) {
             }
             TextButton(onClick = { Ui.clipLink = null; Ui.preview = link }) { Text("Preview", color = Amber, fontSize = 13.sp) }
             IconButton(onClick = { Ui.clipLink = null }, modifier = Modifier.size(44.dp)) {
-                Icon(Icons.Rounded.Close, "Dismiss", tint = Muted, modifier = Modifier.size(16.dp))
+                Icon(LodicaIcons.Close, "Dismiss", tint = Muted, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -405,7 +395,7 @@ private fun LockedView() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Rounded.Lock, null, tint = Amber, modifier = Modifier.size(48.dp))
+        Icon(LodicaIcons.Lock, null, tint = Amber, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
         Text("Private tabs locked", color = Mist, style = MaterialTheme.typography.titleMedium)
         error?.let { Text(it, color = Muted, fontSize = 13.sp) }
@@ -443,11 +433,11 @@ private fun MailBanner(m: Mail) {
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).swipeAway { Relay.incoming = null },
     ) {
         Row(Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.MarkEmailUnread, null, tint = Amber, modifier = Modifier.size(18.dp))
+            Icon(LodicaIcons.Email, null, tint = Amber, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text("Confirmation mail from $site", fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(m.subject.ifBlank { m.from }, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(m.subject.ifBlank { m.from }, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (link != null) TextButton(onClick = { openLink(link) }) { Text("Open link", color = Amber, fontSize = 13.sp) }
             TextButton(onClick = {
@@ -457,7 +447,7 @@ private fun MailBanner(m: Mail) {
                 Ui.screen = Screen.Inbox
             }) { Text("View", color = Mist, fontSize = 13.sp) }
             IconButton(onClick = { Relay.incoming = null }) {
-                Icon(Icons.Rounded.Close, "Dismiss", tint = Muted, modifier = Modifier.size(18.dp))
+                Icon(LodicaIcons.Close, "Dismiss", tint = Muted, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -583,11 +573,11 @@ private fun StartPage(modifier: Modifier) {
             singleLine = true,
             shape = RoundedCornerShape(50),
             placeholder = { Text("Search the web", color = Muted) },
-            leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Muted) },
+            leadingIcon = { Icon(LodicaIcons.Search, null, tint = Muted) },
             trailingIcon = {
                 Box(Modifier.padding(end = 6.dp).size(44.dp).clip(CircleShape).background(Amber.copy(alpha = 0.18f))
                     .clickable { if (q.isNotBlank()) { askAi(q.trim()); q = "" } else go(q) }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.AutoAwesome, "Ask AI", tint = Amber, modifier = Modifier.size(20.dp))
+                    Icon(LodicaIcons.Ai, "Ask AI", tint = Amber, modifier = Modifier.size(20.dp))
                 }
             },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
@@ -609,7 +599,7 @@ private fun StartPage(modifier: Modifier) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Rounded.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
+                            Icon(LodicaIcons.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
                         }
                         if (Prefs.shortcutNames) {
                             Spacer(Modifier.height(8.dp))
@@ -689,7 +679,7 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
             if (ic != null && be.syntaxya.lodica.engine.SiteIcons.isDark(host)) Box(Modifier.size(56.dp).clip(CircleShape).background(Mist))
             if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(36.dp))
             else if (host.firstOrNull()?.isLetter() == true) Text(host.first().uppercase(), color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
-            else Icon(Icons.Rounded.Public, null, tint = Muted, modifier = Modifier.size(24.dp))
+            else Icon(LodicaIcons.Globe, null, tint = Muted, modifier = Modifier.size(24.dp))
         }
         if (Prefs.shortcutNames) {
             Spacer(Modifier.height(8.dp))
@@ -708,7 +698,7 @@ private fun CrashedView(tab: Tab) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Rounded.SentimentDissatisfied, null, tint = Muted, modifier = Modifier.size(48.dp))
+        Icon(LodicaIcons.Smile, null, tint = Muted, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
         Text("This tab crashed", color = Mist, style = MaterialTheme.typography.titleMedium)
         Text(tab.host, color = Muted, fontSize = 13.sp)

@@ -40,22 +40,6 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.KeyboardDoubleArrowRight
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.RemoveModerator
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.VpnLock
-import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -117,7 +101,6 @@ import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.KiteGradient
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
-import androidx.compose.material.icons.rounded.AutoAwesome
 import be.syntaxya.lodica.engine.Ai
 
 private enum class BarMode { Main, Edit, Find }
@@ -187,9 +170,9 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
     ) {
         Shield(tab)
         Row(
-            Modifier.weight(1f).height(40.dp)
+            Modifier.weight(1f).height(44.dp)
                 .graphicsLayer { translationX = drag; alpha = 1f - (kotlin.math.abs(drag) / (threshold * 3)).coerceAtMost(0.5f) }
-                .themedFill("barBg", "barTex", Graphite, RoundedCornerShape(50))
+                .themedFill("barBg", "barTex", Graphite, RoundedCornerShape(10.dp))
                 .pointerInput(tab, Prefs.gestureSwipeTabs) {
                     if (!Prefs.gestureSwipeTabs) return@pointerInput
                     detectHorizontalDragGestures(
@@ -221,11 +204,11 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             val home = tab == null || tab.url == TabManager.HOME
             val locked = tab?.locked == true
             val (icon, tint) = when {
-                locked -> Icons.Rounded.Lock to Private
-                home -> Icons.Rounded.Search to Muted
-                tab!!.url.startsWith("https://") && tab.secure -> Icons.Rounded.Lock to Muted
-                tab.url.startsWith("http://") -> Icons.Rounded.Warning to Coral
-                else -> Icons.Rounded.Public to Muted
+                locked -> LodicaIcons.Lock to Private
+                home -> LodicaIcons.Search to Muted
+                tab!!.url.startsWith("https://") && tab.secure -> LodicaIcons.Lock to Muted
+                tab.url.startsWith("http://") -> LodicaIcons.Warning to Coral
+                else -> LodicaIcons.Globe to Muted
             }
             Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(8.dp))
@@ -251,21 +234,21 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
             val routed = !home && !locked && Relay.routed(tab!!.url)
             if (tab?.private == true || routed) Spacer(Modifier.weight(1f))
             if (routed) {
-                Icon(Icons.Rounded.VpnLock, "Routed through VPS", tint = Amber, modifier = Modifier.size(16.dp))
+                Icon(LodicaIcons.Vpn, "Routed through VPS", tint = Amber, modifier = Modifier.size(16.dp))
             }
             if (tab?.private == true) {
                 if (routed) Spacer(Modifier.width(6.dp))
-                Text("Private", color = Private, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
+                Text("Private", color = Private, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }
         }
         IconButton(onClick = { TabManager.open(TabManager.HOME, private = tab?.private == true); Ui.editing = false }) {
-            Icon(Icons.Rounded.Add, "New tab", tint = Mist)
+            Icon(LodicaIcons.Add, "New tab", tint = Mist)
         }
         if (be.syntaxya.lodica.engine.Ai.connected) {
             IconButton(onClick = {
                 be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false
             }) {
-                Icon(Icons.Rounded.AutoAwesome, "AI assistant", tint = Amber)
+                Icon(LodicaIcons.Ai, "AI assistant", tint = Amber)
             }
         }
         TabCount(tab)
@@ -279,7 +262,7 @@ private fun Shield(tab: Tab?) {
     val trusted = tab?.trusted == true
     val on = Engine.ublock != null && !trusted
     Box(
-        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).clickable(enabled = tab != null) {
+        Modifier.size(44.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = tab != null) {
             val t = tab ?: return@clickable
             val msg = when {
                 !TabManager.toggleTrust(t) -> "Wait for the page to load"
@@ -291,7 +274,7 @@ private fun Shield(tab: Tab?) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            if (trusted) Icons.Rounded.RemoveModerator else Icons.Rounded.Shield,
+            if (trusted) LodicaIcons.ShieldOff else LodicaIcons.Shield,
             if (trusted) "Protection off for this site" else "Protection on. Tap to trust this site",
             tint = if (on) Amber else Muted, modifier = Modifier.size(22.dp),
         )
@@ -299,7 +282,7 @@ private fun Shield(tab: Tab?) {
         if (n > 0 && !trusted) {
             Text(
                 if (n > 99) "99+" else "$n",
-                color = OnAmber, fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                color = OnAmber, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false,
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 4.dp, end = 2.dp)
                     .background(Amber, RoundedCornerShape(50)).padding(horizontal = 4.dp),
             )
@@ -312,14 +295,14 @@ private fun TabCount(tab: Tab?) {
     val private = tab?.private == true
     val n = TabManager.tabs.count { it.private == private }
     Box(
-        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(12.dp)).clickable { openTabs() },
+        Modifier.padding(start = 6.dp).size(44.dp).clip(RoundedCornerShape(8.dp)).clickable { openTabs() },
         contentAlignment = Alignment.Center,
     ) {
         Box(
-            Modifier.size(24.dp).border(1.5.dp, if (private) Private else Mist, RoundedCornerShape(6.dp)),
+            Modifier.size(24.dp).border(1.75.dp, if (private) Private else Mist, RoundedCornerShape(6.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(if (n > 99) ":D" else "$n", color = Mist, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (n > 99) ":D" else "$n", color = Mist, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -354,9 +337,9 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
         Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = { Ui.editing = false }) { Icon(Icons.Rounded.ArrowBack, "Cancel", tint = Mist) }
+        IconButton(onClick = { Ui.editing = false }) { Icon(LodicaIcons.Back, "Cancel", tint = Mist) }
         Box(
-            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(24.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(10.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -396,17 +379,17 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
             IconButton(onClick = {
                 be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false; Ui.editing = false
             }) {
-                Icon(Icons.Rounded.AutoAwesome, "AI assistant", tint = Amber)
+                Icon(LodicaIcons.Ai, "AI assistant", tint = Amber)
             }
         }
         if (query.text.isNotEmpty()) {
             if (query.text.length > 28) {
                 // Long links need no manual scrolling: jump the text marker to the end.
                 IconButton(onClick = { onQuery(query.copy(selection = TextRange(query.text.length))); focus.requestFocus() }) {
-                    Icon(Icons.Rounded.KeyboardDoubleArrowRight, "Cursor to end", tint = Muted)
+                    Icon(LodicaIcons.Forward, "Cursor to end", tint = Muted)
                 }
             }
-            IconButton(onClick = { onQuery(TextFieldValue()) }) { Icon(Icons.Rounded.Close, "Clear", tint = Muted) }
+            IconButton(onClick = { onQuery(TextFieldValue()) }) { Icon(LodicaIcons.Close, "Clear", tint = Muted) }
         }
     }
 }
@@ -425,7 +408,7 @@ private fun FindBar() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(24.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(10.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -448,9 +431,9 @@ private fun FindBar() {
                 },
             )
         }
-        IconButton(onClick = { find(null, GeckoSession.FINDER_FIND_BACKWARDS) }) { Icon(Icons.Rounded.KeyboardArrowUp, "Previous", tint = Mist) }
-        IconButton(onClick = { find(null, GeckoSession.FINDER_FIND_FORWARD) }) { Icon(Icons.Rounded.KeyboardArrowDown, "Next", tint = Mist) }
-        IconButton(onClick = { Ui.stopFind() }) { Icon(Icons.Rounded.Close, "Close", tint = Mist) }
+        IconButton(onClick = { find(null, GeckoSession.FINDER_FIND_BACKWARDS) }) { Icon(LodicaIcons.Up, "Previous", tint = Mist) }
+        IconButton(onClick = { find(null, GeckoSession.FINDER_FIND_FORWARD) }) { Icon(LodicaIcons.Down, "Next", tint = Mist) }
+        IconButton(onClick = { Ui.stopFind() }) { Icon(LodicaIcons.Close, "Close", tint = Mist) }
     }
 }
 
@@ -540,14 +523,14 @@ fun Suggestions(text: String, modifier: Modifier, onPick: (String) -> Unit) {
     LazyColumn(modifier.background(Graphite), reverseLayout = true) {
         if (text.isNotBlank()) {
             item(key = "search") {
-                SuggestionRow(Icons.Rounded.Search, text.trim(), "Search ${Prefs.search.label}", Amber) { onPick(text) }
+                SuggestionRow(LodicaIcons.Search, text.trim(), "Search ${Prefs.search.label}", Amber) { onPick(text) }
             }
         }
         items(past, key = { "q:$it" }) { q ->
-            SuggestionRow(Icons.Rounded.History, q, "Past search", Muted) { onPick(q) }
+            SuggestionRow(LodicaIcons.History, q, "Past search", Muted) { onPick(q) }
         }
         items(visits, key = { "u:" + it.url }) { v ->
-            SuggestionRow(Icons.Rounded.History, v.title.ifBlank { v.url }, v.url, Muted) { onPick(v.url) }
+            SuggestionRow(LodicaIcons.History, v.title.ifBlank { v.url }, v.url, Muted) { onPick(v.url) }
         }
     }
 }

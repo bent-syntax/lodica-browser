@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.content.ClipData
@@ -14,8 +15,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -101,7 +100,7 @@ fun AuthenticatorSection() {
             )
             Text("${Totp.remaining(e, now)}s", color = Muted, fontSize = 12.sp)
             IconButton(onClick = { Vault.totpDelete(e.id).accept({ rev++; PcTabs.changed() }, { }) }) {
-                Icon(Icons.Rounded.Close, "Remove", tint = Muted)
+                Icon(LodicaIcons.Close, "Remove", tint = Muted)
             }
         }
     }

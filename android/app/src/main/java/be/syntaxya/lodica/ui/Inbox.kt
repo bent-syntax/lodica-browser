@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import android.text.format.DateUtils
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -25,9 +26,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,7 +69,7 @@ private fun MailList() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f)) { TopBar("Inbox") { Ui.back() } }
             IconButton(onClick = { Relay.refresh() }, enabled = !Relay.loading) {
-                Icon(Icons.Rounded.Refresh, "Refresh", tint = if (Relay.loading) Muted else Mist)
+                Icon(LodicaIcons.Reload, "Refresh", tint = if (Relay.loading) Muted else Mist)
             }
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
@@ -85,7 +83,7 @@ private fun MailList() {
             if (Relay.mails.isEmpty()) item {
                 Text(
                     if (Relay.loading) "Loading…" else if (Relay.error != null) "Mail unknown. Tap refresh to retry" else "No mail yet",
-                    color = Muted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    color = Muted, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             }
             items(Relay.mails, key = { "m" + it.id }) { m ->
@@ -93,14 +91,14 @@ private fun MailList() {
                     Modifier.fillMaxWidth().clickable { Relay.selected = m.id }
                         .padding(horizontal = 20.dp, vertical = 8.dp),
                 ) {
-                    Text(m.subject.ifBlank { "(no subject)" }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(m.subject.ifBlank { "(no subject)" }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         "${when_(m)} · ${m.from.ifBlank { "unknown sender" }}",
-                        color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         Relay.siteOf(m.to)?.let { "for $it · ${m.to}" } ?: m.to,
-                        color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -139,23 +137,23 @@ private fun MailList() {
             if (Relay.aliases.isEmpty()) item {
                 Text(
                     "Tap \"Hidden email\" on a sign-up form to make one",
-                    color = Muted, fontSize = 14.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                    color = Muted, fontSize = 15.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                 )
             }
             items(Relay.aliases.sortedByDescending { it.created }, key = { "a" + it.address }) { a ->
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        SelectionContainer { Text(a.address, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                        SelectionContainer { Text(a.address, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                         Text(
                             "${if (!a.own.isNullOrEmpty()) "Forwarded from ${a.own}" else a.site} · ${DateUtils.getRelativeTimeSpanString(a.created)}",
-                            color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
                     IconButton(onClick = {
                         confirm = Confirm("Forget address?", "${a.address} is removed from this list. Mail to it still arrives at the relay.", "Forget") {
                             Relay.forget(a)
                         }
-                    }) { Icon(Icons.Rounded.Close, "Forget", tint = Muted, modifier = Modifier.size(18.dp)) }
+                    }) { Icon(LodicaIcons.Close, "Forget", tint = Muted, modifier = Modifier.size(18.dp)) }
                 }
             }
         }
@@ -180,7 +178,7 @@ private fun MailDetail(m: Mail) {
             }) { Text("Delete", color = Danger) }
         }
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
-            Text(m.subject.ifBlank { "(no subject)" }, color = Mist, fontSize = 18.sp)
+            Text(m.subject.ifBlank { "(no subject)" }, color = Mist, fontSize = 20.sp)
             Spacer(Modifier.height(6.dp))
             Text("From ${m.from.ifBlank { "unknown" }}", color = Muted, fontSize = 12.sp)
             Text("To ${m.to}${Relay.siteOf(m.to)?.let { " ($it)" } ?: ""}", color = Muted, fontSize = 12.sp)
@@ -195,7 +193,7 @@ private fun MailDetail(m: Mail) {
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = 12.dp), color = GraphiteHigh)
-            SelectionContainer { Text(m.text.ifBlank { "(no text body)" }, color = Mist, fontSize = 14.sp) }
+            SelectionContainer { Text(m.text.ifBlank { "(no text body)" }, color = Mist, fontSize = 15.sp) }
             Spacer(Modifier.height(32.dp))
         }
     }

@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -23,12 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Block
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Gradient
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,7 +63,7 @@ internal fun RoundChoice(
             contentAlignment = Alignment.Center,
         ) { content() }
         Text(
-            label, color = if (selected) Amber else Muted, fontSize = 11.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            label, color = if (selected) Amber else Muted, fontSize = 12.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal, modifier = Modifier.padding(top = 4.dp),
         )
@@ -163,14 +158,14 @@ internal fun ThemePreview(p: Palette = ThemeState.palette) {
         Row(Modifier.fillMaxWidth().background(raised).padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Lodica", "Mail", "Docs").forEachIndexed { i, t ->
                 Text(
-                    t, color = if (i == 0) accent else muted, fontSize = 11.sp, maxLines = 1,
+                    t, color = if (i == 0) accent else muted, fontSize = 12.sp, maxLines = 1,
                     modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (i == 0) bg else Color.Transparent).padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
         }
         Row(Modifier.fillMaxWidth().background(raised).padding(horizontal = 8.dp).padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "lodica://search", color = muted, fontSize = 11.sp,
+                "lodica://search", color = muted, fontSize = 12.sp,
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(bg).padding(horizontal = 10.dp, vertical = 6.dp),
             )
             Spacer(Modifier.width(8.dp))
@@ -195,7 +190,7 @@ internal fun ThemePreview(p: Palette = ThemeState.palette) {
 private fun TypeChoice(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
     RoundChoice(label, selected, onClick = onClick) {
         Box(Modifier.fillMaxWidth().fillMaxHeight().background(GraphiteRaised), contentAlignment = Alignment.Center) {
-            Icon(if (selected) Icons.Rounded.Check else icon, null, tint = if (selected) Amber else Mist, modifier = Modifier.size(22.dp))
+            Icon(if (selected) LodicaIcons.Check else icon, null, tint = if (selected) Amber else Mist, modifier = Modifier.size(22.dp))
         }
     }
 }
@@ -207,10 +202,10 @@ internal fun BackgroundTypes(onNone: () -> Unit, onGradient: () -> Unit, onColou
         Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        TypeChoice("None", Icons.Rounded.Block, Prefs.startBg == "none", onNone)
-        TypeChoice("Gradient", Icons.Rounded.Gradient, Prefs.startBg == "gradient", onGradient)
-        TypeChoice("Colour", Icons.Rounded.Palette, Prefs.startBg == "color", onColour)
-        TypeChoice("Image", Icons.Rounded.Image, Prefs.startBg == "image", onImage)
+        TypeChoice("None", LodicaIcons.ShieldOff, Prefs.startBg == "none", onNone)
+        TypeChoice("Gradient", LodicaIcons.Palette, Prefs.startBg == "gradient", onGradient)
+        TypeChoice("Colour", LodicaIcons.Palette, Prefs.startBg == "color", onColour)
+        TypeChoice("Image", LodicaIcons.Image, Prefs.startBg == "image", onImage)
     }
 }
 

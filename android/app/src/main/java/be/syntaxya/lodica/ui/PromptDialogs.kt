@@ -92,7 +92,7 @@ private fun Dialog(
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Mist,
-        title = title?.let { { Text(it, fontSize = 18.sp) } },
+        title = title?.let { { Text(it, fontSize = 20.sp) } },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) { body() } },
         confirmButton = {
             if (confirm != null) DlgPrimary(onClick = onConfirm) { Text(confirm) }
@@ -127,7 +127,7 @@ private fun AskPrompt(req: Req.Ask) {
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Mist,
-        title = { Text(req.title, fontSize = 18.sp) },
+        title = { Text(req.title, fontSize = 20.sp) },
         text = {
             Column {
                 Origin(req.host)
@@ -138,7 +138,7 @@ private fun AskPrompt(req: Req.Ask) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Checkbox(remember, { remember = it }, colors = boxColors())
-                        Text("Remember for this site", color = Muted, fontSize = 14.sp)
+                        Text("Remember for this site", color = Muted, fontSize = 15.sp)
                     }
                 }
             }

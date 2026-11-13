@@ -19,7 +19,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,17 +41,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.viewinterop.AndroidView
 import org.mozilla.geckoview.GeckoView
@@ -179,7 +167,7 @@ fun SettingsScreen() {
             val words = find.trim().lowercase().split(" ").filter { it.isNotEmpty() }
             val hits = SettingsIndex.filter { e -> words.all { w -> e.text.contains(w) } }
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-                if (hits.isEmpty()) Text("No setting matches", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
+                if (hits.isEmpty()) Text("No setting matches", color = Muted, fontSize = 15.sp, modifier = Modifier.padding(20.dp))
                 hits.forEach { e ->
                     Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { Ui.settingsTarget = e.title; tab = e.tab; find = "" }.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.Center) {
                         Text(e.title, color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium)
@@ -200,7 +188,7 @@ fun SettingsScreen() {
                                 RowTile(SettingsIcons[i])
                                 Spacer(Modifier.width(14.dp))
                                 Text(SettingsTabs[i], color = Mist, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-                                Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Muted)
+                                Icon(LodicaIcons.Chevron, null, tint = Muted)
                             }
                         }
                     }
@@ -366,7 +354,7 @@ fun SettingsScreen() {
 
                 }
                 6 -> {
-                    StatusCard(Icons.Rounded.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
+                    StatusCard(LodicaIcons.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
                         if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
                     Section("Passwords")
             LinkRow("Passwords") { Ui.go(Screen.Passwords) }
@@ -492,8 +480,8 @@ fun SettingsScreen() {
                                     .clickable { TabManager.open(t.url); Ui.screen = Screen.Browser }
                                     .padding(horizontal = 20.dp, vertical = 6.dp),
                             ) {
-                                Text(t.title.ifBlank { t.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(t.url, color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(t.title.ifBlank { t.url }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text(t.url, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                     }
@@ -503,9 +491,9 @@ fun SettingsScreen() {
                 11 -> {
                     Section("Server")
                     if (!Relay.available) {
-                        StatusCard(Icons.Rounded.Cloud, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
+                        StatusCard(LodicaIcons.Globe, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
                     } else {
-                        StatusCard(Icons.Rounded.Cloud, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
+                        StatusCard(LodicaIcons.Globe, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
                         LinkRow("Inbox") { Ui.go(Screen.Inbox) }
                         LinkRow("Disconnect server") { Relay.disconnect() }
                         Section("Chat")
@@ -670,7 +658,7 @@ fun SettingsScreen() {
         AlertDialog(
             onDismissRequest = { codeShown = null },
             containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
-            icon = { IconTile(Icons.Rounded.Smartphone, 48) },
+            icon = { IconTile(LodicaIcons.Phone, 48) },
             title = { Text("Link code") },
             text = {
                 Column {
@@ -828,7 +816,7 @@ private fun EmojiKeyboardSection() {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (bmp != null) androidx.compose.foundation.Image(bmp, e.name, Modifier.size(32.dp))
             Text(if (e.name.all { it.isDigit() }) "Custom emoji" else e.name, color = Mist, modifier = Modifier.weight(1f).padding(start = 12.dp))
-            IconButton(onClick = { Emojis.remove(e.name) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Danger) }
+            IconButton(onClick = { Emojis.remove(e.name) }) { Icon(LodicaIcons.Delete, "Delete", tint = Danger) }
         }
     }
 }
@@ -1114,7 +1102,7 @@ private fun QualityPicker() {
                 Text("Video quality", color = Mist, fontSize = 15.sp)
                 Text("YouTube default. Change per site from the site menu", color = Muted, fontSize = 13.sp)
             }
-            Text("${Prefs.quality}p", color = Muted, fontSize = 14.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
+            Text("${Prefs.quality}p", color = Muted, fontSize = 15.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
@@ -1168,7 +1156,7 @@ internal fun ConfirmDialog(c: Confirm, dismiss: () -> Unit) {
         containerColor = GraphiteRaised,
         titleContentColor = Mist,
         textContentColor = Muted,
-        icon = { IconTile(Icons.Rounded.Delete, 48, Danger) },
+        icon = { IconTile(LodicaIcons.Delete, 48, Danger) },
         title = { Text(c.title) },
         text = { Text(c.body) },
         confirmButton = { DlgDanger(onClick = { c.run(); dismiss() }) { Text(c.action) } },
@@ -1199,7 +1187,7 @@ private fun StatusCard(icon: ImageVector, title: String, sub: String, ok: Boolea
 @Composable
 internal fun TopBar(title: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = Mist) }
+        IconButton(onClick = onBack) { Icon(LodicaIcons.Back, "Back", tint = Mist) }
         Text(title, color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
     }
 }
@@ -1223,10 +1211,10 @@ private fun EnginePicker(title: String, current: SearchEngine, options: List<Sea
             Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RowTile(Icons.Rounded.Search)
+            RowTile(LodicaIcons.Search)
             Spacer(Modifier.width(14.dp))
             Text(title, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text(current.label, color = Muted, fontSize = 14.sp)
+            Text(current.label, color = Muted, fontSize = 15.sp)
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
@@ -1250,7 +1238,7 @@ private fun AgentPicker() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Identify as", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text(Prefs.userAgent.label, color = Muted, fontSize = 14.sp)
+            Text(Prefs.userAgent.label, color = Muted, fontSize = 15.sp)
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
@@ -1292,7 +1280,7 @@ private fun LanguagePicker() {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("Site language", color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-            Text(Prefs.language.label, color = Muted, fontSize = 14.sp)
+            Text(Prefs.language.label, color = Muted, fontSize = 15.sp)
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
@@ -1334,41 +1322,41 @@ internal fun rowIcon(title: String): ImageVector {
     val t = title.lowercase()
     fun has(vararg k: String) = k.any { t.contains(it) }
     return when {
-        has("notification") -> Icons.Rounded.Notifications
-        has("battery") -> Icons.Rounded.BatteryChargingFull
-        has("disconnect") -> Icons.Rounded.LinkOff
+        has("notification") -> LodicaIcons.Alarm
+        has("battery") -> LodicaIcons.Speed
+        has("disconnect") -> LodicaIcons.Link
         has("set up", "setup") -> LodicaIcons.Sliders
-        has("instant") -> Icons.Rounded.Bolt
-        has("anthropic", "api key") -> Icons.Rounded.Key
-        has("memory") -> Icons.Rounded.Memory
-        has("own domain") -> Icons.Rounded.Public
-        has("original domain") -> Icons.Rounded.Link
-        has("shortcut") -> Icons.Rounded.Bolt
-        has("smoother", "scrolling") -> Icons.Rounded.Swipe
-        has("clear", "reset", "forget", "delete", "remove") -> Icons.Rounded.DeleteOutline
-        has("history") -> Icons.Rounded.History
-        has("password") -> Icons.Rounded.Key
-        has("authenticator") -> Icons.Rounded.Shield
-        has("inbox", "mail") -> Icons.Rounded.Email
-        has("chat") -> Icons.Rounded.ChatBubbleOutline
-        has("search", "suggest") -> Icons.Rounded.Search
-        has("ai ") -> Icons.Rounded.AutoAwesome
-        has("https", "cookie", "block", "privacy", "permission", "tracking") -> Icons.Rounded.Shield
-        has("dns") -> Icons.Rounded.Dns
-        has("vps", "server", "tunnel", "route") -> Icons.Rounded.VpnKey
-        has("desktop") -> Icons.Rounded.DesktopWindows
-        has("language") -> Icons.Rounded.Language
-        has("quality", "speed", "video") -> Icons.Rounded.Speed
-        has("theme", "colour", "color", "dark", "widget", "background") -> Icons.Rounded.Palette
-        has("tab") -> Icons.Rounded.Tab
-        has("download") -> Icons.Rounded.Download
-        has("gesture", "swipe", "bars") -> Icons.Rounded.Gesture
-        has("update", "what's new", "up to date") -> Icons.Rounded.Update
-        has("extension") -> Icons.Rounded.Extension
-        has("web app", "install") -> Icons.Rounded.Apps
-        has("import") -> Icons.Rounded.Download
+        has("instant") -> LodicaIcons.Speed
+        has("anthropic", "api key") -> LodicaIcons.Key
+        has("memory") -> LodicaIcons.Data
+        has("own domain") -> LodicaIcons.Globe
+        has("original domain") -> LodicaIcons.Link
+        has("shortcut") -> LodicaIcons.Speed
+        has("smoother", "scrolling") -> LodicaIcons.Forward
+        has("clear", "reset", "forget", "delete", "remove") -> LodicaIcons.Delete
+        has("history") -> LodicaIcons.History
+        has("password") -> LodicaIcons.Key
+        has("authenticator") -> LodicaIcons.Shield
+        has("inbox", "mail") -> LodicaIcons.Email
+        has("chat") -> LodicaIcons.Chat
+        has("search", "suggest") -> LodicaIcons.Search
+        has("ai ") -> LodicaIcons.Ai
+        has("https", "cookie", "block", "privacy", "permission", "tracking") -> LodicaIcons.Shield
+        has("dns") -> LodicaIcons.Data
+        has("vps", "server", "tunnel", "route") -> LodicaIcons.Key
+        has("desktop") -> LodicaIcons.Desktop
+        has("language") -> LodicaIcons.Globe
+        has("quality", "speed", "video") -> LodicaIcons.Speed
+        has("theme", "colour", "color", "dark", "widget", "background") -> LodicaIcons.Palette
+        has("tab") -> LodicaIcons.Tabs
+        has("download") -> LodicaIcons.Download
+        has("gesture", "swipe", "bars") -> LodicaIcons.Edit
+        has("update", "what's new", "up to date") -> LodicaIcons.Reload
+        has("extension") -> LodicaIcons.Apps
+        has("web app", "install") -> LodicaIcons.Apps
+        has("import") -> LodicaIcons.Download
         has("set up", "setup") -> LodicaIcons.Sliders
-        else -> Icons.Rounded.Tune
+        else -> LodicaIcons.Sliders
     }
 }
 
@@ -1424,7 +1412,7 @@ internal fun LinkRow(title: String, color: androidx.compose.ui.graphics.Color = 
         RowTile(rowIcon(title), if (color == Mist) Muted else color)
         Spacer(Modifier.width(14.dp))
         Text(title, color = color, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Muted)
+        Icon(LodicaIcons.Chevron, null, tint = Muted)
     }
 }
 
@@ -1469,7 +1457,7 @@ private fun SitePermsSection(version: Int, changed: () -> Unit) {
 internal fun InfoRow(title: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
         Text(title, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
-        Text(value, color = Muted, fontSize = 14.sp)
+        Text(value, color = Muted, fontSize = 15.sp)
     }
 }
 
@@ -1479,12 +1467,12 @@ private fun FilterField(value: String, hint: String, onChange: (String) -> Unit)
         value, onChange,
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         placeholder = { Text(hint, color = Muted) },
-        leadingIcon = { Icon(Icons.Rounded.Search, null, tint = Muted) },
+        leadingIcon = { Icon(LodicaIcons.Search, null, tint = Muted) },
         trailingIcon = {
-            if (value.isNotEmpty()) IconButton(onClick = { onChange("") }) { Icon(Icons.Rounded.Close, "Clear", tint = Muted) }
+            if (value.isNotEmpty()) IconButton(onClick = { onChange("") }) { Icon(LodicaIcons.Close, "Clear", tint = Muted) }
         },
         singleLine = true,
-        shape = RoundedCornerShape(50),
+        shape = RoundedCornerShape(10.dp),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
@@ -1523,7 +1511,7 @@ fun HistoryScreen() {
             if (shown.isEmpty()) item {
                 Text(
                     if (items.isEmpty()) "No history yet" else "No matches",
-                    color = Muted, fontSize = 14.sp, modifier = Modifier.padding(32.dp),
+                    color = Muted, fontSize = 15.sp, modifier = Modifier.padding(32.dp),
                 )
             }
             items(shown, key = { it.url }) { v ->
@@ -1533,17 +1521,17 @@ fun HistoryScreen() {
                         .padding(start = 16.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconTile(Icons.Rounded.Language, 40)
+                    IconTile(LodicaIcons.Globe, 40)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(v.title.ifBlank { v.url }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
                             "${if (System.currentTimeMillis() - v.last < 60_000) "Just now" else DateUtils.getRelativeTimeSpanString(v.last)}${if (v.title.isBlank() || v.title == v.url) "" else " · ${v.url}"}",
-                            color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
                     IconButton(onClick = { History.remove(v.url); items.remove(v) }) {
-                        Icon(Icons.Rounded.Close, "Remove", tint = Muted, modifier = Modifier.size(18.dp))
+                        Icon(LodicaIcons.Close, "Remove", tint = Muted, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -1600,7 +1588,7 @@ fun PasswordsScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                IconTile(Icons.Rounded.Lock, 80, Amber)
+                IconTile(LodicaIcons.Lock, 80, Amber)
                 Spacer(Modifier.height(16.dp))
                 Text("Passwords are locked", color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
                 error?.let { Text(it, color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
@@ -1618,7 +1606,7 @@ fun PasswordsScreen() {
             if (shown.isEmpty()) item {
                 Text(
                     if (logins.isEmpty()) "No saved logins" else "No matches",
-                    color = Muted, fontSize = 14.sp, modifier = Modifier.padding(20.dp),
+                    color = Muted, fontSize = 15.sp, modifier = Modifier.padding(20.dp),
                 )
             }
             items(shown, key = { it.guid }) { l ->
@@ -1647,29 +1635,29 @@ private fun LoginCard(l: SavedLogin, modifier: Modifier, onDelete: () -> Unit) {
                 l.origin.removePrefix("https://").removePrefix("www."), color = Mist, fontSize = 15.sp,
                 fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onDelete) { Icon(Icons.Rounded.Delete, "Delete", tint = Muted, modifier = Modifier.size(20.dp)) }
+            IconButton(onClick = onDelete) { Icon(LodicaIcons.Delete, "Delete", tint = Muted, modifier = Modifier.size(20.dp)) }
         }
         HorizontalDivider(Modifier.padding(end = 16.dp, bottom = 4.dp), color = GraphiteHigh)
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Person, null, tint = Muted, modifier = Modifier.size(18.dp))
+            Icon(LodicaIcons.Smile, null, tint = Muted, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
-            Text(l.username.ifEmpty { "(no username)" }, color = Mist, fontSize = 14.sp, maxLines = 1,
+            Text(l.username.ifEmpty { "(no username)" }, color = Mist, fontSize = 15.sp, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             IconButton(onClick = { copy(ctx, l.username) }) {
-                Icon(Icons.Rounded.ContentCopy, "Copy username", tint = Muted, modifier = Modifier.size(18.dp))
+                Icon(LodicaIcons.Copy, "Copy username", tint = Muted, modifier = Modifier.size(18.dp))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Lock, null, tint = Muted, modifier = Modifier.size(18.dp))
+            Icon(LodicaIcons.Lock, null, tint = Muted, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(10.dp))
             Text(
                 if (reveal) l.password else "•".repeat(l.password.length.coerceIn(6, 14)),
-                color = Mist, fontSize = 14.sp, fontFamily = FontFamily.Monospace, maxLines = 1,
+                color = Mist, fontSize = 15.sp, fontFamily = FontFamily.Monospace, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
             )
             IconButton(onClick = { reveal = !reveal }) {
                 Icon(
-                    if (reveal) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                    if (reveal) LodicaIcons.Private else LodicaIcons.Preview,
                     if (reveal) "Hide" else "Show", tint = Muted, modifier = Modifier.size(18.dp),
                 )
             }
@@ -1677,7 +1665,7 @@ private fun LoginCard(l: SavedLogin, modifier: Modifier, onDelete: () -> Unit) {
                 copy(ctx, l.password, sensitive = true)
                 Toast.makeText(ctx, "Password copied", Toast.LENGTH_SHORT).show()
             }) {
-                Icon(Icons.Rounded.ContentCopy, "Copy password", tint = Amber, modifier = Modifier.size(18.dp))
+                Icon(LodicaIcons.Copy, "Copy password", tint = Amber, modifier = Modifier.size(18.dp))
             }
         }
     }
@@ -1696,8 +1684,8 @@ private val SettingsTabs = listOf(
 )
 
 private val SettingsIcons = listOf(
-    Icons.Rounded.Search, Icons.Rounded.Language, Icons.Rounded.AutoAwesome, Icons.Rounded.Palette, Icons.Rounded.Home, Icons.Rounded.Tab, Icons.Rounded.History,
-    Icons.Rounded.Shield, Icons.Rounded.Extension, Icons.Rounded.Gesture, Icons.Rounded.Link, Icons.Rounded.Email, Icons.Rounded.Key, Icons.Rounded.Update,
+    LodicaIcons.Search, LodicaIcons.Globe, LodicaIcons.Ai, LodicaIcons.Palette, LodicaIcons.Home, LodicaIcons.Tabs, LodicaIcons.History,
+    LodicaIcons.Shield, LodicaIcons.Apps, LodicaIcons.Edit, LodicaIcons.Link, LodicaIcons.Email, LodicaIcons.Key, LodicaIcons.Reload,
 )
 
 /** Landing list: group title to the pages inside it. */
@@ -1969,7 +1957,7 @@ private fun ControlsSection() {
         "Long-press a link or image" to "Open the context menu",
     ).forEach { (g, a) ->
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(g, color = Mist, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(g, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(a, color = Muted, fontSize = 13.sp)
         }
     }
@@ -1983,11 +1971,11 @@ private fun GestureRow(slot: GestureSlot) {
             Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RowTile(Icons.Rounded.Gesture)
+            RowTile(LodicaIcons.Edit)
             Spacer(Modifier.width(14.dp))
             Text(slot.label, color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
             Text(slot.action.label, color = Amber, fontSize = 13.sp)
-            Icon(Icons.Rounded.ArrowDropDown, null, tint = Muted)
+            Icon(LodicaIcons.Down, null, tint = Muted)
         }
         Box(Modifier.align(Alignment.TopEnd)) {
             DropdownMenu(open, { open = false }, containerColor = GraphiteHigh) {
@@ -2051,7 +2039,7 @@ private fun DnsSection(wordsOnly: Boolean = false) {
             onDismissRequest = { rules = false }, sheetState = sheet, containerColor = GraphiteRaised,
         ) {
             Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-                Text("Own domain names", color = Mist, fontSize = 18.sp)
+                Text("Own domain names", color = Mist, fontSize = 20.sp)
                 Text("Opening the domain loads the redirect target instead. Works in this browser only, without the VPS. A domain can be go.ogle, .home or *.lab.me.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                 OutlinedTextField(
                     from, { from = it }, Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true,
@@ -2076,7 +2064,7 @@ private fun DnsSection(wordsOnly: Boolean = false) {
                                 Text(p[0], color = Mist, fontSize = 15.sp)
                                 Text("→ " + p[1], color = Muted, fontSize = 13.sp)
                             }
-                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(Icons.Rounded.Delete, "Remove", tint = Muted) }
+                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(LodicaIcons.Delete, "Remove", tint = Muted) }
                         }
                     }
                 }
@@ -2093,7 +2081,7 @@ private fun DnsSection(wordsOnly: Boolean = false) {
             onDismissRequest = { words = false }, sheetState = sheet, containerColor = GraphiteRaised,
         ) {
             Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
-                Text("Search words", color = Mist, fontSize = 18.sp)
+                Text("Search words", color = Mist, fontSize = 20.sp)
                 Text("Typing only this word in the address bar opens the site, e.g. youtube opens youtube.com.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                 OutlinedTextField(
                     word, { word = it }, Modifier.fillMaxWidth().padding(top = 12.dp), singleLine = true,
@@ -2118,7 +2106,7 @@ private fun DnsSection(wordsOnly: Boolean = false) {
                                 Text(p[0], color = Mist, fontSize = 15.sp)
                                 Text("→ " + p[1], color = Muted, fontSize = 13.sp)
                             }
-                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(Icons.Rounded.Delete, "Remove", tint = Muted) }
+                            IconButton(onClick = { save(pairs.filter { it !== p }) }) { Icon(LodicaIcons.Delete, "Remove", tint = Muted) }
                         }
                     }
                 }

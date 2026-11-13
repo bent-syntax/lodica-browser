@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,10 +17,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -69,7 +66,7 @@ fun ChatsScreen() {
                 Modifier.fillMaxWidth().clickable { fresh = true }.padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Icon(Icons.Rounded.Add, null, tint = Amber)
+                Icon(LodicaIcons.Add, null, tint = Amber)
                 Text("New chat", color = Amber, fontSize = 15.sp)
             }
             if (Chats.list.isEmpty()) Text("No chats yet. Chats made on a linked device show up here.", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 20.dp))
@@ -83,7 +80,7 @@ fun ChatsScreen() {
                                 color = Muted, fontSize = 12.sp,
                             )
                         }
-                        IconButton(onClick = { Chats.delete(c.id) }) { Icon(Icons.Rounded.Delete, "Delete", tint = Muted) }
+                        IconButton(onClick = { Chats.delete(c.id) }) { Icon(LodicaIcons.Delete, "Delete", tint = Muted) }
                     }
                 }
             }
@@ -102,7 +99,7 @@ fun ChatsScreen() {
                             (if (mine) Modifier.fillMaxWidth(0.88f) else Modifier.fillMaxWidth()).clip(RoundedCornerShape(20.dp))
                                 .background(if (mine) GraphiteRaised else Graphite),
                         ) {
-                            Text(m.text, color = Mist, fontSize = 14.sp, modifier = Modifier.padding(12.dp))
+                            Text(m.text, color = Mist, fontSize = 15.sp, modifier = Modifier.padding(12.dp))
                         }
                     }
                 }
@@ -131,7 +128,7 @@ fun ChatsScreen() {
                             if (err != null) Toast.makeText(ctx, err, Toast.LENGTH_LONG).show()
                         }
                     },
-                ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (!busy && text.isNotBlank()) OnAmber else Muted) }
+                ) { Icon(LodicaIcons.Forward, "Send", tint = if (!busy && text.isNotBlank()) OnAmber else Muted) }
             }
         }
     }

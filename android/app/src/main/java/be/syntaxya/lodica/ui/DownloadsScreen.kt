@@ -1,12 +1,12 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import android.text.format.DateUtils
 import android.text.format.Formatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.material.icons.rounded.InsertDriveFile
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.IconTile
 import androidx.compose.foundation.layout.Box
@@ -19,11 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -96,7 +91,7 @@ fun DownloadsScreen() {
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
             if (items.isEmpty()) item {
-                Text("Nothing downloaded yet", color = Muted, fontSize = 14.sp, modifier = Modifier.padding(32.dp))
+                Text("Nothing downloaded yet", color = Muted, fontSize = 15.sp, modifier = Modifier.padding(32.dp))
             }
             items(items, key = { it.id }) { d ->
                 Row(
@@ -105,10 +100,10 @@ fun DownloadsScreen() {
                         .padding(start = 12.dp, top = 12.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconTile(Icons.Rounded.InsertDriveFile, 44, if (d.status == Dl.ACTIVE) Amber else null)
+                    IconTile(LodicaIcons.Clip, 44, if (d.status == Dl.ACTIVE) Amber else null)
                     androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(d.name, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(d.name, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         when (d.status) {
                             Dl.ACTIVE -> {
                                 if (d.total > 0) LinearProgressIndicator(
@@ -118,14 +113,14 @@ fun DownloadsScreen() {
                                 val got = Formatter.formatShortFileSize(ctx, d.received)
                                 Text(
                                     (if (d.total > 0) "$got of ${Formatter.formatShortFileSize(ctx, d.total)}" else "$got downloaded") + (if (d.paused) " · Paused" else ""),
-                                    color = Muted, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp),
+                                    color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp),
                                 )
                             }
                             Dl.DONE -> Text(
                                 (if (d.received > 0) Formatter.formatShortFileSize(ctx, d.received) + " · " else "") + DateUtils.getRelativeTimeSpanString(d.at),
-                                color = Muted, fontSize = 11.sp,
+                                color = Muted, fontSize = 12.sp,
                             )
-                            else -> Text("Failed · " + DateUtils.getRelativeTimeSpanString(d.at), color = Coral, fontSize = 11.sp)
+                            else -> Text("Failed · " + DateUtils.getRelativeTimeSpanString(d.at), color = Coral, fontSize = 12.sp)
                         }
                     }
                     if (d.status == Dl.ACTIVE && d.total > 0) Text(
@@ -134,17 +129,17 @@ fun DownloadsScreen() {
                     )
                     if (d.status == Dl.ACTIVE) {
                         IconButton(onClick = { Downloads.pause(ctx, d, !d.paused) }) {
-                            Icon(if (d.paused) Icons.Rounded.PlayArrow else Icons.Rounded.Pause, if (d.paused) "Resume" else "Pause", tint = Amber, modifier = Modifier.size(20.dp))
+                            Icon(if (d.paused) LodicaIcons.Play else LodicaIcons.Pause, if (d.paused) "Resume" else "Pause", tint = Amber, modifier = Modifier.size(20.dp))
                         }
                         IconButton(onClick = { Downloads.cancel(d) }) {
-                            Icon(Icons.Rounded.Close, "Cancel download", tint = Muted, modifier = Modifier.size(18.dp))
+                            Icon(LodicaIcons.Close, "Cancel download", tint = Muted, modifier = Modifier.size(18.dp))
                         }
                     }
                     if (d.status == Dl.DONE) IconButton(onClick = { Downloads.open(ctx, d) }) {
-                        Icon(Icons.Rounded.FolderOpen, "Open", tint = Muted, modifier = Modifier.size(20.dp))
+                        Icon(LodicaIcons.Folder, "Open", tint = Muted, modifier = Modifier.size(20.dp))
                     }
                     if (d.status != Dl.ACTIVE) IconButton(onClick = { Downloads.remove(ctx, d) }) {
-                        Icon(Icons.Rounded.Close, "Remove from list", tint = Muted, modifier = Modifier.size(18.dp))
+                        Icon(LodicaIcons.Close, "Remove from list", tint = Muted, modifier = Modifier.size(18.dp))
                     }
                 }
             }

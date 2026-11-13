@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -26,16 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Remove
-import androidx.compose.material.icons.rounded.Send
-import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -82,7 +73,7 @@ fun AgentPanel() {
                     .clickable { AiAgent.minimized = false }.padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Icon(Icons.Rounded.AutoAwesome, null, tint = Amber, modifier = Modifier.size(20.dp).alpha(if (AiAgent.running) pulse.value else 1f))
+                Icon(LodicaIcons.Ai, null, tint = Amber, modifier = Modifier.size(20.dp).alpha(if (AiAgent.running) pulse.value else 1f))
                 Text(if (AiAgent.running) "AI working" else "AI", color = Mist, fontSize = 13.sp)
             }
         }
@@ -102,16 +93,16 @@ fun AgentPanel() {
                 .border(BorderStroke(1.dp, if (AiAgent.running) Amber else Muted.copy(alpha = 0.3f)), RoundedCornerShape(20.dp)),
         ) {
             Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (older) IconButton(modifier = Modifier.size(36.dp), onClick = { if (viewing != null) viewing = null else older = false }) { Icon(Icons.Rounded.ArrowBack, "Back", tint = Mist) }
-                else Icon(Icons.Rounded.AutoAwesome, null, tint = Amber, modifier = Modifier.size(20.dp))
+                if (older) IconButton(modifier = Modifier.size(36.dp), onClick = { if (viewing != null) viewing = null else older = false }) { Icon(LodicaIcons.Back, "Back", tint = Mist) }
+                else Icon(LodicaIcons.Ai, null, tint = Amber, modifier = Modifier.size(20.dp))
                 Column(Modifier.weight(1f).padding(start = 8.dp, end = 4.dp)) {
                     Text(if (older) "Older chats" else "AI browser", color = Mist, fontSize = 15.sp, maxLines = 1, softWrap = false, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                 }
-                if (!older && !AiAgent.running && AiAgent.steps.isNotEmpty()) IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.newSession() }) { Icon(Icons.Rounded.Add, "New chat", tint = Muted) }
-                if (!older) IconButton(modifier = Modifier.size(36.dp), onClick = { older = true }) { Icon(Icons.Rounded.History, "Older chats", tint = Muted) }
-                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(Icons.Rounded.Fullscreen, "Full screen", tint = Muted) }
-                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.minimized = true }) { Icon(Icons.Rounded.Remove, "Minimize", tint = Muted) }
-                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.stop(); AiAgent.open = false }) { Icon(Icons.Rounded.Close, "Close", tint = Muted) }
+                if (!older && !AiAgent.running && AiAgent.steps.isNotEmpty()) IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.newSession() }) { Icon(LodicaIcons.Add, "New chat", tint = Muted) }
+                if (!older) IconButton(modifier = Modifier.size(36.dp), onClick = { older = true }) { Icon(LodicaIcons.History, "Older chats", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.open = false; Ui.screen = Screen.Chats; Ui.returnTo = Screen.Browser }) { Icon(LodicaIcons.Desktop, "Full screen", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.minimized = true }) { Icon(LodicaIcons.Remove, "Minimize", tint = Muted) }
+                IconButton(modifier = Modifier.size(36.dp), onClick = { AiAgent.stop(); AiAgent.open = false }) { Icon(LodicaIcons.Close, "Close", tint = Muted) }
             }
             if (!older) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 val cur = if (AiAgent.running) AiAgent.level else Prefs.aiAgentMode
@@ -165,7 +156,7 @@ fun AgentPanel() {
                     IconButton(
                         onClick = { if (AiAgent.running) AiAgent.stop() else { AiAgent.start(input); input = "" } },
                         modifier = Modifier.size(44.dp).clip(CircleShape).background(if (AiAgent.running) Danger else Amber),
-                    ) { Icon(if (AiAgent.running) Icons.Rounded.Stop else Icons.Rounded.Send, if (AiAgent.running) "Stop" else "Send", tint = OnAmber) }
+                    ) { Icon(if (AiAgent.running) LodicaIcons.Close else LodicaIcons.Forward, if (AiAgent.running) "Stop" else "Send", tint = OnAmber) }
                 }
             }
         }

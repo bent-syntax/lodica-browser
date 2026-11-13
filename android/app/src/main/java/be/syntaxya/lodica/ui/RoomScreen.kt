@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.content.Context
@@ -25,13 +26,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AttachFile
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.EmojiEmotions
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.Dispatchers
@@ -153,14 +147,14 @@ fun RoomScreen() {
                     )
                     if (on && r.isNotEmpty()) {
                         Icon(
-                            Icons.Rounded.Close, "Remove chat", tint = GraphiteRaised,
+                            LodicaIcons.Close, "Remove chat", tint = GraphiteRaised,
                             modifier = Modifier.padding(start = 6.dp).clickable { Room.removeChat(ctx, r) },
                         )
                     }
                 }
             }
             item {
-                IconButton(onClick = { adding = true }) { Icon(Icons.Rounded.Add, "New chat", tint = Amber) }
+                IconButton(onClick = { adding = true }) { Icon(LodicaIcons.Add, "New chat", tint = Amber) }
             }
         }
         Text(
@@ -195,7 +189,7 @@ fun RoomScreen() {
                             val q = Room.peers.firstOrNull { it.name == n }
                             PeerFace(n, q?.face.orEmpty(), q?.art.orEmpty(), 20.dp)
                         }
-                        Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+                        Text("Seen by ${here.joinToString(", ")}", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp))
                     }
                 }
             }
@@ -233,14 +227,14 @@ fun RoomScreen() {
                 }
             }
             if (myArt.isNotEmpty()) CostumeArt(myArt, 28.dp, Modifier.clickable { costume = true }.padding(2.dp))
-            else Text(myFace.ifEmpty { "🎭" }, fontSize = 16.sp, modifier = Modifier.clickable { costume = true }.padding(4.dp))
+            else Text(myFace.ifEmpty { "🎭" }, fontSize = 15.sp, modifier = Modifier.clickable { costume = true }.padding(4.dp))
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column {
-                IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(Icons.Rounded.AttachFile, "Send a file (max 5 GB)", tint = Amber) }
-                IconButton(onClick = { emojis = true }) { Icon(Icons.Rounded.EmojiEmotions, "Server emojis", tint = Amber) }
+                IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(LodicaIcons.Clip, "Send a file (max 5 GB)", tint = Amber) }
+                IconButton(onClick = { emojis = true }) { Icon(LodicaIcons.Smile, "Server emojis", tint = Amber) }
             }
             Column(Modifier.weight(1f)) {
                 OutlinedTextField(
@@ -268,7 +262,7 @@ fun RoomScreen() {
                     sendError = null
                     Room.send(ctx, Room.name(ctx), t) { err -> if (err != null) { sendError = err; text = t } }
                 },
-            ) { Icon(Icons.AutoMirrored.Rounded.Send, "Send", tint = if (text.isNotBlank()) Amber else Muted) }
+            ) { Icon(LodicaIcons.Forward, "Send", tint = if (text.isNotBlank()) Amber else Muted) }
         }
     }
 }
@@ -344,10 +338,10 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
         ) {
             if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
             if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text) }
-            if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 11.sp)
+            if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 12.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
-                color = Muted, fontSize = 11.sp,
+                color = Muted, fontSize = 12.sp,
             )
         }
     }
@@ -388,10 +382,10 @@ private fun FileBody(m: RoomMsg) {
             Box(
                 Modifier.align(Alignment.TopEnd).padding(8.dp).size(32.dp).clip(CircleShape).background(GraphiteRaised.copy(alpha = 0.8f)).clickable { save.launch(m.fileName.ifBlank { "file" }) },
                 contentAlignment = Alignment.Center,
-            ) { Icon(Icons.Rounded.Download, "Download ${m.fileName}", tint = Mist, modifier = Modifier.size(24.dp)) }
+            ) { Icon(LodicaIcons.Download, "Download ${m.fileName}", tint = Mist, modifier = Modifier.size(24.dp)) }
         }
     }
-    status?.let { Text(it, color = Muted, fontSize = 11.sp) }
+    status?.let { Text(it, color = Muted, fontSize = 12.sp) }
 }
 
 /** Message text where :name: of a known server emoji is drawn as its image. */

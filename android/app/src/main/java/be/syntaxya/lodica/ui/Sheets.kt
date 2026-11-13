@@ -11,8 +11,6 @@ import android.widget.Toast
 import be.syntaxya.lodica.engine.WebApps
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.material.icons.rounded.ExpandLess
-import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -26,38 +24,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.material.icons.automirrored.outlined.Article as OutlinedArticle
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Alarm
-import androidx.compose.material.icons.rounded.Build
-import androidx.compose.material.icons.rounded.DataSaverOn
-import androidx.compose.material.icons.rounded.RestoreFromTrash
-import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.AlternateEmail
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.DesktopWindows
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.HighQuality
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Forum
-import androidx.compose.material.icons.rounded.Inbox
-import androidx.compose.material.icons.rounded.InstallMobile
-import androidx.compose.material.icons.rounded.Inventory2
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -110,7 +76,7 @@ fun MenuSheet() {
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Row(
@@ -118,17 +84,17 @@ fun MenuSheet() {
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 IconButton(modifier = navTile, onClick = { tab?.session?.goBack(); close() }, enabled = tab?.canBack == true) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back", tint = if (tab?.canBack == true) Mist else Muted)
+                    Icon(LodicaIcons.Back, "Back", tint = if (tab?.canBack == true) Mist else Muted)
                 }
                 IconButton(modifier = navTile, onClick = { tab?.session?.goForward(); close() }, enabled = tab?.canFwd == true) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, "Forward", tint = if (tab?.canFwd == true) Mist else Muted)
+                    Icon(LodicaIcons.Forward, "Forward", tint = if (tab?.canFwd == true) Mist else Muted)
                 }
                 IconButton(modifier = navTile, onClick = {
                     if (tab?.loading == true) tab.session?.stop() else tab?.session?.reload()
                     close()
                 }) {
-                    if (tab?.loading == true) Icon(Icons.Rounded.Close, "Stop", tint = Mist)
-                    else Icon(Icons.Rounded.Refresh, "Reload", tint = Mist)
+                    if (tab?.loading == true) Icon(LodicaIcons.Close, "Stop", tint = Mist)
+                    else Icon(LodicaIcons.Reload, "Reload", tint = Mist)
                 }
                 IconButton(modifier = navTile, onClick = {
                     tab?.let {
@@ -138,78 +104,78 @@ fun MenuSheet() {
                     }
                     close()
                 }, enabled = tab != null && tab.url != TabManager.HOME) {
-                    Icon(Icons.Rounded.Share, "Share", tint = Mist)
+                    Icon(LodicaIcons.Share, "Share", tint = Mist)
                 }
             }
             Spacer(Modifier.height(12.dp))
 
             val items = buildList {
-                add(MenuItem("new", Icons.Outlined.Add, "New tab") {
+                add(MenuItem("new", LodicaIcons.Add, "New tab") {
                     TabManager.open(TabManager.HOME); Ui.screen = Screen.Browser
                 })
-                add(MenuItem("private", Icons.Outlined.VisibilityOff, "Private tab", Private) {
+                add(MenuItem("private", LodicaIcons.Private, "Private tab", Private) {
                     TabManager.open(TabManager.HOME, private = true); Ui.screen = Screen.Browser
                 })
-                add(MenuItem("find", Icons.Outlined.Search, "Find in page") { Ui.finding = true })
-                add(MenuItem("desktop", Icons.Outlined.DesktopWindows, if (tab?.desktop == true) "Mobile site" else "Desktop site",
+                add(MenuItem("find", LodicaIcons.Search, "Find in page") { Ui.finding = true })
+                add(MenuItem("desktop", LodicaIcons.Desktop, if (tab?.desktop == true) "Mobile site" else "Desktop site",
                     if (tab?.desktop == true) Amber else Mist) {
                     tab?.let { TabManager.setDesktop(it, !it.desktop) }
                 })
-                add(MenuItem("downloads", Icons.Outlined.Download, "Downloads") { Ui.screen = Screen.Downloads })
-                add(MenuItem("history", Icons.Outlined.History, "History") { Ui.go(Screen.History) })
-                add(MenuItem("aichats", Icons.Outlined.AutoAwesome, "AI chats") { Ui.go(Screen.Chats) })
-                add(MenuItem("passwords", Icons.Outlined.Key, "Passwords") { Ui.go(Screen.Passwords) })
+                add(MenuItem("downloads", LodicaIcons.Download, "Downloads") { Ui.screen = Screen.Downloads })
+                add(MenuItem("history", LodicaIcons.History, "History") { Ui.go(Screen.History) })
+                add(MenuItem("aichats", LodicaIcons.Ai, "AI chats") { Ui.go(Screen.Chats) })
+                add(MenuItem("passwords", LodicaIcons.Key, "Passwords") { Ui.go(Screen.Passwords) })
                 add(MenuItem("settings", LodicaIcons.Sliders, "Settings") { Ui.screen = Screen.Settings })
                 if (Relay.available) {
-                    if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", Icons.Outlined.AlternateEmail, "Hidden email", Amber) {
+                    if (tab != null && tab.url != TabManager.HOME) add(MenuItem("hidden", LodicaIcons.Email, "Hidden email", Amber) {
                         if (!Helper.fill(tab)) Toast.makeText(ctx, "No email field on this page", Toast.LENGTH_SHORT).show()
                     })
-                    add(MenuItem("chat", Icons.Outlined.Forum, "Server chat") { Ui.go(Screen.Room) })
-                    add(MenuItem("notebook", Icons.Outlined.EditNote, "Notebook") { Ui.go(Screen.Notebook) })
-                    add(MenuItem("inbox", Icons.Outlined.Inbox, "Inbox") { Ui.go(Screen.Inbox) })
+                    add(MenuItem("chat", LodicaIcons.Chat, "Server chat") { Ui.go(Screen.Room) })
+                    add(MenuItem("notebook", LodicaIcons.Edit, "Notebook") { Ui.go(Screen.Notebook) })
+                    add(MenuItem("inbox", LodicaIcons.Inbox, "Inbox") { Ui.go(Screen.Inbox) })
                     if (tab != null && tab.url != TabManager.HOME) {
                         val off = Relay.baseDomain(tab.host) in Prefs.noDummy
-                        add(MenuItem("dummy", Icons.Outlined.AlternateEmail, if (off) "Email prompt off" else "Email prompt on", if (off) Amber else Mist) {
+                        add(MenuItem("dummy", LodicaIcons.Email, if (off) "Email prompt off" else "Email prompt on", if (off) Amber else Mist) {
                             Prefs.toggleNoDummy(tab.host)
                             Toast.makeText(ctx, if (off) "Hidden email offered on this site" else "Hidden email not offered on this site", Toast.LENGTH_SHORT).show()
                         })
                     }
                 }
                 if (tab != null && tab.url != TabManager.HOME) {
-                    add(MenuItem("reader", Icons.AutoMirrored.Outlined.OutlinedArticle, "Reader") {
+                    add(MenuItem("reader", LodicaIcons.Reader, "Reader") {
                         if (!Helper.reader(tab)) Toast.makeText(ctx, "Page not ready", Toast.LENGTH_SHORT).show()
                     })
                     val lite = tab.host in Prefs.lite
-                    add(MenuItem("lite", Icons.Outlined.DataSaverOn, if (lite) "Full site" else "Lite mode", if (lite) Amber else Mist) {
+                    add(MenuItem("lite", LodicaIcons.Data, if (lite) "Full site" else "Lite mode", if (lite) Amber else Mist) {
                         Prefs.toggleLite(tab.host); tab.session?.reload()
                         Toast.makeText(ctx, if (lite) "Full site" else "Lite mode on for this site", Toast.LENGTH_SHORT).show()
                     })
-                    add(MenuItem("remind", Icons.Outlined.Alarm, "Remind me") { Ui.picker = Picker.Remind })
+                    add(MenuItem("remind", LodicaIcons.Alarm, "Remind me") { Ui.picker = Picker.Remind })
                     val compat = Prefs.isCompat(tab.host)
-                    add(MenuItem("compat", Icons.Outlined.Build, if (compat) "Compat on" else "Compat mode", if (compat) Amber else Mist) {
+                    add(MenuItem("compat", LodicaIcons.Settings, if (compat) "Compat on" else "Compat mode", if (compat) Amber else Mist) {
                         TabManager.setCompat(tab, !compat)
                         Toast.makeText(ctx, if (compat) "Compat mode off" else "Compat mode on for this site", Toast.LENGTH_SHORT).show()
                     })
-                    if (WebApps.installable(tab)) add(MenuItem("install", Icons.Outlined.InstallMobile, "Install as app") { WebApps.install(ctx, tab) })
+                    if (WebApps.installable(tab)) add(MenuItem("install", LodicaIcons.Install, "Install as app") { WebApps.install(ctx, tab) })
                 }
-                add(MenuItem("tilt", Icons.Outlined.ScreenRotation, if (Prefs.tiltRotate) "Tilt rotate on" else "Tilt rotate", if (Prefs.tiltRotate) Amber else Mist) {
+                add(MenuItem("tilt", LodicaIcons.Phone, if (Prefs.tiltRotate) "Tilt rotate on" else "Tilt rotate", if (Prefs.tiltRotate) Amber else Mist) {
                     Prefs.updateTiltRotate(!Prefs.tiltRotate)
                     be.syntaxya.lodica.engine.Tilt.update()
                     Toast.makeText(ctx, if (!Prefs.tiltRotate) "Tilt rotate off" else if (be.syntaxya.lodica.engine.Tilt.textureBackend) "Tilt rotate on" else "Tilt rotate on after you restart the browser", Toast.LENGTH_SHORT).show()
                 })
-                add(MenuItem("speed", Icons.Outlined.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
+                add(MenuItem("speed", LodicaIcons.Speed, if (Prefs.speed != 1f) "Speed ${Prefs.speed}x" else "Video speed",
                     if (Prefs.speed != 1f) Amber else Mist) { Ui.picker = Picker.Speed })
                 if (tab != null) {
                     val q = Prefs.qualityFor(tab.host)
-                    add(MenuItem("quality", Icons.Outlined.HighQuality, "Video ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
+                    add(MenuItem("quality", LodicaIcons.Hd, "Video ${q ?: Prefs.quality}p", if (q != null) Amber else Mist) {
                         Ui.picker = Picker.Quality
                     })
                 }
                 if (TabManager.recentlyClosed().isNotEmpty()) {
-                    add(MenuItem("closed", Icons.Outlined.RestoreFromTrash, "Closed tabs") { Ui.picker = Picker.Closed })
+                    add(MenuItem("closed", LodicaIcons.Reload, "Closed tabs") { Ui.picker = Picker.Closed })
                 }
                 if (tab != null && !tab.private && tab.url != TabManager.HOME) {
-                    add(MenuItem("archive", Icons.Outlined.Inventory2, "Archive tab") { TabManager.archive(tab); Toast.makeText(ctx, "Tab archived", Toast.LENGTH_SHORT).show() })
+                    add(MenuItem("archive", LodicaIcons.Archive, "Archive tab") { TabManager.archive(tab); Toast.makeText(ctx, "Tab archived", Toast.LENGTH_SHORT).show() })
                 }
             }
             var all by remember { mutableStateOf(false) }
@@ -218,7 +184,7 @@ fun MenuSheet() {
                 tileKeys.forEach { k ->
                     val m = items.firstOrNull { it.key == k }
                     if (m != null) MenuTile(m, Modifier.weight(1f)) { m.action(); close() }
-                    else MenuTile(MenuItem(k, Icons.AutoMirrored.Outlined.OutlinedArticle, "Reader", Muted) {}, Modifier.weight(1f), enabled = false) {}
+                    else MenuTile(MenuItem(k, LodicaIcons.Reader, "Reader", Muted) {}, Modifier.weight(1f), enabled = false) {}
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -229,7 +195,7 @@ fun MenuSheet() {
                 MenuRow(m, pin, onLong = if (all) ({ Prefs.togglePin(m.key) }) else null) { m.action(); close() }
             }
             HorizontalDivider(Modifier.padding(horizontal = 20.dp, vertical = 6.dp), color = GraphiteHigh)
-            MenuRow(MenuItem("more", if (all) Icons.Outlined.ExpandLess else Icons.Outlined.MoreHoriz, if (all) "Fewer" else "More") { all = !all }) { all = !all }
+            MenuRow(MenuItem("more", if (all) LodicaIcons.Up else LodicaIcons.MoreH, if (all) "Fewer" else "More") { all = !all }) { all = !all }
             if (all) Text("Long-press an item to pin it to the quick menu.", color = Muted, fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         }
@@ -247,7 +213,7 @@ private class MenuItem(
 @Composable
 private fun MenuTile(m: MenuItem, modifier: Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(12.dp)).background(Graphite).clickable(enabled = enabled, onClick = onClick).padding(vertical = 14.dp),
+        modifier.clip(RoundedCornerShape(12.dp)).background(Graphite).clickable(enabled = enabled, onClick = onClick).height(72.dp).padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val tint = when { !enabled -> Muted; m.key == "new" -> Amber; else -> Mist }
@@ -268,7 +234,7 @@ private fun MenuRow(m: MenuItem, pinned: Boolean = false, onLong: (() -> Unit)? 
         Icon(m.icon, null, tint = if (m.tint != Mist) m.tint else Muted, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(16.dp))
         Text(m.label, color = if (m.tint != Mist) m.tint else Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        if (pinned) Icon(Icons.Outlined.PushPin, "Pinned", tint = Amber, modifier = Modifier.size(18.dp))
+        if (pinned) Icon(LodicaIcons.Clip, "Pinned", tint = Amber, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -287,7 +253,7 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
         sheetState = state,
         containerColor = GraphiteRaised,
         contentColor = Mist,
-        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
             Text(
@@ -297,29 +263,29 @@ fun ContextMenuSheet(req: ContextMenuRequest) {
             )
             HorizontalDivider(Modifier.padding(vertical = 6.dp), color = GraphiteHigh)
             if (link != null) {
-                Action(Icons.AutoMirrored.Rounded.OpenInNew, "Open in new tab") {
+                Action(LodicaIcons.Open, "Open in new tab") {
                     TabManager.open(link, private = req.tab.private, select = false, parent = req.tab)
                 }
-                if (!req.tab.private) Action(Icons.Rounded.VisibilityOff, "Open in private tab", Private) {
+                if (!req.tab.private) Action(LodicaIcons.Private, "Open in private tab", Private) {
                     TabManager.open(link, private = true, select = false, parent = req.tab)
                 }
-                Action(Icons.Rounded.Visibility, "Preview link") { Ui.preview = link }
-                Action(Icons.Rounded.ContentCopy, "Copy link") { copy(ctx, Prefs.cleanUrl(link)) }
-                Action(Icons.Rounded.Download, "Download link") {
+                Action(LodicaIcons.Preview, "Preview link") { Ui.preview = link }
+                Action(LodicaIcons.Copy, "Copy link") { copy(ctx, Prefs.cleanUrl(link)) }
+                Action(LodicaIcons.Download, "Download link") {
                     Downloads.fetch(ctx, Engine.runtime(ctx), link, req.tab.private)
                 }
-                Action(Icons.Rounded.Share, "Share link") { Prompts.host?.share(el.linkText, null, Prefs.cleanUrl(link)) }
+                Action(LodicaIcons.Share, "Share link") { Prompts.host?.share(el.linkText, null, Prefs.cleanUrl(link)) }
             }
             if (media != null) {
                 val kind = when (el.type) { 1 -> "image"; 2 -> "video"; else -> "audio" }
-                if (link == null || link != media) Action(Icons.AutoMirrored.Rounded.OpenInNew, "Open $kind in new tab") {
+                if (link == null || link != media) Action(LodicaIcons.Open, "Open $kind in new tab") {
                     TabManager.open(media, private = req.tab.private, select = false, parent = req.tab)
                 }
-                Action(Icons.Rounded.Download, "Download $kind") {
+                Action(LodicaIcons.Download, "Download $kind") {
                     Downloads.fetch(ctx, Engine.runtime(ctx), media, req.tab.private)
                 }
-                Action(Icons.Rounded.ContentCopy, "Copy $kind address") { copy(ctx, Prefs.cleanUrl(media)) }
-                Action(Icons.Rounded.Share, "Share $kind") { Prompts.host?.share(el.altText ?: el.title, null, Prefs.cleanUrl(media)) }
+                Action(LodicaIcons.Copy, "Copy $kind address") { copy(ctx, Prefs.cleanUrl(media)) }
+                Action(LodicaIcons.Share, "Share $kind") { Prompts.host?.share(el.altText ?: el.title, null, Prefs.cleanUrl(media)) }
             }
         }
     }

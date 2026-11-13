@@ -165,9 +165,9 @@ private fun LinkStep(ctx: Context, clean: String, ok: Boolean, next: () -> Unit)
 }
 
 @Composable private fun Title(t: String) = Text(t, color = Mist, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-@Composable private fun Body(t: String) = Text(t, color = Muted, fontSize = 14.sp, lineHeight = 20.sp)
-@Composable private fun Warn(t: String) = Text(t, color = be.syntaxya.lodica.ui.theme.Coral, fontSize = 14.sp)
-@Composable private fun Bullet(t: String) = Text("•  $t", color = Mist, fontSize = 14.sp, lineHeight = 20.sp)
+@Composable private fun Body(t: String) = Text(t, color = Muted, fontSize = 15.sp, lineHeight = 20.sp)
+@Composable private fun Warn(t: String) = Text(t, color = be.syntaxya.lodica.ui.theme.Coral, fontSize = 15.sp)
+@Composable private fun Bullet(t: String) = Text("•  $t", color = Mist, fontSize = 15.sp, lineHeight = 20.sp)
 
 @Composable
 private fun Choice(title: String, sub: String, onClick: () -> Unit) {

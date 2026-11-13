@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.ui
 
+import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -97,17 +95,17 @@ fun PreviewSheet(url: String) {
         Box(Modifier.fillMaxSize().background(Graphite.copy(alpha = 0.6f)).systemBarsPadding().padding(12.dp)) {
             Column(Modifier.fillMaxSize().clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)) {
                 Row(Modifier.fillMaxWidth().padding(start = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.Visibility, null, tint = Amber, modifier = Modifier.size(16.dp))
+                    Icon(LodicaIcons.Preview, null, tint = Amber, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(title.ifBlank { host }, color = Mist, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Preview · $host", color = Muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(title.ifBlank { host }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Preview · $host", color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     TextButton(onClick = { Ui.preview = null; Ui.screen = Screen.Browser; TabManager.open(current) }) {
                         Text("Open in tab", color = Amber, fontSize = 13.sp)
                     }
                     IconButton(onClick = { Ui.preview = null }) {
-                        Icon(Icons.Rounded.Close, "Close preview", tint = Muted, modifier = Modifier.size(18.dp))
+                        Icon(LodicaIcons.Close, "Close preview", tint = Muted, modifier = Modifier.size(18.dp))
                     }
                 }
                 if (progress in 1..99) {
