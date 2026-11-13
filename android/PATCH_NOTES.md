@@ -1,3 +1,7 @@
+## 1.17.0
+
+- New look: stroked icons, a 44 dp address bar, a tidier tab switcher and menu, and consistent type sizes and corners. Private tabs are now violet.
+
 ## 1.16.2
 
 - No Android changes. Draw and move on a page are desktop only for now.

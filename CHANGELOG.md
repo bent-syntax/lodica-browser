@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.0 (versionCode 246)
+
+- Changed (desktop): New look. Frameless window, a quieter tab strip, new menu and site-protection popovers, restyled settings, search page and dialogs. The shield now opens the site-protection popover.
+- Changed (Android): New stroked icons, 44 dp address bar, new type sizes and corner radii, and violet private tabs.
+
 ## 1.16.2 (versionCode 245)
 
 - Fixed (desktop): Draw and Move are now in Settings → Shortcuts, so you can rebind them.

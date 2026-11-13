@@ -1,3 +1,7 @@
+## 1.17.0
+
+- New look: frameless window, a quieter tab strip, new menu and site-protection popovers, and restyled settings, search page and dialogs. The shield opens the site-protection popover.
+
 ## 1.16.2
 
 - Fixed: "Draw on tab" and "Move page part" are now in Settings → Shortcuts. Rebind or reset them there.
