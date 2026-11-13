@@ -12,7 +12,7 @@
 
 ## 1.17.9
 
-- Tabs in the desktop tab bar now shrink so together they take at most about 80% of the window width, and typing `lodica://settings` in the address bar opens Settings.
+- Tabs in the desktop tab bar now shrink so together they take at most about 90% of the window width, and typing `lodica://settings` in the address bar opens Settings.
 
 ## 1.17.8
 
