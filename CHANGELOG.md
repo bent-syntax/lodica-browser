@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.8 (versionCode 254)
+
+- Added (desktop): setting to turn off RAM saving tab unloading.
+
 ## 1.17.7 (versionCode 253)
 
 - Fixed (desktop): settings, notebook and chat now take over the whole window and hide the tab strip and toolbar. Their close button works. Removed the light-blue ring around the active tab.

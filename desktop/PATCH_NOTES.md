@@ -1,3 +1,7 @@
+## 1.17.8
+
+- Added a setting to turn off RAM saving tab unloading.
+
 ## 1.17.7
 
 - Settings, notebook and chat cover the whole window. Close button works.
