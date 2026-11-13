@@ -1,3 +1,7 @@
+## 1.17.13
+
+- All 20 items were already implemented in the code (90% tab cap, narrower open tab, themed window controls that dim with the menu, `lodica://settings` as a closeable tab, a 360px docked support chat, full-area pages, forced compat for Google sign-in, a mobile compat toggle, per-site Allow/Block/Ask, 
+
 ## 1.17.12
 
 - `lodica://settings` now opens Settings as a closeable tab and the address stays without the trailing slash (fix is in `desktop/main/tabs.js`, not built or run). The full-page layout, docked support chat and kept support draft were already on `main` from earlier commits (`4fc80fb`, `315046d`, `a099e1
