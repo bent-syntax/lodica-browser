@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.10 (versionCode 256)
+
+- Mobile and desktop already have the manual controls — the mobile site sheet (tap the lock) has a Compatibility mode switch and per-site Allow/Block/Ask permission rows. The earlier rounds covered the rest: 90% tab width, `lodica://settings` opening as a tab without a trailing slash, chat docked like
+
 ## 1.17.9 (versionCode 255)
 
 - Tabs in the desktop tab bar now shrink so together they take at most about 80% of the window width, and typing `lodica://settings` in the address bar opens Settings.
