@@ -258,6 +258,8 @@ async function shrink(f) {
   } catch {}
   return null;
 }
+// Unsent support text, reason and images; survives closing the sheet and switching tabs.
+const supDraft = { text: "", pics: [], cat: "" };
 // Support: one open conversation with the team; answers and questions also arrive as notifications.
 function openSupport() {
   return sheet({ title: "Contact support", key: "support", tall: true, full: true }, async (b, L) => {
@@ -304,22 +306,24 @@ function openSupport() {
         const note = { "needs-info": "Support needs more information. Reply below.", fixing: "A fix is being built and tested.", "awaiting-confirm": "Is it fixed or working now?", done: "Fixed. Update the browser to get it." }[st.status];
         if (note) wrap.append(h("div", { class: "sup-note", text: note }));
       }
-      const pics = [];
+      const pics = supDraft.pics;
+      ta.value = supDraft.text; ta.oninput = () => { supDraft.text = ta.value; };
       const file = h("input", { type: "file", accept: "image/*", multiple: "", hidden: "" });
-      const addBtn = h("button", { class: "btn sup-ghost", text: "Add image", act: () => file.click() });
+      const addBtn = h("button", { class: "btn sup-ghost", text: pics.length ? "Images: " + pics.length + "/3" : "Add image", act: () => file.click() });
       file.onchange = async () => {
         for (const f of file.files) if (pics.length < 3) { const d = await shrink(f); if (d) pics.push(d); }
         file.value = ""; addBtn.textContent = pics.length ? "Images: " + pics.length + "/3" : "Add image";
       };
       if (st.open && st.status === "awaiting-confirm") wrap.append(h("div", { class: "sup-row" },
         h("button", { class: "btn", text: "Yes, fixed", act: async () => draw(await inv("support.send", "Yes, it is fixed.", { resolved: true })) }),
-        h("button", { class: "btn sup-ghost", text: "No", act: () => { ta.value = "No, it is still not fixed: "; ta.focus(); } })));
+        h("button", { class: "btn sup-ghost", text: "No", act: () => { ta.value = supDraft.text = "No, it is still not fixed: "; ta.focus(); } })));
       const fresh = !st.open || st.status === "closed" || st.status === "done";
-      let cat = "";
+      let cat = supDraft.cat;
       if (fresh) {
         const chips = h("div", { class: "sup-row sup-cats" });
         for (const [k, label] of [["bug", "Bug"], ["question", "Question"], ["idea", "Idea"], ["other", "Other"]]) {
-          const c = h("button", { class: "btn sup-ghost sup-cat", text: label, act: () => { cat = k; for (const x of chips.children) x.classList.toggle("on", x === c); err.textContent = ""; } });
+          const c = h("button", { class: "btn sup-ghost sup-cat", text: label, act: () => { cat = supDraft.cat = k; for (const x of chips.children) x.classList.toggle("on", x === c); err.textContent = ""; } });
+          if (k === cat) c.classList.add("on");
           chips.append(c);
         }
         wrap.append(h("div", { class: "t2", text: "What is this about? (required)" }), chips);
@@ -329,7 +333,7 @@ function openSupport() {
         if (fresh && !cat) { err.textContent = "Pick a reason first."; return; }
         btn.disabled = true; btn.textContent = "Sending...";
         const r = await inv("support.send", text, { images: pics, category: cat });
-        if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else draw(r);
+        if (r && r.error) { btn.disabled = false; btn.textContent = "Send"; err.textContent = r.error; } else { supDraft.text = ""; supDraft.pics.length = 0; supDraft.cat = ""; draw(r); }
       } });
       wrap.append(ta, h("div", { class: "sup-row" }, addBtn, file, btn), err);
       wrap.append(linkBox(st));
