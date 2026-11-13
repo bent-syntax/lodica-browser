@@ -1,3 +1,7 @@
+## 1.17.5
+
+- The close button in settings, notebooks and server chat works again.
+
 ## 1.17.4
 
 - Settings, notebooks and server chat now have a close button, and notebooks can be removed. The chat avatar no longer overlaps the name. Private tabs no longer show among normal tabs. The planner no longer flashes on a new tab when it is turned off. The draw and move toolbar matches your theme, and drawings appear as soon as a page loads. A shortcut that would show only a letter now uses the parent domain logo. New Grid menu setting brings back the grid menu at the bottom.

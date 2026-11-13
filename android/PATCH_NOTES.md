@@ -1,3 +1,7 @@
+## 1.17.5
+
+- Version bump to match desktop. No Android changes.
+
 ## 1.17.4
 
 - Version bump to match desktop. No Android changes.

@@ -380,8 +380,6 @@ body.frameless.vtabs.bt #bar button,body.frameless.vtabs.bt #bar input,body.fram
 .dl-prog{height:2px}
 
 /* Full-inset layers sit under the OS caption buttons on frameless windows: keep their close button clear and clickable */
-body.frameless .spage-layer .sp-head{padding-right:156px}
-body.frameless .spage-layer .sp-head .ib{-webkit-app-region:no-drag}
 
 /* Grid main menu (menuGrid pref) */
 .mtop{display:flex;justify-content:space-around;padding:6px 12px}
@@ -393,3 +391,7 @@ body.frameless .spage-layer .sp-head .ib{-webkit-app-region:no-drag}
 .mcell.amber{color:var(--amber)}.mcell.coral{color:var(--coral)}.mcell.private{color:var(--private)}
 .mcell.pinned{background:var(--hover2)}
 .mcell[disabled]{opacity:.35;pointer-events:none}
+
+/* Full-page layers sit below the tab strip: its drag area and the OS caption buttons swallow clicks in the top 44px. */
+body.bt .spage-layer{top:calc(var(--dock-y,44px) + var(--bar-h,44px));left:var(--side,0)}
+body:not(.bt) .spage-layer{top:var(--dock-y,44px);left:var(--side,0)}
