@@ -478,6 +478,13 @@ object Relay {
         }
     }
 
+    /** Forgets [alias] and makes a new random address for the same site. Own-login aliases are skipped. */
+    fun reroll(alias: Alias): Alias? {
+        if (!alias.own.isNullOrEmpty() || alias.site.isEmpty()) return null
+        forget(alias)
+        return newAlias(alias.site)
+    }
+
     fun siteOf(address: String): String? = aliases.firstOrNull { it.address.equals(address, true) }?.site
 
     // ---- Aliases ----------------------------------------------------------------------------

@@ -229,6 +229,14 @@ function newAlias(host) {
   return alias;
 }
 
+/** New random address for the same site; the old one is forgotten. Own-login aliases cannot be rerolled. */
+function reroll(address) {
+  const old = state.aliases.find(a => a.address === address);
+  if (!old || old.own || !old.site) return { error: "Cannot reroll this address" };
+  forget(address);
+  return { alias: newAlias(old.site) };
+}
+
 /** The user's own address: their mail provider forwards to this alias, so a login code mailed there is filled into the tab in front. */
 function addOwn(email) {
   const own = String(email || "").trim().toLowerCase();
@@ -413,6 +421,6 @@ module.exports = {
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
   link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, requestRawSeq, uploadFile, downloadTo, fetchMail, refresh, deleteMail,
-  forget, siteOf, newAlias, addOwn, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
+  forget, reroll, siteOf, newAlias, addOwn, watch, arrived, dismissIncoming, baseDomain, codeOf, confirmLink, routed, pacScript,
   setOnCode: fn => { onCode = fn; }, setOnRefresh: fn => { onRefresh = fn; }, syncTheme, local,
 };

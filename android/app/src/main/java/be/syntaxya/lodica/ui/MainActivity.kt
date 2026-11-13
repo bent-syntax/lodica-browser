@@ -61,7 +61,7 @@ class MainActivity : HostActivity() {
         Prompts.init(this)
         TabManager.init(this)
         if (savedInstanceState == null) be.syntaxya.lodica.engine.Updater.startup(this)
-        if (savedInstanceState == null || intent?.action == SearchWidget.ACTION_SEARCH) handle(intent)
+        if (savedInstanceState == null || intent?.action == SearchWidget.ACTION_SEARCH || intent?.action == SearchWidget.ACTION_HOME) handle(intent)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -145,6 +145,11 @@ class MainActivity : HostActivity() {
                 "settings" -> Ui.screen = Screen.Settings
                 else -> { TabManager.open(TabManager.HOME); window.decorView.post { Ui.editing = true } }
             }
+            return
+        }
+        if (i.action == SearchWidget.ACTION_HOME) {
+            Ui.closeAll()
+            TabManager.open(TabManager.HOME)
             return
         }
         if (i.action == SearchWidget.ACTION_SEARCH) {

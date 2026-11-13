@@ -148,8 +148,8 @@ fun TabSwitcher() {
                             val go = { TabManager.select(t); Ui.screen = Screen.Browser }
                             when {
                                 !t.locked -> go()
-                                !Biometric.available(act) -> { TabManager.unlockPrivate(); go() }
-                                else -> Biometric.unlock(act, "Unlock private tabs", onOk = { TabManager.unlockPrivate(); go() })
+                                !Biometric.available(act) -> { TabManager.unlockPrivate(t); go() }
+                                else -> Biometric.unlock(act, "Unlock private tab", onOk = { TabManager.unlockPrivate(t); go() })
                             }
                         },
                         onClose = { closeTab(t) },
@@ -157,7 +157,7 @@ fun TabSwitcher() {
                 }
                 item(key = "new-tab") {
                     val accent = if (private) Private else Amber
-                    val shape = RoundedCornerShape(12.dp)
+                    val shape = RoundedCornerShape(20.dp)
                     Box(
                         Modifier.animateItem().fillMaxWidth().aspectRatio(0.8f).clip(shape)
                             .border(BorderStroke(1.5.dp, accent.copy(alpha = 0.5f)), shape)
@@ -212,11 +212,11 @@ fun TabSwitcher() {
 
 @Composable
 private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.clip(RoundedCornerShape(10.dp)).background(GraphiteRaised).padding(3.dp)) {
+    Row(Modifier.clip(RoundedCornerShape(16.dp)).background(GraphiteRaised).padding(3.dp)) {
         listOf(false to "Tabs", true to "Private").forEach { (p, label) ->
             val bg by animateColorAsState(if (p == private) GraphiteHigh else GraphiteRaised, tween(200), label = "mode")
             Row(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(bg).clickable { onChange(p) }
+                Modifier.clip(RoundedCornerShape(12.dp)).background(bg).clickable { onChange(p) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -233,7 +233,7 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 
 @Composable
 private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(20.dp)
     val accent = if (incognito) Private else Amber
     val customEdge = if (incognito) null else customExtraColor("tabEdge")
     val texture = if (incognito) null else customTabTexture()
@@ -269,7 +269,7 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
             }
         }
         val framed = texture != null || customEdge != null
-        Box(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).clip(RoundedCornerShape(8.dp)) else Modifier).aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
+        Box(Modifier.fillMaxWidth().then(if (framed) Modifier.padding(start = 8.dp, end = 8.dp, bottom = 8.dp).clip(RoundedCornerShape(14.dp)) else Modifier).aspectRatio(0.8f).background(Graphite), contentAlignment = Alignment.Center) {
             val thumb = t.thumbnail
             if (t.locked) {
                 Icon(LodicaIcons.Lock, "Locked", tint = Amber, modifier = Modifier.size(32.dp))

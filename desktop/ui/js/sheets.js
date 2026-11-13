@@ -32,6 +32,12 @@ function renderInbox() {
     for (const a of al) b.append(h("div", { class: "row" }, ico("email"),
       h("div", { class: "main" }, h("div", { class: "t1", text: a.address }), h("div", { class: "t2", text: (a.own ? "Forwarded from " + a.own : a.site || "") + (a.created ? " · " + fmtTime(a.created) : "") })),
       ib("copy", "Copy", () => { navigator.clipboard.writeText(a.address).catch(() => {}); toast("Address copied"); }),
+      a.own ? null : ib("reload", "New address", async () => {
+        const r = await inv("relay.reroll", a.address);
+        if (!r || r.error) return toast(r && r.error || "Could not reroll");
+        toast("New address " + r.alias.address);
+        inv("relay.state").then((s2) => { if (s2) { S.relay = Object.assign({}, S.relay, s2); refreshInbox(); } });
+      }),
       ib("delete", "Forget", async () => {
         if (!(await confirmDialog({ title: "Forget address?", message: a.address, ok: "Forget", danger: true }))) return;
         if (!(await inv("relay.forget", a.address))) toast("Couldn't delete");

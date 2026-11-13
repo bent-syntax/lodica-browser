@@ -1,3 +1,7 @@
+## 1.17.1
+
+- The AI panel follows the theme. Hidden mail addresses can be rerolled. Draw and move keybinds no longer fail silently.
+
 ## 1.17.0
 
 - New look: frameless window, a quieter tab strip, new menu and site-protection popovers, and restyled settings, search page and dialogs. The shield opens the site-protection popover.

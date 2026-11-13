@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.AiAgent
 import be.syntaxya.lodica.engine.Chats
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.ui.theme.Danger
 import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -55,7 +56,6 @@ import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
 import be.syntaxya.lodica.ui.theme.OnAmber
 
-private val Danger = Color(0xFFF43F5E)
 
 /**
  * The AI browser agent. Docked on the right with a phone ratio so the page stays visible beside it.

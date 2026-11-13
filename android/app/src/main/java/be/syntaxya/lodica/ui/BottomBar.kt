@@ -172,7 +172,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         Row(
             Modifier.weight(1f).height(44.dp)
                 .graphicsLayer { translationX = drag; alpha = 1f - (kotlin.math.abs(drag) / (threshold * 3)).coerceAtMost(0.5f) }
-                .themedFill("barBg", "barTex", Graphite, RoundedCornerShape(10.dp))
+                .themedFill("barBg", "barTex", Graphite, RoundedCornerShape(16.dp))
                 .pointerInput(tab, Prefs.gestureSwipeTabs) {
                     if (!Prefs.gestureSwipeTabs) return@pointerInput
                     detectHorizontalDragGestures(
@@ -210,8 +210,11 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                 tab.url.startsWith("http://") -> LodicaIcons.Warning to Coral
                 else -> LodicaIcons.Globe to Muted
             }
-            Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(8.dp))
+            Box(
+                Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).clickable(enabled = !home && !locked) { Ui.siteOpen = true },
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, if (home || locked) null else "Site security", tint = tint, modifier = Modifier.size(16.dp)) }
+            Spacer(Modifier.width(4.dp))
             val label = when {
                 locked -> "Private tab locked"
                 home -> "Search or type URL"
@@ -339,7 +342,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     ) {
         IconButton(onClick = { Ui.editing = false }) { Icon(LodicaIcons.Back, "Cancel", tint = Mist) }
         Box(
-            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(10.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(16.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -369,9 +372,12 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                     }
                     // Only bring the keyboard back when it is gone: asking again while it is open restarts the input and throws the cursor back.
                     .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); if (!focused) keyboard?.show() } },
+                // Wrap in a Box: the field scrolls its text to keep the cursor visible, which breaks when the placeholder shares the slot unwrapped.
                 decorationBox = { inner ->
-                    if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
-                    inner()
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                        if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
+                        inner()
+                    }
                 },
             )
         }
@@ -408,7 +414,7 @@ private fun FindBar() {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(10.dp)).background(Graphite).padding(horizontal = 14.dp),
+            Modifier.weight(1f).height(44.dp).clip(RoundedCornerShape(16.dp)).background(Graphite).padding(horizontal = 14.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -459,12 +465,13 @@ fun openTabs() {
     val g = Ui.gecko
     if (tab == null || g == null || g.session == null || tab.url == TabManager.HOME || tab.crashed || tab.locked) {
         Ui.screen = Screen.Tabs
+        TabManager.lockPrivate()
         return
     }
     // Capture while the page is still on screen, then show the switcher. A capture that never answers
     // (compositor paused) must not leave the switcher stuck, so a short timeout opens it anyway.
     var shown = false
-    fun show() { if (!shown) { shown = true; Ui.screen = Screen.Tabs } }
+    fun show() { if (!shown) { shown = true; Ui.screen = Screen.Tabs; TabManager.lockPrivate() } }
     android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ show() }, 250)
     captureThumbnail(tab) { show() }
 }

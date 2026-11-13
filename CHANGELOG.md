@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.1 (versionCode 247)
+
+- Changed (Android): site menu from the lock, start page from the widget logo, Normal and Private tab views with per-tab unlock, scrolling menu, rounder bars and tab cards, reroll for hidden addresses.
+- Changed (desktop): AI panel on theme tokens, reroll for hidden addresses, guard around the draw and move keybinds.
+
 ## 1.17.0 (versionCode 246)
 
 - Changed (desktop): New look. Frameless window, a quieter tab strip, new menu and site-protection popovers, restyled settings, search page and dialogs. The shield now opens the site-protection popover.

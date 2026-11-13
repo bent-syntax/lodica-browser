@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.PersistableBundle
 import android.widget.Toast
 import be.syntaxya.lodica.engine.WebApps
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import be.syntaxya.lodica.engine.Downloads
 import be.syntaxya.lodica.engine.Engine
@@ -64,6 +66,44 @@ import be.syntaxya.lodica.ui.theme.Muted
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun SiteSheet() {
+    val ctx = LocalContext.current
+    val tab = TabManager.current
+    fun close() { Ui.siteOpen = false }
+    if (tab == null) { close(); return }
+    val secure = tab.url.startsWith("https://") && tab.secure
+    ModalBottomSheet(
+        onDismissRequest = { close() },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = GraphiteRaised,
+        contentColor = Mist,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(tab.host, color = Mist, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+                Text(if (secure) "Secure connection" else "Not secure", color = if (secure) Muted else Coral, fontSize = 13.sp)
+            }
+            SwitchRow("Protection", "${tab.blocked} blocked on this page", !tab.trusted) { _ ->
+                val msg = when {
+                    !TabManager.toggleTrust(tab) -> "Wait for the page to load"
+                    tab.trusted -> "Protection off for ${tab.host}"
+                    else -> "Protection back on for ${tab.host}"
+                }
+                Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
+            }
+            SwitchRow("Lite mode", "Fewer images and scripts on this site", tab.host.removePrefix("www.") in Prefs.lite) {
+                Prefs.toggleLite(tab.host); tab.session?.reload()
+            }
+            SwitchRow("Compatibility mode", "Plain Firefox fingerprint for sites that block hardened browsers", Prefs.isCompat(tab.host)) {
+                TabManager.setCompat(tab, it)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun MenuSheet() {
     val ctx = LocalContext.current
     val tab = TabManager.current
@@ -78,7 +118,7 @@ fun MenuSheet() {
         contentColor = Mist,
         shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 12.dp)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState()).navigationBarsPadding().padding(bottom = 12.dp)) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,

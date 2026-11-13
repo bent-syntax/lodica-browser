@@ -1568,7 +1568,7 @@
       rd.addEventListener("mousedown", (e) => e.preventDefault());
       rd.addEventListener("click", () => { if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel(); else speak(s.text); });
       d.appendChild(rd);
-      if (s.text.length > 80) return;
+      if (s.text.length > 200) return;
       const b = document.createElement("button");
       b.textContent = "Translate";
       b.style.cssText = "all:initial;cursor:pointer;font:600 13px system-ui,sans-serif;color:#fff;padding:2px 4px";

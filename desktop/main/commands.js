@@ -56,7 +56,12 @@ function runKey(id) {
     case "devtools": { const wc = tabs.wcOf(); if (wc && !wc.isDestroyed()) wc.toggleDevTools(); break; }
     case "osk": openKeyboard(); break;
     case "toggleVertical": prefs.set("vertTabs", !prefs.p.vertTabs); break;
-    case "draw": case "move": { const wc = tabs.wcOf(); if (wc && !wc.isDestroyed()) wc.send("drawToggle", id); break; }
+    case "draw": case "move": {
+      const wc = tabs.wcOf();
+      if (!wc || wc.isDestroyed()) break;
+      if (!/^https?:/.test(wc.getURL())) { ui.push("toast", { text: "Draw and move work on web pages only" }); break; }
+      wc.send("drawToggle", id); break;
+    }
     case "toggleSplit": if (tabs.toggleSplit) tabs.toggleSplit(); break;
     default: return false;
   }
@@ -489,6 +494,7 @@ function init(deps) {
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.own", email => relay.addOwn(email));
   on("relay.forget", address => relay.forget(str(address)));
+  on("relay.reroll", address => relay.reroll(str(address)));
 
   on("remind.set", ts => remind.set(ts));
   on("video.speed", v => {

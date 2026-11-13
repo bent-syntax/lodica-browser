@@ -121,6 +121,7 @@ fun LodicaRoot() {
         Overlay(Ui.screen == Screen.Notebook) { NotebookScreen() }
         PromptDialogs()
         if (Ui.menuOpen) MenuSheet()
+        if (Ui.siteOpen) SiteSheet()
         TabManager.contextMenu?.let { ContextMenuSheet(it) }
         Ui.preview?.let { PreviewSheet(it) }
         Ui.reader?.let { ReaderSheet(it.first, it.second) }
@@ -386,8 +387,9 @@ private fun LockedView() {
     val act = LocalContext.current as FragmentActivity
     var error by remember { mutableStateOf<String?>(null) }
     fun unlock() {
-        if (!Biometric.available(act)) { TabManager.unlockPrivate(); return }
-        Biometric.unlock(act, "Unlock private tabs", onOk = { TabManager.unlockPrivate() }, onError = { error = it })
+        val t = TabManager.current ?: return
+        if (!Biometric.available(act)) { TabManager.unlockPrivate(t); return }
+        Biometric.unlock(act, "Unlock private tab", onOk = { TabManager.unlockPrivate(t) }, onError = { error = it })
     }
     LaunchedEffect(Unit) { unlock() }
     Column(

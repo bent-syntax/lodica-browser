@@ -107,8 +107,6 @@ object TabManager {
         }
         val tab = Tab(private = private, url = url, desktop = if (parent != null && !parent.autoDesktop) parent.desktop else Prefs.desktopDefault)
         val at = tabs.size
-        // A new private tab shares cookies with the others, so it waits behind the same lock.
-        if (private && privateLocked) tab.locked = true
         tabs.add(at, tab)
         if (select) select(tab) else { ensureSession(tab); save() }
         return tab
@@ -121,8 +119,8 @@ object TabManager {
             if (prev != null) be.syntaxya.lodica.ui.captureThumbnail(prev)
             prev?.session?.apply { setFocused(false); setActive(false) }
             current = tab
-            // Leaving a private tab for a normal one locks private tabs again.
-            if (prev != null && prev.private && !tab.private && !privateLocked) lockPrivate()
+            // A private tab locks the moment it is left; each one is unlocked on its own.
+            if (prev != null && prev.private) prev.locked = true
         }
         tab.lastUsed = System.currentTimeMillis()
         tab.scrollY = 0
@@ -157,13 +155,12 @@ object TabManager {
         current?.takeIf { it.private }?.session?.apply { setFocused(false); setActive(false) }
     }
 
-    /** One successful check unlocks all private tabs. */
-    fun unlockPrivate() {
-        tabs.forEach { if (it.private) it.locked = false }
-        current?.let { select(it) }
+    /** One successful check unlocks only [tab]. */
+    fun unlockPrivate(tab: Tab) {
+        tab.locked = false
+        select(tab)
     }
 
-    val privateLocked get() = tabs.any { it.private && it.locked }
 
     fun close(tab: Tab) {
         val idx = tabs.indexOf(tab)

@@ -25,7 +25,7 @@ Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for 
 - Private `#A79BFF` / `#5B4BDB`. Danger `#F87185` / `#C81E3F` (destructive and errors only). Ok `#5FCF8B` / `#157F3C`.
 - Amber only for focus ring, progress, toggles on, shield chip, and one primary button per screen. No gradients, no glows. Shadows only on floating layers.
 - Type sizes: 26, 20, 15, 13, 12. Weights 400, 500, 600.
-- Radius: 6 menu rows, 8 buttons and tabs, 10 address bar and toasts, 12 cards, popovers and dialogs, 16 top of Android sheets, full pills only for chips and toggles.
+- Radius: 6 menu rows, 8 buttons, 12 cards, popovers and dialogs, 16 top of Android sheets, 16 Android address and search bar, 20 Android tab cards, 10 toasts, full pills only for chips and toggles.
 - Spacing: multiples of 4 (2 for tight gaps).
 - Icons: 24 grid, 1.75 stroke, round caps and joins, no fills.
 - Colour roles live in `android/app/src/main/java/be/syntaxya/lodica/ui/theme/Theme.kt`.

@@ -24,6 +24,8 @@ object Ui {
     val settingsPageScroll = androidx.compose.foundation.ScrollState(0)
     var settingsTarget by mutableStateOf<String?>(null)
     var menuOpen by mutableStateOf(false)
+    /** Site / security sheet opened from the lock in the address bar. */
+    var siteOpen by mutableStateOf(false)
     var editing by mutableStateOf(false)
     /** otpauth-migration:// link waiting for the import dialog in Settings. */
     var pendingMigration by mutableStateOf<String?>(null)
@@ -77,6 +79,7 @@ object Ui {
     fun closeAll() {
         screen = Screen.Browser
         menuOpen = false
+        siteOpen = false
         finding = false
         reader = null
         answer = null
@@ -98,6 +101,7 @@ object Ui {
         totpAsk != null -> { totpAsk?.onPick?.invoke(null); totpAsk = null; true }
         preview != null -> { preview = null; true }
         menuOpen -> { menuOpen = false; true }
+        siteOpen -> { siteOpen = false; true }
         finding -> { stopFind(); true }
         editing -> { editing = false; true }
         screen == Screen.Inbox && be.syntaxya.lodica.engine.Relay.selected != null -> { be.syntaxya.lodica.engine.Relay.selected = null; true }

@@ -149,6 +149,9 @@ private fun MailList() {
                             color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    if (a.own.isNullOrEmpty()) IconButton(onClick = {
+                        Relay.reroll(a)?.let { Toast.makeText(ctx, "New address ${it.address}", Toast.LENGTH_LONG).show() }
+                    }) { Icon(LodicaIcons.Reload, "New address", tint = Muted, modifier = Modifier.size(18.dp)) }
                     IconButton(onClick = {
                         confirm = Confirm("Forget address?", "${a.address} is removed from this list. Mail to it still arrives at the relay.", "Forget") {
                             Relay.forget(a)

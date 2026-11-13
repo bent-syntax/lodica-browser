@@ -1,3 +1,7 @@
+## 1.17.1
+
+- Lock icon in the address bar opens the site menu. The widget logo opens the start page. The tab switcher has Normal and Private views; private tabs lock as soon as it opens and unlock one by one. The menu scrolls, bars have rounder corners, translate accepts longer text, and hidden addresses can be rerolled.
+
 ## 1.17.0
 
 - New look: stroked icons, a 44 dp address bar, a tidier tab switcher and menu, and consistent type sizes and corners. Private tabs are now violet.

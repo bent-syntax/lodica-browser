@@ -30,6 +30,8 @@ class SearchWidget : AppWidgetProvider() {
 
     companion object {
         const val ACTION_SEARCH = "be.syntaxya.lodica.NEW_SEARCH"
+        /** Logo tap: start page, no typing. */
+        const val ACTION_HOME = "be.syntaxya.lodica.OPEN_HOME"
 
         /** Redraws every placed widget; call after the theme or widget settings change. */
         fun refresh(ctx: Context) {
@@ -44,11 +46,17 @@ class SearchWidget : AppWidgetProvider() {
                 Intent(ctx, MainActivity::class.java).setAction(ACTION_SEARCH).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
+            val home = PendingIntent.getActivity(
+                ctx, 1,
+                Intent(ctx, MainActivity::class.java).setAction(ACTION_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
             val p = ThemeState.palette
             return RemoteViews(ctx.packageName, R.layout.widget_search).apply {
                 setOnClickPendingIntent(R.id.widget_search, open)
                 setImageViewBitmap(R.id.widget_bg, roundedBackground(ctx, m, id))
                 setImageViewBitmap(R.id.widget_logo, kiteBitmap(p))
+                setOnClickPendingIntent(R.id.widget_logo, home)
                 setTextViewText(R.id.widget_text, Prefs.widgetText.ifBlank { "Search or type a URL" })
                 setTextColor(R.id.widget_text, p.muted.toInt())
             }
