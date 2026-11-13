@@ -395,3 +395,7 @@ body.frameless .spage-layer .sp-head{padding-right:156px}
 /* Settings sits under the tab strip like a tab */
 body.bt .layer.settings-tab{top:var(--dock-y,44px);left:var(--side,0)}
 body.frameless .spage-layer.settings-tab .sp-head{padding-right:12px}
+
+/* Server chat docks right at the AI panel width (360px) instead of covering the window */
+.room-layer{background:transparent}
+.room-layer .spage{left:auto;width:360px;border-left:1px solid var(--high)}
