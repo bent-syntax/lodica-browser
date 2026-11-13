@@ -555,8 +555,10 @@ function cycle(dir) {
 
 function wcOf(t = cur) { return t && alive(t) ? t.view.webContents : null; }
 
+const isSettingsUrl = u => /^lodica:\/\/settings\/?$/i.test(String(u || "").trim());
 function load(url, t = cur) {
   if (!t) return;
+  if (isSettingsUrl(url)) { deps.ui.push("shortcut", "settings"); return; }
   if (!alive(t)) {
     t.url = url; t.entries = []; t.index = undefined;
     if (!(locked && t.private)) { createView(t); show(); }
@@ -566,7 +568,7 @@ function load(url, t = cur) {
 }
 
 function go(text) {
-  if (/^lodica:\/\/settings\/?$/i.test(String(text || "").trim())) { deps.ui.push("shortcut", "settings"); return true; }
+  if (isSettingsUrl(text)) { deps.ui.push("shortcut", "settings"); return true; }
   if (cur && !cur.private && prefs.p.historySuggest) history.addSearch(text);
   const url = prefs.resolve(String(text || ""), relay.available);
   load(url);
