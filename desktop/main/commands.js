@@ -202,13 +202,20 @@ function init(deps) {
   const host = () => cur()?.host || "";
 
   on("init", initPayload);
+  // Caption buttons follow the theme and darken with the 50% layer dim so they don't glow above it.
+  let capDim = false;
+  const capOverlay = () => {
+    const t = global.lodicaTheme;
+    if (!global.lodicaFrameless || !t) return;
+    const mix = hex => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (capDim ? 0.5 : 1)).toString(16).padStart(2, "0")).join("");
+    try { const w = d.win(); if (w && !w.isDestroyed()) w.setTitleBarOverlay({ color: mix(t.bg), symbolColor: mix(t.text), height: 44 }); } catch {}
+  };
+  on("capdim", v => { capDim = !!v; capOverlay(); });
   on("theme.colors", c => {
     const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
     if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
     global.lodicaTheme = { bg: c.bg, amber: c.amber, text: c.text }; // read by the page preloads (swipe arrow)
-    if (global.lodicaFrameless) {
-      try { const w = d.win(); if (w && !w.isDestroyed()) w.setTitleBarOverlay({ color: c.bg, symbolColor: c.text, height: 44 }); } catch {}
-    }
+    capOverlay();
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => {
