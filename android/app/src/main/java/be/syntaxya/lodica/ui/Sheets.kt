@@ -98,6 +98,29 @@ fun SiteSheet() {
             SwitchRow("Compatibility mode", "Plain Firefox fingerprint for sites that block hardened browsers", Prefs.isCompat(tab.host)) {
                 TabManager.setCompat(tab, it)
             }
+            SitePermRows(tab.host)
+        }
+    }
+}
+
+/** Per-site answers for this host. Tap a row to cycle Allow, Block, Ask. Location and notifications always show. */
+@Composable
+private fun SitePermRows(host: String) {
+    var version by remember { mutableStateOf(0) }
+    val stored = remember(version, host) { Prompts.sitePermissions().filter { it.host == host }.associate { it.kind to it.allow } }
+    val kinds = (listOf("geo", "notify") + stored.keys).distinct()
+    Text("Permissions", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+    kinds.forEach { k ->
+        val v = stored[k]
+        Row(
+            Modifier.fillMaxWidth().clickable {
+                Prompts.setSitePermission(host, k, when (v) { null -> true; true -> false; false -> null })
+                version++
+            }.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(Prompts.permName(k), color = Mist, fontSize = 15.sp, modifier = Modifier.weight(1f))
+            Text(when (v) { true -> "Allow"; false -> "Block"; null -> "Ask" }, color = if (v == true) Amber else Muted, fontSize = 13.sp)
         }
     }
 }
