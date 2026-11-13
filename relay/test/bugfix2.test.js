@@ -1,6 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
+process.env.LODICA_DATA_DIR = require('fs').mkdtempSync(require('path').join(require('os').tmpdir(), 'lodica-bugfix2-'));
 const chat = require('../src/chat');
 const enroll = require('../src/enroll');
 const { cleanArt } = require('../src/faceart');
@@ -33,7 +34,6 @@ test('cleanArt keeps shapes that fit instead of dropping everything', () => {
 });
 
 test('notebook put refuses a non-integer base and takes a 100000-char multibyte note', async () => {
-  process.env.LODICA_DATA_DIR = process.env.LODICA_DATA_DIR || require('os').tmpdir();
   const nb = require('../src/notebook');
   const run = async (body) => { const o = mk(body); await nb.put({ url: '/api/notebook' }, {}, o.h); return o.status; };
   assert.strictEqual(await run('{"text":"a","base":"0"}'), 400);
@@ -59,7 +59,6 @@ test('expired status polling does not block take()', () => {
 });
 
 test('notebook put and create roll back when the disk write fails', async () => {
-  process.env.LODICA_DATA_DIR = process.env.LODICA_DATA_DIR || require('os').tmpdir();
   const nb = require('../src/notebook');
   nb.reset();
   const fsp = require('fs').promises, real = fsp.writeFile;
