@@ -5,7 +5,7 @@ let sysAccentCache;
 const { app, clipboard, shell, session, net, WebContentsView, Menu, screen } = require("electron");
 
 const PANEL_W = 360;
-let d = null, preview = null, previewPrivate = false;
+let drawTheme = null, d = null, preview = null, previewPrivate = false;
 
 const str = v => (v == null ? "" : String(v));
 // Drop "?query" and anything after it. A "#fragment" before the "?" survives; one behind it goes with the query.
@@ -60,7 +60,7 @@ function runKey(id) {
       const wc = tabs.wcOf();
       if (!wc || wc.isDestroyed()) break;
       if (!/^https?:/.test(wc.getURL())) { ui.push("toast", { text: "Draw and move work on web pages only" }); break; }
-      wc.send("drawToggle", id); break;
+      wc.send("drawToggle", id, drawTheme); break;
     }
     case "toggleSplit": if (tabs.toggleSplit) tabs.toggleSplit(); break;
     default: return false;
@@ -198,6 +198,7 @@ function init(deps) {
   d = deps;
   const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support, testsession } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
+  on("drawTheme", v => { if (v && typeof v === "object") drawTheme = Object.fromEntries(Object.entries(v).filter(([k, x]) => typeof x === "string" && x.length < 200 && !/[;{}<]/.test(x))); });
   const host = () => cur()?.host || "";
 
   on("init", initPayload);

@@ -1,6 +1,94 @@
 "use strict";
 // Main menu sheet and page context menu.
-function openMenu() {
+// Old bottom-sheet grid, kept behind the menuGrid pref.
+function openMenuGrid() {
+  if (S.mode !== "main") { exitEdit(); closeFind(); }
+  const t = S.tab, home = !!t.home, q = t.quality || S.prefs.quality || 720;
+  return sheet({ key: "menu", cls: "menu" }, (b, L) => {
+    const go = (fn) => () => { L.close(); fn(); };
+    const DEF_PINS = ["add", "private", "find", "download", "history", "settings"];
+    let pins = Array.isArray(S.prefs.menuPins) ? S.prefs.menuPins.slice() : DEF_PINS.slice();
+    let more = false;
+    const grid = h("div", { class: "mgrid" });
+    const cell = (icon, label, fn, cls, dis) => ({ key: icon, icon, label, fn, cls, dis });
+    const implicit = !Array.isArray(S.prefs.menuPins);
+    const togglePin = (k) => {
+      if (implicit && !S.prefs.menuPins) pins = pins.concat(all.filter((c) => c.key.startsWith("ext:") && !pins.includes(c.key)).map((c) => c.key));
+      pins =pins.includes(k) ? pins.filter((x) => x !== k) : pins.concat(k);
+      S.prefs.menuPins = pins; inv("prefs.set", "menuPins", pins); render();
+    };
+    let all = [];
+    const mk = (c) => {
+      const on = pins.includes(c.key);
+      const e = h("button", { class: "mcell" + (c.cls ? " " + c.cls : "") + (more && on ? " pinned" : ""),
+        title: more ? (on ? "Unpin " : "Pin ") + c.label : c.label,
+        act: more ? () => togglePin(c.key) : go(c.fn) },
+        ico(c.icon), h("span", { text: c.label }));
+      if (c.dis && !more) e.disabled = true;
+      e.oncontextmenu = (ev) => { ev.preventDefault(); togglePin(c.key); };
+      return e;
+    };
+    const render = () => {
+      grid.replaceChildren();
+      for (const c of all) if (more || pins.includes(c.key) || (implicit && !S.prefs.menuPins && c.key.startsWith("ext:"))) grid.append(mk(c));
+      grid.append(h("button", { class: "mcell", act: () => { more = !more; render(); } },
+        ico(more ? "close" : "apps"), h("span", { text: more ? "Done" : "More" })));
+    };
+    const top = h("div", { class: "mtop" },
+      ib("back", "Back", go(() => inv("back")), t.canBack ? "" : "dis"),
+      ib("forward", "Forward", go(() => inv("forward")), t.canForward ? "" : "dis"),
+      t.loading ? ib("close", "Stop", go(() => inv("stop"))) : ib("reload", "Reload", go(() => inv("reload"))));
+    $$(".ib.dis", top).forEach((x) => (x.disabled = true));
+    const cells = [
+      cell("add", "New tab", () => inv("tab.new", { private: false })),
+      cell("private", "Private tab", () => inv("tab.new", { private: true }), "private"),
+      cell("find", "Find in page", openFind, "", home),
+      cell("download", "Downloads", () => openDownloads()),
+      cell("history", "History", () => openHistory()),
+      cell("apps", "Install as app", async () => { const r = await inv("webapps.install"); toast(r && r.text || "Couldn't install"); }, "", home || !!t.private),
+      cell("serial", "Serial monitor", () => openSerial()),
+      cell("key", "Passwords", () => openPasswords()),
+      cell("chat", "Server chat", () => openRoom(), "", !S.relayAvail),
+      cell("edit", "Notebook", () => openNotebook(), "", !S.relayAvail),
+      cell("phone", "Phone screen", () => openPhoneScreen(), "", !S.relayAvail),
+      cell("ai", "AI chat", () => inv("ai.panel.toggle"), "", !(S.prefs.ai && S.ai && S.ai.connected)),
+      cell("settings", "Settings", () => openSettings()),
+    ];
+    if (S.relayAvail && !home) cells.push(cell("email", "Hidden email", () => inv("email.fill"), "amber"));
+    if (S.relayAvail && !home) {
+      const off = (S.prefs.noDummy || []).includes((t.host || "").replace(/^www\./, ""));
+      cells.push(cell("email", off ? "Dummy mail on" : "Dummy mail off", async () => { await inv("email.hide"); S.prefs.noDummy = (await inv("prefs.all"))?.noDummy || S.prefs.noDummy; }, off ? "coral" : ""));
+    }
+    if (S.relayAvail) cells.push(cell("inbox", "Inbox", () => openInbox()));
+    cells.push(
+      cell("reader", "Reader", () => openReader(), "", home),
+      cell("lite", t.lite ? "Full site" : "Lite mode", () => inv("lite.toggle"), t.lite ? "amber" : "", home),
+      cell("compat", t.compat ? "Compat on" : "Compat mode", () => inv("compat.toggle"), t.compat ? "amber" : "", home));
+    const sp = +t.speed || 1;
+    cells.push(
+      cell("speed", sp !== 1 ? "Speed " + sp + "x" : "Video speed", () => openVideoSpeed(), sp !== 1 ? "amber" : "", home),
+      cell("hd", "Quality " + q + "p", () => openVideoQuality(), "", home),
+      cell("undo", "Closed tabs", () => openClosed()));
+    all = cells;
+    render();
+    // One cell per enabled extension: opens its popup screen.
+    inv("ext.list").then((xs) => {
+      const on = (xs || []).filter((x) => x.on);
+      if (!on.length || all !== cells) return;
+      for (const x of on) cells.push(Object.assign(cell("apps", x.name.slice(0, 18), async () => {
+        const r = await inv("ext.open", x.id, { x: window.screenX + window.innerWidth - 400, y: window.screenY + 60 });
+        if (r && !r.ok) toast(r.error);
+      }), { key: "ext:" + x.id }));
+      render();
+    });
+    add(b, [top, h("div", { class: "divider" }), grid]);
+  });
+}
+
+function openMenu() { return S.prefs.menuGrid ? openMenuGrid() : openMenuList(); }
+
+// Side list menu (default).
+function openMenuList() {
   if (S.mode !== "main") { exitEdit(); closeFind(); }
   const t = S.tab, home = !!t.home, q = t.quality || S.prefs.quality || 720;
   const bt = document.body.classList.contains("bt");

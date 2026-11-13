@@ -228,7 +228,16 @@ async function fetchIcon(host) {
     const got = await loadIcon(u);
     if (got) return got;
   }
+  const parent = parentHost(bare);
+  if (parent) return lastGood.get(bare) || fetchIcon(parent);
   return lastGood.get(bare) || null;
+}
+/** Host one label up (a.b.com gives b.com), or null at the registrable domain. shortcut: second-level suffixes are guessed (co.uk, com.au), no public suffix list. */
+function parentHost(host) {
+  const l = host.split(".");
+  if (l.length < 3) return null;
+  const sld = l.length === 3 && l[1].length <= 3 && l[2].length === 2;
+  return sld ? null : l.slice(1).join(".");
 }
 // Icons a tab reported for a host (page-favicon-updated), used when the site's own lookup fails.
 const tabIcons = new Map();

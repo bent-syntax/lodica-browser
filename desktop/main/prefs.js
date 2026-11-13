@@ -31,7 +31,7 @@ const DEFAULTS = {
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, smartschoolMs: false, spell: true, spellAuto: false, selTranslate: false, adBlockMode: "browser", adBlockLevel: "standard", translateAi: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, pcUnlock: "pin", themeFrom: "newest", shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiAgentMode: "edit", aiAgentMaxSteps: 20, aiChatDir: "", trusted: [], showRedirectOrigin: false,
-  siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], searchWords: [], menuPins: null, customTheme: null, savedThemes: [], themePlugin: "", autoTop: true, shortcutNames: true, startNotes: true, startPlanner: false, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
+  siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], searchWords: [], menuPins: null, menuGrid: false, customTheme: null, savedThemes: [], themePlugin: "", autoTop: true, shortcutNames: true, startNotes: true, startPlanner: false, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
   emojiPicker: true, claimedThemes: [], holidayFx: true,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,

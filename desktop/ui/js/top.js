@@ -25,6 +25,9 @@ const applyPrefs = p => {
   document.documentElement.dataset.theme = (p && p.theme) || "system";
   applyCustom(document.documentElement, (p && p.theme) || "system", p && p.customTheme, p && p.sysAccent);
   applyPlugin((p && p.themePlugin) || "");
+  const cs = getComputedStyle(document.documentElement), tv = {};
+  for (const k of ["bg", "high", "text", "line", "amber", "on-amber", "coral", "muted", "shadow"]) tv[k] = cs.getPropertyValue("--" + k).trim();
+  inv("drawTheme", tv);
   document.documentElement.style.setProperty("--ui-a", "1");
   vert = !!(p && p.vertTabs); folded = vert && !!p.vertCollapsed;
   document.body.classList.toggle("vert", vert);
@@ -99,7 +102,7 @@ async function refresh() {
   try {
     const list = await inv("tab.list");
     if (!list?.tabs) return;
-    render(list.tabs);
+    render(list.tabs.filter(t => !t.private)); // private tabs live behind the Private tabs button
     privTabs = list.tabs.filter(t => t.private);
     const nl = privTabs.filter(t => t.locked).length;
     privLabel.textContent = !privTabs.length ? "Private tabs" : nl ? `Private tabs \u00b7 ${nl} locked` : `Private tabs \u00b7 ${privTabs.length} open`;

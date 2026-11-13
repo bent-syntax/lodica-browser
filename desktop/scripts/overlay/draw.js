@@ -4,8 +4,8 @@
 if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   const NS = "http://www.w3.org/2000/svg";
   const pageKey = () => location.origin + location.pathname + location.search;
-  let key = pageKey(), data = { strokes: [], moves: [] };
-  let mode = "", tool = "pen", color = "#F59E0B", size = 4, bar = null, svg = null, host = null;
+  let key = "", data = { strokes: [], moves: [] };
+  let mode = "", tool = "pen", color = "#F59E0B", size = 4, theme = null, bar = null, svg = null, host = null;
 
   const save = () => ipcRenderer.send("drawSave", key, data);
   const docSize = () => [Math.max(document.documentElement.scrollWidth, innerWidth), Math.max(document.documentElement.scrollHeight, innerHeight)];
@@ -67,6 +67,8 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     if (missing && tries < 20) applyTimer = setTimeout(() => applyMoves(tries + 1), 500);
   }
   function load() {
+    // The preload can run before the page has a root element; the interval and DOMContentLoaded retry.
+    if (!document.documentElement) return;
     key = pageKey();
     data = ipcRenderer.sendSync("drawLoad", key) || { strokes: [], moves: [] };
     render(); applyMoves();
@@ -83,13 +85,14 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     host.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;display:flex;justify-content:center;pointer-events:none";
     const r = host.attachShadow({ mode: "open" });
     r.innerHTML = `<style>
-      .b{pointer-events:auto;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 12px;background:#2B2E33;color:#ECEDEE;border:1px solid #33363C;border-radius:12px;font:13px system-ui,sans-serif;box-shadow:0 12px 32px #00000073}
-      button{all:unset;cursor:pointer;padding:4px 12px;border-radius:999px;background:#33363C;color:#ECEDEE;font:13px system-ui,sans-serif}
-      button.on{background:#F59E0B;color:#1A1300}button.x{background:#F87185;color:#fff}
+      .b{pointer-events:auto;display:flex;align-items:center;gap:8px;margin:8px;padding:8px 12px;background:var(--high,#2B2E33);color:var(--text,#ECEDEE);border:1px solid var(--line,#33363C);border-radius:12px;font:13px system-ui,sans-serif;box-shadow:var(--shadow,0 12px 32px #00000073)}
+      button{all:unset;cursor:pointer;padding:4px 12px;border-radius:999px;background:var(--line,#33363C);color:var(--text,#ECEDEE);font:13px system-ui,sans-serif}
+      button.on{background:var(--amber,#F59E0B);color:var(--on-amber,#1A1300)}button.x{background:var(--coral,#F87185);color:var(--bg,#17181B)}
       input[type=color]{width:28px;height:28px;border:0;padding:0;background:none;cursor:pointer}
-      input[type=range]{width:80px;accent-color:#F59E0B}.m{color:#A0A4AB}
+      input[type=range]{width:80px;accent-color:var(--amber,#F59E0B)}.m{color:var(--muted,#A0A4AB)}
     </style><div class="b"></div>`;
     document.documentElement.appendChild(host);
+    if (theme) for (const k in theme) host.style.setProperty("--" + k, theme[k]);
     return r.querySelector(".b");
   }
   function drawBar() {
@@ -114,7 +117,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   }
 
   // The main process catches Ctrl+Shift+D/M even when the page does not own focus.
-  ipcRenderer.on("drawToggle", (e, m) => { if (m === "draw" || m === "move") { if (mode && mode !== m) mode = ""; setMode(m); } });
+  ipcRenderer.on("drawToggle", (e, m, vars) => { theme = vars || null; if (m === "draw" || m === "move") { if (mode && mode !== m) mode = ""; setMode(m); } });
   const onBar = e => e.composedPath().includes(host);
   let cur = null, dragEl = null, start = null, hover = null;
 
@@ -155,7 +158,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       if (hover && hover !== el) hover.style.removeProperty("outline");
       hover = el && el !== document.documentElement && el !== host ? el : null;
-      if (hover) hover.style.setProperty("outline", "2px dashed #F59E0B", "important");
+      if (hover) hover.style.setProperty("outline", "2px dashed " + ((theme && theme.amber) || "#F59E0B"), "important");
     }
     if (cur && !cur.erase) {
       cur.p.push([e.pageX, e.pageY]);
@@ -189,6 +192,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   }, true);
 
   addEventListener("resize", fit);
+  addEventListener("DOMContentLoaded", () => { if (pageKey() !== key || !svg || !svg.isConnected) load(); });
   addEventListener("load", () => { fit(); applyMoves(); });
   // Single-page sites change the address without a reload: switch to that address's drawings.
   setInterval(() => { if (pageKey() !== key) load(); else if (svg) fit(); }, 1000);

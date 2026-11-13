@@ -407,7 +407,7 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 
 #banner .testbar{background:var(--danger,#F87185);color:#fff}
 
-.chat-who{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px;margin-bottom:-20px}
+.chat-who{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 12px;margin-bottom:4px}
 .chat-peeks{display:flex;gap:12px;align-items:flex-end}
 .chat-peek{position:relative;width:48px;height:24px;cursor:pointer}
 .chat-clip{width:48px;height:24px;overflow:hidden}

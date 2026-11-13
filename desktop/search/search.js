@@ -117,7 +117,6 @@ function setup() {
   if (!q) {
     document.body.classList.add("home");
     topSites();
-    planner();
     ask1({ type: "pluginAnim" }).then((r) => { if (r && r.css) { const st = document.createElement("style"); st.textContent = r.css; document.head.append(st); } });
     notes();
     $("q").focus();
@@ -158,12 +157,13 @@ function topSites() {
     auto = !st || st.auto !== false;
     $("top").classList.toggle("nonames", !!st && st.names === false);
     placeWidgets(st && st.pos, st && st.showPlan);
+    planner();
     drawTop(auto && Array.isArray(items) ? items : []);
   });
 }
 // Planner and notes: left, right or below the search bar (Settings). Main already keeps them apart.
 function placeWidgets(pos, showPlan) {
-  $("plan").hidden = showPlan === false;
+  $("plan").hidden = !showPlan; // hidden until state arrives, so an off planner never flashes
   $("plan").dataset.pos = (pos && pos.plan) || "below";
   $("notes").dataset.pos = (pos && pos.notes) || "left";
 }

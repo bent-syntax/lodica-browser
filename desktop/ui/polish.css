@@ -378,3 +378,18 @@ body.frameless.vtabs.bt #bar button,body.frameless.vtabs.bt #bar input,body.fram
 .toast{border-radius:10px;box-shadow:var(--shadow)}
 .toast .act{color:var(--amber-ink,var(--amber));font-weight:500}
 .dl-prog{height:2px}
+
+/* Full-inset layers sit under the OS caption buttons on frameless windows: keep their close button clear and clickable */
+body.frameless .spage-layer .sp-head{padding-right:156px}
+body.frameless .spage-layer .sp-head .ib{-webkit-app-region:no-drag}
+
+/* Grid main menu (menuGrid pref) */
+.mtop{display:flex;justify-content:space-around;padding:6px 12px}
+.mtop .ib[disabled]{opacity:.35}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 8px;padding:6px 8px 12px}
+.mcell{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:6px;color:var(--mist);min-width:0;text-align:left}
+.mcell:hover{background:var(--hover)}
+.mcell span{font-size:13px;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mcell.amber{color:var(--amber)}.mcell.coral{color:var(--coral)}.mcell.private{color:var(--private)}
+.mcell.pinned{background:var(--hover2)}
+.mcell[disabled]{opacity:.35;pointer-events:none}

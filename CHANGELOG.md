@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.4 (versionCode 250)
+
+- Fixed (desktop): settings, notebooks and server chat have a close button; chat avatar no longer overlaps; private tabs stay out of the normal tab strip; the planner no longer flashes on a new tab when it is off; draw and move toolbar follows the theme; drawings show as soon as the page loads; shortcut letter icons fall back to the parent domain logo.
+- Added (desktop): Grid menu toggle in settings brings back the bottom grid menu.
+
 ## 1.17.3 (versionCode 249)
 
 - Fixed (desktop): the draw and move toolbar buttons and the colour picker did nothing.
