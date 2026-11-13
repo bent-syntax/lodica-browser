@@ -219,6 +219,21 @@ function openSiteInfo() {
     const pos = "left:" + Math.max(8, Math.round(r.left)) + "px;" + (document.body.classList.contains("bt") ? "top:" + Math.round(r.bottom + 4) + "px" : "bottom:" + Math.round(innerHeight - r.top + 4) + "px");
     const prot = h("button", { class: "srow", act: () => { L.close(); toggleShield(); } },
       ico(t.trusted ? "shieldOff" : "shield"), h("span", { text: "Protection" }), toggleEl(!t.trusted));
+    const permBox = h("div", { class: "perms" });
+    const drawPerms = (list) => {
+      const mine = (list || []).filter((x) => x.host === host);
+      const kinds = ["geo", "notify"].concat(mine.map((x) => x.kind)).filter((k, i, a) => a.indexOf(k) === i);
+      permBox.replaceChildren(...kinds.map((k) => {
+        const cur = mine.find((x) => x.kind === k);
+        const sel = h("select", { on: { change: async (e) => {
+          const v = e.target.value;
+          drawPerms(await inv("perms.set", host, k, v === "ask" ? null : v === "allow"));
+        } } }, [["ask", "Ask"], ["allow", "Allow"], ["block", "Block"]].map(([v, l]) =>
+          h("option", { value: v, text: l, selected: v === (cur ? (cur.allow ? "allow" : "block") : "ask") })));
+        return h("div", { class: "srow" }, h("span", { text: permName(k) }), sel);
+      }));
+    };
+    if (host) inv("perms.list").then(drawPerms).catch(() => {});
     return h("div", { class: "pop", style: pos },
       h("div", { class: "pop-head" },
         h("div", { class: "pop-fav" }, h("span", { text: (host || "?")[0].toUpperCase() })),
@@ -230,6 +245,7 @@ function openSiteInfo() {
       h("div", { class: "stats" }, stat("shield", String(t.blocked || 0), "Blocked"), saved),
       sw("lite", "Lite mode", !!t.lite, () => inv("lite.toggle")),
       sw("compat", "Compatibility mode", !!t.compat, () => inv("compat.toggle")),
+      permBox,
       h("div", { class: "pop-foot" },
         h("button", { class: "clr", act: async () => {
           L.close();
