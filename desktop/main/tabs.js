@@ -380,7 +380,15 @@ function select(id) {
   return info(t);
 }
 
+const SETTINGS = "lodica://settings";
+const isSettingsUrl = u => /^lodica:\/\/settings\/?$/i.test(String(u || "").trim());
+
 function create(o = {}) {
+  if (isSettingsUrl(o.url)) {
+    const s = list.find(x => !x.archived && !x.private && isSettingsUrl(x.url));
+    if (s) return select(s.id);
+    o = { url: SETTINGS };
+  }
   // A first private tab has nothing to protect, so it opens unlocked.
   if (o.private && !list.some(x => x.private && !x.archived)) locked = false;
   // A blank tab is already open: move it to the end instead of opening another.
@@ -555,10 +563,9 @@ function cycle(dir) {
 
 function wcOf(t = cur) { return t && alive(t) ? t.view.webContents : null; }
 
-const isSettingsUrl = u => /^lodica:\/\/settings\/?$/i.test(String(u || "").trim());
 function load(url, t = cur) {
   if (!t) return;
-  if (isSettingsUrl(url)) { deps.ui.push("shortcut", "settings"); return; }
+  if (isSettingsUrl(url)) { create({ url: SETTINGS }); return; }
   if (!alive(t)) {
     t.url = url; t.entries = []; t.index = undefined;
     if (!(locked && t.private)) { createView(t); show(); }
@@ -568,7 +575,7 @@ function load(url, t = cur) {
 }
 
 function go(text) {
-  if (isSettingsUrl(text)) { deps.ui.push("shortcut", "settings"); return true; }
+  if (isSettingsUrl(text)) { create({ url: SETTINGS }); return true; }
   if (cur && !cur.private && prefs.p.historySuggest) history.addSearch(text);
   const url = prefs.resolve(String(text || ""), relay.available);
   load(url);

@@ -70,6 +70,7 @@ function serveLodica(req) {
   try { u = new URL(req.url); } catch { return new Response("Bad request", { status: 400 }); }
   if (u.hostname === "error") return require("./errorpage").serve(req.url);
   if (u.hostname === "pdf") return servePdf(req, u);
+  if (u.hostname === "settings") return new Response("<!doctype html><title>Settings</title><body style=\"background:#17181B\">", { headers: { "content-type": "text/html" } });
   if (u.hostname !== "search") return new Response("Not found", { status: 404 });
   let rel;
   try { rel = decodeURIComponent(u.pathname); } catch { return new Response("Bad request", { status: 400 }); }

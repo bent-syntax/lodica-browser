@@ -2,9 +2,17 @@
 // Settings sheet: framework and sections 1-5 (Search, Browsing, VPS, Tabs on PC, Tabs).
 const SET = { find: "", tab: "search", keys: null, cap: null, capture: null, L: null, pcLink: null, pcRemote: null, pcSub: false, apps: null, meter: null, usage: null };
 
+const isSettingsTab = (t) => !!t && /^lodica:\/\/settings\/?$/i.test(t.url || "");
+// Settings is a real tab; onTab() shows the layer once main has selected it.
 function openSettings(section) {
+  SET.section = section;
+  if (SET.L && !section) return SET.L;
+  if (isSettingsTab(S.tab)) return showSettings(section);
+  inv("tab.new", { url: "lodica://settings" });
+}
+function showSettings(section) {
   if (SET.L) return SET.L;
-  SET.L = openLayer({ key: "settings", cls: "spage-layer settings-tab", dim: false, onClose: () => { SET.L = null; document.removeEventListener("keydown", setSlash, true); } }, (L) => {
+  SET.L = openLayer({ key: "settings", cls: "spage-layer settings-tab", dim: false, onClose: () => { SET.L = null; document.removeEventListener("keydown", setSlash, true); if (isSettingsTab(S.tab)) inv("tab.close", S.tab.id); } }, (L) => {
     L.nav = h("div", { class: "sp-nav" });
     const find = h("input", { class: "sp-find", type: "search", placeholder: "Find a setting", "aria-label": "Find a setting", value: SET.find || "",
       on: { input: (e) => { SET.find = e.target.value.trim(); renderSettings(); } } });
