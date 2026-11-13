@@ -210,12 +210,19 @@ function init(deps) {
     const mix = hex => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (capDim ? 0.5 : 1)).toString(16).padStart(2, "0")).join("");
     try { const w = d.win(); if (w && !w.isDestroyed()) w.setTitleBarOverlay({ color: mix(t.bg), symbolColor: mix(t.text), height: 44 }); } catch {}
   };
+  // Window background fills the gaps around rounded page views; match the theme so no black edge shows.
+  const winBg = () => {
+    const t = global.lodicaTheme;
+    if (!t || !/^#[0-9a-f]{6}$/i.test(t.bg)) return;
+    try { const w = d.win(); if (w && !w.isDestroyed()) w.setBackgroundColor(t.bg); } catch {}
+  };
   on("capdim", v => { capDim = !!v; capOverlay(); });
   on("theme.colors", c => {
     const ok = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
     if (!c || !ok(c.bg) || !ok(c.amber) || !ok(c.text)) return;
     global.lodicaTheme = { bg: c.bg, amber: c.amber, text: c.text }; // read by the page preloads (swipe arrow)
     capOverlay();
+    winBg();
     const { nativeImage } = require("electron");
     require("./logo").renderAsync(128, { bg: c.bg, amber: c.amber, text: c.text })
       .then(png => {
