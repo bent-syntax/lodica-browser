@@ -291,7 +291,7 @@ function roomRender() {
   L.pick.style.setProperty("--chat-scale", scale);
   const emo = (S.prefs.chatEmojiScale || 150) / 100;
   L.thread.style.setProperty("--emoji-scale", emo);
-  L.ta.style.fontSize = Math.round(15 * scale) + "px";
+  L.ta.style.fontSize = Math.round(14 * scale) + "px";
   const seen = roomSeen();
   const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
   if (L.sig === sig) return;

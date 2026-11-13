@@ -234,8 +234,8 @@ body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20p
 .thumb.locked{background:var(--raised);border-radius:20px}
 .chat-item{border-radius:12px}
 .chat-item.on{background:color-mix(in srgb,var(--amber) 14%,transparent);color:var(--amber)}
-.chat-q{background:var(--high);padding:10px 16px;border-radius:20px 20px 4px 20px;font-size:15px}
-.chat-a{font-size:15px;line-height:1.6}
+.chat-q{background:var(--raised);border:1px solid var(--line);padding:8px 12px;border-radius:12px 12px 4px 12px;font-size:14px;line-height:1.5}
+.chat-a{font-size:14px;line-height:1.5}
 
 /* ---- pages 5-7, 13, 14, 16 ---- */
 .set-hero{display:flex;align-items:center;gap:16px;padding:20px;margin-bottom:16px;border-radius:20px;background:var(--raised);border:1px solid color-mix(in srgb,var(--amber) 40%,transparent)}
@@ -267,7 +267,7 @@ body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20p
 .toast .act{background:var(--amber-bg);border-radius:999px;padding:8px 16px}
 
 /* server chat size (Settings, Server) */
-.chat-thread[style*="--chat-scale"] .chat-q,.chat-thread[style*="--chat-scale"] .chat-a{font-size:calc(15px * var(--chat-scale,1))}
+.chat-thread[style*="--chat-scale"] .chat-q,.chat-thread[style*="--chat-scale"] .chat-a{font-size:calc(14px * var(--chat-scale,1))}
 
 /* Subject per time slot: a textarea that grows with its lines, no drag handle, text padded like the other fields. */
 .set-row textarea.set-input{height:auto;min-height:36px;padding:8px 10px;resize:none;overflow:hidden;line-height:1.45;width:250px;text-align:left;vertical-align:top;box-sizing:border-box}
@@ -279,9 +279,9 @@ body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20p
 /* Server chat uses the full width of the window: smaller side gutters, messages are not capped at 820px. */
 .spage-layer .sp-head{padding-left:16px;padding-right:12px}
 .spage-layer .chat-tabs,.spage-layer .chat-panel,.spage-layer .ai-in{padding-left:12px;padding-right:12px}
-.spage-layer .chat-thread{padding:12px 0}
-.spage-layer .chat-a{max-width:calc(100% - 24px);margin:0 12px 12px}
-.spage-layer .chat-q{margin:0 12px 12px auto;max-width:80%}
+.spage-layer .chat-thread{padding:12px;display:flex;flex-direction:column;gap:12px}
+.spage-layer .chat-a{max-width:95%;margin:0}
+.spage-layer .chat-q{margin:0 0 0 auto;max-width:85%}
 .set-range,.set-range:focus{-webkit-appearance:none;appearance:none;height:20px;padding:0;border:0;border-radius:0;box-shadow:none;background:transparent;cursor:pointer}
 .set-range::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--amber) var(--fill,100%),var(--high) var(--fill,100%))}
 .set-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6px;border-radius:50%;background:var(--amber);border:2px solid var(--bg);box-shadow:0 0 0 1px color-mix(in srgb,var(--amber) 60%,transparent)}
