@@ -24,3 +24,6 @@ relay-token
 # private: the support desk and the fixer are not published
 /support/
 /automation/
+
+# code knowledge graph, rebuilt locally
+/graphify-out/

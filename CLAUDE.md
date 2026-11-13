@@ -2,6 +2,12 @@
 
 Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for the rules.
 
+## Graphify (always)
+
+- Before Grep or Read to find code, run `graphify query "<question>" --budget 1500`. It names files and symbols. Then Read small line ranges.
+- After you change code, run `graphify update .` (no LLM, about a minute). Do it before you finish.
+- `graphify-out/` is git-ignored. The support bridge uses and refreshes the same graph.
+
 ## Builds
 
 - Build only through GitHub Actions. Never run Gradle, Electron or other builds locally.
