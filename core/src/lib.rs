@@ -4,6 +4,7 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 pub mod history;
+pub mod perms;
 pub mod totp;
 pub mod vault;
 
