@@ -8,8 +8,11 @@ async function ensureOverlay() {
   if (ovOn) return;
   ovOn = true;
   document.body.classList.add("ov");
-  if (!mainOverlay) await inv("layout", "overlay");
+  if (!mainOverlay) await inv("layout", keepOnly() ? "keep" : "overlay");
 }
+// Only the Settings tab is open: keep the tab strip and toolbar usable around it.
+const keepOnly = () => STACK.length > 0 && STACK.every((l) => l.el.classList.contains("settings-tab"));
+let keepOn = false;
 // Full-page layers (settings, notebook, chat) hide the tab strip so they take over the window.
 let covered = false;
 function syncCover() {
@@ -17,6 +20,11 @@ function syncCover() {
   if (on !== covered) { covered = on; inv("cover", on); }
   const dim = STACK.some((l) => !l.el.classList.contains("popL") && !l.el.classList.contains("ctxL") && l.el.querySelector(":scope>.dim"));
   if (dim !== dimmed) { dimmed = dim; inv("capdim", dim); }
+  const keep = keepOnly();
+  if (keep !== keepOn) {
+    keepOn = keep; document.body.classList.toggle("keep", keep);
+    if (ovOn && !mainOverlay && STACK.length) inv("layout", keep ? "keep" : "overlay");
+  }
 }
 let dimmed = false;
 function maybeBar() {

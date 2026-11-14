@@ -109,7 +109,10 @@ function fit() {
   const bt = barTop();
   const bar = left ? BAR_V : BAR;
   top?.setBounds(cover && mode === "overlay" ? { x: 0, y: 0, width: 0, height: 0 } : left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : bar)) } : { x: 0, y: 0, width, height: TOP });
-  view.setBounds(mode === "overlay" ? { x: 0, y: 0, width, height }
+  // "keep": overlay below the tab strip, so tabs and toolbar stay clickable (Settings tab).
+  const ky = left ? 0 : TOP;
+  view.setBounds(mode === "keep" ? { x: left, y: ky, width: Math.max(0, width - left), height: Math.max(0, height - ky) }
+    : mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - bar), width: Math.max(0, width - (bt ? left : 0)), height: bar });
   placePanel();
 }
@@ -131,10 +134,10 @@ function setFull(on) {
 
 function layout(m) {
   const was = mode;
-  mode = m === "overlay" ? "overlay" : "bar";
+  mode = m === "overlay" || m === "keep" ? m : "bar";
   fit();
-  if (mode === "overlay") view?.webContents.focus();
-  else if (was === "overlay") refocus(); // keys must reach the page again once the overlay closes
+  if (mode !== "bar") view?.webContents.focus();
+  else if (was !== "bar") refocus(); // keys must reach the page again once the overlay closes
 }
 
 function wait(id, ms) {
