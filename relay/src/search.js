@@ -74,6 +74,8 @@ function search(url) {
   return v;
 }
 
+const FALLBACK_ENGINES = 'brave,bing,google,duckduckgo,startpage,mojeek,yahoo,qwant';
+
 async function searchLive(url) {
   const q = (url.searchParams.get('q') || '').trim();
   if (!q || q.length > 400) throw Object.assign(new Error('bad query'), { status: 400 });
@@ -83,10 +85,12 @@ async function searchLive(url) {
   const asked = url.searchParams.get('t') || '';
   const intent = !images && wantsFresh(q);
   let range = RANGES.has(asked) ? asked : intent ? 'month' : '';
+  let wide = false;
   const ask = async (tr) => {
     const su = new URL('/search', cfg.searxUrl);
     const a = { q, format: 'json', pageno: String(p), categories: images ? 'images' : intent && /\b(news|breaking|today|tonight|yesterday)\b/i.test(q) ? 'news' : 'general', language: lang, safesearch: '0' };
     if (tr) a.time_range = tr;
+    if (wide) a.engines = FALLBACK_ENGINES;
     su.search = new URLSearchParams(a).toString();
     const r = await fetch(su, { signal: AbortSignal.timeout(cfg.searchTimeoutMs), headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' } });
     if (!r.ok) throw new Error('searx ' + r.status);
@@ -99,6 +103,12 @@ async function searchLive(url) {
     // Too few recent hits: widen to a year, then drop the filter, rather than return an empty page.
     if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = range === 'month' ? 'year' : ''; j = await ask(range); }
     if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = ''; j = await ask(''); }
+    // Blocked or throttled engines can leave only Wikipedia/Wikidata: retry once across more web engines.
+    if (!images && (!Array.isArray(j.results) || j.results.length < 3)) {
+      wide = true;
+      const w = await ask(range).catch(() => null);
+      if (w && Array.isArray(w.results) && w.results.length > (Array.isArray(j.results) ? j.results.length : 0)) j = w;
+    }
   } catch (e) {
     stats.searchFail++;
     throw Object.assign(new Error('search failed'), { status: 502 });
