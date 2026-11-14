@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.18 (versionCode 264)
+
+- The relay now asks each web engine (brave, bing, google, duckduckgo, startpage, mojeek, yahoo, qwant) separately when the All tab has fewer than 3 results, so one blocked or hung engine no longer leaves only Wikipedia. The fix is in commit b71c584 and the relay tests pass. The relay at `/opt/lodica-
+
 ## 1.17.17 (versionCode 263)
 
 - The All tab now retries across more search engines when it gets fewer than 3 results, which fixes the Wikipedia-only results, and nothing else in search changed. The relay tests pass (36 of 36), but I haven't tried it against live searches. The relay at `/opt/lodica-browser` still needs a manual pul
