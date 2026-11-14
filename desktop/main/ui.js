@@ -111,7 +111,9 @@ function fit() {
   top?.setBounds(cover && mode === "overlay" ? { x: 0, y: 0, width: 0, height: 0 } : left ? { x: 0, y: 0, width: left, height: Math.max(0, height - (bt ? 0 : bar)) } : { x: 0, y: 0, width, height: TOP });
   // "keep": overlay below the tab strip, so tabs and toolbar stay clickable (Settings tab).
   const ky = left ? 0 : TOP;
-  view.setBounds(mode === "keep" ? { x: left, y: ky, width: Math.max(0, width - left), height: Math.max(0, height - ky) }
+  const pr = dockW ? pageRect() : null;
+  view.setBounds(mode === "keep" && pr ? { x: pr.x + pr.width - dockW, y: pr.y, width: dockW, height: pr.height }
+    : mode === "keep" ? { x: left, y: ky, width: Math.max(0, width - left), height: Math.max(0, height - ky) }
     : mode === "overlay" ? { x: 0, y: 0, width, height }
     : { x: left && bt ? left : 0, y: bt ? (left ? 0 : TOP) : Math.max(0, height - bar), width: Math.max(0, width - (bt ? left : 0)), height: bar });
   placePanel();

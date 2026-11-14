@@ -398,5 +398,6 @@ body.keep.bt #banner{top:var(--bar-h,44px)}
 body.keep.bt.ov #banner{top:calc(var(--bar-h,44px) + 6px)}
 
 /* Server chat docks right at the AI panel width (360px) instead of covering the window */
-.room-layer{background:transparent}
-.room-layer .spage{left:auto;width:360px;border-left:1px solid var(--high)}
+body.keep .layer.settings-tab.sup-dock{top:0;left:0;right:0;bottom:0;background:transparent}
+.sheet.sup-full .sh-head{padding-left:16px;padding-right:16px}
+.sheet.sup-full .sup{padding:12px 16px}

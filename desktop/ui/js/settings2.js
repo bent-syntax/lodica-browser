@@ -262,7 +262,8 @@ async function shrink(f) {
 const supDraft = { text: "", pics: [], cat: "" };
 // Support: one open conversation with the team; answers and questions also arrive as notifications.
 function openSupport() {
-  return sheet({ title: "Contact support", key: "support", cls: "full sup-full", layerCls: "settings-tab", onClose: () => inv("ui.dock", 0) }, async (b, L) => {
+  return sheet({ title: "Contact support", key: "support", cls: "full sup-full", layerCls: "settings-tab sup-dock", onClose: () => inv("ui.dock", 0) }, async (b, L) => {
+    inv("ui.dock", 360); // dock right like the AI panel: the page shrinks instead of being covered
     const draw = (st) => {
       b.textContent = "";
       const ta = h("textarea", { class: "field sup-ta", rows: "3", maxlength: "4000", placeholder: st.open ? "Write a reply..." : "What went wrong, or what would you like added?" });
