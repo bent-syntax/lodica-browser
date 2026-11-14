@@ -2,7 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
-## 1.18.0 (versionCode 267)
+## 1.18.1 (versionCode 268)
+
+Same as 1.18.0, which never published: its release build failed on a lock-file version mismatch. This release fixes that mismatch and changes nothing else.
+
+## 1.18.0 (versionCode 267, not published)
 
 - Search no longer pins an empty answer: the relay, the desktop search and the Android helper retry on the next search, and the results page links to the fallback engine when nothing comes back. The results page background is one colour. Support fills the tab, the support chat copies the AI panel look, a clicked tab keeps its width, the notebook docks like the AI panel, PIN or phone unlock is the default, and Android start page tiles get a thin black circle. The server's search engines are still blocked upstream and the relay in /opt is deployed by hand, so live search may stay empty until then. Rust: core now holds totp, vault, history and site permission rules, but desktop-rs has never been linked or run and Electron is still the shipped desktop app, so this is not full Rust. None of the UI or Android changes were run on a device or compiled locally.
 
