@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.16 (versionCode 262)
+
+- The toolbar no longer drops down and snaps back when you leave the Settings tab (commit 3fc6201). I only syntax-checked it and haven't tried it in a live window. `npm test` crashes with `(r.stdout + r.stderr).split is not a function`, so the tests didn't run. `graphify` isn't installed here, so I di
+
 ## 1.17.15 (versionCode 261)
 
 - Compat mode and per-site permissions can already be set by hand on both mobile and desktop, and Google sign-in pages are forced into compat mode on both. I changed no code for this item.
