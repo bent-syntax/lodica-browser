@@ -3,6 +3,8 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use std::sync::OnceLock;
 
+pub mod totp;
+
 const DAY_MS: i64 = 86_400_000;
 
 fn fresh_re() -> &'static Regex {
