@@ -21,7 +21,8 @@ function syncCover() {
   const dim = STACK.some((l) => !l.el.classList.contains("popL") && !l.el.classList.contains("ctxL") && l.el.querySelector(":scope>.dim") && !l.el.querySelector(":scope>.sheet.sup-full"));
   if (dim !== dimmed) { dimmed = dim; inv("capdim", dim); }
   const keep = keepOnly();
-  if (keep !== keepOn) {
+  // After the last layer closes, maybeBar drops "keep" together with the layout so the toolbar does not jump.
+  if (keep !== keepOn && (keep || STACK.length)) {
     keepOn = keep; document.body.classList.toggle("keep", keep);
     if (ovOn && !mainOverlay && STACK.length) inv("layout", keep ? "keep" : "overlay");
   }
@@ -30,13 +31,15 @@ let dimmed = false;
 function maybeBar() {
   if (STACK.length) return;
   clearTimeout(barTimer);
-  barTimer = setTimeout(() => {
+  barTimer = setTimeout(async () => {
     barTimer = null;
     if (STACK.length || !ovOn) return;
     ovOn = false; mainOverlay = false;
-    document.body.classList.remove("ov");
+    await inv("layout", "bar");
+    if (STACK.length) return;
+    keepOn = false;
+    document.body.classList.remove("keep", "ov");
     moveToastsToBar();
-    inv("layout", "bar");
   }, 125);
 }
 // main opened an overlay itself (its own prompt): render in overlay mode without asking for layout.
