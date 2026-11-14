@@ -50,6 +50,13 @@ function freshFirst(list) {
   if (!native) return freshFirstJs(list);
   return native.freshOrder(list.map((x) => (typeof x.d === 'string' ? x.d : '')), Date.now()).map((i) => list[i]);
 }
+/** Items of `list` whose url is not in `have` and not repeated earlier in `list`. */
+function unseenJs(have, list) {
+  const keep = (i) => list[i];
+  if (native) return native.unseen(have.map(String), list.map((x) => String(x.url))).map(keep);
+  const seen = new Set(have);
+  return list.filter((x) => !seen.has(x.url) && seen.add(x.url));
+}
 const RANGES = new Set(['day', 'week', 'month', 'year']);
 const DAY = 864e5;
 
@@ -106,9 +113,8 @@ async function searchLive(url) {
     // blocked engine cannot sink the whole call, and merge what comes back.
     if (!images && (!Array.isArray(j.results) || j.results.length < 3)) {
       const got = await Promise.all(FALLBACK_ENGINES.split(',').map((e) => ask(range, e).catch(() => null)));
-      const have = new Set((Array.isArray(j.results) ? j.results : []).map((x) => x && x.url));
-      const more = [];
-      for (const w of got) for (const x of (w && Array.isArray(w.results) ? w.results : [])) if (x && !have.has(x.url)) { have.add(x.url); more.push(x); }
+      const have = (Array.isArray(j.results) ? j.results : []).map((x) => x && x.url);
+      const more = unseenJs(have, got.flatMap((w) => (w && Array.isArray(w.results) ? w.results : []).filter(Boolean)));
       j = { ...j, results: [...(Array.isArray(j.results) ? j.results : []), ...more] };
     }
   } catch (e) {
@@ -250,4 +256,4 @@ async function sweep() {
   return n;
 }
 
-module.exports = { start, search, image, sweep, stats, imgUrl, _native: native, _js: { host: hostJs, wantsFresh: (q) => FRESH.test(q), freshFirst: freshFirstJs } };
+module.exports = { start, search, image, sweep, stats, imgUrl, _native: native, _unseen: unseenJs, _js: { host: hostJs, wantsFresh: (q) => FRESH.test(q), freshFirst: freshFirstJs, unseen: (h, l) => { const s = new Set(h); return l.filter((x) => !s.has(x.url) && s.add(x.url)); } } };

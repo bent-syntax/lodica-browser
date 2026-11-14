@@ -49,6 +49,12 @@ pub fn fresh_first<T>(list: Vec<T>, date: impl Fn(&T) -> Option<String>, now_ms:
     recent_items
 }
 
+/// Indices of `urls` to keep: first occurrences only, skipping any already in `have`.
+pub fn unseen(have: &[String], urls: &[String]) -> Vec<u32> {
+    let mut seen: std::collections::HashSet<&str> = have.iter().map(String::as_str).collect();
+    (0..urls.len() as u32).filter(|&i| seen.insert(urls[i as usize].as_str())).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,5 +92,11 @@ mod tests {
         let out = fresh_first(items, |x| x.1.clone(), now);
         let names: Vec<_> = out.iter().map(|x| x.0).collect();
         assert_eq!(names, ["new1", "new2", "old", "none"]);
+    }
+
+    #[test]
+    fn unseen_drops_known_and_repeats() {
+        let v = |a: &[&str]| a.iter().map(|x| x.to_string()).collect::<Vec<_>>();
+        assert_eq!(unseen(&v(&["a"]), &v(&["a", "b", "b", "c"])), [1, 3]);
     }
 }

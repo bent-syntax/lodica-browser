@@ -24,3 +24,11 @@ test('native freshOrder matches JS freshFirst', { skip }, () => {
   const got = native.freshOrder(list.map((x) => x.d || ''), Date.now()).map((i) => list[i]);
   assert.deepStrictEqual(got, want);
 });
+
+test('native unseen matches JS', { skip }, () => {
+  const list = [{ url: 'a' }, { url: 'b' }, { url: 'b' }, { url: 'c' }, { url: undefined }];
+  const have = ['a'];
+  const want = js.unseen(have, list);
+  const got = native.unseen(have, list.map((x) => String(x.url))).map((i) => list[i]);
+  assert.deepStrictEqual(got, want);
+});

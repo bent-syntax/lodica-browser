@@ -20,3 +20,9 @@ pub fn fresh_order(dates: Vec<String>, now_ms: f64) -> Vec<u32> {
         now_ms as i64,
     )
 }
+
+/// Indices of `urls` not in `have` and not repeated earlier in `urls`.
+#[napi]
+pub fn unseen(have: Vec<String>, urls: Vec<String>) -> Vec<u32> {
+    lodica_core::unseen(&have, &urls)
+}
