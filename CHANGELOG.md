@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.18.0 (versionCode 267)
+
+- Search no longer pins an empty answer: the relay, the desktop search and the Android helper retry on the next search, and the results page links to the fallback engine when nothing comes back. The results page background is one colour. Support fills the tab, the support chat copies the AI panel look, a clicked tab keeps its width, the notebook docks like the AI panel, PIN or phone unlock is the default, and Android start page tiles get a thin black circle. The server's search engines are still blocked upstream and the relay in /opt is deployed by hand, so live search may stay empty until then. Rust: core now holds totp, vault, history and site permission rules, but desktop-rs has never been linked or run and Electron is still the shipped desktop app, so this is not full Rust. None of the UI or Android changes were run on a device or compiled locally.
+
 ## 1.17.20 (versionCode 266)
 
 - Open Settings drop-downs on desktop no longer close on their own: the page waits until the drop-down loses focus before it redraws. The Lodica search page now uses the start page background colour, and shortcut tiles get a thin black circle with the site logo zoomed in so no blank edge shows. Nothing was compiled or run on a device; the Kotlin changes build only in CI, and the Android start page tiles still have the old border.

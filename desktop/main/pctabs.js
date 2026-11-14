@@ -469,7 +469,8 @@ async function confirmKey(session, yes) {
 async function unlockVault() {
   const mode = prefs.p.pcUnlock || "pin";
   if (mode === "pin") return { error: "Unlocking with the PIN only" };
-  if (!enabled()) return { error: "Turn on linking first" };
+  // "PIN or phone" without linking just falls through to the PIN dialog, no error toast.
+  if (!enabled()) return mode === "pinphone" ? {} : { error: "Turn on linking first" };
   if (mode !== "phone" && mode !== "pinphone" && !linkkey.hasKey()) return { error: "Link this device with a code first" };
   if (mode === "key") { require("./vault").grant(); return { ok: true }; }
   const id = crypto.randomBytes(8).toString("hex"), t = Date.now();

@@ -4,7 +4,9 @@ const NB = { L: null };
 
 function openNotebook() {
   if (NB.L) return NB.L;
-  NB.L = openLayer({ key: "notebook", cls: "spage-layer", dim: false, onClose: () => { const L = NB.L; NB.L = null; clearInterval(L.poll); clearTimeout(L.timer); if (L.dirty && L.id) inv("notebook.put", L.id, L.ta.value, L.rev); } }, (L) => {
+  // Dock right like the AI panel so the page shrinks instead of being covered.
+  inv("ui.dock", 360);
+  NB.L = openLayer({ key: "notebook", cls: "spage-layer settings-tab nb-dock", dim: false, onClose: () => { inv("ui.dock", 0); const L = NB.L; NB.L = null; clearInterval(L.poll); clearTimeout(L.timer); if (L.dirty && L.id) inv("notebook.put", L.id, L.ta.value, L.rev); } }, (L) => {
     L.id = null; L.notes = []; L.rev = 0; L.sent = ""; L.dirty = false; L.busy = false;
     L.status = h("div", { class: "empty", style: "padding:6px 12px", text: "Loading..." });
     L.ta = h("textarea", { class: "field", placeholder: "Write here. Every linked device shows the same notes.", maxlength: "100000", disabled: true, style: "flex:1;min-height:240px;margin:0 12px 12px;border-radius:12px;resize:none;font-size:15px" });

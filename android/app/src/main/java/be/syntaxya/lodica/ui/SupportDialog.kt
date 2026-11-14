@@ -178,8 +178,9 @@ internal fun SupportDialog(onClose: () -> Unit) {
                                     if (m.text.isNotBlank()) Text(
                                         m.text,
                                         color = if (m.fromUser) OnAmber else Mist, fontSize = 13.sp,
-                                        modifier = Modifier.widthIn(max = 300.dp).clip(RoundedCornerShape(20.dp))
-                                            .background(if (m.fromUser) Amber else GraphiteHigh).padding(horizontal = 16.dp, vertical = 12.dp),
+                                        // same bubble as the AI panel (AgentPanel Bubble)
+                                        modifier = Modifier.widthIn(max = 300.dp).clip(RoundedCornerShape(12.dp))
+                                            .background(if (m.fromUser) Amber else GraphiteHigh).padding(horizontal = 12.dp, vertical = 8.dp),
                                     )
                                     if (m.images.isNotEmpty()) Row(
                                         modifier = Modifier.padding(top = if (m.text.isNotBlank()) 4.dp else 0.dp),

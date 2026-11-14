@@ -602,7 +602,7 @@ private fun StartPage(modifier: Modifier) {
                         Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.Color.Black, CircleShape), contentAlignment = Alignment.Center) {
                             Icon(LodicaIcons.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
                         }
                         if (Prefs.shortcutNames) {

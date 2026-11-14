@@ -362,18 +362,21 @@ async function run() {
   if (!data || data.error) {
     const st = await statePromise;
     const msg = el("div", { class: "ans" }, (data && data.error) || "Search unavailable");
-    if (st && st.api === false) {
-      const fb = (st.engine || st.fallback || "https://duckduckgo.com/?q=%s").replace("%s", encodeURIComponent(q));
-      msg.append(" ", el("a", { href: fb }, "Search with the fallback engine"));
-    }
+    const fb = (st && (st.engine || st.fallback)) || "https://duckduckgo.com/?q=%s";
+    msg.append(" ", el("a", { href: fb.replace("%s", encodeURIComponent(q)) }, "Search with the fallback engine"));
     $("results").replaceChildren(msg);
     return;
   }
-  if (!cached) cachePut({ data });
+  if (!cached && (data.results || []).length) cachePut({ data });
   note(data);
   if (cat === "images") renderImages(data); else renderWeb(data);
   renderPages(data);
-  if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
+  if (!(data.results || []).length) {
+    // The server's engines can be blocked upstream; offer the fallback engine instead of a dead end.
+    const msg = el("div", { class: "ans" }, "No results for “" + q + "”.");
+    $("results").append(msg);
+    statePromise.then((st) => { const fb = (st && st.fallback) || "https://duckduckgo.com/?q=%s"; msg.append(" ", el("a", { href: fb.replace("%s", encodeURIComponent(q)) }, "Search with the fallback engine")); });
+  }
   if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
   const state = await statePromise;
   // Results are already on screen, so never bounce to another engine here: api can read false only because

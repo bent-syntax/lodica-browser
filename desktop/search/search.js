@@ -422,11 +422,13 @@ async function run() {
     browser.runtime.sendMessage({ type: "state" }).catch(() => ({})),
   ]);
   if (state && state.base) BASE = state.base;
+  // The server's engines can be blocked upstream; then offer the fallback engine instead of a dead end.
+  const fbLink = (msg) => { const fb = state && (state.fallback || state.engine); if (fb) msg.append(" ", el("a", { href: fb.replace("%s", encodeURIComponent(q)) }, "Search with the fallback engine")); return msg; };
   if (!data || data.error) {
-    $("results").replaceChildren(el("div", { class: "ans" }, (data && data.error) || "Search unavailable"));
+    $("results").replaceChildren(fbLink(el("div", { class: "ans" }, (data && data.error) || "Search unavailable")));
     return;
   }
-  if (!cached) cachePut({ data });
+  if (!cached && (data.results || []).length) cachePut({ data });
   // Private tabs never send the question to the AI.
   if (state && state.ai && !cat && page === 1 && !priv) {
     if (state.aiAlways || (cached && cached.ai)) ask(data, cached && cached.ai);
@@ -435,7 +437,7 @@ async function run() {
   note(data);
   if (cat === "images") renderImages(data); else renderWeb(data);
   renderPages(data);
-  if (!(data.results || []).length) $("results").append(el("div", { class: "ans" }, "No results for “" + q + "”."));
+  if (!(data.results || []).length) $("results").append(fbLink(el("div", { class: "ans" }, "No results for “" + q + "”.")));
   if (cached && cached.y) requestAnimationFrame(() => scrollTo(0, cached.y));
 }
 

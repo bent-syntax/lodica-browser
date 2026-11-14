@@ -250,10 +250,11 @@ body.bt .sugg{bottom:auto;top:0;flex-direction:column;border-radius:0 0 20px 20p
 .cp-use{display:grid;grid-template-columns:1fr auto;gap:4px 8px;font-size:12px;color:var(--muted)}
 .cp-use b{color:var(--amber);font-size:15px}
 .totp-foot{margin-top:8px;border-top:1px solid var(--high);border-radius:12px}
-.sup-msg{border-radius:20px 20px 20px 4px;padding:10px 16px}
-.sup-msg.me{border-radius:20px 20px 4px 20px}
+/* Support chat reads like the AI panel: your messages in a raised bubble, replies as plain text */
+.sup-msg{max-width:95%;background:transparent;border:0;border-radius:0;padding:0}
+.sup-msg.me{max-width:85%;background:var(--raised);border:1px solid var(--line);border-radius:12px 12px 4px 12px;padding:8px 12px}
 .sup-step{padding:6px 12px}
-.sup-ta{border-radius:20px;padding:12px 16px;background:var(--bg)}
+.sup-ta{border:1px solid var(--line);border-radius:12px;padding:8px 16px;background:var(--raised);font-size:14px;line-height:1.4}
 .prose h1{font-size:26px;font-weight:600;line-height:1.25}
 .prose h2{font-size:20px;font-weight:600}
 .prose p{font-size:15px;line-height:1.7}
@@ -392,12 +393,12 @@ body:not(.bt) .layer.settings-tab{bottom:var(--bar-h,44px)}
 body.frameless .spage-layer.settings-tab .sp-head{padding-right:12px}
 /* "keep" layout: the overlay view already starts below the tab strip and beside the sidebar, so do not offset again */
 body.keep .layer.settings-tab{top:0;left:0}
+body.keep .layer.settings-tab.nb-dock{top:0;left:0;right:0;bottom:0}
 body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
 body.keep.bt.ov #dock{top:0;left:0}
 body.keep.bt #banner{top:var(--bar-h,44px)}
 body.keep.bt.ov #banner{top:calc(var(--bar-h,44px) + 6px)}
 
-/* Server chat docks right at the AI panel width (360px) instead of covering the window */
-body.keep .layer.settings-tab.sup-dock{top:0;left:0;right:0;bottom:0;background:transparent}
+/* Support fills the whole tab page; its text keeps a 16px gap from every edge */
 .sheet.sup-full .sh-head{padding-left:16px;padding-right:16px}
-.sheet.sup-full .sup{padding:12px 16px}
+.sheet.sup-full .sup{padding:12px 16px 16px}

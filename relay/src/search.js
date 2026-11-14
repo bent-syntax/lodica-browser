@@ -76,7 +76,8 @@ function search(url) {
   if (hit && Date.now() - hit.at < 60e3) return hit.v;
   const v = searchLive(url);
   memo.set(k, { at: Date.now(), v });
-  v.catch(() => memo.delete(k));
+  // Blocked upstream engines can return nothing for a while; do not pin that empty answer for 60 s.
+  v.then((r) => { if (!r.results.length && memo.get(k)?.v === v) memo.delete(k); }, () => memo.delete(k));
   if (memo.size > 200) memo.delete(memo.keys().next().value);
   return v;
 }

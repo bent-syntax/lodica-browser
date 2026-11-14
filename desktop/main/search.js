@@ -38,7 +38,7 @@ function positions() {
 async function handle(msg) {
   if (!msg || typeof msg !== "object") return undefined;
   if (msg.type === "go") return prefs.resolve(String(msg.q || ""), relay.available);
-  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, fx: prefs.p.holidayFx && require("./holidays").find(prefs.p.theme) ? prefs.p.theme : "", custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, names: prefs.p.shortcutNames !== false, pos: positions(), showPlan: !!prefs.p.startPlanner };
+  if (msg.type === "state") return { api: relay.available, engine: engineQuery(), fallback: prefs.ENGINES[prefs.p.searchFallback]?.query || "", base: relay.API, ai: !!prefs.p.ai && !!ai?.status().connected, aiAlways: !!prefs.p.aiAlways, theme: prefs.p.theme, fx: prefs.p.holidayFx && require("./holidays").find(prefs.p.theme) ? prefs.p.theme : "", custom: prefs.p.customTheme, bg: prefs.p.bg, quick: prefs.p.quickSites, hidden: prefs.p.quickHidden, auto: prefs.p.autoTop, names: prefs.p.shortcutNames !== false, pos: positions(), showPlan: !!prefs.p.startPlanner };
   if (msg.type === "quick") return setQuick(msg.list);
   if (msg.type === "hide") {
     const h = String(msg.host || "").slice(0, 253);
@@ -152,7 +152,8 @@ function search(msg) {
   const p = fetchSearch(qs);
   hits.set(key, { at: Date.now(), p });
   if (hits.size > 40) hits.delete(hits.keys().next().value);
-  p.then(r => { if (r && r.error && hits.get(key)?.p === p) hits.delete(key); });
+  // Errors and empty pages (SearXNG engines blocked upstream) are not kept, so a retry asks again.
+  p.then(r => { if (r && (r.error || !(r.results || []).length) && hits.get(key)?.p === p) hits.delete(key); });
   return p;
 }
 async function shop(msg) {

@@ -67,6 +67,10 @@ body.home #tabs { display: none; }
 #viewer .cap a { color: var(--link); display: block; margin-top: 6px; }
 html { background: var(--start-bg, var(--raised)); }
 body.home { background: transparent; }
+/* Results page uses the start page colour too, so the whole page is one colour. */
+body, header { background: var(--start-bg, var(--raised)); }
+header { border-bottom-color: var(--line); }
+body:not(.home) :is(.box, #ai, .ans, .chips a, #pages a:not(.on), .skel, .grid a, .r img, .fav) { background-color: var(--high); }
 html.hasbg body.home::before { content: ""; position: fixed; inset: -40px; z-index: -2; background: var(--bgimg) center / cover; filter: blur(var(--bgblur)); }
 html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) var(--bgdim), transparent); }
 #sg { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: var(--raised); border-radius: 16px; padding: 6px; z-index: 5; box-shadow: 0 8px 28px rgba(0,0,0,.25); }
