@@ -210,6 +210,7 @@ function wire(t, wc) {
   };
   wc.on("will-redirect", toViewer);
   wc.on("will-navigate", e => {
+    if (isSettingsUrl(e.url)) { e.preventDefault(); create({ url: SETTINGS }); return; }
     if (toViewer(e)) return;
     if (!errorpage.isActionUrl(e.url)) return;
     e.preventDefault();
