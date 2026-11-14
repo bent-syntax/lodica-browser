@@ -69,8 +69,10 @@ body.ov #layers{z-index:60}
 .sheet.full{max-width:none;width:100%;height:100%;max-height:100%;border-radius:0}
 .sheet.full .sup{max-width:760px;margin:0 auto;width:100%}
 .sheet.full .sup-log{max-height:none}
-/* Support chat docks on the right like the AI panel; the tab strip stays visible above it. */
-.sheet.sup-side{left:auto;right:0;top:44px;bottom:0;width:360px;max-width:100%;height:auto;max-height:none;border-radius:0}
+/* Contact support is a full page under the tab strip, like settings: no grip, no inner padding */
+.sheet.sup-full{border-radius:0;box-shadow:none;background:var(--bg)}
+.sheet.sup-full .grip{display:none}
+.sheet.sup-full .sh-body{padding:0}
 .grip{width:36px;height:4px;border-radius:2px;background:var(--high);margin:8px auto 2px;flex:none}
 .sh-head{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 20px;flex:none;min-height:52px}
 .sh-head h2{flex:1;font-size:18px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -269,7 +271,7 @@ html.mock body{background:var(--bg)}
 .sp-head h2{flex:1;font-size:22px;font-weight:600}
 .sp-find{width:220px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:inherit;font:inherit;font-size:13px}
 .sp-body{flex:1;min-height:0;overflow:auto;padding:0 0 32px}
-.sp-body .set-pane{max-width:760px;padding:0 12px 0 20px}
+.sp-body .set-pane{max-width:none;padding:0 12px 0 20px}
 @media (max-width:700px){.spage{flex-direction:column}.sp-side{width:auto;flex-direction:row;padding:8px;border-right:0;border-bottom:1px solid var(--high)}}
 .set-note{padding:4px 20px 12px;font-size:12px;color:var(--muted)}
 .swatches{display:flex;flex-wrap:wrap;gap:10px;padding:8px 20px 12px}
