@@ -1,3 +1,7 @@
+## 1.17.19
+
+- Open Settings drop-downs on desktop no longer close on their own: the page waits until the drop-down loses focus before it redraws. The Lodica search page now uses the start page background colour, and shortcut tiles get a thin black circle with the site logo zoomed in so no blank edge shows. Nothing was compiled or run on a device; the Kotlin changes build only in CI, and the Android start page tiles still have the old border.
+
 ## 1.17.18
 
 - The relay now asks each web engine (brave, bing, google, duckduckgo, startpage, mojeek, yahoo, qwant) separately when the All tab has fewer than 3 results, so one blocked or hung engine no longer leaves only Wikipedia. The fix is in commit b71c584 and the relay tests pass. The relay at `/opt/lodica-

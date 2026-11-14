@@ -1,5 +1,6 @@
 package be.syntaxya.lodica.engine
 
+import androidx.compose.ui.graphics.toArgb
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -111,13 +112,23 @@ object Helper {
     fun themeParam(): String {
         val p = be.syntaxya.lodica.ui.theme.ThemeState.palette
         fun h(c: Long) = String.format("%06X", c and 0xFFFFFF)
-        return listOf(p.bg, p.raised, p.high, p.text, p.muted, p.accent, p.accent2).joinToString(",") { h(it) } + "," + (if (p.dark) "d" else "l")
+        return listOf(startBg(p.bg), p.raised, p.high, p.text, p.muted, p.accent, p.accent2).joinToString(",") { h(it) } + "," + (if (p.dark) "d" else "l")
+    }
+
+    /** The start page's flat colour, so results match it; gradient and image starts keep the palette colour. */
+    private fun startBg(fallback: Long): Long {
+        val c = when (be.syntaxya.lodica.engine.Prefs.startBg) {
+            "color" -> be.syntaxya.lodica.ui.StartBg.parseColor(be.syntaxya.lodica.engine.Prefs.startBgValue)
+            "gradient", "image" -> return fallback
+            else -> be.syntaxya.lodica.ui.theme.customExtraColor("startBg") ?: return fallback
+        }
+        return c.toArgb().toLong() and 0xFFFFFF
     }
 
     private fun themeJson(): JSONObject {
         val p = be.syntaxya.lodica.ui.theme.ThemeState.palette
         fun hex(c: Long) = String.format("#%06X", c and 0xFFFFFF)
-        return JSONObject().put("dark", p.dark).put("bg", hex(p.bg)).put("raised", hex(p.raised)).put("high", hex(p.high))
+        return JSONObject().put("dark", p.dark).put("bg", hex(startBg(p.bg))).put("raised", hex(p.raised)).put("high", hex(p.high))
             .put("text", hex(p.text)).put("muted", hex(p.muted)).put("amber", hex(p.accent)).put("coral", hex(p.accent2))
     }
 

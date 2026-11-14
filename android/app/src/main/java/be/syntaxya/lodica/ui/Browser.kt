@@ -678,10 +678,10 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
                 if (value == null) kotlinx.coroutines.delay(125_000)
             }
         }
-        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, GraphiteHigh.copy(alpha = 0.6f), CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.Color.Black, CircleShape), contentAlignment = Alignment.Center) {
             val ic = icon
             if (ic != null && be.syntaxya.lodica.engine.SiteIcons.isDark(host)) Box(Modifier.size(56.dp).clip(CircleShape).background(Mist))
-            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(36.dp))
+            if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(56.dp).clip(CircleShape), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
             else if (host.firstOrNull()?.isLetter() == true) Text(host.first().uppercase(), color = Amber, fontWeight = FontWeight.SemiBold, fontSize = 20.sp)
             else Icon(LodicaIcons.Globe, null, tint = Muted, modifier = Modifier.size(24.dp))
         }

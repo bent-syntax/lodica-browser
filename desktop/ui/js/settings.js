@@ -38,7 +38,13 @@ function setSlash(e) {
   const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
   e.preventDefault(); SET.L.findEl.focus();
 }
-const refreshSettings = debounce(() => { if (SET.L) renderSettings(); }, 50);
+const refreshSettings = debounce(() => {
+  if (!SET.L) return;
+  const a = document.activeElement;
+  // an open drop-down closes on re-render: retry once it loses focus
+  if (a && a.tagName === "SELECT" && SET.L.body.contains(a)) { a.addEventListener("blur", refreshSettings, { once: true }); return; }
+  renderSettings();
+}, 50);
 
 function renderSettings() {
   const b = SET.L.body, top = b.scrollTop;
