@@ -18,7 +18,7 @@ let covered = false;
 function syncCover() {
   const on = STACK.some((l) => l.el.classList.contains("spage-layer") && !l.el.classList.contains("settings-tab"));
   if (on !== covered) { covered = on; inv("cover", on); }
-  const dim = STACK.some((l) => !l.el.classList.contains("popL") && !l.el.classList.contains("ctxL") && l.el.querySelector(":scope>.dim"));
+  const dim = STACK.some((l) => !l.el.classList.contains("popL") && !l.el.classList.contains("ctxL") && l.el.querySelector(":scope>.dim") && !l.el.querySelector(":scope>.sheet.sup-full"));
   if (dim !== dimmed) { dimmed = dim; inv("capdim", dim); }
   const keep = keepOnly();
   if (keep !== keepOn) {
@@ -64,7 +64,7 @@ function openLayer(opts, build) {
   STACK.push(L);
   syncCover();
   const content = build(L);
-  if (content) L.el.append(content);
+  if (content) { L.el.append(content); syncCover(); }
   // Show synchronously in the DOM; the window grows to overlay layout in parallel.
   $("#layers").append(L.el);
   ensureOverlay().then(() => {
