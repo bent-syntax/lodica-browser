@@ -65,7 +65,7 @@ body.home #tabs { display: none; }
 #viewer img { max-width: 100%; max-height: 72vh; border-radius: 8px; }
 #viewer .cap { margin-top: 12px; text-align: center; font-size: 13px; }
 #viewer .cap a { color: var(--link); display: block; margin-top: 6px; }
-html { background: var(--start-bg, var(--bg)); }
+html { background: var(--start-bg, var(--raised)); }
 body.home { background: transparent; }
 html.hasbg body.home::before { content: ""; position: fixed; inset: -40px; z-index: -2; background: var(--bgimg) center / cover; filter: blur(var(--bgblur)); }
 html.hasbg body.home::after { content: ""; position: fixed; inset: 0; z-index: -1; background: color-mix(in srgb, var(--bg) var(--bgdim), transparent); }
