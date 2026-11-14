@@ -73,6 +73,8 @@ body.ov #layers{z-index:60}
 .sheet.sup-full{border-radius:0;box-shadow:none;background:var(--bg)}
 .sheet.sup-full .grip{display:none}
 .sheet.sup-full .sh-body{padding:0}
+.sheet.sup-full .sup{max-width:none;margin:0;width:100%;padding:0}
+.layer:has(>.sheet.sup-full)>.dim{display:none}
 .grip{width:36px;height:4px;border-radius:2px;background:var(--high);margin:8px auto 2px;flex:none}
 .sh-head{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 20px;flex:none;min-height:52px}
 .sh-head h2{flex:1;font-size:18px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
