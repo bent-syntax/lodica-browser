@@ -6,7 +6,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -92,6 +91,8 @@ import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.themedFill
 import be.syntaxya.lodica.ui.theme.LodicaIcons
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_FAST
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Private
@@ -123,7 +124,7 @@ fun BottomBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit, modifier
         LoadLine(tab)
         AnimatedContent(
             mode,
-            transitionSpec = { fadeIn(tween(160)) togetherWith fadeOut(tween(120)) },
+            transitionSpec = { fadeIn(ease(MOTION_FAST)) togetherWith fadeOut(ease(MOTION_FAST)) },
             label = "bar",
         ) { m ->
             when (m) {
@@ -148,9 +149,9 @@ private fun LoadLine(tab: Tab?) {
     val fill = remember { Animatable(1f) }
     LaunchedEffect(tab, loading) { if (loading) fill.snapTo(0.04f) }
     LaunchedEffect(tab?.progress, loading) {
-        fill.animateTo(if (loading) (tab?.progress ?: 100).coerceAtLeast(4) / 100f else 1f, tween(260))
+        fill.animateTo(if (loading) (tab?.progress ?: 100).coerceAtLeast(4) / 100f else 1f, ease())
     }
-    val alpha by animateFloatAsState(if (loading) 1f else 0f, tween(if (loading) 120 else 420), label = "load")
+    val alpha by animateFloatAsState(if (loading) 1f else 0f, ease(if (loading) MOTION_FAST else 420), label = "load")
     Box(Modifier.fillMaxWidth().height(2.dp).graphicsLayer { this.alpha = alpha }) {
         Box(Modifier.fillMaxWidth(fill.value).fillMaxHeight().background(Amber))
     }
@@ -186,9 +187,9 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 runGesture(slot.action, tab)
                             }
-                            scope.launch { animate(drag, 0f, animationSpec = tween(220)) { v, _ -> drag = v } }
+                            scope.launch { animate(drag, 0f, animationSpec = ease()) { v, _ -> drag = v } }
                         },
-                        onDragCancel = { scope.launch { animate(drag, 0f, animationSpec = tween(220)) { v, _ -> drag = v } } },
+                        onDragCancel = { scope.launch { animate(drag, 0f, animationSpec = ease()) { v, _ -> drag = v } } },
                     ) { change, dx ->
                         change.consume()
                         drag += dx

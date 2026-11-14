@@ -2,7 +2,6 @@ package be.syntaxya.lodica.ui
 
 import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -42,6 +41,8 @@ import be.syntaxya.lodica.engine.CustomTheme
 import be.syntaxya.lodica.engine.Prefs
 import be.syntaxya.lodica.engine.Relay
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_FAST
 import be.syntaxya.lodica.ui.theme.GraphiteHigh
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
 import be.syntaxya.lodica.ui.theme.Mist
@@ -56,7 +57,7 @@ import be.syntaxya.lodica.ui.theme.ThemeState
 internal fun RoundChoice(
     label: String, selected: Boolean, size: Dp = 52.dp, labelWidth: Dp = size + 12.dp, onLongClick: (() -> Unit)? = null, onClick: () -> Unit, content: @Composable () -> Unit,
 ) {
-    val ring by animateColorAsState(if (selected) Amber else GraphiteHigh, tween(180), label = "ring")
+    val ring by animateColorAsState(if (selected) Amber else GraphiteHigh, ease(MOTION_FAST), label = "ring")
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(labelWidth)) {
         Box(
             Modifier.size(size).clip(CircleShape).border(if (selected) 2.dp else 1.dp, ring, CircleShape).combinedClickable(onLongClick = onLongClick, onClick = onClick),
@@ -142,7 +143,7 @@ internal fun ThemeSwatches() {
 
 @Composable
 private fun anim(c: Long): Color {
-    val v by animateColorAsState(Color(c), tween(260), label = "pv")
+    val v by animateColorAsState(Color(c), ease(), label = "pv")
     return v
 }
 

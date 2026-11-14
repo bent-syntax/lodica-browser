@@ -291,9 +291,18 @@ fun themeMotion(key: String): String {
     return be.syntaxya.lodica.engine.Prefs.customTheme?.extra?.get(key).orEmpty()
 }
 
+/** Shared motion durations in ms: fast for fades and colours, base for most moves, slow for screen-level moves. */
+const val MOTION_FAST = 120
+const val MOTION_BASE = 200
+const val MOTION_SLOW = 280
+
+/** Ease-out tween over [ms], the one curve every non-bounce motion uses. */
+fun <T> ease(ms: Int = MOTION_BASE): androidx.compose.animation.core.TweenSpec<T> =
+    androidx.compose.animation.core.tween(ms, easing = androidx.compose.animation.core.FastOutSlowInEasing)
+
 /** Animation spec for [kind]: bounce springs, the rest ease over [ms]. */
 fun motionSpec(kind: String, ms: Int = 320): androidx.compose.animation.core.AnimationSpec<Float> =
-    if (kind == "bounce") androidx.compose.animation.core.spring(0.45f, 260f) else androidx.compose.animation.core.tween(ms)
+    if (kind == "bounce") androidx.compose.animation.core.spring(0.45f, 260f) else ease(ms)
 
 /** Draws a [kind] entrance at progress [p] (0 hidden, 1 settled). Does nothing at 1, so a settled view costs nothing. */
 fun androidx.compose.ui.Modifier.themeEnter(kind: String, p: Float): androidx.compose.ui.Modifier =

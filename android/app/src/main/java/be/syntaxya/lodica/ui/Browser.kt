@@ -6,8 +6,6 @@ import be.syntaxya.lodica.ui.theme.DlgSecondary
 import be.syntaxya.lodica.ui.theme.DlgPrimary
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -98,6 +96,9 @@ import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_FAST
+import be.syntaxya.lodica.ui.theme.MOTION_SLOW
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.GraphiteRaised
@@ -135,14 +136,14 @@ fun LodicaRoot() {
 
 /** Enter transition for a theme motion name, or null to keep the default. */
 private fun motionIn(kind: String): androidx.compose.animation.EnterTransition? {
-    val t = tween<Float>(320)
-    val o = tween<androidx.compose.ui.unit.IntOffset>(320, easing = FastOutSlowInEasing)
+    val t = ease<Float>(MOTION_SLOW)
+    val o = ease<androidx.compose.ui.unit.IntOffset>(MOTION_SLOW)
     return when (kind) {
         "fade" -> fadeIn(t)
         "slide" -> androidx.compose.animation.slideInHorizontally(o) { it } + fadeIn(t)
         "rise" -> androidx.compose.animation.slideInVertically(o) { it / 3 } + fadeIn(t)
         "drop" -> androidx.compose.animation.slideInVertically(o) { -it / 2 } + fadeIn(t)
-        "zoom", "spin", "flip" -> androidx.compose.animation.scaleIn(tween(320), 0.3f) + fadeIn(t)
+        "zoom", "spin", "flip" -> androidx.compose.animation.scaleIn(ease(MOTION_SLOW), 0.3f) + fadeIn(t)
         "bounce" -> androidx.compose.animation.scaleIn(androidx.compose.animation.core.spring(0.45f, 260f), 0.5f) + fadeIn(t)
         else -> null
     }
@@ -150,14 +151,14 @@ private fun motionIn(kind: String): androidx.compose.animation.EnterTransition? 
 
 /** Exit transition for a theme motion name, or null to keep the default. */
 private fun motionOut(kind: String): androidx.compose.animation.ExitTransition? {
-    val t = tween<Float>(260)
-    val o = tween<androidx.compose.ui.unit.IntOffset>(260, easing = FastOutSlowInEasing)
+    val t = ease<Float>()
+    val o = ease<androidx.compose.ui.unit.IntOffset>()
     return when (kind) {
         "fade" -> fadeOut(t)
         "slide" -> androidx.compose.animation.slideOutHorizontally(o) { it } + fadeOut(t)
         "rise" -> androidx.compose.animation.slideOutVertically(o) { -it / 3 } + fadeOut(t)
         "drop" -> androidx.compose.animation.slideOutVertically(o) { it / 2 } + fadeOut(t)
-        "zoom", "spin", "flip", "bounce" -> androidx.compose.animation.scaleOut(tween(260), 0.3f) + fadeOut(t)
+        "zoom", "spin", "flip", "bounce" -> androidx.compose.animation.scaleOut(ease(), 0.3f) + fadeOut(t)
         else -> null
     }
 }
@@ -168,8 +169,8 @@ private fun Overlay(visible: Boolean, content: @Composable () -> Unit) {
     val outKind = be.syntaxya.lodica.ui.theme.themeMotion("closeAnim")
     AnimatedVisibility(
         visible,
-        enter = motionIn(inKind) ?: (slideInVertically(tween(280, easing = FastOutSlowInEasing)) { it / 8 } + fadeIn(tween(220))),
-        exit = motionOut(outKind) ?: (slideOutVertically(tween(220, easing = FastOutSlowInEasing)) { it / 8 } + fadeOut(tween(180))),
+        enter = motionIn(inKind) ?: (slideInVertically(ease(MOTION_SLOW)) { it / 8 } + fadeIn(ease())),
+        exit = motionOut(outKind) ?: (slideOutVertically(ease()) { it / 8 } + fadeOut(ease(MOTION_FAST))),
     ) {
         Surface(Modifier.fillMaxSize(), color = Graphite, contentColor = Mist) {
             Box(Modifier.systemBarsPadding()) { content() }
@@ -279,7 +280,7 @@ private fun BrowserScreen() {
         }
 
         val home = tab != null && tab.url == TabManager.HOME && !locked && Ui.screen == Screen.Browser
-        AnimatedVisibility(home && !Ui.editing, enter = fadeIn(tween(200)), exit = fadeOut(tween(160))) {
+        AnimatedVisibility(home && !Ui.editing, enter = fadeIn(ease()), exit = fadeOut(ease(MOTION_FAST))) {
             StartPage(Modifier.fillMaxSize().tiltLayer())
         }
         if (Diag.overlay) androidx.compose.material3.Text(Diag.stats, color = androidx.compose.ui.graphics.Color.Yellow, fontSize = 12.sp,
@@ -287,7 +288,7 @@ private fun BrowserScreen() {
         if (tab?.crashed == true && !locked) CrashedView(tab)
         if (locked) LockedView()
 
-        AnimatedVisibility(Ui.editing, enter = fadeIn(tween(160)), exit = fadeOut(tween(140))) {
+        AnimatedVisibility(Ui.editing, enter = fadeIn(ease(MOTION_FAST)), exit = fadeOut(ease(MOTION_FAST))) {
             // Sit exactly on top of the measured bar (it grows with the keyboard inset), not a guessed height.
             val barDp = with(androidx.compose.ui.platform.LocalDensity.current) { Ui.barHeight.toDp() }.coerceAtLeast(58.dp)
             Suggestions(query.text, Modifier.fillMaxSize().padding(bottom = barDp)) { go(it) }

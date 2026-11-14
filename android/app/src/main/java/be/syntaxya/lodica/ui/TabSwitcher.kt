@@ -4,7 +4,6 @@ import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.AnimatedVisibility
 import be.syntaxya.lodica.ui.theme.themeEnter
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -71,6 +70,8 @@ import be.syntaxya.lodica.tabs.TabRecord
 import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_FAST
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Private
 import be.syntaxya.lodica.ui.theme.Danger
@@ -193,8 +194,8 @@ fun TabSwitcher() {
         AnimatedVisibility(
             undoVisible && TabManager.canUndo,
             Modifier.align(Alignment.BottomCenter).padding(16.dp),
-            enter = slideInVertically(tween(220)) { it } + fadeIn(tween(200)),
-            exit = slideOutVertically(tween(180)) { it } + fadeOut(tween(160)),
+            enter = slideInVertically(ease()) { it } + fadeIn(ease()),
+            exit = slideOutVertically(ease(MOTION_FAST)) { it } + fadeOut(ease(MOTION_FAST)),
         ) {
             Surface(shape = RoundedCornerShape(12.dp), color = GraphiteHigh, contentColor = Mist, shadowElevation = 4.dp) {
                 Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -214,7 +215,7 @@ fun TabSwitcher() {
 private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.clip(RoundedCornerShape(16.dp)).background(GraphiteRaised).padding(3.dp)) {
         listOf(false to "Tabs", true to "Private").forEach { (p, label) ->
-            val bg by animateColorAsState(if (p == private) GraphiteHigh else GraphiteRaised, tween(200), label = "mode")
+            val bg by animateColorAsState(if (p == private) GraphiteHigh else GraphiteRaised, ease(), label = "mode")
             Row(
                 Modifier.clip(RoundedCornerShape(12.dp)).background(bg).clickable { onChange(p) }
                     .padding(horizontal = 14.dp, vertical = 7.dp),
@@ -242,7 +243,7 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
     val motion = be.syntaxya.lodica.ui.theme.themeMotion("openAnim")
-    val grow by animateFloatAsState(if (entered) 1f else 0.82f, tween(260), label = "tab-in")
+    val grow by animateFloatAsState(if (entered) 1f else 0.82f, ease(), label = "tab-in")
     val open by animateFloatAsState(if (entered) 1f else 0f, be.syntaxya.lodica.ui.theme.motionSpec(motion), label = "tab-motion")
     Column(
         (if (motion.isEmpty()) modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f } else modifier.then(Modifier.themeEnter(motion, open)))

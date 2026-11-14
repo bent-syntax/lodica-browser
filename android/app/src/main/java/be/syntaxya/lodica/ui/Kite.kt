@@ -3,8 +3,6 @@ package be.syntaxya.lodica.ui
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -35,6 +33,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_SLOW
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Graphite
 
@@ -106,13 +106,13 @@ fun Intro(content: @Composable () -> Unit) {
     val t = remember { Animatable(0f) }
     LaunchedEffect(show) {
         if (!show) return@LaunchedEffect
-        t.animateTo(1f, tween(450, easing = FastOutSlowInEasing))
+        t.animateTo(1f, ease(MOTION_SLOW))
         delay(150)
         show = false
     }
     Box(Modifier.fillMaxSize()) {
         content()
-        AnimatedVisibility(show, exit = fadeOut(tween(200))) {
+        AnimatedVisibility(show, exit = fadeOut(ease())) {
             Box(
                 Modifier.fillMaxSize().background(Graphite)
                     .clickable(indication = null, interactionSource = remember { MutableInteractionSource() }) { show = false },

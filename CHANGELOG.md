@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.14 (versionCode 260)
+
+- Motion redesign. Desktop: one easing curve and three durations (120, 180, 240 ms) for every transition, exit animations for dialogs, menus, suggestions, toasts and sheets, cards lift on hover and buttons press down, all animations off under reduced motion. Android: the same three durations for tab switcher, bottom bar, settings, kite and appearance, so every screen moves the same way.
+
 ## 1.17.13 (versionCode 259)
 
 - All 20 items were already implemented in the code (90% tab cap, narrower open tab, themed window controls that dim with the menu, `lodica://settings` as a closeable tab, a 360px docked support chat, full-area pages, forced compat for Google sign-in, a mobile compat toggle, per-site Allow/Block/Ask, 

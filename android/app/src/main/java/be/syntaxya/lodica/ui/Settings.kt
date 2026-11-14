@@ -14,7 +14,6 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -107,6 +106,8 @@ import be.syntaxya.lodica.engine.Vault
 import be.syntaxya.lodica.engine.Visit
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.theme.Amber
+import be.syntaxya.lodica.ui.theme.ease
+import be.syntaxya.lodica.ui.theme.MOTION_FAST
 import be.syntaxya.lodica.ui.theme.OnAmber
 import be.syntaxya.lodica.ui.theme.Coral
 import be.syntaxya.lodica.ui.theme.Danger
@@ -215,7 +216,7 @@ fun SettingsScreen() {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = 32.dp)) {
             AnimatedContent(
                 tab,
-                transitionSpec = { (slideInHorizontally(tween(260)) { it / 6 } + fadeIn(tween(260))) togetherWith fadeOut(tween(120)) },
+                transitionSpec = { (slideInHorizontally(ease()) { it / 6 } + fadeIn(ease())) togetherWith fadeOut(ease(MOTION_FAST)) },
                 contentAlignment = Alignment.TopStart, label = "settingsTab",
             ) { page ->
             Column(Modifier.fillMaxWidth()) {
