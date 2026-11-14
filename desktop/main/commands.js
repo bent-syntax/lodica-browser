@@ -202,12 +202,12 @@ function init(deps) {
   const host = () => cur()?.host || "";
 
   on("init", initPayload);
-  // Caption buttons follow the theme and darken with the 50% layer dim so they don't glow above it.
+  // Caption buttons follow the theme and darken with the 52% layer dim so they don't glow above it.
   let capDim = false;
   const capOverlay = () => {
     const t = global.lodicaTheme;
     if (!global.lodicaFrameless || !t) return;
-    const mix = hex => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (capDim ? 0.5 : 1)).toString(16).padStart(2, "0")).join("");
+    const mix = hex => "#" + [1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * (capDim ? 0.48 : 1)).toString(16).padStart(2, "0")).join("");
     try { const w = d.win(); if (w && !w.isDestroyed()) w.setTitleBarOverlay({ color: mix(t.bg), symbolColor: mix(t.text), height: 44 }); } catch {}
   };
   // Window background fills the gaps around rounded page views; match the theme so no black edge shows.
