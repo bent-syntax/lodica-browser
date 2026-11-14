@@ -1,3 +1,7 @@
+## 1.17.17
+
+- The All tab now retries across more search engines when it gets fewer than 3 results, which fixes the Wikipedia-only results, and nothing else in search changed. The relay tests pass (36 of 36), but I haven't tried it against live searches. The relay at `/opt/lodica-browser` still needs a manual pul
+
 ## 1.17.16
 
 - The toolbar no longer drops down and snaps back when you leave the Settings tab (commit 3fc6201). I only syntax-checked it and haven't tried it in a live window. `npm test` crashes with `(r.stdout + r.stderr).split is not a function`, so the tests didn't run. `graphify` isn't installed here, so I di
