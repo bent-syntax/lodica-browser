@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -117,6 +118,7 @@ fun BottomBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit, modifier
     }
     Column(
         modifier.fillMaxWidth()
+            .navigationBarsPadding()
             .graphicsLayer { translationY = if (mode == BarMode.Main) Ui.barOffset else 0f }
             .onSizeChanged { Ui.barHeight = it.height.toFloat() }
             .background(GraphiteRaised)
