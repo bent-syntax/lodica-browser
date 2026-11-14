@@ -57,7 +57,7 @@ object SiteIcons {
         val cands = (fromTabs + origins.flatMap { declared(it) + "$it/favicon.ico" + "$it/apple-touch-icon.png" }).distinct().take(14)
         for (u in cands) {
             val bmp = runCatching { fetch(URL(u)) }.getOrNull() ?: continue
-            val cleared = clearBackground(bmp)
+            val cleared = trimTransparent(clearBackground(bmp))
             val img = cleared.asImageBitmap()
             synchronized(cache) { cache[h] = img; failed.remove(h); if (mostlyDark(cleared)) dark.add(h) else dark.remove(h) }
             return img
@@ -95,6 +95,27 @@ object SiteIcons {
         if (cleared == 0 || cleared > w * h * 9 / 10) return src
         val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         out.setPixels(px, 0, w, 0, 0, w, h)
+        return out
+    }
+
+    /** Crop to the visible logo as a square, so it fills the round tile with no empty edge. */
+    internal fun trimTransparent(src: Bitmap): Bitmap {
+        val w = src.width; val h = src.height
+        if (w < 8 || h < 8) return src
+        val px = IntArray(w * h)
+        src.getPixels(px, 0, w, 0, 0, w, h)
+        var x0 = w; var y0 = h; var x1 = -1; var y1 = -1
+        for (i in px.indices) if ((px[i] ushr 24) > 16) { val x = i % w; val y = i / w; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y }
+        if (x1 < x0 || y1 < y0) return src
+        val side = maxOf(x1 - x0 + 1, y1 - y0 + 1)
+        if (side >= minOf(w, h) - 1) return src
+        val cx = (x0 + x1 + 1) / 2; val cy = (y0 + y1 + 1) / 2
+        val sx = cx - side / 2; val sy = cy - side / 2
+        val out = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        for (y in 0 until side) for (x in 0 until side) {
+            val ox = sx + x; val oy = sy + y
+            if (ox in 0 until w && oy in 0 until h) out.setPixel(x, y, px[oy * w + ox])
+        }
         return out
     }
 

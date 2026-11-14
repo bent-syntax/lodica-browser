@@ -602,7 +602,7 @@ private fun StartPage(modifier: Modifier) {
                         Modifier.width(72.dp).clip(RoundedCornerShape(12.dp)).clickable { adding = true }.padding(vertical = 6.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.Color.Black, CircleShape), contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.lerp(Graphite, androidx.compose.ui.graphics.Color.Black, 0.3f), CircleShape), contentAlignment = Alignment.Center) {
                             Icon(LodicaIcons.Add, "Add shortcut", tint = Amber, modifier = Modifier.size(24.dp))
                         }
                         if (Prefs.shortcutNames) {
@@ -678,7 +678,7 @@ private fun SiteTile(url: String, title: String, onClick: () -> Unit, onLong: ((
                 if (value == null) kotlinx.coroutines.delay(125_000)
             }
         }
-        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.Color.Black, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(56.dp).themedFill("tileBg", "tileTex", GraphiteRaised, CircleShape).border(1.dp, androidx.compose.ui.graphics.lerp(Graphite, androidx.compose.ui.graphics.Color.Black, 0.3f), CircleShape), contentAlignment = Alignment.Center) {
             val ic = icon
             if (ic != null && be.syntaxya.lodica.engine.SiteIcons.isDark(host)) Box(Modifier.size(56.dp).clip(CircleShape).background(Mist))
             if (ic != null) androidx.compose.foundation.Image(ic, null, Modifier.size(56.dp).clip(CircleShape), contentScale = androidx.compose.ui.layout.ContentScale.Crop)

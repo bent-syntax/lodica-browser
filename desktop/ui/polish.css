@@ -393,7 +393,9 @@ body:not(.bt) .layer.settings-tab{bottom:var(--bar-h,44px)}
 body.frameless .spage-layer.settings-tab .sp-head{padding-right:12px}
 /* "keep" layout: the overlay view already starts below the tab strip and beside the sidebar, so do not offset again */
 body.keep .layer.settings-tab{top:0;left:0}
-body.keep .layer.settings-tab.nb-dock{top:0;left:0;right:0;bottom:0}
+/* docked notebook and server chat: right-hand column, the bar stays usable and the page shrinks beside it */
+body:not(.bt) .layer.settings-tab.nb-dock{top:0;left:auto;right:0;width:360px;bottom:var(--bar-h,44px)}
+body.keep.bt .layer.settings-tab.nb-dock{left:auto;right:0;width:360px}
 body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
 body.keep.bt.ov #dock{top:0;left:0}
 body.keep.bt #banner{top:var(--bar-h,44px)}

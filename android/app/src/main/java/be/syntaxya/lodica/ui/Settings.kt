@@ -359,6 +359,11 @@ fun SettingsScreen() {
                         if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
                     Section("Passwords")
             LinkRow("Passwords") { Ui.go(Screen.Passwords) }
+                    val pinAct = LocalContext.current as FragmentActivity
+                    SwitchRow("Use PIN and phone for passwords", "Viewing passwords asks for your screen lock or fingerprint. Changing this asks again", Prefs.pinPhonePasswords) { on ->
+                        if (!Biometric.available(pinAct)) return@SwitchRow
+                        Biometric.unlock(pinAct, "Change password protection", onOk = { Prefs.updatePinPhonePasswords(on) })
+                    }
                     Section("History & site data")
             LinkRow("History") { Ui.go(Screen.History) }
             LinkRow("Clear history", Danger) {
@@ -1569,6 +1574,7 @@ fun PasswordsScreen() {
 
     fun unlock() {
         error = null
+        if (!Prefs.pinPhonePasswords) { unlocked = true; return }
         if (!Biometric.available(act)) {
             error = "Set a screen lock to view passwords."
             return

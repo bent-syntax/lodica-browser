@@ -118,10 +118,11 @@ fun BottomBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit, modifier
     }
     Column(
         modifier.fillMaxWidth()
-            .navigationBarsPadding()
             .graphicsLayer { translationY = if (mode == BarMode.Main) Ui.barOffset else 0f }
             .onSizeChanged { Ui.barHeight = it.height.toFloat() }
             .background(GraphiteRaised)
+            // Padding last: the bar colour and measured height include the nav-bar inset, so no page text shows under it.
+            .navigationBarsPadding()
     ) {
         LoadLine(tab)
         AnimatedContent(

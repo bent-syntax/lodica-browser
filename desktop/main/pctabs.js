@@ -473,17 +473,33 @@ async function unlockVault() {
   if (!enabled()) return mode === "pinphone" ? {} : { error: "Turn on linking first" };
   if (mode !== "phone" && mode !== "pinphone" && !linkkey.hasKey()) return { error: "Link this device with a code first" };
   if (mode === "key") { require("./vault").grant(); return { ok: true }; }
+  const r = await askPhone();
+  if (r.ok) require("./vault").grant();
+  return r;
+}
+
+// Phone confirm round trip, shared by unlocking and by changing the unlock setting.
+async function askPhone() {
   const id = crypto.randomBytes(8).toString("hex"), t = Date.now();
   if (!(await put("ur", { id, t }))) return { error: "Could not reach the phone" };
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     const a = await get("ua");
-    if (a && a.id === id) {
-      if (a.ok) { require("./vault").grant(); return { ok: true }; }
-      return { error: "The phone said no" };
-    }
+    if (a && a.id === id) return a.ok ? { ok: true } : { error: "The phone said no" };
   }
   return { error: "The phone did not answer" };
+}
+
+// Changing how the passwords unlock needs the PIN and the phone's approval.
+async function setUnlockMode(mode, pin) {
+  const vault = require("./vault");
+  if (vault.pinSet() && !vault.check(pin)) return { error: "Wrong PIN" };
+  if (enabled()) {
+    const r = await askPhone();
+    if (!r.ok) return r;
+  } else if (mode !== "pin") return { error: "Turn on linking first so the phone can approve" };
+  prefs.set("pcUnlock", mode);
+  return { ok: true };
 }
 
 const keyStatus = () => linkkey.status();
@@ -533,4 +549,4 @@ async function watch() {
   }
 }
 
-module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, forgetKey };
+module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, setUnlockMode, forgetKey };

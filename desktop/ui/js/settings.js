@@ -289,7 +289,15 @@ function linkRows() {
   else if (L.keyMissing) out.push(setRow("The other device shares passwords or keys", "Get the link key from the other device to receive them", null));
   if (L.error) out.push(setRow("Sharing stopped", L.error, null));
   const mode = S.prefs.pcUnlock || "pin";
-  out.push(setRow("Unlock passwords on this PC", "Use the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => { S.prefs.pcUnlock = e.target.value; await inv("prefs.set", "pcUnlock", e.target.value); } } },
+  out.push(setRow("Use PIN and phone for passwords", "Changing this needs your PIN and your phone. Options: the PIN, the link key, your phone (it asks you to confirm), or the key and the phone together", h("select", { on: { change: async (e) => {
+    const next = e.target.value;
+    e.target.value = mode;
+    const pin = await pinDialog({ title: "Change how passwords unlock", message: "Enter your PIN, then confirm on your phone" });
+    if (pin == null) return;
+    toast("Waiting for your phone");
+    const r = await inv("vault.setUnlockMode", next, pin);
+    if (r && r.ok) { S.prefs.pcUnlock = next; e.target.value = next; toast("Saved"); } else toast((r && r.error) || "Not changed");
+  } } },
     [["pin", "PIN only"], ["pinphone", "PIN or phone"], ["key", "Link key only"], ["phone", "Phone only"], ["both", "Key and phone"]].map(([value, text]) => h("option", { value, text, selected: mode === value })))));
   out.push(setRow("Link key", hasKey ? "This device has link key " + (L.key.keyId || "") + ". Both devices show the same number when they share it" : "No key on this device yet. Get it from the other device", null));
   const keyBtns = [];

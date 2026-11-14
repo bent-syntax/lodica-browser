@@ -4,7 +4,8 @@ const ROOM = { L: null, state: { messages: [], error: null, name: "Me", room: ""
 
 function openRoom() {
   if (ROOM.L) return ROOM.L;
-  ROOM.L = openLayer({ key: "room", cls: "spage-layer room-layer", dim: false, onClose: () => { ROOM.L = null; inv("room.stop"); } }, (L) => {
+  inv("ui.dock", 360);
+  ROOM.L = openLayer({ key: "room", cls: "spage-layer settings-tab nb-dock room-layer", dim: false, onClose: () => { inv("ui.dock", 0); ROOM.L = null; inv("room.stop"); } }, (L) => {
     L.tabs = h("div", { class: "chat-tabs", style: "display:flex;gap:6px;flex-wrap:wrap;padding:6px 12px" });
     L.who = h("div", { class: "chat-who" });
     L.note = h("div", { class: "empty", style: "padding:6px 12px" });

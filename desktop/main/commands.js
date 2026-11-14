@@ -311,7 +311,8 @@ function init(deps) {
   on("find.stop", () => find(""));
   on("suggest", suggest);
   on("topSites", () => history.topSites());
-  on("prefs.set", (k, v) => { prefs.set(str(k), v); return true; });
+  on("prefs.set", (k, v) => { if (str(k) === "pcUnlock") return false; prefs.set(str(k), v); return true; });
+  on("vault.setUnlockMode", (mode, pin) => ["pin", "pinphone", "key", "phone", "both"].includes(mode) ? pctabs.setUnlockMode(mode, str(pin)) : { error: "Unknown mode" });
   on("prefs.all", () => Object.assign({}, prefs.p, { frameless: !!global.lodicaFrameless, sysAccent: sysAccentCache ??= systemAccent() }));
   on("bg.pick", async () => {
     const { dialog } = require("electron");

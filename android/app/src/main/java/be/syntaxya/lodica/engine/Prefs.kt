@@ -89,6 +89,7 @@ object Prefs {
     var forceDark by mutableStateOf(false); private set
     var httpsOnly by mutableStateOf(true); private set
     var dummyLogin by mutableStateOf(true); private set
+    var pinPhonePasswords by mutableStateOf(true); private set
     var liveChat by mutableStateOf(true); private set
     /** The user's own names, one per line: "name target". [name] may be ".tld" or "*.suffix"; [target] is a host, IP or URL. */
     var dnsRules by mutableStateOf(""); private set
@@ -219,6 +220,7 @@ object Prefs {
         darkPages = sp.getBoolean("darkPages", true)
         httpsOnly = sp.getBoolean("httpsOnly", true)
         dummyLogin = sp.getBoolean("dummyLogin", true)
+        pinPhonePasswords = sp.getBoolean("pinPhonePasswords", true)
         liveChat = sp.getBoolean("liveChat", true)
         dnsRules = sp.getString("dnsRules", "") ?: ""
         searchWords = sp.getString("searchWords", "") ?: ""
@@ -521,6 +523,7 @@ object Prefs {
         }
     }
     fun updateLiveChat(v: Boolean) { liveChat = v; sp.edit().putBoolean("liveChat", v).apply() }
+    fun updatePinPhonePasswords(v: Boolean) { pinPhonePasswords = v; sp.edit().putBoolean("pinPhonePasswords", v).apply() }
     fun updateDummyLogin(v: Boolean) { dummyLogin = v; sp.edit().putBoolean("dummyLogin", v).apply() }
     fun updateAutoArchiveDays(v: Int) { autoArchiveDays = v; sp.edit().putInt("autoArchiveDays", v).apply() }
     fun unlockBeta() { betaUnlocked = true; betaEnabled = true; sp.edit().putBoolean("betaUnlocked", true).putBoolean("betaEnabled", true).apply() }
