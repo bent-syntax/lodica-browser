@@ -390,6 +390,12 @@ body.frameless .spage-layer .sp-head{padding-right:156px}
 .layer.settings-tab{top:var(--dock-y,44px);left:var(--side,0)}
 body:not(.bt) .layer.settings-tab{bottom:var(--bar-h,44px)}
 body.frameless .spage-layer.settings-tab .sp-head{padding-right:12px}
+/* "keep" layout: the overlay view already starts below the tab strip and beside the sidebar, so do not offset again */
+body.keep .layer.settings-tab{top:0;left:0}
+body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
+body.keep.bt.ov #dock{top:0;left:0}
+body.keep.bt #banner{top:var(--bar-h,44px)}
+body.keep.bt.ov #banner{top:calc(var(--bar-h,44px) + 6px)}
 
 /* Server chat docks right at the AI panel width (360px) instead of covering the window */
 .room-layer{background:transparent}
