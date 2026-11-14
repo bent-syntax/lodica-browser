@@ -28,7 +28,7 @@ wrap_browser_process_handler! {
         fn on_context_initialized(&self) {
             let cmd = command_line_get_global().expect("command line");
             let url = CefString::from(&cmd.switch_value(Some(&CefString::from("url")))).to_string();
-            let url = if url.is_empty() { "https://lodica.syntaxya.be/".to_string() } else { url };
+            let url = if url.is_empty() { default_url() } else { url };
             let url = CefString::from(url.as_str());
             let mut client = LodicaClient::new();
             browser_host_create_browser(
@@ -41,6 +41,15 @@ wrap_browser_process_handler! {
             );
             *self.client.borrow_mut() = Some(client);
         }
+    }
+}
+
+// Local desktop/ui when found (LODICA_UI dir, else ../desktop/ui from cwd), else the hosted page.
+fn default_url() -> String {
+    let dir = std::env::var("LODICA_UI").unwrap_or_else(|_| "../desktop/ui".to_string());
+    match std::fs::canonicalize(std::path::Path::new(&dir).join("index.html")) {
+        Ok(p) => format!("file://{}", p.display()),
+        Err(_) => "https://lodica.syntaxya.be/".to_string(),
     }
 }
 
