@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.17.15 (versionCode 261)
+
+- Compat mode and per-site permissions can already be set by hand on both mobile and desktop, and Google sign-in pages are forced into compat mode on both. I changed no code for this item.
+
 ## 1.17.14 (versionCode 260)
 
 - Motion redesign. Desktop: one easing curve and three durations (120, 180, 240 ms) for every transition, exit animations for dialogs, menus, suggestions, toasts and sheets, cards lift on hover and buttons press down, all animations off under reduced motion. Android: the same three durations for tab switcher, bottom bar, settings, kite and appearance, so every screen moves the same way.
