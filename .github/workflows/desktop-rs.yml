@@ -15,5 +15,7 @@ jobs:
         run: |
           V='156.0.26%2Bg8ea0c73%2Bchromium-156.0.8078.88'
           mkdir -p "$HOME/cef" && curl -sSL "https://cef-builds.spotifycdn.com/cef_binary_${V}_linux64_minimal.tar.bz2" | tar -xj -C "$HOME/cef" --strip-components=1
+          printf '{"type":"minimal","name":"cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_linux64_minimal.tar.bz2","sha1":""}' > "$HOME/cef/archive.json"
+          ls "$HOME/cef"
           echo "CEF_PATH=$HOME/cef" >> "$GITHUB_ENV"
       - run: cargo check --manifest-path desktop-rs/Cargo.toml
