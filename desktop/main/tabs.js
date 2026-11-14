@@ -182,6 +182,7 @@ function wire(t, wc) {
   });
   wc.on("did-navigate-in-page", (_, url, isMainFrame) => {
     if (!isMainFrame) return;
+    if (isSettingsUrl(url)) url = SETTINGS;
     t.url = url; t.host = hostOf(url);
     t.origin = "";
     snapshot(t);
