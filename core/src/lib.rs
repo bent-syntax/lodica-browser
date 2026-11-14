@@ -3,7 +3,9 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use std::sync::OnceLock;
 
+pub mod history;
 pub mod totp;
+pub mod vault;
 
 const DAY_MS: i64 = 86_400_000;
 
