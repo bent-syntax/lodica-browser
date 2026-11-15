@@ -1,3 +1,4 @@
+#![recursion_limit = "512"]
 //! Search result ranking, ported from relay/src/search.js.
 use chrono::{DateTime, Utc};
 use regex::Regex;
