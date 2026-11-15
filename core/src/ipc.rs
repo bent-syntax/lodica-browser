@@ -17,6 +17,10 @@ fn strings(a: &Value, k: &str) -> Vec<String> {
     a.get(k).and_then(Value::as_array).map_or(vec![], |v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect())
 }
 
+fn list_of(a: &Value) -> Vec<Value> {
+    a.get("list").and_then(Value::as_array).cloned().unwrap_or_default()
+}
+
 impl Shell {
     pub fn call(&mut self, cmd: &str, a: &Value, now: u64) -> Value {
         match cmd {
@@ -145,6 +149,32 @@ impl Shell {
             "room:rememberName" => crate::room::remember_name(&strings(a, "names"), s(a, "name")).map_or(Value::Null, |v| json!(v)),
             "room:isMine" => json!(crate::room::is_mine(s(a, "name"), s(a, "current"), &strings(a, "names"))),
             "room:query" => json!(crate::room::room_q(s(a, "room"))),
+            "ai:hearthError" => json!(crate::ai::hearth_error(a["code"].as_u64().unwrap_or(0) as u32)),
+            "ai:record" => {
+                let mut u: crate::ai::Usage = serde_json::from_value(a["usage"].clone()).unwrap_or_default();
+                crate::ai::record(&mut u, s(a, "day"), a["input"].as_u64().unwrap_or(0), a["output"].as_u64().unwrap_or(0), s(a, "cut"));
+                json!(u)
+            }
+            "ai:summary" => {
+                let u: crate::ai::Usage = serde_json::from_value(a["usage"].clone()).unwrap_or_default();
+                crate::ai::summary(&u, s(a, "today"))
+            }
+            "ai:chatsGet" => json!(crate::ai::chats_get(&list_of(a))),
+            "ai:chatAppend" => {
+                let mut l = list_of(a);
+                let id = crate::ai::chat_append(&mut l, s(a, "id"), s(a, "role"), s(a, "text"), s(a, "newId"), now);
+                json!({"list": l, "id": id})
+            }
+            "ai:chatDelete" => {
+                let mut l = list_of(a);
+                crate::ai::chat_delete(&mut l, s(a, "id"), now);
+                json!(l)
+            }
+            "ai:chatMerge" => {
+                let mut l = list_of(a);
+                let changed = crate::ai::chat_merge(&mut l, &a["remote"]);
+                json!({"list": l, "changed": changed})
+            }
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -182,6 +212,21 @@ mod tests {
         assert_eq!(sh.call("room:label", &json!({"room": "dm:amy|Zed", "me": "Zed"}), 0), json!("amy"));
         assert_eq!(sh.call("room:rememberName", &json!({"names": ["a"], "name": "a"}), 0), Value::Null);
         assert_eq!(sh.call("room:query", &json!({"room": "grp:x"}), 0), json!("&room=grp%3Ax"));
+    }
+
+    #[test]
+    fn ai_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("ai:hearthError", &json!({"code": 500}), 0), json!("Hearth answered 500"));
+        let u = sh.call("ai:record", &json!({"day": "2026-01-02", "input": 3, "output": 4, "cut": "2026-01-01"}), 0);
+        assert_eq!(sh.call("ai:summary", &json!({"usage": u, "today": "2026-01-02"}), 0)["all"], json!({"r": 1, "i": 3, "o": 4}));
+        let r = sh.call("ai:chatAppend", &json!({"list": [], "id": "", "role": "user", "text": "hi", "newId": "c1"}), 7);
+        assert_eq!(r["id"], "c1");
+        assert_eq!(sh.call("ai:chatsGet", &json!({"list": r["list"]}), 0)[0]["title"], "hi");
+        let d = sh.call("ai:chatDelete", &json!({"list": r["list"], "id": "c1"}), 9);
+        assert_eq!(sh.call("ai:chatsGet", &json!({"list": d}), 0), json!([]));
+        let m = sh.call("ai:chatMerge", &json!({"list": [], "remote": [{"id": "x", "updated": 1, "messages": []}]}), 0);
+        assert_eq!(m["changed"], true);
     }
 
     #[test]

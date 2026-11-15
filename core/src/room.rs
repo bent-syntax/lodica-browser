@@ -18,7 +18,7 @@ fn group_re() -> &'static Regex {
 }
 
 /// Cuts to `n` UTF-16 units like JS `slice(0, n)`.
-fn cut16(s: &str, n: usize) -> String {
+pub(crate) fn cut16(s: &str, n: usize) -> String {
     let u: Vec<u16> = s.encode_utf16().take(n).collect();
     String::from_utf16_lossy(&u)
 }
