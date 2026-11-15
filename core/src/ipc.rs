@@ -306,7 +306,7 @@ mod tests {
         assert_eq!(sh.call("planner:slotRules", &json!({"text": "Mon 08:30-09:20 Maths"}), 0)[0]["from"], json!(510));
         assert_eq!(sh.call("planner:ics", &json!({"text": "BEGIN:VEVENT\nDTSTART:20260115\nEND:VEVENT"}), 0)[0]["allDay"], json!(true));
         assert_eq!(sh.call("shop:withCat", &json!({"q": "xps", "cat": "laptops"}), 0), json!("laptop xps"));
-        assert_eq!(sh.call("shop:bounds", &json!({"min": 500, "max": 100}), 0), json!({"min": 100, "max": 500}));
+        assert_eq!(sh.call("shop:bounds", &json!({"min": 500, "max": 100}), 0), json!({"min": 100.0, "max": 500.0}));
         assert_eq!(sh.call("shop:num", &json!({"text": "12.5"}), 0), json!(12.5));
     }
 
