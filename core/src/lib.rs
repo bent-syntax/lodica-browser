@@ -5,6 +5,7 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 pub mod aitheme;
+pub mod downloads;
 pub mod errorpage;
 pub mod faceart;
 pub mod history;

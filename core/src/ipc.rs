@@ -73,6 +73,11 @@ impl Shell {
             "aitheme:parse" => crate::aitheme::parse(s(a, "text")).unwrap_or(Value::Null),
             "aitheme:system" => json!(crate::aitheme::SYSTEM),
             "aitheme:textures" => json!(crate::aitheme::TEXTURES),
+            "downloads:safeName" => json!(crate::downloads::safe_name(s(a, "name"))),
+            "downloads:uniqueName" => {
+                let taken: Vec<&str> = a["taken"].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+                json!(crate::downloads::unique_name(s(a, "name"), |n| taken.contains(&n)))
+            }
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -146,6 +151,14 @@ mod tests {
         assert_eq!(sh.call("aitheme:parse", &json!({"text": "nothing"}), 0), json!(null));
         assert!(sh.call("aitheme:system", &json!({}), 0).as_str().unwrap().starts_with("You design colour themes"));
         assert_eq!(sh.call("aitheme:textures", &json!({}), 0).as_array().unwrap().len(), 6);
+    }
+
+    #[test]
+    fn downloads_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("downloads:safeName", &json!({"name": "a:b.txt"}), 0), json!("a_b.txt"));
+        let r = sh.call("downloads:uniqueName", &json!({"name": "a.zip", "taken": ["a.zip"]}), 0);
+        assert_eq!(r, json!("a (1).zip"));
     }
 
     #[test]
