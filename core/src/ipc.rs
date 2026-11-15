@@ -21,6 +21,11 @@ fn rand_of(a: &Value) -> Vec<u32> {
     a["rand"].as_array().map(|v| v.iter().filter_map(|n| n.as_u64().map(|n| n as u32)).collect()).unwrap_or_default()
 }
 
+/// serde_json cannot hold NaN or infinity, so those become null.
+fn num_json(n: f64) -> Value {
+    if n.is_finite() { json!(n) } else { Value::Null }
+}
+
 fn list_of(a: &Value) -> Vec<Value> {
     a.get("list").and_then(Value::as_array).cloned().unwrap_or_default()
 }
@@ -191,7 +196,42 @@ impl Shell {
             "helper:signup" => crate::helper::signup(&rand_of(a)),
             "helper:dictLang" => json!(crate::helper::dict_lang(s(a, "lang"))),
             "helper:dictClean" => json!(crate::helper::dict_clean(s(a, "text"))),
-            _ => json!({"error": "unknown command"}),
+            "instant:calc" => num_json(crate::instant::calc(s(a, "expr"))),
+        "instant:convert" => {
+            let v = a.get("value").and_then(Value::as_f64).unwrap_or(0.0);
+            let from = crate::instant::unit_of(s(a, "from")).unwrap_or("");
+            let to = crate::instant::unit_of(s(a, "to")).unwrap_or("");
+            num_json(crate::instant::convert(v, from, to))
+        }
+        "instant:unit" => json!(crate::instant::unit_of(s(a, "text"))),
+        "instant:currency" => json!(crate::instant::cur_of(s(a, "text"))),
+        "instant:dur" => json!(crate::instant::parse_dur(s(a, "text"))),
+        "instant:num" => num_json(crate::instant::num(s(a, "text"))),
+        "instant:roman" => match a.get("n").and_then(Value::as_u64) {
+            Some(n) => json!(crate::instant::to_roman(n as u32)),
+            None => json!(crate::instant::from_roman(s(a, "text"))),
+        },
+        "instant:holiday" => {
+            let year = a.get("year").and_then(Value::as_i64).unwrap_or(2026) as i32;
+            match crate::instant::holiday(s(a, "name"), s(a, "lang"), year) {
+                Some(h) => json!({"en": h.en, "nl": h.nl, "month": h.month, "day": h.day}),
+                None => Value::Null,
+            }
+        }
+        "instant:isoWeek" => {
+            let n = |k: &str| a.get(k).and_then(Value::as_i64).unwrap_or(0);
+            json!(crate::instant::iso_week(n("y") as i32, n("m") as u32, n("d") as u32))
+        }
+        "instant:easter" => {
+            let (m, d) = crate::instant::easter(a.get("y").and_then(Value::as_i64).unwrap_or(2026) as i32);
+            json!([m, d])
+        }
+        "instant:monthIdx" => json!(crate::instant::month_idx(s(a, "text"))),
+        "instant:rint" => {
+            let n = |k: &str| a.get(k).and_then(Value::as_i64).unwrap_or(0);
+            json!(crate::instant::rint(n("lo"), n("hi"), rand_of(a).first().copied().unwrap_or(0)))
+        }
+        _ => json!({"error": "unknown command"}),
         }
     }
 }
@@ -239,6 +279,9 @@ mod tests {
         assert_eq!(sh.call("helper:signup", &json!({"rand": [1, 2, 3]}), 0)["user"], "sammaes13");
         assert_eq!(sh.call("helper:dictLang", &json!({"lang": "xx"}), 0), json!(false));
         assert_eq!(sh.call("helper:dictClean", &json!({"text": "a\r\nb"}), 0), json!("a\nb"));
+        assert_eq!(sh.call("instant:calc", &json!({"expr": "2+3*4"}), 0), json!(14.0));
+        assert_eq!(sh.call("instant:calc", &json!({"expr": "("}), 0), Value::Null);
+        assert_eq!(sh.call("instant:roman", &json!({"n": 14}), 0), json!("XIV"));
     }
 
     #[test]

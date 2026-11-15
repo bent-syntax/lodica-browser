@@ -28,6 +28,7 @@ pub mod serial;
 pub mod suggest;
 pub mod tabs;
 pub mod totp;
+pub mod instant;
 pub mod vault;
 
 const DAY_MS: i64 = 86_400_000;
