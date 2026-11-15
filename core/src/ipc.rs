@@ -49,6 +49,10 @@ impl Shell {
                 json!(linkdata::notes_for_sync(&a["list"], a.get("budget").and_then(Value::as_u64).unwrap_or(200_000) as usize))
             }
             "link:pickSettings" => linkdata::pick_settings(&a["source"], &a["current"]),
+            "linkkey:fingerprint" => json!(crate::linkkey::fingerprint(s(a, "joiner"), s(a, "origin"))),
+            "serial:originOf" => json!(crate::serial::origin_of(s(a, "url"))),
+            "serial:keyOf" => json!(crate::serial::key_of(s(a, "type"), &a["device"])),
+            "serial:label" => json!(crate::serial::label(&a["device"])),
             _ => json!({"error": "unknown command"}),
         }
     }
