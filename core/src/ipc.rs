@@ -39,6 +39,7 @@ impl Shell {
                 self.tabs.close_all(a.get("private").and_then(Value::as_bool).unwrap_or(false));
                 json!(true)
             }
+            "totp:migrate" => json!(crate::otpmigration::parse(s(a, "link"))),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -58,6 +59,11 @@ mod tests {
         sh.call("vault:save", &json!({"origin": "https://a.test", "user": "u", "pass": "p"}), 4);
         let l = sh.call("vault:list", &json!({}), 5);
         assert_eq!(l[0]["origin"], "https://a.test");
+    }
+
+    #[test]
+    fn migrate_rejects_non_link() {
+        assert_eq!(Shell::default().call("totp:migrate", &json!({"link": "https://x"}), 0), json!(null));
     }
 
     #[test]

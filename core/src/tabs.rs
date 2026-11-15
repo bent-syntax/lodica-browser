@@ -65,7 +65,8 @@ pub fn own_name_for(host: &str, rules: &[(String, String)]) -> String {
         if f.is_empty() || f.starts_with('*') || f.starts_with('.') {
             continue;
         }
-        let full = if to.len() >= 7 && (to[..7].eq_ignore_ascii_case("http://") || to.to_lowercase().starts_with("https://")) {
+        let lo = to.to_lowercase();
+        let full = if lo.starts_with("http://") || lo.starts_with("https://") {
             to.to_string()
         } else {
             format!("http://{to}")
