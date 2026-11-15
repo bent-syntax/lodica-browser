@@ -75,10 +75,10 @@ impl Shell {
             "aitheme:textures" => json!(crate::aitheme::TEXTURES),
             "downloads:safeName" => json!(crate::downloads::safe_name(s(a, "name"))),
             "downloads:capIds" => {
-            let list = |k: &str| -> Vec<&str> { a[k].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default() };
-            json!(crate::downloads::cap_ids(&list("ids"), &list("live")))
-        }
-        "downloads:uniqueName" => {
+                let list = |k: &str| -> Vec<&str> { a[k].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default() };
+                json!(crate::downloads::cap_ids(&list("ids"), &list("live")))
+            }
+            "downloads:uniqueName" => {
                 let taken: Vec<&str> = a["taken"].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
                 json!(crate::downloads::unique_name(s(a, "name"), |n| taken.contains(&n)))
             }
@@ -163,6 +163,9 @@ mod tests {
         assert_eq!(sh.call("downloads:safeName", &json!({"name": "a:b.txt"}), 0), json!("a_b.txt"));
         let r = sh.call("downloads:uniqueName", &json!({"name": "a.zip", "taken": ["a.zip"]}), 0);
         assert_eq!(r, json!("a (1).zip"));
+        let ids: Vec<String> = (0..201).map(|i| format!("d{i}")).collect();
+        let r = sh.call("downloads:capIds", &json!({"ids": ids, "live": []}), 0);
+        assert_eq!(r.as_array().unwrap().len(), 200);
     }
 
     #[test]
