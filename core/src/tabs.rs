@@ -93,7 +93,8 @@ impl Tabs {
         let o: Vec<&Tab> = self.list.iter().filter(|t| !t.archived && t.id != id).collect();
         let same: Vec<&Tab> = o.iter().copied().filter(|t| t.private == me.private).collect();
         let pool = if same.is_empty() { o } else { same };
-        pool.into_iter().max_by_key(|t| t.last_used).map(|t| t.id.clone())
+        // rev: max_by_key keeps the last tie, JS sort keeps the first
+        pool.into_iter().rev().max_by_key(|t| t.last_used).map(|t| t.id.clone())
     }
 
     /// Remove tab, remember it for undo unless blank. Returns false when unknown.
@@ -205,6 +206,8 @@ mod tests {
         let s = sample();
         assert_eq!(s.neighbor("a").as_deref(), Some("b"));
         assert_eq!(s.neighbor("p").as_deref(), Some("b")); // no other private: any
+        let tie = Tabs { list: vec![t("x", "u", 4, false), t("y", "u", 4, false), t("z", "u", 0, false)], closed: vec![] };
+        assert_eq!(tie.neighbor("z").as_deref(), Some("x")); // tie: first wins, like JS
     }
 
     #[test]
