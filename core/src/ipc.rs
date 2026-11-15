@@ -111,6 +111,20 @@ impl Shell {
                 let keep: Vec<&str> = a.get("keep").and_then(Value::as_array).map(|v| v.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
                 json!(self.tabs.auto_archive(a.get("days").and_then(Value::as_i64).unwrap_or(0), now as i64, &keep))
             }
+            "pctabs:sides" => crate::pctabs::sides(s(a, "secret"), a.get("owner").and_then(Value::as_bool).unwrap_or(false)).unwrap_or(Value::Null),
+            "pctabs:parseLink" => crate::pctabs::parse_link(s(a, "text")).map_or(Value::Null, |h| json!(h)),
+            "pctabs:control" => {
+                let old = a.get("old").and_then(Value::as_array).cloned().unwrap_or_default();
+                crate::pctabs::control(&a["cmd"], now, &old).map_or(Value::Null, Value::from)
+            }
+            "pctabs:payload" => json!(crate::pctabs::trim_payload(
+                now,
+                &a["tabs"],
+                &a["chats"],
+                a.get("history").filter(|h| !h.is_null()),
+                &a["data"],
+                a.get("max").and_then(Value::as_u64).map_or(crate::pctabs::MAX, |m| m as usize),
+            )),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -213,6 +227,24 @@ mod tests {
         assert_eq!(sh.call("tabs:neighbor", &json!({"id": "zz"}), 0), Value::Null);
         assert_eq!(sh.call("tabs:deleteArchived", &json!({"id": "zz"}), 0), json!(false));
         assert_eq!(sh.call("tabs:clearArchived", &json!({}), 0), json!(true));
+    }
+
+    #[test]
+    fn pctabs_through_dispatcher() {
+        let mut sh = Shell::default();
+        let secret: String = (0u8..48).map(|b| format!("{b:02x}")).collect();
+        let s = sh.call("pctabs:sides", &json!({"secret": secret, "owner": true}), 0);
+        assert_eq!(s["write"], s["base"]);
+        assert!(sh.call("pctabs:sides", &json!({"secret": "00", "owner": true}), 0).is_null());
+        let link = format!("https://x/{}#{}", s["base"].as_str().unwrap(), s["key"].as_str().unwrap());
+        assert_eq!(sh.call("pctabs:parseLink", &json!({"text": link}), 0), json!(secret));
+        assert!(sh.call("pctabs:parseLink", &json!({"text": "nope"}), 0).is_null());
+        assert!(sh.call("pctabs:control", &json!({"cmd": {"type": "open", "url": "ftp://x"}, "old": []}), 5).is_null());
+        let l = sh.call("pctabs:control", &json!({"cmd": {"type": "open", "url": "https://x"}, "old": []}), 5);
+        assert_eq!(l[0]["url"], "https://x");
+        let p = sh.call("pctabs:payload", &json!({"tabs": [], "chats": [], "data": {}}), 7);
+        let v: Value = serde_json::from_str(p.as_str().unwrap()).unwrap();
+        assert_eq!(v["updated"], 7);
     }
 
     #[test]

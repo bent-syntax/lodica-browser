@@ -15,6 +15,7 @@ pub mod keys;
 pub mod linkdata;
 pub mod linkkey;
 pub mod otpmigration;
+pub mod pctabs;
 pub mod perms;
 pub mod prefs;
 pub mod relayapi;
