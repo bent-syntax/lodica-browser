@@ -43,6 +43,12 @@ impl Shell {
             "link:mergePasswords" => linkdata::to_json(linkdata::merge_passwords(&a["local"], &a["remote"])),
             "link:mergeShortcuts" => linkdata::to_json(linkdata::merge_shortcuts(&a["local"], &a["remote"])),
             "link:union" => linkdata::to_json(linkdata::union(&a["local"], &a["remote"], a.get("max").and_then(Value::as_u64).unwrap_or(0) as usize)),
+            "link:mergeCharacter" => linkdata::merge_character(&a["local"], &a["remote"]),
+            "link:mergeNotes" => linkdata::to_json(linkdata::merge_notes(&a["local"], &a["remote"], now as f64)),
+            "link:notesForSync" => {
+                json!(linkdata::notes_for_sync(&a["list"], a.get("budget").and_then(Value::as_u64).unwrap_or(200_000) as usize))
+            }
+            "link:pickSettings" => linkdata::pick_settings(&a["source"], &a["current"]),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -73,6 +79,18 @@ mod tests {
     fn link_union_through_dispatcher() {
         let r = Shell::default().call("link:union", &json!({"local": ["a"], "remote": ["a", "b"], "max": 5}), 0);
         assert_eq!((r["list"].clone(), r["changed"].clone()), (json!(["a", "b"]), json!(1)));
+    }
+
+    #[test]
+    fn notes_and_settings_through_dispatcher() {
+        let mut sh = Shell::default();
+        let r = sh.call("link:mergeNotes", &json!({"local": [], "remote": [{"id": "a", "text": "hi", "at": 1}]}), 10);
+        assert_eq!(r["changed"], 1);
+        let r = sh.call("link:pickSettings", &json!({"source": {"theme": "light", "x": 1}, "current": {"theme": "dark"}}), 0);
+        assert_eq!(r, json!({"theme": "light"}));
+        let r = sh.call("link:mergeCharacter", &json!({"local": null, "remote": {"glyph": "A"}}), 0);
+        assert_eq!(r["value"]["glyph"], "A");
+        assert!(sh.call("link:notesForSync", &json!({"list": []}), 0).as_array().unwrap().is_empty());
     }
 
     #[test]

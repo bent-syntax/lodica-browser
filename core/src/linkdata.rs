@@ -157,6 +157,249 @@ pub fn to_json(m: Merged) -> Value {
     Value::Object(o)
 }
 
+/// JS number to JSON: whole numbers stay integers so they round-trip like JS prints them.
+fn n(f: f64) -> Value {
+    if f.fract() == 0.0 && f.abs() < 9e15 { json!(f as i64) } else { json!(f) }
+}
+
+/// A costume character cleaned to its known fields, or None when it has no glyph and no art.
+pub fn clean_character(c: &Value) -> Option<Value> {
+    let o = c.as_object().filter(|_| truthy(c))?;
+    let art = |k: &str| crate::faceart::clean_art(text(o.get(k)));
+    let out = json!({
+        "glyph": str(o.get("glyph"), 40),
+        "desc": str(o.get("desc"), 200),
+        "custom": o.get("custom").is_some_and(truthy),
+        "art": art("art"),
+        "hands": art("hands"),
+        "bubble": art("bubble"),
+        "at": n(num(o.get("at")).max(0.0)),
+    });
+    (!text(out.get("glyph")).is_empty() || !text(out.get("art")).is_empty()).then_some(out)
+}
+
+// shortcut: Rust compares strings by code point, JS by UTF-16 unit; they differ only for astral vs high-BMP text, upgrade if two devices ever disagree on a tie.
+fn better_character(a: &Value, b: &Value) -> bool {
+    let (ac, bc) = (a["custom"] == true, b["custom"] == true);
+    if ac != bc {
+        return ac;
+    }
+    let (aa, ba) = (num(a.get("at")), num(b.get("at")));
+    if aa != ba {
+        return aa > ba;
+    }
+    for k in ["art", "glyph", "desc", "hands", "bubble"] {
+        let (x, y) = (text(a.get(k)), text(b.get(k)));
+        if x != y {
+            return x > y;
+        }
+    }
+    false
+}
+
+/// The costume to keep after a link sync: `{value, changed}`; value is null when neither side has one.
+pub fn merge_character(local: &Value, remote: &Value) -> Value {
+    let (r, l) = (clean_character(remote), clean_character(local));
+    let (value, changed) = match (r, l) {
+        (None, l) => (l, false),
+        (Some(r), None) => (Some(r), true),
+        (Some(r), Some(l)) if better_character(&r, &l) => {
+            let changed = r != l;
+            (Some(r), changed)
+        }
+        (Some(_), l) => (l, false),
+    };
+    json!({"value": value.unwrap_or(Value::Null), "changed": changed})
+}
+
+const NOTES_MAX: usize = 500;
+const NOTE_TEXT: usize = 200_000;
+const TOMB_TTL: f64 = 30.0 * 24.0 * 3600e3;
+
+fn note_id_ok(s: &str) -> bool {
+    (1..=40).contains(&s.chars().count()) && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+}
+
+fn by_newest(list: &mut [Value]) {
+    list.sort_by(|a, b| num(b.get("at")).partial_cmp(&num(a.get("at"))).unwrap_or(std::cmp::Ordering::Equal));
+}
+
+/// Notes: newest edit per id wins, deletes stay as tombstones for 30 days, at most 500 kept.
+pub fn merge_notes(local: &Value, remote: &Value, now: f64) -> Merged {
+    let mut list: Vec<Value> = Vec::new();
+    let mut at: HashMap<String, usize> = HashMap::new();
+    for e in arr(local) {
+        if let Some(id) = e.get("id").and_then(Value::as_str) {
+            match at.get(id) {
+                Some(&i) => list[i] = e.clone(),
+                None => {
+                    at.insert(id.to_string(), list.len());
+                    list.push(e.clone());
+                }
+            }
+        }
+    }
+    let mut changed = 0;
+    for r in arr(remote) {
+        let id = match r.get("id").and_then(Value::as_str) {
+            Some(id) if note_id_ok(id) => id,
+            _ => continue,
+        };
+        let deleted = r.get("deleted").is_some_and(truthy);
+        let body = if deleted { String::new() } else { str(r.get("text"), NOTE_TEXT) };
+        let eat = num(r.get("at")).max(0.0);
+        let cur = at.get(id).map(|&i| &list[i]);
+        let wins = match cur {
+            None => true,
+            Some(c) => {
+                let cat = num(c.get("at"));
+                let cdel = c.get("deleted").is_some_and(truthy);
+                eat > cat || (eat == cat && ((deleted && !cdel) || (!deleted && !cdel && body.as_str() > text(c.get("text")))))
+            }
+        };
+        if !wins {
+            continue;
+        }
+        if let Some(c) = cur {
+            if c.get("deleted").is_some_and(truthy) == deleted && text(c.get("text")) == body && num(c.get("at")) == eat {
+                continue;
+            }
+        }
+        let rev = cur.map_or(0.0, |c| num(c.get("rev"))) + 1.0;
+        let mut e = json!({"id": id, "text": body, "at": n(eat), "rev": n(rev)});
+        if deleted {
+            e["deleted"] = json!(true);
+        }
+        match at.get(id) {
+            Some(&i) => list[i] = e,
+            None => {
+                at.insert(id.to_string(), list.len());
+                list.push(e);
+            }
+        }
+        changed += 1;
+    }
+    list.retain(|e| !e.get("deleted").is_some_and(truthy) || now - num(e.get("at")) < TOMB_TTL);
+    by_newest(&mut list);
+    list.truncate(NOTES_MAX);
+    Merged { list, changed }
+}
+
+/// Notes to send to a linked device, newest first, within `budget` JSON characters.
+pub fn notes_for_sync(list: &Value, budget: usize) -> Vec<Value> {
+    let mut sorted = arr(list).to_vec();
+    by_newest(&mut sorted);
+    let (mut used, mut out) = (0, Vec::new());
+    for e in sorted {
+        let id = e.get("id").cloned().unwrap_or(Value::Null);
+        let at = n(num(e.get("at")));
+        let item = if e.get("deleted").is_some_and(truthy) {
+            json!({"id": id, "deleted": true, "at": at})
+        } else {
+            json!({"id": id, "text": text(e.get("text")), "at": at})
+        };
+        let size = item.to_string().encode_utf16().count();
+        if used + size > budget {
+            continue;
+        }
+        used += size;
+        out.push(item);
+    }
+    out
+}
+
+const SETTINGS: [&str; 29] = [
+    "theme", "customTheme", "savedThemes", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel",
+    "cookieReject", "spell", "spellAuto", "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur",
+    "uiAlpha", "vertTabs", "barBottom", "bg", "searchWords", "shortcutNames", "autoTop", "startNotes", "startPlanner",
+    "plannerPos", "notesPos",
+];
+const THEME_COLORS: [&str; 14] =
+    ["bg", "text", "accent", "accent2", "raised", "high", "muted", "danger", "tab", "tabText", "tabEdge", "startBg", "barBg", "tileBg"];
+const TEX_KEYS: [&str; 4] = ["tabTex", "startTex", "barTex", "tileTex"];
+const TEXTURES: [&str; 6] = ["stripes", "dots", "grid", "checker", "planks", "gradient"];
+
+/// JS `typeof`, where null and arrays count as "object".
+fn js_type(v: Option<&Value>) -> &'static str {
+    match v {
+        None => "undefined",
+        Some(Value::Bool(_)) => "boolean",
+        Some(Value::Number(_)) => "number",
+        Some(Value::String(_)) => "string",
+        Some(_) => "object",
+    }
+}
+
+fn is_hex(v: Option<&Value>) -> bool {
+    v.and_then(Value::as_str).is_some_and(|s| s.len() == 7 && s.starts_with('#') && s[1..].bytes().all(|b| b.is_ascii_hexdigit()))
+}
+
+fn blank(v: Option<&Value>) -> Option<&str> {
+    v.and_then(Value::as_str).filter(|s| !s.trim().is_empty())
+}
+
+/// Settings a linked device may change: only known keys of the same type, lists and positions re-checked.
+pub fn pick_settings(source: &Value, current: &Value) -> Value {
+    let mut out = Map::new();
+    for k in SETTINGS {
+        let Some(v) = source.get(k) else { continue };
+        if js_type(Some(v)) != js_type(current.get(k)) || (k == "customTheme" && !v.is_null() && !v.is_object()) {
+            continue;
+        }
+        out.insert(k.to_string(), v.clone());
+    }
+    if let Some(v) = out.get("searchWords").cloned() {
+        match v.as_array() {
+            None => {
+                out.remove("searchWords");
+            }
+            Some(a) => {
+                let words: Vec<Value> = a
+                    .iter()
+                    .filter(|w| blank(w.get("word")).is_some() && blank(w.get("url")).is_some())
+                    .take(200)
+                    .map(|w| json!({"word": str(w.get("word"), 40).trim(), "url": str(w.get("url"), 2000).trim()}))
+                    .collect();
+                out.insert("searchWords".into(), Value::Array(words));
+            }
+        }
+    }
+    if let Some(v) = out.get("savedThemes").cloned() {
+        match v.as_array() {
+            None => {
+                out.remove("savedThemes");
+            }
+            Some(a) => {
+                let themes: Vec<Value> = a
+                    .iter()
+                    .filter(|t| blank(t.get("name")).is_some() && ["bg", "text", "accent", "accent2"].iter().all(|k| is_hex(t.get(*k))))
+                    .take(50)
+                    .map(|t| {
+                        let mut o = Map::new();
+                        o.insert("name".into(), json!(str(t.get("name"), 40).trim()));
+                        for k in THEME_COLORS.into_iter().filter(|k| is_hex(t.get(*k))) {
+                            o.insert(k.into(), t[k].clone());
+                        }
+                        for k in TEX_KEYS {
+                            if t.get(k).and_then(Value::as_str).is_some_and(|s| TEXTURES.contains(&s)) {
+                                o.insert(k.into(), t[k].clone());
+                            }
+                        }
+                        Value::Object(o)
+                    })
+                    .collect();
+                out.insert("savedThemes".into(), Value::Array(themes));
+            }
+        }
+    }
+    for k in ["plannerPos", "notesPos"] {
+        if out.get(k).is_some_and(|v| !matches!(v.as_str(), Some("left" | "right" | "below"))) {
+            out.remove(k);
+        }
+    }
+    Value::Object(out)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,5 +458,71 @@ mod tests {
         assert_eq!(m.list[1]["url"], "HTTP://b.com");
         let full: Vec<Value> = (0..24).map(|i| json!({"url": format!("https://{i}.com")})).collect();
         assert_eq!(merge_shortcuts(&Value::Array(full), &remote).changed, 0);
+    }
+
+    #[test]
+    fn character_needs_glyph_or_art_and_prefers_custom_then_newer() {
+        assert_eq!(clean_character(&json!({"desc": "x"})), None);
+        assert_eq!(clean_character(&json!("x")), None);
+        let a = json!({"glyph": "A", "at": 5});
+        let b = json!({"glyph": "B", "at": 9});
+        assert_eq!(merge_character(&a, &b)["value"]["glyph"], "B");
+        assert_eq!(merge_character(&a, &b)["changed"], true);
+        assert_eq!(merge_character(&b, &a)["value"]["glyph"], "B");
+        assert_eq!(merge_character(&b, &a)["changed"], false);
+        let c = json!({"glyph": "C", "at": 1, "custom": true});
+        assert_eq!(merge_character(&b, &c)["value"]["glyph"], "C");
+        assert_eq!(merge_character(&a, &json!(null))["value"]["glyph"], "A");
+        assert_eq!(merge_character(&json!(null), &json!(null))["value"], Value::Null);
+    }
+
+    #[test]
+    fn notes_newest_wins_tombstones_expire() {
+        let local = json!([{"id": "a", "text": "old", "at": 10, "rev": 2}]);
+        let remote = json!([
+            {"id": "a", "text": "new", "at": 20},
+            {"id": "b", "text": "x", "at": 5},
+            {"id": "bad id!", "text": "x", "at": 5},
+            {"id": "gone", "deleted": true, "at": 1}
+        ]);
+        let m = merge_notes(&local, &remote, 100.0);
+        assert_eq!(m.changed, 3);
+        assert_eq!(m.list[0]["text"], "new");
+        assert_eq!(m.list[0]["rev"], 3);
+        assert_eq!(m.list.len(), 3);
+        let m = merge_notes(&local, &remote, 100.0 + TOMB_TTL);
+        assert_eq!(m.list.len(), 2); // tombstone older than 30 days dropped
+        let same = merge_notes(&m.list.clone().into(), &remote, 100.0);
+        assert_eq!(same.changed, 0);
+    }
+
+    #[test]
+    fn notes_sync_respects_budget() {
+        let list = json!([{"id": "a", "text": "x".repeat(50), "at": 1}, {"id": "b", "text": "y", "at": 2}, {"id": "c", "deleted": true, "at": 3}]);
+        let out = notes_for_sync(&list, 60);
+        let ids: Vec<_> = out.iter().map(|e| e["id"].as_str().unwrap()).collect();
+        assert_eq!(ids, ["c", "b"]);
+        assert!(out[0].get("text").is_none());
+    }
+
+    #[test]
+    fn settings_keep_known_same_type_keys_only() {
+        let current = json!({"theme": "dark", "httpsOnly": true, "customTheme": null, "searchWords": [], "savedThemes": [], "plannerPos": "left", "uiBlur": 1});
+        let source = json!({
+            "theme": "light", "httpsOnly": "yes", "evil": 1, "uiBlur": 3, "customTheme": 5, "plannerPos": "up",
+            "searchWords": [{"word": " hi ", "url": " https://x "}, {"word": "", "url": "u"}],
+            "savedThemes": [
+                {"name": " T ", "bg": "#112233", "text": "#FFFFFF", "accent": "#000000", "accent2": "#abcdef", "tabTex": "dots", "raised": "red"},
+                {"name": "bad", "bg": "#12"}
+            ]
+        });
+        let out = pick_settings(&source, &current);
+        assert_eq!(out["theme"], "light");
+        assert_eq!(out["uiBlur"], 3);
+        for k in ["httpsOnly", "evil", "customTheme", "plannerPos"] {
+            assert!(out.get(k).is_none(), "{k}");
+        }
+        assert_eq!(out["searchWords"], json!([{"word": "hi", "url": "https://x"}]));
+        assert_eq!(out["savedThemes"], json!([{"name": "T", "bg": "#112233", "text": "#FFFFFF", "accent": "#000000", "accent2": "#abcdef", "tabTex": "dots"}]));
     }
 }

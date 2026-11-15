@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use regex::Regex;
 use std::sync::OnceLock;
 
+pub mod faceart;
 pub mod history;
 pub mod ipc;
 pub mod linkdata;
