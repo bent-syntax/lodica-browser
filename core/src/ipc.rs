@@ -70,6 +70,9 @@ impl Shell {
                 let (action, url) = crate::errorpage::parse_action(s(a, "url"));
                 json!({"action": action, "url": url})
             }
+            "aitheme:parse" => crate::aitheme::parse(s(a, "text")).unwrap_or(Value::Null),
+            "aitheme:system" => json!(crate::aitheme::SYSTEM),
+            "aitheme:textures" => json!(crate::aitheme::TEXTURES),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -133,6 +136,16 @@ mod tests {
         assert_eq!(sh.call("error:failedOf", &json!({"url": u}), 0), json!("https://a.test"));
         assert!(sh.call("error:html", &json!({"url": u}), 0).as_str().unwrap().contains("refused"));
         assert_eq!(sh.call("error:parseAction", &json!({"url": "lodica://error/act?a=retry&u=x"}), 0)["action"], "retry");
+    }
+
+    #[test]
+    fn ai_theme_through_dispatcher() {
+        let mut sh = Shell::default();
+        let t = sh.call("aitheme:parse", &json!({"text": r##"ok {"bg":"#000000","text":"#ffffff","accent":"#ff0000","accent2":"#00ff00"}"##}), 0);
+        assert_eq!(t["accent"], "#FF0000");
+        assert_eq!(sh.call("aitheme:parse", &json!({"text": "nothing"}), 0), json!(null));
+        assert!(sh.call("aitheme:system", &json!({}), 0).as_str().unwrap().starts_with("You design colour themes"));
+        assert_eq!(sh.call("aitheme:textures", &json!({}), 0).as_array().unwrap().len(), 6);
     }
 
     #[test]
