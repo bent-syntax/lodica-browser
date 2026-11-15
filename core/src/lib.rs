@@ -11,6 +11,7 @@ pub mod downloads;
 pub mod errorpage;
 pub mod faceart;
 pub mod history;
+pub mod helper;
 pub mod ipc;
 pub mod keyactions;
 pub mod keys;

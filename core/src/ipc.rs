@@ -17,6 +17,10 @@ fn strings(a: &Value, k: &str) -> Vec<String> {
     a.get(k).and_then(Value::as_array).map_or(vec![], |v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect())
 }
 
+fn rand_of(a: &Value) -> Vec<u32> {
+    a["rand"].as_array().map(|v| v.iter().filter_map(|n| n.as_u64().map(|n| n as u32)).collect()).unwrap_or_default()
+}
+
 fn list_of(a: &Value) -> Vec<Value> {
     a.get("list").and_then(Value::as_array).cloned().unwrap_or_default()
 }
@@ -175,6 +179,12 @@ impl Shell {
                 let changed = crate::ai::chat_merge(&mut l, &a["remote"]);
                 json!({"list": l, "changed": changed})
             }
+            "helper:sameSite" => json!(crate::helper::same_site(s(a, "a"), s(a, "b"))),
+            "helper:password" => json!(crate::helper::password(&rand_of(a))),
+            "helper:username" => json!(crate::helper::username(&rand_of(a))),
+            "helper:signup" => crate::helper::signup(&rand_of(a)),
+            "helper:dictLang" => json!(crate::helper::dict_lang(s(a, "lang"))),
+            "helper:dictClean" => json!(crate::helper::dict_clean(s(a, "text"))),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -212,6 +222,17 @@ mod tests {
         assert_eq!(sh.call("room:label", &json!({"room": "dm:amy|Zed", "me": "Zed"}), 0), json!("amy"));
         assert_eq!(sh.call("room:rememberName", &json!({"names": ["a"], "name": "a"}), 0), Value::Null);
         assert_eq!(sh.call("room:query", &json!({"room": "grp:x"}), 0), json!("&room=grp%3Ax"));
+    }
+
+    #[test]
+    fn helper_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("helper:sameSite", &json!({"a": "m.a.com", "b": "a.com"}), 0), json!(true));
+        assert_eq!(sh.call("helper:username", &json!({"rand": [0, 1, 5]}), 0), json!("amberBrisk105"));
+        assert_eq!(sh.call("helper:password", &json!({"rand": [3, 9]}), 0).as_str().map(str::len), Some(18));
+        assert_eq!(sh.call("helper:signup", &json!({"rand": [1, 2, 3]}), 0)["user"], "sammaes13");
+        assert_eq!(sh.call("helper:dictLang", &json!({"lang": "xx"}), 0), json!(false));
+        assert_eq!(sh.call("helper:dictClean", &json!({"text": "a\r\nb"}), 0), json!("a\nb"));
     }
 
     #[test]
