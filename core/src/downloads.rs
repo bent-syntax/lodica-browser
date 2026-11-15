@@ -33,6 +33,11 @@ pub fn unique_name(name: &str, taken: impl Fn(&str) -> bool) -> String {
     p
 }
 
+/// Keeps the newest 200 entries plus any still running; `ids` is newest first.
+pub fn cap_ids<'a>(ids: &[&'a str], live: &[&str]) -> Vec<&'a str> {
+    ids.iter().enumerate().filter(|(i, id)| *i < 200 || live.contains(id)).map(|(_, id)| *id).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -51,5 +56,14 @@ mod tests {
         assert_eq!(unique_name("a.tar.gz", t), "a.tar (2).gz");
         assert_eq!(unique_name(".env", t), ".env (1)");
         assert_eq!(unique_name("new.zip", t), "new.zip");
+    }
+
+    #[test]
+    fn caps_history_but_keeps_live() {
+        let ids: Vec<String> = (0..205).map(|i| i.to_string()).collect();
+        let refs: Vec<&str> = ids.iter().map(String::as_str).collect();
+        let kept = cap_ids(&refs, &["203"]);
+        assert_eq!(kept.len(), 201);
+        assert!(kept.contains(&"203") && !kept.contains(&"204"));
     }
 }

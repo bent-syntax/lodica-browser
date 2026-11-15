@@ -74,7 +74,11 @@ impl Shell {
             "aitheme:system" => json!(crate::aitheme::SYSTEM),
             "aitheme:textures" => json!(crate::aitheme::TEXTURES),
             "downloads:safeName" => json!(crate::downloads::safe_name(s(a, "name"))),
-            "downloads:uniqueName" => {
+            "downloads:capIds" => {
+            let list = |k: &str| -> Vec<&str> { a[k].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default() };
+            json!(crate::downloads::cap_ids(&list("ids"), &list("live")))
+        }
+        "downloads:uniqueName" => {
                 let taken: Vec<&str> = a["taken"].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
                 json!(crate::downloads::unique_name(s(a, "name"), |n| taken.contains(&n)))
             }
