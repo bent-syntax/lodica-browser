@@ -136,9 +136,48 @@ pub fn routed(url: &str, domain: &str, extra: &[String]) -> bool {
     !direct_host(&h, domain, extra) && !sensitive().is_match(u.path())
 }
 
+/// Site base and address prefix for a new alias: "www.shop.example.com" gives ("shop.example.com", "example").
+// shortcut: the slug keeps only ASCII a-z and 0-9 like the JS, so an all-unicode site falls back to "site".
+pub fn alias_site(host: &str) -> (String, String) {
+    static SLUG: OnceLock<Regex> = OnceLock::new();
+    let lower = host.to_lowercase();
+    let base = lower.strip_prefix("www.").unwrap_or(&lower);
+    let base = base.strip_prefix("m.").unwrap_or(base).to_string();
+    let labels: Vec<&str> = base.split('.').collect();
+    let name = if labels.len() > 1 { labels[labels.len() - 2] } else { labels[0] };
+    let dashed = re(&SLUG, "[^a-z0-9]+").replace_all(name, "-");
+    let slug: String = dashed.trim_matches('-').chars().take(40).collect();
+    (base, if slug.is_empty() { "site".into() } else { slug })
+}
+
+/// True for an address the user may register as their own login mailbox.
+pub fn own_valid(email: &str) -> bool {
+    static OWN: OnceLock<Regex> = OnceLock::new();
+    re(&OWN, r"^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$").is_match(email)
+}
+
+/// Reduces what the user typed to the bare relay domain: no scheme, no lodica. or tunnel. prefix, no port or path.
+pub fn clean_domain(d: &str) -> String {
+    let s = d.trim().to_lowercase();
+    let s = s.strip_prefix("https://").or_else(|| s.strip_prefix("http://")).unwrap_or(&s);
+    let s = s.strip_prefix("lodica.").or_else(|| s.strip_prefix("tunnel.")).unwrap_or(s);
+    s.split(['/', ':']).next().unwrap_or("").to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn alias_and_domain_input() {
+        assert_eq!(alias_site("WWW.Shop.Example.com"), ("shop.example.com".into(), "example".into()));
+        assert_eq!(alias_site("m.my-site.be"), ("my-site.be".into(), "my-site".into()));
+        assert_eq!(alias_site("localhost"), ("localhost".into(), "localhost".into()));
+        assert_eq!(alias_site("").1, "site");
+        assert!(own_valid("a@b.co") && !own_valid("a b@c.com") && !own_valid("a@b"));
+        assert_eq!(clean_domain(" HTTPS://Lodica.Example.com:8443/x "), "example.com");
+        assert_eq!(clean_domain("tunnel.example.com"), "example.com");
+    }
 
     #[test]
     fn base() {

@@ -141,6 +141,12 @@ impl Shell {
             "mail:code" => crate::mailroute::code_of(s(a, "subject"), s(a, "text"), s(a, "html")).map_or(Value::Null, |c| json!(c)),
             "mail:confirmLink" => crate::mailroute::confirm_link(&strings(a, "links")).map_or(Value::Null, |l| json!(l)),
             "mail:routed" => json!(crate::mailroute::routed(s(a, "url"), s(a, "domain"), &strings(a, "direct"))),
+            "mail:aliasSite" => {
+                let (base, slug) = crate::mailroute::alias_site(s(a, "host"));
+                json!({"base": base, "slug": slug})
+            }
+            "mail:ownValid" => json!(crate::mailroute::own_valid(s(a, "email"))),
+            "mail:cleanDomain" => json!(crate::mailroute::clean_domain(s(a, "domain"))),
             "mail:directHost" => json!(crate::mailroute::direct_host(s(a, "host"), s(a, "domain"), &strings(a, "direct"))),
             "cmd:keyAction" => crate::commands::key_action(&a["map"], s(a, "combo")),
             "cmd:tabCounts" => crate::commands::tab_counts(a["open"].as_array().map_or(&[][..], |v| &v[..]), a["locked"].as_bool().unwrap_or(false)),
