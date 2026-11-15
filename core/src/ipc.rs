@@ -53,6 +53,14 @@ impl Shell {
             "serial:originOf" => json!(crate::serial::origin_of(s(a, "url"))),
             "serial:keyOf" => json!(crate::serial::key_of(s(a, "type"), &a["device"])),
             "serial:label" => json!(crate::serial::label(&a["device"])),
+            "keys:combo" => {
+                let b = |k: &str| a.get(k).and_then(Value::as_bool).unwrap_or(false);
+                json!(crate::keys::combo(s(a, "key"), b("ctrl"), b("alt"), b("shift")))
+            }
+            "keys:valid" => json!(crate::keys::valid(s(a, "combo"))),
+            "keys:map" => crate::keys::map(&a["overrides"]),
+            "keys:bind" => crate::keys::bind(&a["overrides"], s(a, "id"), &a["combos"]),
+            "keys:list" => crate::keys::list(&a["overrides"]),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -95,6 +103,16 @@ mod tests {
         let r = sh.call("link:mergeCharacter", &json!({"local": null, "remote": {"glyph": "A"}}), 0);
         assert_eq!(r["value"]["glyph"], "A");
         assert!(sh.call("link:notesForSync", &json!({"list": []}), 0).as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn keys_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("keys:combo", &json!({"key": "t", "ctrl": true}), 0), json!("Ctrl+T"));
+        assert_eq!(sh.call("keys:valid", &json!({"combo": "Ctrl"}), 0), json!(false));
+        assert_eq!(sh.call("keys:map", &json!({}), 0)["F12"], "devtools");
+        assert_eq!(sh.call("keys:bind", &json!({"id": "find", "combos": ["F12"]}), 0)["devtools"], json!([]));
+        assert_eq!(sh.call("keys:list", &json!({}), 0).as_array().unwrap().len(), 26);
     }
 
     #[test]
