@@ -10,6 +10,7 @@ pub mod errorpage;
 pub mod faceart;
 pub mod history;
 pub mod ipc;
+pub mod keyactions;
 pub mod keys;
 pub mod linkdata;
 pub mod linkkey;

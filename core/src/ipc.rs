@@ -86,6 +86,12 @@ impl Shell {
             "suggest:url" => json!(crate::suggest::url(s(a, "template"), s(a, "text"), a["private"].as_bool().unwrap_or(false))),
             "suggest:titles" => json!(crate::suggest::titles(&a["body"])),
             "suggest:merge" => crate::suggest::merge_json(&a["hist"], &a["eng"]),
+            "keyactions:route" => json!(crate::keyactions::route(s(a, "id"))),
+            "keyactions:drawAllowed" => json!(crate::keyactions::draw_allowed(s(a, "url"))),
+            "keyactions:hostToggle" => {
+                let b = |k: &str| a.get(k).and_then(Value::as_bool).unwrap_or(false);
+                crate::keyactions::host_toggle(s(a, "func"), b("trusted"), b("compat"), b("forcedCompat"))
+            }
             _ => json!({"error": "unknown command"}),
         }
     }
