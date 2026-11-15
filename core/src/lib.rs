@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 
 pub mod history;
 pub mod perms;
+pub mod prefs;
 pub mod totp;
 pub mod vault;
 

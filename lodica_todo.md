@@ -45,3 +45,5 @@ Release assets: Android APK from `cd android && ./gradlew assembleRelease` (need
 ## Backlog: replace Electron with Rust (desktop)
 
 Goal: ship the desktop browser as a Rust app, no Electron. Build features in Rust; when a feature changes, convert the whole feature. Start 2026-11-15 02:00 CET (user's session limit resets). Order: move `desktop/main/*.js` logic into `core/` (prefs, tabs, vault, search, relay link), link `desktop-rs/` to `core`, pick a webview (wry or CEF) and port `desktop/ui` on top, then drop Electron from CI. Android keeps Kotlin and GeckoView and shares `core/`.
+
+Started 2026-11-15 on request (Speedometer 3.1 measured 13.6, 2.0 measured 129). Done: `core/src/prefs.rs` (all of prefs.js except engine labels and suggest URLs: resolve, search_query, defaults, UA, client hints, accept-language, JSON store, site lists, with tests; not compiled yet, CI only). Next: tabs, vault wiring, search, relay link, then `desktop-rs/` webview. Speedometer gain from a Rust shell is unproven: the score is set by the JS engine, so measure after each step.
