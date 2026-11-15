@@ -31,7 +31,7 @@ function clean(o) {
 }
 
 /** Parses the model reply. Returns the theme colours (with `light` for a system-following theme and `anim` for an animation), or null when unusable. */
-function parse(text) {
+function parseJs(text) {
   const m = /\{[\s\S]*\}/.exec(String(text || ""));
   if (!m) return null;
   let o;
@@ -54,4 +54,7 @@ function parse(text) {
   return out;
 }
 
-module.exports = { SYSTEM, TEXTURES, TEX_KEYS, parse };
+const rs = require("./native").call;
+const parse = rs ? text => rs("aitheme:parse", { text: String(text || "") }) : parseJs;
+
+module.exports = { SYSTEM, TEXTURES, TEX_KEYS, parse, _js: { parse: parseJs } };
