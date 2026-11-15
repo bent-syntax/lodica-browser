@@ -37,3 +37,12 @@ test('parseVergelijk finds lazy, protocol-relative and entity-escaped images', (
   assert.strictEqual(get('src="data:image/gif;base64,AA" data-src="https://c/i.jpg?a=1&amp;b=2"'), 'https://c/i.jpg?a=1&b=2');
   assert.strictEqual(get('src="//c/i.jpg"'), 'https://c/i.jpg');
 });
+
+test('Rust shop parsing matches the JS reference when the addon is built', () => {
+  const shop = require('../src/shop');
+  const html = '<script type="application/ld+json">{"@type":"Product","name":"Mouse","offers":{"@type":"Offer","price":"1.299,95","priceCurrency":"eur"}}</script>';
+  assert.deepStrictEqual(shop.parseProduct(html), shop._js.parseProduct(html));
+  assert.deepStrictEqual(shop.parseProduct('<html></html>'), shop._js.parseProduct('<html></html>'));
+  assert.strictEqual(shop.withCat('mx', 'monitors'), shop._js.withCat('mx', 'monitors'));
+  assert.strictEqual(shop.withCat('mx', 'nope'), shop._js.withCat('mx', 'nope'));
+});

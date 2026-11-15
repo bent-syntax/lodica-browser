@@ -63,3 +63,13 @@ pub fn pair_code(r: Vec<u8>) -> String {
 pub fn pair_link(link: String) -> Option<String> {
     lodica_core::relayapi::pair_link(&link)
 }
+
+static SHELL: std::sync::Mutex<Option<lodica_core::ipc::Shell>> = std::sync::Mutex::new(None);
+
+/// Runs one dispatcher command: `args` and the result are JSON text.
+#[napi]
+pub fn call(cmd: String, args: String, now_ms: f64) -> String {
+    let a: serde_json::Value = serde_json::from_str(&args).unwrap_or_default();
+    let mut g = SHELL.lock().unwrap_or_else(|e| e.into_inner());
+    g.get_or_insert_with(Default::default).call(&cmd, &a, now_ms as u64).to_string()
+}

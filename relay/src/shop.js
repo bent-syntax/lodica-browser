@@ -90,7 +90,7 @@ function* walk(n, depth = 0) {
 }
 
 /** Pulls name, price, currency, image and rating from schema.org JSON-LD or product meta tags. */
-function parseProduct(html) {
+function parseProductJs(html) {
   const out = {};
   const re = /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
   let m;
@@ -151,7 +151,7 @@ const VG_HEAD = { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko
 const unent = (t) => t.replace(/&amp;/g, '&').replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
 /** Parses the product cards of a vergelijk.be result page. */
-function parseVergelijk(html) {
+function parseVergelijkJs(html) {
   html = html.replace(/<!--[\s\S]*?-->/g, '');
   const out = [];
   for (const c of html.split('data-test-id="card"').slice(1)) {
@@ -182,7 +182,7 @@ const CATEGORIES = {
   laptops: 'laptop', phones: 'smartphone', tablets: 'tablet', tvs: 'televisie', audio: 'koptelefoon', cameras: 'camera', gaming: 'game console',
   monitors: 'monitor', components: 'pc component', printers: 'printer', appliances: 'huishoudapparaat', smarthome: 'smart home', wearables: 'smartwatch',
 };
-const withCat = (q, cat) => (CATEGORIES[cat] && !q.toLowerCase().includes(CATEGORIES[cat]) ? CATEGORIES[cat] + ' ' + q : q);
+const withCatJs = (q, cat) => (CATEGORIES[cat] && !q.toLowerCase().includes(CATEGORIES[cat]) ? CATEGORIES[cat] + ' ' + q : q);
 
 const cache = new Map();
 
@@ -292,4 +292,11 @@ async function shop(url, imgUrl) {
   return v;
 }
 
-module.exports = { shop, parseProduct, parseVergelijk, withCat, SHOPS, COUNTRIES, CATEGORIES };
+// Optional Rust addon (relay/native, built in CI); the *Js functions above are the fallback and the parity reference.
+let native = null;
+try { native = require('../native/lodica_native.node'); } catch { /* not built: use JS */ }
+const rs = (cmd, args) => JSON.parse(native.call(cmd, JSON.stringify(args), Date.now()));
+const parseProduct = native ? (html) => rs('shop:parseProduct', { html }) : parseProductJs;
+const parseVergelijk = native ? (html) => rs('shop:parseVergelijk', { html }) : parseVergelijkJs;
+const withCat = native ? (q, cat) => rs('shop:withCat', { q, cat }) : withCatJs;
+module.exports = { shop, parseProduct, parseVergelijk, withCat, _js: { parseProduct: parseProductJs, parseVergelijk: parseVergelijkJs, withCat: withCatJs }, SHOPS, COUNTRIES, CATEGORIES };
