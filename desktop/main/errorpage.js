@@ -89,7 +89,7 @@ function crashLog(entry) {
   } catch { /* logging must never throw */ }
 }
 
-const url = rs ? (code, desc, failed) => rs("error:url", { code, desc, failed }) : urlJs;
+const url = rs ? (code, desc, failed) => rs("error:url", { code: String(code ?? ""), desc, failed }) : urlJs;
 const html = rs ? u => rs("error:html", { url: u }) : htmlJs;
 const isErrorUrl = rs ? u => typeof u === "string" && rs("error:isError", { url: u }) : isErrorUrlJs;
 const isActionUrl = rs ? u => typeof u === "string" && rs("error:isAction", { url: u }) : isActionUrlJs;
