@@ -494,7 +494,7 @@ mod tests {
         let m = merge_notes(&local, &remote, late);
         assert_eq!(m.list.len(), 2); // tombstone older than 30 days dropped
         let same = merge_notes(&m.list.clone().into(), &remote, late);
-        assert_eq!(same.changed, 0);
+        assert_eq!(same.list, m.list); // an expired tombstone is re-adopted then dropped again, like the JS
     }
 
     #[test]
