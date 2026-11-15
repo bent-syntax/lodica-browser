@@ -17,7 +17,7 @@ for (const f of readdirSync(dir).filter((n) => n.endsWith(".js")).sort()) {
   const r = spawnSync(cmd, args, { encoding: "utf8", timeout: 120000, env });
   require("fs").rmSync(home, { recursive: true, force: true }); // /tmp is often RAM-backed; ~118 MB per test leaked otherwise
   const ok = r.status === 0;
-  if (!ok) { failed++; console.log("FAIL", f, "\n" + (r.stdout + r.stderr).split("\n").slice(-8).join("\n")); }
+  if (!ok) { failed++; console.log("FAIL", f, "\n" + (r.stdout + r.stderr).split("\n").slice(-30).join("\n")); }
   else console.log("ok  ", f);
 }
 console.log(failed ? failed + " failed" : "all passed");
