@@ -20,6 +20,7 @@ pub mod linkkey;
 pub mod mailroute;
 pub mod otpmigration;
 pub mod pctabs;
+pub mod planner;
 pub mod perms;
 pub mod prefs;
 pub mod relayapi;

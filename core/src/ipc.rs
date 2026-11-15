@@ -231,6 +231,9 @@ impl Shell {
             let n = |k: &str| a.get(k).and_then(Value::as_i64).unwrap_or(0);
             json!(crate::instant::rint(n("lo"), n("hi"), rand_of(a).first().copied().unwrap_or(0)))
         }
+        "planner:ics" => json!(crate::planner::parse_ics(s(a, "text"))),
+        "planner:slotRules" => json!(crate::planner::slot_rules(s(a, "text"))),
+        "planner:hhmm" => json!(crate::planner::hhmm(a.get("min").and_then(Value::as_i64).unwrap_or(0))),
         _ => json!({"error": "unknown command"}),
         }
     }
@@ -282,6 +285,9 @@ mod tests {
         assert_eq!(sh.call("instant:calc", &json!({"expr": "2+3*4"}), 0), json!(14.0));
         assert_eq!(sh.call("instant:calc", &json!({"expr": "("}), 0), Value::Null);
         assert_eq!(sh.call("instant:roman", &json!({"n": 14}), 0), json!("XIV"));
+        assert_eq!(sh.call("planner:hhmm", &json!({"min": 510}), 0), json!("08:30"));
+        assert_eq!(sh.call("planner:slotRules", &json!({"text": "Mon 08:30-09:20 Maths"}), 0)[0]["from"], json!(510));
+        assert_eq!(sh.call("planner:ics", &json!({"text": "BEGIN:VEVENT\nDTSTART:20260115\nEND:VEVENT"}), 0)[0]["allDay"], json!(true));
     }
 
     #[test]
