@@ -13,6 +13,10 @@ fn s<'a>(a: &'a Value, k: &str) -> &'a str {
     a.get(k).and_then(Value::as_str).unwrap_or("")
 }
 
+fn strings(a: &Value, k: &str) -> Vec<String> {
+    a.get(k).and_then(Value::as_array).map_or(vec![], |v| v.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+}
+
 impl Shell {
     pub fn call(&mut self, cmd: &str, a: &Value, now: u64) -> Value {
         match cmd {
@@ -125,6 +129,11 @@ impl Shell {
                 &a["data"],
                 a.get("max").and_then(Value::as_u64).map_or(crate::pctabs::MAX, |m| m as usize),
             )),
+            "mail:baseDomain" => json!(crate::mailroute::base_domain(s(a, "host"))),
+            "mail:code" => crate::mailroute::code_of(s(a, "subject"), s(a, "text"), s(a, "html")).map_or(Value::Null, |c| json!(c)),
+            "mail:confirmLink" => crate::mailroute::confirm_link(&strings(a, "links")).map_or(Value::Null, |l| json!(l)),
+            "mail:routed" => json!(crate::mailroute::routed(s(a, "url"), s(a, "domain"), &strings(a, "direct"))),
+            "mail:directHost" => json!(crate::mailroute::direct_host(s(a, "host"), s(a, "domain"), &strings(a, "direct"))),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -245,6 +254,19 @@ mod tests {
         let p = sh.call("pctabs:payload", &json!({"tabs": [], "chats": [], "data": {}}), 7);
         let v: Value = serde_json::from_str(p.as_str().unwrap()).unwrap();
         assert_eq!(v["updated"], 7);
+    }
+
+    #[test]
+    fn mailroute_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("mail:code", &json!({"subject": "Your code 482913"}), 0), json!("482913"));
+        assert_eq!(sh.call("mail:code", &json!({"subject": "Hi"}), 0), Value::Null);
+        assert_eq!(sh.call("mail:baseDomain", &json!({"host": "a.example.co.uk"}), 0), json!("example.co.uk"));
+        let l = json!({"links": ["https://x/unsubscribe", "https://x/verify?t=1"]});
+        assert_eq!(sh.call("mail:confirmLink", &l, 0), json!("https://x/verify?t=1"));
+        let r = json!({"url": "https://a.mine.org/", "domain": "lodica.test", "direct": ["mine.org"]});
+        assert_eq!(sh.call("mail:routed", &r, 0), json!(false));
+        assert_eq!(sh.call("mail:directHost", &json!({"host": "localhost"}), 0), json!(true));
     }
 
     #[test]

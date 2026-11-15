@@ -14,6 +14,7 @@ pub mod keyactions;
 pub mod keys;
 pub mod linkdata;
 pub mod linkkey;
+pub mod mailroute;
 pub mod otpmigration;
 pub mod pctabs;
 pub mod perms;
