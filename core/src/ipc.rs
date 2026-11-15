@@ -61,6 +61,15 @@ impl Shell {
             "keys:map" => crate::keys::map(&a["overrides"]),
             "keys:bind" => crate::keys::bind(&a["overrides"], s(a, "id"), &a["combos"]),
             "keys:list" => crate::keys::list(&a["overrides"]),
+            "error:url" => json!(crate::errorpage::url(s(a, "code"), s(a, "desc"), s(a, "failed"))),
+            "error:html" => json!(crate::errorpage::html(s(a, "url"))),
+            "error:isError" => json!(crate::errorpage::is_error_url(s(a, "url"))),
+            "error:isAction" => json!(crate::errorpage::is_action_url(s(a, "url"))),
+            "error:failedOf" => json!(crate::errorpage::failed_of(s(a, "url"))),
+            "error:parseAction" => {
+                let (action, url) = crate::errorpage::parse_action(s(a, "url"));
+                json!({"action": action, "url": url})
+            }
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -113,6 +122,17 @@ mod tests {
         assert_eq!(sh.call("keys:map", &json!({}), 0)["F12"], "devtools");
         assert_eq!(sh.call("keys:bind", &json!({"id": "find", "combos": ["F12"]}), 0)["devtools"], json!([]));
         assert_eq!(sh.call("keys:list", &json!({}), 0).as_array().unwrap().len(), 26);
+    }
+
+    #[test]
+    fn error_page_through_dispatcher() {
+        let mut sh = Shell::default();
+        let u = sh.call("error:url", &json!({"code": "-102", "desc": "REFUSED", "failed": "https://a.test"}), 0);
+        let u = u.as_str().unwrap();
+        assert_eq!(sh.call("error:isError", &json!({"url": u}), 0), json!(true));
+        assert_eq!(sh.call("error:failedOf", &json!({"url": u}), 0), json!("https://a.test"));
+        assert!(sh.call("error:html", &json!({"url": u}), 0).as_str().unwrap().contains("refused"));
+        assert_eq!(sh.call("error:parseAction", &json!({"url": "lodica://error/act?a=retry&u=x"}), 0)["action"], "retry");
     }
 
     #[test]
