@@ -92,6 +92,25 @@ impl Shell {
                 let b = |k: &str| a.get(k).and_then(Value::as_bool).unwrap_or(false);
                 crate::keyactions::host_toggle(s(a, "func"), b("trusted"), b("compat"), b("forcedCompat"))
             }
+            "tabs:pdfViewerUrl" => json!(crate::tabs::pdf_viewer_url(s(a, "url"))),
+            "tabs:splitRects" => crate::tabs::split_rects(
+                &a["bounds"],
+                a.get("ratio").and_then(Value::as_f64).unwrap_or(0.5),
+                a.get("gap").and_then(Value::as_f64).unwrap_or(14.0),
+            ),
+            "tabs:isHome" => json!(crate::tabs::is_home(s(a, "url"))),
+            "tabs:isSettingsUrl" => json!(crate::tabs::is_settings_url(s(a, "url"))),
+            "tabs:fallbackIcon" => json!(crate::tabs::fallback_icon(s(a, "url"))),
+            "tabs:neighbor" => json!(self.tabs.neighbor(s(a, "id"))),
+            "tabs:deleteArchived" => json!(self.tabs.delete_archived(s(a, "id"))),
+            "tabs:clearArchived" => {
+                self.tabs.clear_archived();
+                json!(true)
+            }
+            "tabs:autoArchive" => {
+                let keep: Vec<&str> = a.get("keep").and_then(Value::as_array).map(|v| v.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
+                json!(self.tabs.auto_archive(a.get("days").and_then(Value::as_i64).unwrap_or(0), now as i64, &keep))
+            }
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -176,6 +195,24 @@ mod tests {
         let ids: Vec<String> = (0..201).map(|i| format!("d{i}")).collect();
         let r = sh.call("downloads:capIds", &json!({"ids": ids, "live": []}), 0);
         assert_eq!(r.as_array().unwrap().len(), 200);
+    }
+
+    #[test]
+    fn tabs_helpers_through_dispatcher() {
+        let mut sh = Shell::default();
+        let v = sh.call("tabs:pdfViewerUrl", &json!({"url": "https://a.com/x.pdf"}), 0);
+        assert!(v.as_str().unwrap().starts_with("lodica://pdf/web/viewer.html?file="));
+        assert_eq!(sh.call("tabs:pdfViewerUrl", &json!({"url": "https://a.com/"}), 0), Value::Null);
+        let r = sh.call("tabs:splitRects", &json!({"bounds": {"x": 0, "y": 0, "width": 114, "height": 50}, "ratio": 0.5}), 0);
+        assert_eq!(r["a"]["width"], 50.0);
+        assert_eq!(r["b"]["x"], 64.0);
+        assert_eq!(sh.call("tabs:isHome", &json!({"url": "about:blank"}), 0), json!(true));
+        assert_eq!(sh.call("tabs:isSettingsUrl", &json!({"url": "lodica://settings"}), 0), json!(true));
+        assert_eq!(sh.call("tabs:fallbackIcon", &json!({"url": "https://a.com/p"}), 0), json!("https://a.com/favicon.ico"));
+        assert_eq!(sh.call("tabs:autoArchive", &json!({"days": 0, "keep": []}), 0), json!([]));
+        assert_eq!(sh.call("tabs:neighbor", &json!({"id": "zz"}), 0), Value::Null);
+        assert_eq!(sh.call("tabs:deleteArchived", &json!({"id": "zz"}), 0), json!(false));
+        assert_eq!(sh.call("tabs:clearArchived", &json!({}), 0), json!(true));
     }
 
     #[test]

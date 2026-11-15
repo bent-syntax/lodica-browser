@@ -180,6 +180,44 @@ impl Tabs {
     }
 }
 
+const COMPONENT: &percent_encoding::AsciiSet = &percent_encoding::NON_ALPHANUMERIC
+    .remove(b'-').remove(b'_').remove(b'.').remove(b'!').remove(b'~').remove(b'*').remove(b'\'').remove(b'(').remove(b')');
+
+fn enc(s: &str) -> String {
+    percent_encoding::utf8_percent_encode(s, COMPONENT).to_string()
+}
+
+/// Viewer page for a pdf or docx link (http, https, file); None for anything else.
+pub fn pdf_viewer_url(url: &str) -> Option<String> {
+    let p = url::Url::parse(url).ok()?;
+    if !matches!(p.scheme(), "http" | "https" | "file") {
+        return None;
+    }
+    let path = p.path().to_lowercase();
+    if path.ends_with(".docx") {
+        return Some(format!("lodica://pdf/web/docxedit.html?u={}", enc(url)));
+    }
+    if !path.ends_with(".pdf") {
+        return None;
+    }
+    let file = format!("lodica://pdf/f?u={}", enc(url));
+    Some(format!("lodica://pdf/web/viewer.html?file={}", enc(&file)))
+}
+
+/// Split bounds `r` ({x,y,width,height}) into left `a`, divider `gap` and right `b` rects.
+pub fn split_rects(r: &serde_json::Value, ratio: f64, gap: f64) -> serde_json::Value {
+    let g = |k: &str| r.get(k).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+    let (x, y, width, height) = (g("x"), g("y"), g("width"), g("height"));
+    let w = (width - gap).max(0.0);
+    // JS Math.round rounds half up
+    let left = (w * ratio + 0.5).floor();
+    serde_json::json!({
+        "a": {"x": x, "y": y, "width": left, "height": height},
+        "gap": {"x": x + left, "y": y, "width": gap, "height": height},
+        "b": {"x": x + left + gap, "y": y, "width": w - left, "height": height},
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -264,5 +302,27 @@ mod tests {
         assert_eq!(own_name_for("192.168.1.5", &rules), "my.home");
         assert_eq!(own_name_for("1.1.1.1", &rules), "");
         assert!(is_settings_url(" lodica://Settings/ "));
+    }
+
+    #[test]
+    fn pdf_viewer() {
+        assert_eq!(pdf_viewer_url("https://a.com/x.txt"), None);
+        assert_eq!(pdf_viewer_url("ftp://a.com/x.pdf"), None);
+        assert_eq!(pdf_viewer_url("nope"), None);
+        assert_eq!(
+            pdf_viewer_url("https://a.com/x.PDF").unwrap(),
+            "lodica://pdf/web/viewer.html?file=lodica%3A%2F%2Fpdf%2Ff%3Fu%3Dhttps%253A%252F%252Fa.com%252Fx.PDF"
+        );
+        assert_eq!(pdf_viewer_url("file:///d/a.docx").unwrap(), "lodica://pdf/web/docxedit.html?u=file%3A%2F%2F%2Fd%2Fa.docx");
+    }
+
+    #[test]
+    fn split() {
+        let r = split_rects(&serde_json::json!({"x": 10, "y": 5, "width": 214, "height": 100}), 0.5, 14.0);
+        assert_eq!(r["a"]["width"], 100.0);
+        assert_eq!(r["gap"]["x"], 110.0);
+        assert_eq!(r["b"]["x"], 124.0);
+        assert_eq!(r["b"]["width"], 100.0);
+        assert_eq!(split_rects(&serde_json::json!({"width": 5}), 0.5, 14.0)["b"]["width"], 0.0);
     }
 }
