@@ -134,6 +134,10 @@ impl Shell {
             "mail:confirmLink" => crate::mailroute::confirm_link(&strings(a, "links")).map_or(Value::Null, |l| json!(l)),
             "mail:routed" => json!(crate::mailroute::routed(s(a, "url"), s(a, "domain"), &strings(a, "direct"))),
             "mail:directHost" => json!(crate::mailroute::direct_host(s(a, "host"), s(a, "domain"), &strings(a, "direct"))),
+            "cmd:keyAction" => crate::commands::key_action(&a["map"], s(a, "combo")),
+            "cmd:tabCounts" => crate::commands::tab_counts(a["open"].as_array().map_or(&[][..], |v| &v[..]), a["locked"].as_bool().unwrap_or(false)),
+            "cmd:topSites" => crate::commands::top_sites(a["private"].as_bool().unwrap_or(false), &a["sites"]),
+            "cmd:toggleDesktop" => json!(crate::commands::toggle_desktop(a["desktop"].as_bool())),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -153,6 +157,15 @@ mod tests {
         sh.call("vault:save", &json!({"origin": "https://a.test", "user": "u", "pass": "p"}), 4);
         let l = sh.call("vault:list", &json!({}), 5);
         assert_eq!(l[0]["origin"], "https://a.test");
+    }
+
+    #[test]
+    fn commands_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("cmd:toggleDesktop", &json!({"desktop": false}), 0), json!(true));
+        assert_eq!(sh.call("cmd:tabCounts", &json!({"open": [{"private": true}, {}], "locked": true}), 0)["privateCount"], json!(1));
+        assert_eq!(sh.call("cmd:topSites", &json!({"private": true, "sites": [1]}), 0), json!([]));
+        assert_eq!(sh.call("cmd:keyAction", &json!({"map": {"a": "b"}, "combo": "a"}), 0), json!("b"));
     }
 
     #[test]
