@@ -1,6 +1,6 @@
 //! Command dispatcher for the Rust shell: the UI sends `{cmd, args}`, this returns JSON.
 //! Pure state, no I/O. The shell passes time and salts in, like the other core modules.
-use crate::{tabs::Tabs, vault::Vault};
+use crate::{linkdata, tabs::Tabs, vault::Vault};
 use serde_json::{json, Value};
 
 #[derive(Default)]
@@ -40,6 +40,9 @@ impl Shell {
                 json!(true)
             }
             "totp:migrate" => json!(crate::otpmigration::parse(s(a, "link"))),
+            "link:mergePasswords" => linkdata::to_json(linkdata::merge_passwords(&a["local"], &a["remote"])),
+            "link:mergeShortcuts" => linkdata::to_json(linkdata::merge_shortcuts(&a["local"], &a["remote"])),
+            "link:union" => linkdata::to_json(linkdata::union(&a["local"], &a["remote"], a.get("max").and_then(Value::as_u64).unwrap_or(0) as usize)),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -64,6 +67,12 @@ mod tests {
     #[test]
     fn migrate_rejects_non_link() {
         assert_eq!(Shell::default().call("totp:migrate", &json!({"link": "https://x"}), 0), json!(null));
+    }
+
+    #[test]
+    fn link_union_through_dispatcher() {
+        let r = Shell::default().call("link:union", &json!({"local": ["a"], "remote": ["a", "b"], "max": 5}), 0);
+        assert_eq!((r["list"].clone(), r["changed"].clone()), (json!(["a", "b"]), json!(1)));
     }
 
     #[test]
