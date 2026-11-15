@@ -9,7 +9,7 @@ const ACT: &str = "lodica://error/act";
 // Same unreserved set as JS encodeURIComponent.
 const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'!').remove(b'~').remove(b'*').remove(b'\'').remove(b'(').remove(b')');
 
-fn enc(s: &str) -> String {
+pub(crate) fn enc(s: &str) -> String {
     utf8_percent_encode(s, COMPONENT).to_string()
 }
 

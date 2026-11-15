@@ -18,6 +18,7 @@ pub mod perms;
 pub mod prefs;
 pub mod relayapi;
 pub mod serial;
+pub mod suggest;
 pub mod tabs;
 pub mod totp;
 pub mod vault;

@@ -82,6 +82,10 @@ impl Shell {
                 let taken: Vec<&str> = a["taken"].as_array().map(|l| l.iter().filter_map(Value::as_str).collect()).unwrap_or_default();
                 json!(crate::downloads::unique_name(s(a, "name"), |n| taken.contains(&n)))
             }
+            "suggest:engineKey" => json!(crate::suggest::engine_key(s(a, "search"), s(a, "fallback"))),
+            "suggest:url" => json!(crate::suggest::url(s(a, "template"), s(a, "text"), a["private"].as_bool().unwrap_or(false))),
+            "suggest:titles" => json!(crate::suggest::titles(&a["body"])),
+            "suggest:merge" => crate::suggest::merge_json(&a["hist"], &a["eng"]),
             _ => json!({"error": "unknown command"}),
         }
     }
