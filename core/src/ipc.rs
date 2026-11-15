@@ -234,6 +234,23 @@ impl Shell {
         "planner:ics" => json!(crate::planner::parse_ics(s(a, "text"))),
         "planner:slotRules" => json!(crate::planner::slot_rules(s(a, "text"))),
         "planner:hhmm" => json!(crate::planner::hhmm(a.get("min").and_then(Value::as_i64).unwrap_or(0))),
+        "shop:num" => crate::shop::num_str(s(a, "text")).map_or(Value::Null, num_json),
+        "shop:parseProduct" => crate::shop::parse_product(s(a, "html")),
+        "shop:parseVergelijk" => json!(crate::shop::parse_vergelijk(s(a, "html"))),
+        "shop:withCat" => json!(crate::shop::with_cat(s(a, "q"), s(a, "cat"))),
+        "shop:shopOf" => {
+            let (first, second) = crate::shop::shops_for(s(a, "country"));
+            let list = if a.get("second").and_then(Value::as_bool).unwrap_or(false) { second } else { first };
+            json!(crate::shop::shop_of(s(a, "host"), &list))
+        }
+        "shop:lang" => json!(crate::shop::lang_for(s(a, "country"))),
+        "shop:isUsed" => json!(crate::shop::is_used(s(a, "title"), s(a, "host"))),
+        "shop:reviewSite" => json!(crate::shop::review_site(s(a, "url"))),
+        "shop:bounds" => {
+            let f = |k: &str| a.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+            let (lo, hi) = crate::shop::bounds(f("min"), f("max"));
+            json!({"min": num_json(lo), "max": num_json(hi)})
+        }
         _ => json!({"error": "unknown command"}),
         }
     }
@@ -288,6 +305,9 @@ mod tests {
         assert_eq!(sh.call("planner:hhmm", &json!({"min": 510}), 0), json!("08:30"));
         assert_eq!(sh.call("planner:slotRules", &json!({"text": "Mon 08:30-09:20 Maths"}), 0)[0]["from"], json!(510));
         assert_eq!(sh.call("planner:ics", &json!({"text": "BEGIN:VEVENT\nDTSTART:20260115\nEND:VEVENT"}), 0)[0]["allDay"], json!(true));
+        assert_eq!(sh.call("shop:withCat", &json!({"q": "xps", "cat": "laptops"}), 0), json!("laptop xps"));
+        assert_eq!(sh.call("shop:bounds", &json!({"min": 500, "max": 100}), 0), json!({"min": 100, "max": 500}));
+        assert_eq!(sh.call("shop:num", &json!({"text": "12.5"}), 0), json!(12.5));
     }
 
     #[test]
