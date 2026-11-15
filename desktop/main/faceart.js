@@ -38,8 +38,8 @@ const HEAD = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">';
 function cleanArt(svg) {
   if (typeof svg !== 'string' || svg.length > MAX_IN) return '';
   const out = [];
-  const tag = /<\s*([a-zA-Z]+)((?:\s+[a-zA-Z:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?\s*>/g;
-  const attr = /([a-zA-Z:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+  const tag = /<\s*([a-zA-Z]+)((?:\s+[a-zA-Z0-9:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*\/?\s*>/g;
+  const attr = /([a-zA-Z0-9:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
   let m;
   while ((m = tag.exec(svg)) && out.length < MAX_SHAPES) {
     const name = m[1].toLowerCase();

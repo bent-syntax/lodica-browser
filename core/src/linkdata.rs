@@ -490,9 +490,10 @@ mod tests {
         assert_eq!(m.list[0]["text"], "new");
         assert_eq!(m.list[0]["rev"], 3);
         assert_eq!(m.list.len(), 3);
-        let m = merge_notes(&local, &remote, 100.0 + TOMB_TTL);
+        let late = 100.0 + TOMB_TTL;
+        let m = merge_notes(&local, &remote, late);
         assert_eq!(m.list.len(), 2); // tombstone older than 30 days dropped
-        let same = merge_notes(&m.list.clone().into(), &remote, 100.0);
+        let same = merge_notes(&m.list.clone().into(), &remote, late);
         assert_eq!(same.changed, 0);
     }
 

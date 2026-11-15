@@ -21,8 +21,8 @@ struct Re {
 fn re() -> &'static Re {
     static RE: OnceLock<Re> = OnceLock::new();
     RE.get_or_init(|| Re {
-        tag: Regex::new(r#"<\s*([a-zA-Z]+)((?:\s+[a-zA-Z:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*/?\s*>"#).unwrap(),
-        attr: Regex::new(r#"([a-zA-Z:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')"#).unwrap(),
+        tag: Regex::new(r#"<\s*([a-zA-Z]+)((?:\s+[a-zA-Z0-9:-]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*/?\s*>"#).unwrap(),
+        attr: Regex::new(r#"([a-zA-Z0-9:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')"#).unwrap(),
         num: Regex::new(r"^-?[0-9]{1,3}(?:\.[0-9]{1,2})?$").unwrap(),
         color: Regex::new(r"^(?:none|#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6})$").unwrap(),
         unit: Regex::new(r"^(?:0|1|0?\.[0-9]{1,2})$").unwrap(),
