@@ -138,6 +138,13 @@ impl Shell {
             "cmd:tabCounts" => crate::commands::tab_counts(a["open"].as_array().map_or(&[][..], |v| &v[..]), a["locked"].as_bool().unwrap_or(false)),
             "cmd:topSites" => crate::commands::top_sites(a["private"].as_bool().unwrap_or(false), &a["sites"]),
             "cmd:toggleDesktop" => json!(crate::commands::toggle_desktop(a["desktop"].as_bool())),
+            "room:clean" => json!(crate::room::clean(s(a, "name"))),
+            "room:dm" => json!(crate::room::dm(s(a, "me"), s(a, "peer"))),
+            "room:group" => json!(crate::room::group(s(a, "name"))),
+            "room:label" => json!(crate::room::label(s(a, "room"), s(a, "me"))),
+            "room:rememberName" => crate::room::remember_name(&strings(a, "names"), s(a, "name")).map_or(Value::Null, |v| json!(v)),
+            "room:isMine" => json!(crate::room::is_mine(s(a, "name"), s(a, "current"), &strings(a, "names"))),
+            "room:query" => json!(crate::room::room_q(s(a, "room"))),
             _ => json!({"error": "unknown command"}),
         }
     }
@@ -166,6 +173,15 @@ mod tests {
         assert_eq!(sh.call("cmd:tabCounts", &json!({"open": [{"private": true}, {}], "locked": true}), 0)["privateCount"], json!(1));
         assert_eq!(sh.call("cmd:topSites", &json!({"private": true, "sites": [1]}), 0), json!([]));
         assert_eq!(sh.call("cmd:keyAction", &json!({"map": {"a": "b"}, "combo": "a"}), 0), json!("b"));
+    }
+
+    #[test]
+    fn room_through_dispatcher() {
+        let mut sh = Shell::default();
+        assert_eq!(sh.call("room:dm", &json!({"me": "Zed", "peer": "amy"}), 0), json!("dm:amy|Zed"));
+        assert_eq!(sh.call("room:label", &json!({"room": "dm:amy|Zed", "me": "Zed"}), 0), json!("amy"));
+        assert_eq!(sh.call("room:rememberName", &json!({"names": ["a"], "name": "a"}), 0), Value::Null);
+        assert_eq!(sh.call("room:query", &json!({"room": "grp:x"}), 0), json!("&room=grp%3Ax"));
     }
 
     #[test]

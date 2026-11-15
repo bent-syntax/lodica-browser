@@ -21,6 +21,7 @@ pub mod pctabs;
 pub mod perms;
 pub mod prefs;
 pub mod relayapi;
+pub mod room;
 pub mod serial;
 pub mod suggest;
 pub mod tabs;
