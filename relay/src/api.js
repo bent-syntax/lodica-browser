@@ -66,9 +66,13 @@ function authed(req, res) {
   return false;
 }
 
+let native = null;
+try { native = require('../native/lodica_native.node'); } catch { /* not built: use JS */ }
+
 const b64u = (s) => Buffer.from(s, 'utf8').toString('base64url');
 // Mail id = base64url(maildir file name).
 function mailIdDecode(id) {
+  if (native) { const file = native.mailIdDecode(id); return file == null ? null : { file }; }
   if (!/^[A-Za-z0-9_-]{4,512}$/.test(id)) return null;
   const file = Buffer.from(id, 'base64url').toString('utf8');
   if (!FILE_RE.test(file) || b64u(file) !== id) return null;
@@ -76,6 +80,7 @@ function mailIdDecode(id) {
 }
 
 function parseSince(v) {
+  if (native) { const n = native.parseSince(v == null ? '' : v); return n < 0 ? NaN : n; }
   if (v == null || v === '') return 0;
   if (/^\d{1,16}$/.test(v)) {
     const n = Number(v);
@@ -326,7 +331,7 @@ async function aliasesPost(req, res) {
 }
 
 /** decodeURIComponent that returns '' for a malformed escape instead of throwing (a throw becomes a 500). */
-const unescapePart = (v) => { try { return decodeURIComponent(v); } catch { return ''; } };
+const unescapePart = (v) => native ? native.unescapePart(v) : (() => { try { return decodeURIComponent(v); } catch { return ''; } })();
 
 async function aliasesDelete(req, res, id) {
   const local = localOf(unescapePart(id));
@@ -415,12 +420,12 @@ async function pairPost(req, res) {
   try { b = JSON.parse((await readBody(req, 2048)).toString('utf8')); }
   catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   const link = b && typeof b.link === 'string' ? b.link : '';
-  if (!/^[A-Za-z0-9_-]{22}#[A-Za-z0-9_-]{43}$/.test(link.split('/').pop())) return sendText(req, res, 400, 'bad link');
+  if (!(native ? native.pairLink(link) : /^[A-Za-z0-9_-]{22}#[A-Za-z0-9_-]{43}$/.test(link.split('/').pop()))) return sendText(req, res, 400, 'bad link');
   const now = Date.now();
   for (const [c, e] of pairCodes) if (now - e.at > 600e3) pairCodes.delete(c);
   if (pairCodes.size > 200) return sendText(req, res, 429, 'too many codes');
   let code;
-  do { const r = require('crypto').randomBytes(6); code = ''; for (let i = 0; i < 6; i++) code += PAIR_ALPHA[r[i] & 31]; } while (pairCodes.has(code));
+  do { const r = require('crypto').randomBytes(6); code = native ? native.pairCode(r) : ''; if (!native) for (let i = 0; i < 6; i++) code += PAIR_ALPHA[r[i] & 31]; } while (pairCodes.has(code));
   pairCodes.set(code, { link: link.split('/').pop(), at: now });
   sendJson(req, res, 200, { code, expires: now + 600e3 });
 }

@@ -26,3 +26,40 @@ pub fn fresh_order(dates: Vec<String>, now_ms: f64) -> Vec<u32> {
 pub fn unseen(have: Vec<String>, urls: Vec<String>) -> Vec<u32> {
     lodica_core::unseen(&have, &urls)
 }
+
+#[napi]
+pub fn b64u(s: String) -> String {
+    lodica_core::relayapi::b64u(&s)
+}
+
+/// Maildir file name behind a mail id, null when the id is not valid.
+#[napi]
+pub fn mail_id_decode(id: String) -> Option<String> {
+    lodica_core::relayapi::mail_id_decode(&id)
+}
+
+/// `since` in ms, 0 when absent, -1 when unparseable.
+#[napi]
+pub fn parse_since(v: String) -> f64 {
+    lodica_core::relayapi::parse_since(&v).map_or(-1.0, |n| n as f64)
+}
+
+#[napi]
+pub fn local_of(addr: String, domain: String) -> String {
+    lodica_core::relayapi::local_of(&addr, &domain)
+}
+
+#[napi]
+pub fn unescape_part(v: String) -> String {
+    lodica_core::relayapi::unescape_part(&v)
+}
+
+#[napi]
+pub fn pair_code(r: Vec<u8>) -> String {
+    lodica_core::relayapi::pair_code(&r)
+}
+
+#[napi]
+pub fn pair_link(link: String) -> Option<String> {
+    lodica_core::relayapi::pair_link(&link)
+}
