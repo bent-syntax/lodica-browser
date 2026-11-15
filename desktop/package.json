@@ -45,7 +45,8 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "../android/app/src/main/assets/extensions/helper/dict", "to": "dict" }
+      { "from": "../android/app/src/main/assets/extensions/helper/dict", "to": "dict" },
+      { "from": "native/lodica_native.node", "to": "lodica_native.node" }
     ],
     "asar": true,
     "win": {

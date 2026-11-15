@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
+      - name: Build Rust addon
+        working-directory: relay/native
+        run: cargo build --release && mkdir -p ../../desktop/native && cp target/release/liblodica_relay_native.so ../../desktop/native/lodica_native.node
       - uses: actions/setup-node@v5
         with:
           node-version: 22

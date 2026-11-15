@@ -28,3 +28,4 @@ relay-token
 # code knowledge graph, rebuilt locally
 /graphify-out/
 desktop-rs/target/
+desktop/native/

@@ -3,6 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
+const { call: rs } = require("./native");
 
 const PREFIX = "lodica://error/";
 const ACT = PREFIX + "act";
@@ -26,25 +27,25 @@ function link(a, u, label, cls) {
   return `<a class="${cls}" href="${ACT}?a=${a}&u=${encodeURIComponent(u)}">${label}</a>`;
 }
 
-function url(code, desc, failed) {
+function urlJs(code, desc, failed) {
   return PREFIX + "?c=" + encodeURIComponent(code) + "&d=" + encodeURIComponent(desc || "") + "&u=" + encodeURIComponent(failed || "");
 }
 
-function isErrorUrl(u) { return typeof u === "string" && u.startsWith(PREFIX) && !u.startsWith(ACT); }
-function isActionUrl(u) { return typeof u === "string" && u.startsWith(ACT); }
+function isErrorUrlJs(u) { return typeof u === "string" && u.startsWith(PREFIX) && !u.startsWith(ACT); }
+function isActionUrlJs(u) { return typeof u === "string" && u.startsWith(ACT); }
 
-function failedOf(u) {
+function failedOfJs(u) {
   try { return new URL(u).searchParams.get("u") || ""; } catch { return ""; }
 }
 
-function parseAction(u) {
+function parseActionJs(u) {
   try {
     const p = new URL(u).searchParams;
     return { action: p.get("a") || "", url: p.get("u") || "" };
   } catch { return { action: "", url: "" }; }
 }
 
-function html(u) {
+function htmlJs(u) {
   let code = "", desc = "", failed = "";
   try {
     const p = new URL(u).searchParams;
@@ -88,4 +89,11 @@ function crashLog(entry) {
   } catch { /* logging must never throw */ }
 }
 
-module.exports = { url, html, serve, isErrorUrl, isActionUrl, failedOf, parseAction, crashLog };
+const url = rs ? (code, desc, failed) => rs("error:url", { code, desc, failed }) : urlJs;
+const html = rs ? u => rs("error:html", { url: u }) : htmlJs;
+const isErrorUrl = rs ? u => typeof u === "string" && rs("error:isError", { url: u }) : isErrorUrlJs;
+const isActionUrl = rs ? u => typeof u === "string" && rs("error:isAction", { url: u }) : isActionUrlJs;
+const failedOf = rs ? u => rs("error:failedOf", { url: u }) : failedOfJs;
+const parseAction = rs ? u => rs("error:parseAction", { url: u }) : parseActionJs;
+
+module.exports = { url, html, serve, isErrorUrl, isActionUrl, failedOf, parseAction, crashLog, _js: { url: urlJs, html: htmlJs, isErrorUrl: isErrorUrlJs, isActionUrl: isActionUrlJs, failedOf: failedOfJs, parseAction: parseActionJs } };

@@ -83,8 +83,10 @@ jobs:
         include:
           - os: ubuntu-24.04
             script: dist:linux
+            lib: target/release/liblodica_relay_native.so
           - os: windows-latest
             script: dist
+            lib: target/release/lodica_relay_native.dll
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -96,6 +98,10 @@ jobs:
       - name: Install dependencies
         working-directory: desktop
         run: npm ci
+      - name: Build Rust addon
+        working-directory: relay/native
+        shell: bash
+        run: cargo build --release && mkdir -p ../../desktop/native && cp ${{ matrix.lib }} ../../desktop/native/lodica_native.node
       - name: Build installers
         working-directory: desktop
         shell: bash
