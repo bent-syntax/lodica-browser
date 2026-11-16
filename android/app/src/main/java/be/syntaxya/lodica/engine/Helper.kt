@@ -11,6 +11,7 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.WebExtensionController
 import be.syntaxya.lodica.tabs.Tab
 import be.syntaxya.lodica.tabs.TabManager
 import be.syntaxya.lodica.ui.Prompts
@@ -67,7 +68,9 @@ object Helper {
         runtime = rt
         rt.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/helper/", ID)
-            .then<WebExtension> { e -> if (e == null) GeckoResult.fromValue(null) else rt.webExtensionController.setAllowedInPrivateBrowsing(e, true) }
+            .then<WebExtension> { e -> if (e == null) GeckoResult.fromValue(null)
+                else if (Prefs.mode == Mode.FAST) rt.webExtensionController.disable(e, WebExtensionController.EnableSource.APP).then { GeckoResult.fromValue<WebExtension>(null) }
+                else rt.webExtensionController.setAllowedInPrivateBrowsing(e, true) }
             .accept({ e ->
                 if (e == null) return@accept
                 ext = e
