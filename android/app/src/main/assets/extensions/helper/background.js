@@ -191,6 +191,15 @@ function allFrames(on) {
   everyFrame.catch(() => { everyFrame = null; });
 }
 
+// Medium mode: the small frame.js probe in subframes. Fast skips it, Features already runs content.js everywhere.
+let probeFrames = null;
+function probe(on) {
+  if (on === !!probeFrames || !browser.contentScripts) return;
+  if (!on) { probeFrames.then((r) => r.unregister()).catch(() => {}); probeFrames = null; return; }
+  probeFrames = browser.contentScripts.register({ matches: ["http://*/*", "https://*/*"], js: [{ file: "/frame.js" }], allFrames: true, runAt: "document_idle" });
+  probeFrames.catch(() => { probeFrames = null; });
+}
+
 browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (!msg) return undefined;
   // frame.js found a sign-in field or consent dialog in a subframe: load the full helper into that frame only.
@@ -325,7 +334,7 @@ function connect() {
         if (bs) bs.set({ value: msg.page && (msg.page.dark || msg.page.darkPages) ? "dark" : "light" });
       } catch (e) {}
       syncListeners();
-      if (msg.page) allFrames(msg.mode === "FEATURES");
+      if (msg.page) { allFrames(msg.mode === "FEATURES"); probe(msg.mode === "MEDIUM"); }
       ready();
     } else if (msg && msg.type === "found") {
       const done = asks.get(msg.id);

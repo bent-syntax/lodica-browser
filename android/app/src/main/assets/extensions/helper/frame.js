@@ -1,7 +1,7 @@
 "use strict";
 
 // The full helper (content.js) runs in the top frame only: in every iframe it cost half the Speedometer score.
-// Subframes get this small probe instead. Frames that hold a sign-in field or a consent dialog ask the
+// In Medium mode subframes get this small probe instead (background.js registers it; Fast skips it). Frames that hold a sign-in field or a consent dialog ask the
 // background to load the full helper into them, so alias fill, login save and cookie rejection still work there.
 // shortcut: fields inside shadow roots or added after 3 s are missed, widen the checks if a site needs them.
 (() => {
