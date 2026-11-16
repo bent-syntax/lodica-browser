@@ -1,3 +1,7 @@
+## 1.18.3
+
+- Desktop password, tab, room, relay and mail-alias helpers now run in the Rust core with the JavaScript kept as a fallback, including the proxy auto-config script, the alias site name and the own-address check. No change to what you see. Checked by parity tests in CI, not run on a device.
+
 ## 1.18.2
 
 - Lodica search page uses the full width on desktop and its scroll bar follows the theme. Shortcut tiles on desktop and Android fill the whole circle with the site logo, and on Android the tile border is the background colour made darker. The Android start page logo has top margin so it clears the clock, and no page text shows under the bottom toolbar. The notebook and the server chat on desktop dock in a right column like the AI panel, keep the toolbar and hide the private button. New setting "Use PIN and phone for passwords": on desktop, changing how passwords unlock needs the PIN and an approval on the phone; on Android a switch gated by the screen lock or biometric. Speedometer 3.1 (16) and 2.0 (300) targets were not measured or tuned. None of this was compiled or run on a device. Replacing Electron with Rust is a backlog item, not started.
