@@ -10,6 +10,6 @@ for (const p of [
   try { addon = require(p); break; } catch { /* try next */ }
 }
 
-const call = addon ? (cmd, args) => JSON.parse(addon.call(cmd, JSON.stringify(args || {}), Date.now())) : null;
+const call = addon ? (cmd, args, now = Date.now()) => JSON.parse(addon.call(cmd, JSON.stringify(args || {}), now)) : null;
 
 module.exports = { call };
