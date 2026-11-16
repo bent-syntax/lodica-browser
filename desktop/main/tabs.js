@@ -7,6 +7,7 @@ const prefs = require("./prefs");
 const relay = require("./relay");
 const history = require("./history");
 const errorpage = require("./errorpage");
+const rs = require("./native").call;
 
 const HOME = "lodica://search/search.html";
 /** Last good favicons per host, so a navigation never blanks the icon while the page loads its own. */
@@ -36,7 +37,7 @@ function ownNameFor(host) {
   return r ? String(r.from).trim() : "";
 }
 const alive = t => !!t.view && !t.view.webContents.isDestroyed();
-const isHome = u => !u || u === "about:blank" || (u.startsWith(HOME) && !/[?&]q=/.test(u));
+const isHomeJs = u => !u || u === "about:blank" || (u.startsWith(HOME) && !/[?&]q=/.test(u));
 
 function make(o = {}) {
   return {
@@ -121,7 +122,7 @@ function createView(t) {
 }
 
 // Main-frame links to a .pdf open in the bundled viewer instead of Chromium's. A .docx is converted to a PDF first.
-function pdfViewerUrl(url) {
+function pdfViewerUrlJs(url) {
   let u;
   try { u = new URL(url); } catch { return null; }
   if (!/^(https?|file):$/.test(u.protocol) || !/\.(pdf|docx)$/i.test(u.pathname)) return null;
@@ -271,9 +272,8 @@ function partner() {
   return t && !t.archived && t.private === cur.private ? t : null;
 }
 
-function splitRects() {
-  const r = deps.ui.pageBounds();
-  const w = Math.max(0, r.width - GAP), left = Math.round(w * split.ratio);
+function splitRectsJs(r, ratio) {
+  const w = Math.max(0, r.width - GAP), left = Math.round(w * ratio);
   return {
     a: { x: r.x, y: r.y, width: left, height: r.height },
     gap: { x: r.x + left, y: r.y, width: GAP, height: r.height },
@@ -384,7 +384,7 @@ function select(id) {
 }
 
 const SETTINGS = "lodica://settings";
-const isSettingsUrl = u => /^lodica:\/\/settings\/?$/i.test(String(u || "").trim());
+const isSettingsUrlJs = u => /^lodica:\/\/settings\/?$/i.test(String(u || "").trim());
 
 function create(o = {}) {
   if (isSettingsUrl(o.url)) {
@@ -517,9 +517,19 @@ function autoArchive(days) {
 }
 
 // No icon reported yet: guess the site's /favicon.ico so every http(s) tab shows one.
-function fallbackIcon(u) {
+function fallbackIconJs(u) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin + "/favicon.ico" : null; } catch { return null; }
 }
+
+const pdfViewerUrl = rs ? url => rs("tabs:pdfViewerUrl", { url }) : pdfViewerUrlJs;
+const isHome = rs ? u => rs("tabs:isHome", { url: u || "" }) : isHomeJs;
+const isSettingsUrl = rs ? u => rs("tabs:isSettingsUrl", { url: String(u || "") }) : isSettingsUrlJs;
+const fallbackIcon = rs ? u => rs("tabs:fallbackIcon", { url: String(u || "") }) : fallbackIconJs;
+const splitRects = () => {
+  const r = deps.ui.pageBounds();
+  return rs ? rs("tabs:splitRects", { bounds: r, ratio: split.ratio, gap: GAP }) : splitRectsJs(r, split.ratio);
+};
+const _js = { pdfViewerUrl: pdfViewerUrlJs, isHome: isHomeJs, isSettingsUrl: isSettingsUrlJs, fallbackIcon: fallbackIconJs, splitRects: splitRectsJs, GAP };
 
 /** Tab icon of the Lodica start page, re-rendered in the theme colours. */
 function setLogo(png) { LOGO = "data:image/png;base64," + png.toString("base64"); }
@@ -611,5 +621,5 @@ function init(d) {
 module.exports = {
   HOME, init, byContents, all, current, open, info, listing, select, create, move, newTab: create, close, reopen,
   undoClose, closeAll, archive, setLogo, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
-  isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
+  _js, isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
 };
