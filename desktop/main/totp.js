@@ -2,6 +2,7 @@
 const crypto = require("crypto");
 const store = { loadSecret: (...a) => require("./store").loadSecret(...a), saveSecret: (...a) => require("./store").saveSecret(...a) }; // lazy: keeps the pure parts usable without Electron
 const migration = require("./otpmigration");
+const rs = require("./native").call; // Rust core; null when the addon is absent, the JS below is the fallback
 
 const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 let accounts = null; // {id,label,issuer,name,secret,digits,period,algo}
@@ -24,7 +25,7 @@ function unbase32(s) {
   return out.length ? Buffer.from(out) : null;
 }
 
-function code(a, now = Date.now()) {
+function codeJs(a, now = Date.now()) {
   const key = unbase32(a.secret);
   if (!key) return "------";
   const counter = Buffer.alloc(8);
@@ -37,7 +38,7 @@ function code(a, now = Date.now()) {
 }
 
 /** An otpauth://totp link, or a bare base32 secret, as an account; null when invalid. */
-function fromText(text) {
+function fromTextJs(text) {
   const t = String(text || "").trim();
   if (!t) return null;
   if (/^otpauth:\/\//i.test(t)) {
@@ -60,6 +61,9 @@ function fromText(text) {
   const secret = t.toUpperCase().replace(/[\s=-]/g, "");
   return unbase32(secret) && secret.length >= 16 ? { label: "Account", issuer: "", name: "", secret, digits: 6, period: 30, algo: "SHA1" } : null;
 }
+
+const code = rs ? (a, now = Date.now()) => rs("totp:code", { secret: String(a.secret), digits: Number(a.digits), period: Number(a.period), algo: String(a.algo || "") }, now) : codeJs;
+const fromText = rs ? (text) => rs("totp:fromText", { text: String(text || "") }) : fromTextJs;
 
 /** Adds accounts from text: an otpauth link, an export link from Google Authenticator, or a secret. Returns how many were new. */
 function add(text, label) {
@@ -113,4 +117,4 @@ function importMany(list) {
   return r.changed;
 }
 
-module.exports = { exportAll, importMany, forHost, setHost, list, add, addImage, remove, rename, copy, code, fromText };
+module.exports = { exportAll, importMany, forHost, setHost, list, add, addImage, remove, rename, copy, code, fromText, _js: { code: codeJs, fromText: fromTextJs } };

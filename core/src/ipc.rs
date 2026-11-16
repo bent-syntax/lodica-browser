@@ -56,6 +56,14 @@ impl Shell {
                 self.tabs.close_all(a.get("private").and_then(Value::as_bool).unwrap_or(false));
                 json!(true)
             }
+            "totp:code" => {
+                let (d, p) = (a["digits"].as_u64().unwrap_or(6), a["period"].as_u64().unwrap_or(30));
+                // a zero period or a huge digit count would panic: show the invalid-secret placeholder
+                json!(if p == 0 || d == 0 || d > 10 { "------".to_string() } else { crate::totp::code(s(a, "secret"), d as u32, p, s(a, "algo"), now) })
+            }
+            "totp:fromText" => crate::totp::from_text(s(a, "text"))
+                .map(|x| json!({"label": x.label, "issuer": x.issuer, "name": x.name, "secret": x.secret, "digits": x.digits, "period": x.period, "algo": x.algo}))
+                .unwrap_or(Value::Null),
             "totp:migrate" => json!(crate::otpmigration::parse(s(a, "link"))),
             "link:mergePasswords" => linkdata::to_json(linkdata::merge_passwords(&a["local"], &a["remote"])),
             "link:mergeShortcuts" => linkdata::to_json(linkdata::merge_shortcuts(&a["local"], &a["remote"])),
@@ -360,6 +368,17 @@ mod tests {
         assert_eq!((r["changed"].clone(), r["list"][1]["id"].clone(), r["list"][1]["digits"].as_f64()), (json!(1), json!("x"), Some(6.0)));
         assert_eq!(sh.call("link:cleanCharacter", &json!({"c": {"glyph": "A"}}), 0)["glyph"], "A");
         assert_eq!(sh.call("link:cleanCharacter", &json!({"c": {}}), 0), json!(null));
+    }
+
+    #[test]
+    fn totp_code_and_from_text_through_dispatcher() {
+        let mut sh = Shell::default();
+        let c = json!({"secret": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", "digits": 8, "period": 30, "algo": "SHA1"});
+        assert_eq!(sh.call("totp:code", &c, 59_000), json!("94287082"));
+        assert_eq!(sh.call("totp:code", &json!({"secret": "x", "period": 0}), 0), json!("------"));
+        let f = sh.call("totp:fromText", &json!({"text": "otpauth://totp/Acme:bob?secret=JBSWY3DPEHPK3PXP&digits=8"}), 0);
+        assert_eq!((f["label"].clone(), f["digits"].clone()), (json!("Acme · bob"), json!(8)));
+        assert_eq!(sh.call("totp:fromText", &json!({"text": "nope"}), 0), json!(null));
     }
 
     #[test]
