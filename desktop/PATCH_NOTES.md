@@ -1,3 +1,7 @@
+## 1.18.6
+
+- Android: new Fast, Medium and Features modes, chosen in a first-run picker that shows until you pick one (Medium is the default in Settings). Fast uses standard tracking protection, turns off fingerprinting protection and uBlock, and loads no helper script in embedded frames. Medium keeps the strict settings and a small probe in embedded frames. Features also loads the full helper in every frame. On the OnePlus, Speedometer 2.0 scored 138 ± 6.3 in Fast and 138 in Medium, so Fast is not faster than Medium there; the remaining gap to 177 (all protections and helper off) is not explained yet.
+
 ## 1.18.5
 
 - Android: big pages and benchmarks no longer keep the dark-page recolour running past 8000 elements, which frees the main thread. On the OnePlus the Speedometer 2.0 baseline was 73.8 ± 3.8 before this change; the score after it was 77.7 ± 3.4, which is within noise, so no speedup is claimed. The helper extension now registers its own-name, lite-mode and proxy request listeners only while they have work, which removes an extension round trip per request when they are idle; its effect is not measured yet.
