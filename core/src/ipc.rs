@@ -60,6 +60,11 @@ impl Shell {
             "link:mergePasswords" => linkdata::to_json(linkdata::merge_passwords(&a["local"], &a["remote"])),
             "link:mergeShortcuts" => linkdata::to_json(linkdata::merge_shortcuts(&a["local"], &a["remote"])),
             "link:union" => linkdata::to_json(linkdata::union(&a["local"], &a["remote"], a.get("max").and_then(Value::as_u64).unwrap_or(0) as usize)),
+            "link:mergeTotp" => {
+                let mut ids = a["ids"].as_array().into_iter().flatten().map(|v| v.as_str().unwrap_or("").to_string());
+                linkdata::to_json(linkdata::merge_totp(&a["local"], &a["remote"], || ids.next().unwrap_or_default()))
+            }
+            "link:cleanCharacter" => linkdata::clean_character(&a["c"]).unwrap_or(Value::Null),
             "link:mergeCharacter" => linkdata::merge_character(&a["local"], &a["remote"]),
             "link:mergeNotes" => linkdata::to_json(linkdata::merge_notes(&a["local"], &a["remote"], now as f64)),
             "link:notesForSync" => {
@@ -346,6 +351,15 @@ mod tests {
         let r = sh.call("link:mergeCharacter", &json!({"local": null, "remote": {"glyph": "A"}}), 0);
         assert_eq!(r["value"]["glyph"], "A");
         assert!(sh.call("link:notesForSync", &json!({"list": []}), 0).as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn totp_merge_and_clean_character_through_dispatcher() {
+        let mut sh = Shell::default();
+        let r = sh.call("link:mergeTotp", &json!({"local": [{"secret": "A"}], "remote": [{"secret": "A"}, {"secret": "B"}], "ids": ["x", "y"]}), 0);
+        assert_eq!((r["changed"].clone(), r["list"][1]["id"].clone(), r["list"][1]["digits"].as_f64()), (json!(1), json!("x"), Some(6.0)));
+        assert_eq!(sh.call("link:cleanCharacter", &json!({"c": {"glyph": "A"}}), 0)["glyph"], "A");
+        assert_eq!(sh.call("link:cleanCharacter", &json!({"c": {}}), 0), json!(null));
     }
 
     #[test]

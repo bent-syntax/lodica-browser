@@ -15,4 +15,14 @@ const notes = [{ id: "n1", text: "hi", at: 1 }], notes2 = [{ id: "n1", text: "he
 assert.deepStrictEqual(ld.mergeNotes(notes, notes2), js.mergeNotes(notes, notes2));
 assert.deepStrictEqual(ld.notesForSync(notes2), js.notesForSync(notes2));
 assert.deepStrictEqual(ld.pickSettings({ theme: "light", x: 1 }, { theme: "dark" }), js.pickSettings({ theme: "light", x: 1 }, { theme: "dark" }));
+let n = 0;
+const ids = () => "id" + n++;
+const tl = [{ id: "t0", secret: "AAAA", label: "x" }], tr = [{ secret: "AAAA" }, { secret: "BBBB", label: "L", digits: 8 }, { secret: "" }, null];
+n = 0; const a1 = ld.mergeTotp(tl, tr, ids);
+n = 0; const a2 = js.mergeTotp(tl, tr, ids);
+assert.deepStrictEqual(a1, a2);
+const ch = { glyph: "A", desc: "d", custom: 1, art: "<svg/>", at: 5 };
+assert.deepStrictEqual(ld.cleanCharacter(ch), js.cleanCharacter(ch));
+assert.deepStrictEqual(ld.cleanCharacter({}), js.cleanCharacter({}));
+assert.deepStrictEqual(ld.cleanCharacter(null), js.cleanCharacter(null));
 console.log("ok");

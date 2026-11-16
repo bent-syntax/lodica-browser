@@ -50,7 +50,7 @@ function mergePasswordsJs(local, remote) {
   return { list: [...out.values()], changed };
 }
 /** Authenticator accounts: one per secret; an account the other device has is added, never replaced. */
-function mergeTotp(local, remote, newId) {
+function mergeTotpJs(local, remote, newId) {
   const have = new Set(local.map((a) => a.secret));
   const added = [];
   for (const r of Array.isArray(remote) ? remote : []) {
@@ -79,7 +79,7 @@ function mergeShortcutsJs(local, remote) {
   return { list: out, changed };
 }
 /** A chat character as linked devices share it: a glyph, the costume SVG, the hands that grip the typing bar and the thinking bubble. Null when it holds nothing. */
-function cleanCharacter(c) {
+function cleanCharacterJs(c) {
   if (!c || typeof c !== "object") return null;
   const out = { glyph: str(c.glyph, 40), desc: str(c.desc, 200), custom: !!c.custom, art: cleanArt(c.art), hands: cleanArt(c.hands), bubble: cleanArt(c.bubble), at: Math.max(0, Number(c.at) || 0) };
   return out.glyph || out.art ? out : null;
@@ -93,7 +93,7 @@ function betterCharacter(a, b) {
 }
 const sameCharacter = (a, b) => ["glyph", "desc", "custom", "art", "hands", "bubble", "at"].every((k) => a[k] === b[k]);
 function mergeCharacterJs(local, remote) {
-  const r = cleanCharacter(remote), l = cleanCharacter(local);
+  const r = cleanCharacterJs(remote), l = cleanCharacterJs(local);
   if (!r) return { value: l, changed: false };
   if (!l || betterCharacter(r, l)) return { value: r, changed: !l || !sameCharacter(l, r) };
   return { value: l, changed: false };
@@ -194,9 +194,11 @@ const mergePasswords = rs ? (l, r) => rs("link:mergePasswords", { local: l, remo
 const union = rs ? (l, r, max = 500) => rs("link:union", { local: l, remote: r, max }) : unionJs;
 const mergeShortcuts = rs ? (l, r) => rs("link:mergeShortcuts", { local: l, remote: r }) : mergeShortcutsJs;
 const mergeCharacter = rs ? (l, r) => rs("link:mergeCharacter", { local: l, remote: r }) : mergeCharacterJs;
+const mergeTotp = rs ? (l, r, newId) => rs("link:mergeTotp", { local: l, remote: r, ids: Array.isArray(r) ? r.map(() => newId()) : [] }) : mergeTotpJs;
+const cleanCharacter = rs ? (c) => rs("link:cleanCharacter", { c }) : cleanCharacterJs;
 // An explicit clock stays in JS: the Rust arm always uses the addon clock.
 const mergeNotes = rs ? (l, r, now) => (now === undefined ? rs("link:mergeNotes", { local: l, remote: r }) : mergeNotesJs(l, r, now)) : mergeNotesJs;
 const notesForSync = rs ? (list, budget = 200000) => rs("link:notesForSync", { list, budget }) : notesForSyncJs;
 const pickSettings = rs ? (s, c) => rs("link:pickSettings", { source: s, current: c }) : pickSettingsJs;
 
-module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, THEME_KEYS, THEME_FROM, mergePasswords, mergeTotp, union, mergeShortcuts, cleanCharacter, mergeCharacter, mergeNotes, notesForSync, pickSettings, wifiCollect, wifiApply, bluetoothCollect, _js: { mergePasswords: mergePasswordsJs, union: unionJs, mergeShortcuts: mergeShortcutsJs, mergeCharacter: mergeCharacterJs, mergeNotes: mergeNotesJs, notesForSync: notesForSyncJs, pickSettings: pickSettingsJs } };
+module.exports = { DEFAULT_SHARE, isShared, CATS, SETTINGS, LISTS, THEME_KEYS, THEME_FROM, mergePasswords, mergeTotp, union, mergeShortcuts, cleanCharacter, mergeCharacter, mergeNotes, notesForSync, pickSettings, wifiCollect, wifiApply, bluetoothCollect, _js: { mergeTotp: mergeTotpJs, cleanCharacter: cleanCharacterJs, mergePasswords: mergePasswordsJs, union: unionJs, mergeShortcuts: mergeShortcutsJs, mergeCharacter: mergeCharacterJs, mergeNotes: mergeNotesJs, notesForSync: notesForSyncJs, pickSettings: pickSettingsJs } };
