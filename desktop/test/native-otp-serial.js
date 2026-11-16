@@ -1,5 +1,8 @@
 // Rust and JS otpmigration and serial logic must agree. Skips when the addon is not built.
 const assert = require("assert");
+const os = require("os"), Module = require("module");
+const load = Module._load;
+Module._load = (r, ...a) => (r === "electron" ? { app: { getPath: () => os.tmpdir() } } : load(r, ...a)); // serial.js loads store.js, which wants the Electron app
 const otp = require("../main/otpmigration");
 const { call } = require("../main/native");
 if (!call) { console.log("native addon absent, skipped"); process.exit(0); }
