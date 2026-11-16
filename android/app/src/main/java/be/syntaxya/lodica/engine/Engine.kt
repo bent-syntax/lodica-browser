@@ -54,16 +54,16 @@ object Engine {
         Notebook.onChange = { PcTabs.changed() }
 
         val blocking = ContentBlocking.Settings.Builder()
-            .antiTracking(ContentBlocking.AntiTracking.STRICT)
-            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.STRICT)
+            .antiTracking(ContentBlocking.AntiTracking.NONE)
+            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.NONE)
             .cookieBehavior(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
             .cookieBehaviorPrivateMode(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
-            .strictSocialTrackingProtection(true)
-            .cookiePurging(true)
+            .strictSocialTrackingProtection(false)
+            .cookiePurging(false)
             .emailTrackerBlockingPrivateMode(true)
             .queryParameterStrippingEnabled(true)
             .queryParameterStrippingPrivateBrowsingEnabled(true)
-            .bounceTrackingProtectionMode(ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED)
+            .bounceTrackingProtectionMode(ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED)
             .safeBrowsing(ContentBlocking.SafeBrowsing.DEFAULT)
             .build()
 
@@ -94,8 +94,8 @@ object Engine {
         // Publish at once: a throw below must not leave rt null, or a relaunch would create a second runtime.
         rt = runtime
         step("fingerprinting") {
-            runtime.settings.setFingerprintingProtection(true)
-            runtime.settings.setFingerprintingProtectionPrivateBrowsing(true)
+            runtime.settings.setFingerprintingProtection(false)
+            runtime.settings.setFingerprintingProtectionPrivateBrowsing(false)
         }
         // Set again after the protection flags: the page colour scheme must follow the Dark pages switch.
         step("colorScheme") { runtime.settings.setPreferredColorScheme(colorScheme()) }
