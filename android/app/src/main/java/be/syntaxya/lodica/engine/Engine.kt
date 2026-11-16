@@ -102,14 +102,14 @@ object Engine {
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
         step("notifications") { SiteNotify.init(ctx); runtime.webNotificationDelegate = SiteNotify }
 
-        step("ublock") { runtime.webExtensionController
+        if (false) step("ublock") { runtime.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
             .accept({ ext ->
                 if (ext == null) { ublockFailed = true; return@accept }
                 ublock = ext
                 runtime.webExtensionController.setAllowedInPrivateBrowsing(ext, true)
             }, { e -> ublockFailed = true; Log.w(TAG, "uBlock Origin failed to load", e) }) }
-        step("helper") { Helper.install(ctx, runtime) }
+        if (false) step("helper") { Helper.install(ctx, runtime) }
         step("extensions") { Extensions.init(ctx) }
         // GeckoView installs its own crash handler while starting; wrap it so Java crashes are still recorded.
         val h = android.os.Handler(android.os.Looper.getMainLooper())
