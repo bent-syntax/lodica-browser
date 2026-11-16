@@ -134,9 +134,11 @@ function pdfViewerUrlJs(url) {
 function wire(t, wc) {
   // window.open with features (or a blank target, like mail composers) gets a real top-level window with a live
   // opener, as in other browsers. Denying it returns null to the page, which hangs sites such as Smartschool.
-  const handleOpen = ({ url, disposition }) => {
+  const handleOpen = ({ url, disposition, features }) => {
     if (disposition === "new-window" || !url || url === "about:blank") {
-      return { action: "allow", overrideBrowserWindowOptions: { autoHideMenuBar: true, backgroundColor: "#ffffff", width: 900, height: 700 } };
+      // Keep the size the page asked for: games such as Smartschool's lay out for it and scroll inside it.
+      const size = /\b(width|height)\s*=/i.test(features || "") ? {} : { width: 900, height: 700 };
+      return { action: "allow", overrideBrowserWindowOptions: { autoHideMenuBar: true, backgroundColor: "#ffffff", ...size } };
     }
     if (/^(https?|lodica):/i.test(url)) create({ url, private: t.private, background: disposition === "background-tab" });
     return { action: "deny" };
@@ -145,6 +147,13 @@ function wire(t, wc) {
     src.setWindowOpenHandler(handleOpen);
     src.on("did-create-window", win => {
       win.setMenuBarVisibility(false);
+      // Like tabs after a swipe: a page that appears under a still cursor drops wheel events until a mouse move.
+      win.webContents.once("did-finish-load", () => {
+        try {
+          const p = require("electron").screen.getCursorScreenPoint(), c = win.getContentBounds();
+          win.webContents.sendInputEvent({ type: "mouseMove", x: Math.max(0, p.x - c.x), y: Math.max(0, p.y - c.y) });
+        } catch { /* window closing */ }
+      });
       adopt(win.webContents, owner);
       owner.once("destroyed", () => { if (!win.isDestroyed()) win.close(); });
     });

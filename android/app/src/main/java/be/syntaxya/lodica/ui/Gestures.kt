@@ -57,7 +57,7 @@ enum class GestureSlot(val label: String, val def: GestureAction) {
 fun runGesture(a: GestureAction, tab: Tab?) {
     when (a) {
         GestureAction.NONE -> {}
-        GestureAction.BACK -> tab?.session?.goBack()
+        GestureAction.BACK -> if (tab?.canBack == true) tab.session?.goBack() else tab?.let { TabManager.backToOpener(it) }
         GestureAction.FORWARD -> tab?.session?.goForward()
         GestureAction.RELOAD -> tab?.session?.reload()
         GestureAction.NEW_TAB -> TabManager.open(TabManager.HOME, tab?.private == true)
@@ -160,7 +160,7 @@ fun PageGestures(tab: Tab?, modifier: Modifier, content: @Composable BoxScope.()
 }
 
 private fun usable(a: GestureAction, t: Tab) = when (a) {
-    GestureAction.BACK -> t.canBack
+    GestureAction.BACK -> t.canBack || t.opener?.let { it in TabManager.tabs } == true
     GestureAction.FORWARD -> t.canFwd
     else -> true
 }

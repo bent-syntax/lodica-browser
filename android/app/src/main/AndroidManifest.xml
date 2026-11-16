@@ -26,6 +26,11 @@
     <queries>
         <package android:name="com.termux" />
         <package android:name="moe.shizuku.privileged.api" />
+        <!-- Back from a link returns to the app that sent it. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
     </queries>
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />

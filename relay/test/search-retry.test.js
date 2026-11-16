@@ -43,3 +43,17 @@ test('an empty answer is not memoized, so the next search asks again', async (t)
   assert.ok(hits > before);
   assert.strictEqual(second.results[0].u, 'https://b.example/1');
 });
+
+test('nothing in the asked language: ask again with any language', async (t) => {
+  const s = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x').searchParams;
+    const results = u.get('engines') === 'bing' && u.get('language') === 'all' ? [{ url: 'https://b.example/1', title: 'B' }] : [];
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ results }));
+  });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  t.after(() => { s.closeAllConnections(); s.close(); });
+  cfg.searxUrl = 'http://127.0.0.1:' + s.address().port;
+  const out = await search(new URL('http://r/search?q=langretry&l=nl'));
+  assert.deepStrictEqual(out.results.map((x) => x.u), ['https://b.example/1']);
+});

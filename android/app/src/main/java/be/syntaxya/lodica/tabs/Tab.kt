@@ -63,6 +63,10 @@ class Tab(
     var manifest: org.json.JSONObject? = null
     /** Opened by a page (target=_blank, window.open) and not yet shown a page of its own. */
     var spawned = false
+    /** The tab whose page opened this one; Back at the first page returns there. */
+    var opener: Tab? = null
+    /** Package of the app that sent this link; Back at the first page returns there. */
+    var caller: String? = null
     /** Icons the page links (`<link rel=icon>`, apple-touch-icon) as absolute URLs, biggest first. */
     var icons: List<String> = emptyList()
 

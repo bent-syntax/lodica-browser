@@ -70,6 +70,13 @@ class MainActivity : HostActivity() {
                     TabManager.fullscreen -> TabManager.exitFullscreen()
                     Ui.back() -> Unit
                     tab?.canBack == true -> tab.session?.goBack()
+                    tab != null && TabManager.backToOpener(tab) -> Unit
+                    tab?.caller != null -> {
+                        // Return to the app that sent the link, like Back does in other browsers.
+                        val to = packageManager.getLaunchIntentForPackage(tab.caller!!)
+                        TabManager.close(tab)
+                        if (to == null || runCatching { startActivity(to) }.isFailure) moveTaskToBack(true)
+                    }
                     else -> moveTaskToBack(true)
                 }
             }
@@ -183,8 +190,14 @@ class MainActivity : HostActivity() {
         Ui.menuOpen = false
         val cur = TabManager.current
         // Reuse an untouched start tab instead of piling up blanks.
-        if (cur != null && cur.url == TabManager.HOME && !cur.private) TabManager.load(target, cur)
-        else TabManager.open(target)
+        val blank = cur != null && cur.url == TabManager.HOME && !cur.private
+        val caller = referrer?.host?.takeIf { i.action == Intent.ACTION_VIEW && it != packageName }
+        // A link from another app gets a tab with no history, so Back goes straight back to that app.
+        if (blank && caller == null) TabManager.load(target, cur)
+        else {
+            TabManager.open(target).caller = caller
+            if (blank) TabManager.close(cur!!)
+        }
     }
 
     override fun onStart() {

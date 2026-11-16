@@ -1,3 +1,11 @@
+## 1.18.9
+
+- Android: Back after opening a link from another app (like Gemini) returns to that app instead of closing Lodica.
+- Android: when a page opens a new tab, Back or the back swipe on its first page closes it and returns to the page that opened it.
+- Android: the Lodica logo on the search widget is bigger, with a full-height tap area, so the start page is easier to open.
+- Desktop: popup windows (like Smartschool's) keep their size and scroll with the mouse wheel.
+- Search: when a search finds nothing in your language, Lodica asks again in any language instead of showing no results.
+
 ## 1.18.8
 
 - Android: change the performance level (Fast, Medium or Features) any time in Settings, Browsing, Performance level. The change applies right away.

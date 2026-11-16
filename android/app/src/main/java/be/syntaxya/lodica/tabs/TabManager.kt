@@ -179,6 +179,14 @@ object TabManager {
         } else save()
     }
 
+    /** Back with no page history left: close a page-opened tab and show its opener. */
+    fun backToOpener(tab: Tab): Boolean {
+        val o = tab.opener?.takeIf { it in tabs } ?: return false
+        close(tab)
+        select(o)
+        return true
+    }
+
     /** Recently closed tabs, newest first. */
     fun recentlyClosed(): List<TabRecord> = closed.toList()
 
@@ -490,6 +498,7 @@ object TabManager {
         override fun onNewSession(session: GeckoSession, uri: String): GeckoResult<GeckoSession>? {
             val child = Tab(private = tab.private, url = uri, desktop = tab.desktop && !tab.autoDesktop)
             child.spawned = true
+            child.opener = tab
             val s = newSession(child)
             child.session = s
             val at = tabs.indexOf(tab).let { if (it < 0) tabs.size else it + 1 }

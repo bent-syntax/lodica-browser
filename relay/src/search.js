@@ -93,9 +93,9 @@ async function searchLive(url) {
   const asked = url.searchParams.get('t') || '';
   const intent = !images && wantsFresh(q);
   let range = RANGES.has(asked) ? asked : intent ? 'month' : '';
-  const ask = async (tr, engine) => {
+  const ask = async (tr, engine, lg = lang) => {
     const su = new URL('/search', cfg.searxUrl);
-    const a = { q, format: 'json', pageno: String(p), categories: images ? 'images' : intent && /\b(news|breaking|today|tonight|yesterday)\b/i.test(q) ? 'news' : 'general', language: lang, safesearch: '0' };
+    const a = { q, format: 'json', pageno: String(p), categories: images ? 'images' : intent && /\b(news|breaking|today|tonight|yesterday)\b/i.test(q) ? 'news' : 'general', language: lg, safesearch: '0' };
     if (tr) a.time_range = tr;
     if (engine) a.engines = engine;
     su.search = new URLSearchParams(a).toString();
@@ -117,6 +117,11 @@ async function searchLive(url) {
       const have = (Array.isArray(j.results) ? j.results : []).map((x) => x && x.url);
       const more = unseenJs(have, got.flatMap((w) => (w && Array.isArray(w.results) ? w.results : []).filter(Boolean)));
       j = { ...j, results: [...(Array.isArray(j.results) ? j.results : []), ...more] };
+    }
+    // Some engines (Bing) return nothing for a Dutch language yet answer the same query without one.
+    if (lang !== 'all' && (!Array.isArray(j.results) || !j.results.length)) {
+      const got = await Promise.all((images ? [''] : FALLBACK_ENGINES.split(',')).map((e) => ask(range, e, 'all').catch(() => null)));
+      j = { ...j, results: got.flatMap((w) => (w && Array.isArray(w.results) ? w.results : []).filter(Boolean)) };
     }
   } catch (e) {
     stats.searchFail++;
