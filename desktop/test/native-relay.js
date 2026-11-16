@@ -21,5 +21,10 @@ for (const links of [[], ["ftp://x"], ["https://x/privacy", "https://x/verify?t=
   assert.strictEqual(call("mail:confirmLink", { links }), relay.confirmLink({ links }), links.join());
 for (const d of ["https://lodica.Example.com/x", " tunnel.example.com:443 ", "example.com", ""])
   assert.strictEqual(call("mail:cleanDomain", { domain: d }), relay.cleanDomain(d), d);
+for (const h of ["www.shop.example.com", "m.my-site.be", "localhost", "", "WWW.Ünï.com", "a.b--c.d.org"])
+  assert.deepStrictEqual(call("mail:aliasSite", { host: h }), relay.aliasSite(h), h);
+for (const e of ["a@b.co", " x", "a@b", "no at.com", "a@b.c"])
+  assert.strictEqual(call("mail:ownValid", { email: e }), relay.ownValid(e), e);
+assert.strictEqual(call("mail:pac", { domain: "", direct: [], port: 443 }), relay.pacScript());
 console.log("native relay ok");
 process.exit(0);

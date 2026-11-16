@@ -214,11 +214,18 @@ function siteOf(address) {
   return a ? a.site : null;
 }
 
-function newAlias(host) {
+function aliasSiteJs(host) {
   const base = (host || "").toLowerCase().replace(/^www\./, "").replace(/^m\./, "");
   const labels = base.split(".");
   const name = labels.length > 1 ? labels[labels.length - 2] : labels[0];
-  const slug = name.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "site";
+  return { base, slug: name.replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "site" };
+}
+const aliasSite = rs ? host => rs("mail:aliasSite", { host: host || "" }) : aliasSiteJs;
+const ownValidJs = own => /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(own);
+const ownValid = rs ? own => rs("mail:ownValid", { email: own }) : ownValidJs;
+
+function newAlias(host) {
+  const { base, slug } = aliasSite(host);
   const old = state.aliases.find(a => a.site === base);
   if (old) return { ...old, reused: true }; // same site, same address
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -241,7 +248,7 @@ function reroll(address) {
 /** The user's own address: their mail provider forwards to this alias, so a login code mailed there is filled into the tab in front. */
 function addOwn(email) {
   const own = String(email || "").trim().toLowerCase();
-  if (!/^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/.test(own)) return { error: "Enter a valid email address" };
+  if (!ownValid(own)) return { error: "Enter a valid email address" };
   const old = state.aliases.find(a => a.own === own);
   if (old) return { alias: old };
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -373,7 +380,7 @@ function routed(url) {
 }
 
 /** PAC script: https paths are hidden from PAC, so only host rules apply here. */
-function pacScript() {
+function pacScriptJs() {
   const list = JSON.stringify(DIRECT_HOSTS.concat(prefs.p.direct));
   return `function FindProxyForURL(url, host) {
   host = host.toLowerCase();
@@ -388,6 +395,8 @@ function pacScript() {
   return "HTTPS tunnel.${DOMAIN}:${tunnelPort}";
 }`;
 }
+
+const pacScript = rs ? () => rs("mail:pac", { domain: DOMAIN, direct: prefs.p.direct, port: tunnelPort }) : pacScriptJs;
 
 const cleanDomainJs = d => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^(lodica|tunnel)\./, "").replace(/[/:].*$/, "");
 
@@ -426,7 +435,7 @@ function unlink() {
 const cleanDomain = rs ? d => rs("mail:cleanDomain", { domain: String(d || "") }) : cleanDomainJs;
 
 module.exports = {
-  _js: { baseDomain: baseDomainJs, codeOf: codeOfJs, confirmLink: confirmLinkJs, cleanDomain: cleanDomainJs },
+  _js: { baseDomain: baseDomainJs, codeOf: codeOfJs, confirmLink: confirmLinkJs, cleanDomain: cleanDomainJs, aliasSite: aliasSiteJs, ownValid: ownValidJs, pacScript: pacScriptJs },
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
   link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, requestRawSeq, uploadFile, downloadTo, fetchMail, refresh, deleteMail,

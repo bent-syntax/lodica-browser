@@ -188,6 +188,7 @@ impl Shell {
                 let (base, slug) = crate::mailroute::alias_site(s(a, "host"));
                 json!({"base": base, "slug": slug})
             }
+            "mail:pac" => json!(crate::mailroute::pac_script(s(a, "domain"), &strings(a, "direct"), a.get("port").and_then(Value::as_u64).unwrap_or(443))),
             "mail:ownValid" => json!(crate::mailroute::own_valid(s(a, "email"))),
             "mail:cleanDomain" => json!(crate::mailroute::clean_domain(s(a, "domain"))),
             "mail:directHost" => json!(crate::mailroute::direct_host(s(a, "host"), s(a, "domain"), &strings(a, "direct"))),

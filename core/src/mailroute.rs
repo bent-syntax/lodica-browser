@@ -164,9 +164,41 @@ pub fn clean_domain(d: &str) -> String {
     s.split(['/', ':']).next().unwrap_or("").to_string()
 }
 
+/// PAC script: https paths are hidden from PAC, so only host rules apply here.
+pub fn pac_script(domain: &str, extra: &[String], port: u64) -> String {
+    let list: Vec<&str> = DIRECT_HOSTS.iter().copied().chain(extra.iter().map(String::as_str)).collect();
+    let list = serde_json::to_string(&list).unwrap_or_else(|_| "[]".into());
+    let sens = r"/(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)/i";
+    let private = r"/^(10|127|0)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^169\.254\./";
+    r#"function FindProxyForURL(url, host) {
+  host = host.toLowerCase();
+  var d = @LIST;
+  function under(h, x) { return h === x || h.substring(h.length - x.length - 1) === "." + x; }
+  if (url.substring(0, 5) !== "http:" && url.substring(0, 6) !== "https:") return "DIRECT";
+  if (host === "localhost" || under(host, "local") || under(host, "@DOMAIN")) return "DIRECT";
+  if (@PRIVATE.test(host) || host.charAt(0) === "[" || host.indexOf(":") >= 0) return "DIRECT";
+  for (var i = 0; i < d.length; i++) if (under(host, d[i])) return "DIRECT";
+  if (@SENS.test(host)) return "DIRECT";
+  if (url.substring(0, 5) === "http:" && @SENS.test(url.replace(/^http:\/\/[^\/]*/, ""))) return "DIRECT";
+  return "HTTPS tunnel.@DOMAIN:@PORT";
+}"#
+    .replace("@LIST", &list)
+    .replace("@PRIVATE", private)
+    .replace("@SENS", sens)
+    .replace("@DOMAIN", domain)
+    .replace("@PORT", &port.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pac_has_rules() {
+        let p = pac_script("ex.com", &["my.site".into()], 443);
+        assert!(p.contains(r#""my.site"]"#) && p.contains("HTTPS tunnel.ex.com:443"));
+        assert!(p.contains(r"url.replace(/^http:\/\/[^\/]*/"));
+    }
 
     #[test]
     fn alias_and_domain_input() {
