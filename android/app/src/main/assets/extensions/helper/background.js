@@ -15,7 +15,7 @@ function dnsFor(h) {
 }
 
 // Own names load from the target: a host or IP keeps the page's scheme (http for a bare IP), a full URL is used as is.
-browser.webRequest.onBeforeRequest.addListener((d) => {
+function redirectOwn(d) {
   if (!dns.length) return {};
   let u;
   try { u = new URL(d.url); } catch (e) { return {}; }
@@ -26,7 +26,8 @@ browser.webRequest.onBeforeRequest.addListener((d) => {
     const bare = /^[\d.]+(:\d+)?$/.test(t) || t.startsWith("[");
     return { redirectUrl: (bare ? "http:" : u.protocol) + "//" + t + u.pathname + u.search + u.hash };
   } catch (e) { return {}; }
-}, { urls: ["http://*/*", "https://*/*"], types: ["main_frame", "sub_frame", "xmlhttprequest", "image", "script", "stylesheet", "media", "font", "other"] }, ["blocking"]);
+}
+const OWN_FILTER = { urls: ["http://*/*", "https://*/*"], types: ["main_frame", "sub_frame", "xmlhttprequest", "image", "script", "stylesheet", "media", "font", "other"] };
 
 const tunnel = () => ({ type: "https", host: "tunnel." + domain, port: legacy ? 44742 : 443 });
 const DIRECT = { type: "direct" };
@@ -95,10 +96,11 @@ function decide(details) {
   return Object.assign({ proxyAuthorizationHeader: cfg.auth }, tunnel());
 }
 
-browser.proxy.onRequest.addListener(async (details) => {
+async function routeRequest(details) {
   if (!cfg.enabled) await configured;
   return decide(details);
-}, { urls: ["<all_urls>"] });
+}
+const PROXY_FILTER = { urls: ["<all_urls>"] };
 
 browser.proxy.onError.addListener((e) => console.warn("lodica proxy error", e && e.message));
 
@@ -118,7 +120,7 @@ function liteSite(details) {
   return cfg.lite.some((d) => doc === d || doc.endsWith("." + d)) ? doc : "";
 }
 
-browser.webRequest.onBeforeRequest.addListener((details) => {
+function blockLite(details) {
   if (!cfg.lite.length || !HEAVY.has(details.type)) return {};
   const site = liteSite(details);
   if (!site) return {};
@@ -129,7 +131,21 @@ browser.webRequest.onBeforeRequest.addListener((details) => {
     saved = {};
   }, 3000);
   return { cancel: true };
-}, { urls: ["<all_urls>"] }, ["blocking"]);
+}
+const LITE_FILTER = { urls: ["<all_urls>"] };
+
+// A listener that has nothing to do still costs an extension round trip per request, so each one is
+// registered only while it is needed. The proxy listener stays until the first config: no leak before it.
+function toggle(api, fn, on, filter, extra) {
+  if (on === api.hasListener(fn)) return;
+  if (on) api.addListener(fn, filter, extra); else api.removeListener(fn);
+}
+function syncListeners() {
+  toggle(browser.webRequest.onBeforeRequest, redirectOwn, dns.length > 0, OWN_FILTER, ["blocking"]);
+  toggle(browser.webRequest.onBeforeRequest, blockLite, cfg.lite.length > 0, LITE_FILTER, ["blocking"]);
+  toggle(browser.proxy.onRequest, routeRequest, cfg.enabled || !gotConfig, PROXY_FILTER);
+}
+browser.proxy.onRequest.addListener(routeRequest, PROXY_FILTER);
 
 // YouTube ads: the player response carries the ad plan. Renaming its keys in the watch page and in the
 // player and next API answers leaves the player with nothing to schedule. The names keep their length class.
@@ -292,6 +308,7 @@ function connect() {
         const bs = browser.browserSettings && browser.browserSettings.overrideContentColorScheme;
         if (bs) bs.set({ value: msg.page && (msg.page.dark || msg.page.darkPages) ? "dark" : "light" });
       } catch (e) {}
+      syncListeners();
       ready();
     } else if (msg && msg.type === "found") {
       const done = asks.get(msg.id);
