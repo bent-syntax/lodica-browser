@@ -2,6 +2,7 @@
 const { EventEmitter } = require("events");
 const relay = require("./relay");
 const store = require("./store");
+const rs = require("./native").call;
 
 const events = new EventEmitter();
 const os = require("os");
@@ -10,17 +11,21 @@ const state = { messages: [], error: null, name: store.load("roomName", "") || S
 let running = false, last = -1, gen = 0;
 
 // Must match the Android Room.clean and the relay's room pattern: no whitespace of any kind, no control characters, no "|".
-const clean = n => String(n || "").replace(/[\s|\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u2028\u2029\ufeff]/g, "_").slice(0, 32) || "_";
+const cleanJs = n => String(n || "").replace(/[\s|\u0000-\u001f\u007f-\u009f\u00a0\u2000-\u200f\u2028\u2029\ufeff]/g, "_").slice(0, 32) || "_";
 const OS_NAME = { linux: "linux", win32: "windows", darwin: "macos" }[process.platform] || "other";
-const roomQ = r => (r ? "&room=" + encodeURIComponent(r) : "");
+const roomQJs = r => (r ? "&room=" + encodeURIComponent(r) : "");
+const clean = rs ? n => rs("room:clean", { name: String(n || "") }) : cleanJs;
+const roomQ = rs ? r => rs("room:query", { room: String(r || "") }) : roomQJs;
 
 /** Remembers every name this device has used, so older messages stay "mine" (under the name they were sent with) after a rename. */
 function rememberName(n) {
-  if (!n || state.names.includes(n)) return;
-  state.names.push(n); state.names = state.names.slice(-20);
+  if (!n) return;
+  if (rs) { const next = rs("room:rememberName", { names: state.names, name: n }); if (!next) return; state.names = next; }
+  else { if (state.names.includes(n)) return; state.names.push(n); state.names = state.names.slice(-20); }
   store.save("roomNames", () => state.names);
 }
-const isMine = n => n === state.name || state.names.includes(n);
+const isMineJs = (n, name, names) => n === name || names.includes(n);
+const isMine = rs ? n => rs("room:isMine", { name: n, current: state.name, names: state.names }) : n => isMineJs(n, state.name, state.names);
 rememberName(state.name);
 function changed() { events.emit("change"); }
 
@@ -131,13 +136,16 @@ async function setName(v) {
 }
 
 /** Room id of the private chat between this device's name and [peer]. */
-function dm(peer) { return "dm:" + [clean(state.name), clean(peer)].sort((a, b) => { const x = a.toLowerCase(), y = b.toLowerCase(); return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0; }).join("|"); }
-function group(name) { return "grp:" + String(name || "").replace(/[^\w .-]/g, "").trim().slice(0, 32); }
-function label(r) {
+const dmJs = (me, peer) => "dm:" + [cleanJs(me), cleanJs(peer)].sort((a, b) => { const x = a.toLowerCase(), y = b.toLowerCase(); return x < y ? -1 : x > y ? 1 : a < b ? -1 : a > b ? 1 : 0; }).join("|");
+const groupJs = name => "grp:" + String(name || "").replace(/[^\w .-]/g, "").trim().slice(0, 32);
+const labelJs = (r, me) => {
   if (!r) return "Everyone";
   if (r.startsWith("grp:")) return r.slice(4);
-  return r.slice(3).split("|").find(x => x !== clean(state.name)) || r.slice(3);
-}
+  return r.slice(3).split("|").find(x => x !== cleanJs(me)) || r.slice(3);
+};
+const dm = rs ? peer => rs("room:dm", { me: state.name, peer: String(peer || "") }) : peer => dmJs(state.name, peer);
+const group = rs ? name => rs("room:group", { name: String(name || "") }) : groupJs;
+const label = rs ? r => rs("room:label", { room: r || "", me: state.name }) : r => labelJs(r, state.name);
 
 function addChat(r) {
   if (typeof r === "string" && r.length > 4 && !state.chats.includes(r)) { state.chats.push(r); store.save("roomChats", () => state.chats); }
@@ -455,4 +463,4 @@ function watch(onGroup) {
   setInterval(tick, 60 * 1000);
 }
 
-module.exports = { state, events, start, stop, send, upload, fetchFile, safeName, setName, setFace, characterOut, adoptCharacter, typing, select, addChat, removeChat, dm, group, label, discover, users, watch };
+module.exports = { _js: { clean: cleanJs, roomQ: roomQJs, isMine: isMineJs, dm: dmJs, group: groupJs, label: labelJs }, state, events, start, stop, send, upload, fetchFile, safeName, setName, setFace, characterOut, adoptCharacter, typing, select, addChat, removeChat, dm, group, label, discover, users, watch };

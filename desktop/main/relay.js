@@ -4,6 +4,7 @@ const path = require("path");
 const crypto = require("crypto");
 const store = require("./store");
 const prefs = require("./prefs");
+const rs = require("./native").call;
 
 let config = {};
 try { config = require(path.join(__dirname, "..", "config.json")); } catch { config = {}; }
@@ -303,7 +304,7 @@ function arrived(alias, m) {
 function dismissIncoming() { state.incoming = null; changed(); }
 
 const PAIRS = new Set(["co", "com", "org", "net", "ac", "gov", "edu", "ne", "or"]);
-function baseDomain(host) {
+function baseDomainJs(host) {
   const h = (host || "").toLowerCase();
   const parts = h.split(".");
   if (parts.length <= 2 || h.includes(":") || /^[\d.]+$/.test(h)) return h;
@@ -317,7 +318,7 @@ const KEY = /code|otp|verif|pin|one.time/gi;
 const nums = s => [...(s || "").matchAll(NUM)].map(x => x[1].replace(/[ -]/g, ""));
 
 /** Finds a verification code in a mail: subject first, then near a keyword in the body. */
-function codeOf(m) {
+function codeOfJs(m) {
   const subj = nums(m.subject);
   const six = subj.find(n => n.length === 6);
   if (six) return six;
@@ -335,7 +336,7 @@ function codeOf(m) {
   return nums(body).find(n => n.length === 6) || null;
 }
 
-function confirmLink(m) {
+function confirmLinkJs(m) {
   const links = (m.links || []).filter(l => /^https?:\/\//i.test(l));
   return links.find(l => /confirm|verif|activat|token/i.test(l)) || links.find(l => !/unsubscribe|privacy|terms|help/i.test(l)) || null;
 }
@@ -349,20 +350,26 @@ const SENSITIVE = /(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z]
 const PRIVATE_IP = /^(10|127|0)\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^169\.254\./;
 const under = (h, d) => h === d || h.endsWith("." + d);
 
-function directHost(h) {
+function directHostJs(h) {
   if (!h || h === "localhost" || h.endsWith(".local") || under(h, DOMAIN)) return true;
   if (PRIVATE_IP.test(h) || h.startsWith("[") || h.includes(":")) return true;
   if (DIRECT_HOSTS.some(d => under(h, d)) || prefs.p.direct.some(d => under(h, d))) return true;
   return SENSITIVE.test(h);
 }
 
+const baseDomain = rs ? host => rs("mail:baseDomain", { host: host || "" }) : baseDomainJs;
+const codeOf = rs ? m => rs("mail:code", { subject: m.subject || "", text: m.text || "", html: m.html || "" }) : codeOfJs;
+const confirmLink = rs ? m => rs("mail:confirmLink", { links: m.links || [] }) : confirmLinkJs;
+const directHost = rs ? h => rs("mail:directHost", { host: h || "", domain: DOMAIN, direct: prefs.p.direct }) : directHostJs;
+
 /** True when this URL goes through the VPS tunnel. Logins, payments and local hosts stay direct. */
 function routed(url) {
   if (!available || !prefs.p.routeVps) return false;
+  if (rs) return rs("mail:routed", { url: String(url || ""), domain: DOMAIN, direct: prefs.p.direct });
   let u; try { u = new URL(url); } catch { return false; }
   if (u.protocol !== "http:" && u.protocol !== "https:") return false;
   const h = u.hostname.toLowerCase();
-  return !directHost(h) && !SENSITIVE.test(u.pathname);
+  return !directHostJs(h) && !SENSITIVE.test(u.pathname);
 }
 
 /** PAC script: https paths are hidden from PAC, so only host rules apply here. */
@@ -382,7 +389,7 @@ function pacScript() {
 }`;
 }
 
-const cleanDomain = d => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^(lodica|tunnel)\./, "").replace(/[/:].*$/, "");
+const cleanDomainJs = d => String(d || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^(lodica|tunnel)\./, "").replace(/[/:].*$/, "");
 
 /** Checks the domain and token against the relay, then saves the link and switches to it. */
 async function link(domain, token) {
@@ -416,8 +423,10 @@ function unlink() {
   changed();
   return { ok: true };
 }
+const cleanDomain = rs ? d => rs("mail:cleanDomain", { domain: String(d || "") }) : cleanDomainJs;
 
 module.exports = {
+  _js: { baseDomain: baseDomainJs, codeOf: codeOfJs, confirmLink: confirmLinkJs, cleanDomain: cleanDomainJs },
   get API() { return API; }, get DOMAIN() { return DOMAIN; }, get available() { return available; },
   get token() { return TOKEN; }, get proxyAuth() { return proxyAuth; },
   link, unlink, linked: () => ({ linked: !!(store.loadSecret("relayLink", null)), domain: DOMAIN }), state, events, request, requestRaw, requestRawSeq, uploadFile, downloadTo, fetchMail, refresh, deleteMail,

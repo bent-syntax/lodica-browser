@@ -3,6 +3,7 @@
 // base id and reads the derived id; a device that adopted a link (peer) does the opposite. The link shown on
 // every device is the base-id viewer link, so it doubles as the pairing code.
 const crypto = require("crypto");
+const rs = require("./native").call;
 const store = require("./store");
 const prefs = require("./prefs");
 const relay = require("./relay");
@@ -40,12 +41,17 @@ function ids(secret) {
   return { base, derived, key };
 }
 
-function sides() {
+function sidesJs() {
   const { secret, owner } = load();
   const { base, derived, key } = ids(secret);
   return { key, base, write: owner ? base : derived, read: owner ? derived : base };
 }
 
+const sides = !rs ? sidesJs : () => {
+  const { secret, owner } = load();
+  const o = rs("pctabs:sides", { secret: secret.toString("hex"), owner });
+  return { key: Buffer.from(o.key, "base64url"), base: o.base, write: o.write, read: o.read };
+};
 const enabled = () => !!prefs.p.pcTabs && relay.available;
 // What this device sends and accepts (Settings > Linked devices).
 const sel = (id) => linkdata.isShared(prefs.p.linkShare, id);
@@ -173,6 +179,11 @@ async function payload() {
   let chats = ai ? ai.chats.raw() : [];
   let hist = sel("history") ? history.recent(300) : undefined;
   const data = await collectData();
+  if (rs) return rs("pctabs:payload", { tabs: list, chats, history: hist, data, max: MAX });
+  return payloadJs(list, chats, hist, data);
+}
+
+function payloadJs(list, chats, hist, data) {
   const build = () => JSON.stringify({ updated: Date.now(), tabs: list, chats, history: hist, data });
   let out = build();
   while (Buffer.byteLength(out) > MAX - 1024 && (chats.length || hist?.length || data.bluetooth)) {
@@ -271,13 +282,19 @@ function link() {
 }
 
 // Adopt the link or code shown on another device. This device becomes a peer of that secret.
-async function pair(text) {
+function parseLinkJs(text) {
   const m = LINK.exec(String(text || "").trim());
-  if (!m || !relay.available) return false;
+  if (!m) return null;
   const id = Buffer.from(m[1], "base64url"), key = Buffer.from(m[2], "base64url");
-  if (id.length !== 16 || key.length !== 32) return false;
+  return id.length === 16 && key.length === 32 ? Buffer.concat([id, key]).toString("hex") : null;
+}
+const parseLink = rs ? (text) => rs("pctabs:parseLink", { text: String(text || "") }) : parseLinkJs;
+
+async function pair(text) {
+  const hex = parseLink(text);
+  if (!hex || !relay.available) return false;
   drop(sides().write);
-  state = { secret: Buffer.concat([id, key]), owner: false };
+  state = { secret: Buffer.from(hex, "hex"), owner: false };
   save();
   remote = { tabs: [], updated: 0 };
   ui?.push("pctabs.remote", status());
@@ -337,15 +354,19 @@ async function pairWithCode(code) {
 let cmds = [];
 const cmdId = () => { const { key } = sides(); return crypto.createHmac("sha256", key).update("cmd").digest().subarray(0, 16).toString("base64url"); };
 
+function controlJs(cmd, old, now) {
+  const type = String(cmd.type);
+  if (!["open", "close", "focus", "reload"].includes(type)) return null;
+  const url = String(cmd.url || "");
+  if (type !== "reload" && !/^https?:\/\//i.test(url)) return null;
+  return [...old.filter(c => now - c.at < 10 * 60e3).slice(-19), { at: now, type, url: url.slice(0, 2000) }];
+}
+
 async function control(cmd) {
   if (!enabled() || !cmd || typeof cmd !== "object") return false;
-  const type = String(cmd.type);
-  if (!["open", "close", "focus", "reload"].includes(type)) return false;
-  const url = String(cmd.url || "");
-  if (type !== "reload" && !/^https?:\/\//i.test(url)) return false;
-  const now = Date.now();
-  cmds = cmds.filter(c => now - c.at < 10 * 60e3).slice(-19);
-  cmds.push({ at: now, type, url: url.slice(0, 2000) });
+  const next = rs ? rs("pctabs:control", { cmd, old: cmds }) : controlJs(cmd, cmds, Date.now());
+  if (!next) return false;
+  cmds = next;
   try {
     const r = await fetch(`${relay.API}/api/tabs/${cmdId()}`, {
       method: "PUT", body: encrypt(JSON.stringify({ cmds }), sides().key),
@@ -549,4 +570,4 @@ async function watch() {
   }
 }
 
-module.exports = { init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, setUnlockMode, forgetKey };
+module.exports = { _js: { sides: sidesJs, payload: payloadJs, parseLink: parseLinkJs, control: controlJs }, init, schedule, link, reset, pair, pairCode, pairWithCode, control, status, refresh: fetchRemote, confirmKey, askKey, keyStatus, unlockVault, setUnlockMode, forgetKey };
