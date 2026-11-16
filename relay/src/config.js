@@ -44,6 +44,8 @@ const cfg = {
   // Lodica Search: SearXNG JSON API (loopback only) and the WebP image proxy.
   searxUrl: env.LODICA_SEARX_URL || 'http://127.0.0.1:8888',
   searchTimeoutMs: 12e3,
+  // Direct DuckDuckGo and Mojeek pages when every SearXNG engine is blocked (src/websearch.js).
+  directSearch: env.LODICA_DIRECT_SEARCH !== '0',
   imgTtlMs: 5 * 24 * 3600e3,
   imgMaxBytes: 5 * 1024 * 1024,
   imgTimeoutMs: 10e3,

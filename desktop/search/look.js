@@ -16,7 +16,10 @@
   function apply(look) {
     const l = look || {}, b = l.bg || {};
     root.dataset.theme = l.theme || "system";
-    applyCustom(root, l.theme, l.custom);
+    // System theme with a full desktop palette (Oxide, pywal): the start page uses the same colours as the toolbar.
+    const pal = (l.theme || "system") === "system" && l.sys && l.sys.bg && l.sys.text ? l.sys : null;
+    if (pal) applyCustom(root, "custom", { bg: pal.bg, raised: pal.raised, text: pal.text, muted: pal.muted, accent: pal.accent, accent2: pal.accent });
+    else applyCustom(root, l.theme, l.custom);
     const img = image(b);
     root.classList.toggle("hasbg", !!img);
     root.style.setProperty("--bgimg", img || "none");
@@ -30,7 +33,7 @@
   if (typeof browser === "undefined") return;
   browser.runtime.sendMessage({ type: "state" }).then((s) => {
     if (!s) return;
-    const look = { theme: s.theme, custom: s.custom, bg: s.bg, fx: s.fx };
+    const look = { theme: s.theme, custom: s.custom, sys: s.sys, bg: s.bg, fx: s.fx };
     apply(look);
     try { localStorage.setItem(KEY, JSON.stringify(look)); } catch { /* storage unavailable */ }
   }, () => {});

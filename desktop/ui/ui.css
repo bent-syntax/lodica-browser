@@ -453,3 +453,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--amber);box-shadow:0 0
 :root[data-tab-tex="checker"] .card{background-image:conic-gradient(var(--tex) 25%,transparent 0 50%,var(--tex) 0 75%,transparent 0);background-size:16px 16px}
 :root[data-tab-tex="planks"] .card{background-image:linear-gradient(90deg,transparent calc(100% - 2px),var(--tex) 0),linear-gradient(var(--tex) 1px,transparent 1px);background-size:32px 100%,100% 14px}
 :root[data-tab-tex="gradient"] .card{background-image:linear-gradient(160deg,var(--tex),transparent 70%)}
+/* Unread chat messages on the toolbar: grows out of nothing with a small spring, the count sits on the icon's corner. */
+.ib.msg{color:var(--amber-ink,var(--amber))}
+.ib.msg.in{animation:msgIn calc(320ms*var(--mo)) cubic-bezier(.34,1.56,.64,1) both}
+.ib.msg .msg-n{position:absolute;top:6px;right:5px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:var(--amber);color:var(--on-amber,#1A1300);font-size:11px;font-weight:600;line-height:16px;text-align:center;pointer-events:none}
+@keyframes msgIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ib.msg.in{animation:none}}

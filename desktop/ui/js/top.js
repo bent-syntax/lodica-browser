@@ -64,14 +64,54 @@ function el(tag, cls, text) {
 // Rebuilding the strip on every event made tabs and their icons blink, so an unchanged list is skipped and favicons are reused from a small cache.
 let lastSig = "";
 const favs = new Map();
+// Motion: tabs slide to their new place (FLIP), new tabs grow in, and the selected-tab pill morphs from the old tab to the new
+// one instead of jumping. Only transform and opacity animate, on the compositor; reduced motion turns all of it off.
+const calm = matchMedia("(prefers-reduced-motion: reduce)");
+const EASE = "cubic-bezier(0.33, 1, 0.68, 1)", SPRING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
+const ind = el("div", "ind");
+function rects() {
+  const m = new Map();
+  for (const r of box.children) if (r.dataset && r.dataset.id) m.set(r.dataset.id, r.getBoundingClientRect());
+  return m;
+}
+function settle(before, curBefore) {
+  const cur = box.querySelector(".t.cur");
+  // The pill lives inside the strip, so it scrolls with the tabs.
+  if (!cur) { ind.remove(); box.classList.remove("has-ind"); return; }
+  const b = box.getBoundingClientRect(), r = cur.getBoundingClientRect();
+  const x = r.left - b.left + box.scrollLeft, y = r.top - b.top + box.scrollTop;
+  ind.style.width = r.width + "px"; ind.style.height = r.height + "px";
+  ind.style.transform = "translate(" + x + "px," + y + "px)";
+  if (!ind.isConnected) box.prepend(ind);
+  box.classList.add("has-ind");
+  if (calm.matches || !before.size) return;
+  for (const row of box.children) {
+    const id = row.dataset && row.dataset.id;
+    if (!id) continue;
+    const o = before.get(id), n = row.getBoundingClientRect();
+    if (o) {
+      const dx = o.left - n.left, dy = o.top - n.top;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) row.animate([{ transform: "translate(" + dx + "px," + dy + "px)" }, { transform: "none" }], { duration: 180, easing: EASE });
+    } else row.animate([{ opacity: 0, transform: "scale(.82)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: SPRING });
+  }
+  if (curBefore && (Math.abs(curBefore.left - r.left) > 0.5 || Math.abs(curBefore.top - r.top) > 0.5 || Math.abs(curBefore.width - r.width) > 0.5)) {
+    const ox = curBefore.left - b.left + box.scrollLeft, oy = curBefore.top - b.top + box.scrollTop;
+    ind.animate([
+      { transform: "translate(" + ox + "px," + oy + "px) scale(" + (curBefore.width / r.width) + "," + (curBefore.height / r.height) + ")" },
+      { transform: ind.style.transform },
+    ], { duration: 240, easing: SPRING });
+  }
+}
 function render(tabs) {
   const sig = JSON.stringify(tabs);
   if (sig === lastSig) return;
   lastSig = sig;
   const keep = box.scrollLeft;
+  const before = rects(), oldCur = box.querySelector(".t.cur"), curBefore = oldCur ? oldCur.getBoundingClientRect() : null;
   box.replaceChildren(...tabs.map(t => {
     const locked = t.private && t.locked;
     const row = el("div", "t" + (t.current ? " cur" : "") + (t.private ? " priv" : "") + (t.split ? " split" : ""));
+    row.dataset.id = String(t.id);
     row.title = locked ? "Private tab (locked)" : (t.title || t.url || "");
     const name = locked ? "Private" : (t.home ? "New tab" : (t.title || t.url));
     let fav;
@@ -94,6 +134,7 @@ function render(tabs) {
   }));
   box.scrollLeft = keep;
   box.querySelector(".cur")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  settle(before, curBefore);
 }
 
 async function refresh() {

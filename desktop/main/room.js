@@ -49,6 +49,7 @@ async function loop(my) {
       if (outbox.length) flush();
       if (fresh.length || state.error) { state.error = null; changed(); }
       if (fresh.length) markRead();
+      markSeen(room, last);
     } catch {
       if (!running || my !== gen) return;
       state.error = "Can't reach the server";
@@ -436,6 +437,35 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
  * Background watcher for desktop notifications. One long poll per room, so a new message reaches
  * onGroup within a second or so instead of waiting for the next timer tick.
  */
+// Unread messages per chat, kept across restarts: the last message id this device has seen in each chat is stored, so mail
+// that came in while the computer was off still shows on the toolbar at the next start. Server ids restart at 1 after a
+// server restart; a stored id above the server's last id is then lowered to it.
+const seen = Object.assign({}, store.load("roomSeen", {}) || {});
+const unread = new Map(); // room -> Set of message ids
+function unreadState() {
+  let count = 0, room = null;
+  for (const [r, ids] of unread) if (ids.size) { count += ids.size; if (room === null) room = r; }
+  return { count, room };
+}
+function saveSeen() { store.save("roomSeen", () => seen); }
+function markSeen(r, upTo) {
+  if (typeof upTo !== "number" || upTo < 0) return;
+  const had = (unread.get(r) || new Set()).size;
+  if (!(seen[r] >= upTo)) { seen[r] = upTo; saveSeen(); }
+  unread.delete(r);
+  if (had) events.emit("unread", unreadState());
+}
+function noteMessages(r, list, lastId) {
+  if (typeof lastId === "number" && typeof seen[r] === "number" && lastId < seen[r]) { seen[r] = lastId; saveSeen(); }
+  // First time this chat is watched on this device: its history counts as read.
+  if (typeof seen[r] !== "number") { seen[r] = typeof lastId === "number" ? lastId : 0; saveSeen(); return; }
+  if (running && state.room === r) { markSeen(r, lastId); return; }
+  const ids = unread.get(r) || new Set(), before = ids.size;
+  for (const m of list) if (m && typeof m.id === "number" && m.id > seen[r] && (m.room || "") === r && !isMine(m.name)) ids.add(m.id);
+  unread.set(r, ids);
+  if (ids.size !== before) events.emit("unread", unreadState());
+}
+
 function watch(onGroup) {
   async function loop(r) {
     watching.add(r);
@@ -447,6 +477,7 @@ function watch(onGroup) {
         if (status !== 200) { await sleep(5000); continue; }
         const o = JSON.parse(body);
         bgCur.set(r, Math.max(cur, o.last || 0));
+        noteMessages(r, o.messages || [], o.last);
         if (cur < 0) continue;
         const mine = (o.messages || []).filter(m => !isMine(m.name));
         if (mine.length && !running) onGroup({ room: r, where: r ? label(r) : "server chat", messages: mine });
@@ -463,4 +494,4 @@ function watch(onGroup) {
   setInterval(tick, 60 * 1000);
 }
 
-module.exports = { _js: { clean: cleanJs, roomQ: roomQJs, isMine: isMineJs, dm: dmJs, group: groupJs, label: labelJs }, state, events, start, stop, send, upload, fetchFile, safeName, setName, setFace, characterOut, adoptCharacter, typing, select, addChat, removeChat, dm, group, label, discover, users, watch };
+module.exports = { _js: { clean: cleanJs, roomQ: roomQJs, isMine: isMineJs, dm: dmJs, group: groupJs, label: labelJs }, state, events, start, stop, send, upload, fetchFile, safeName, setName, setFace, characterOut, adoptCharacter, typing, select, addChat, removeChat, dm, group, label, discover, users, watch, unreadState };

@@ -90,6 +90,8 @@ function presetColours(id) {
 }
 function currentColours() {
   const id = S.prefs.theme || "system";
+  const pal = S.prefs.sysAccent;
+  if (id === "system" && pal && typeof pal === "object" && pal.bg && pal.text) return { bg: pal.bg, text: pal.text, accent: pal.accent, accent2: pal.accent };
   return id === "custom" && S.prefs.customTheme ? S.prefs.customTheme : id === "system"
     ? presetColours(matchMedia("(prefers-color-scheme:light)").matches ? "light" : "dark") : presetColours(id);
 }
@@ -370,9 +372,9 @@ function secBlocking() {
   const ads = [setSelect("Ad blocking strength", "Light blocks ads. Standard also blocks trackers. Strict adds pop-ups, cookie notices and other annoyances. YouTube ads are blocked at every strength", [
     { key: "light", label: "Light" }, { key: "standard", label: "Standard" }, { key: "strict", label: "Strict" }], "adBlockLevel")];
   // Without a linked server the browser always does it.
-  if (S.relayAvail) ads.push(setSelect("Block ads on", "This browser: the app blocks ads and trackers. My server: your Lodica server refuses ad and tracker domains for all your traffic, which then goes through the server. YouTube ads are still removed by the browser", [
-    { key: "browser", label: "This browser" }, { key: "server", label: "My server" }], "adBlockMode"));
-  return [secHead("Blocking", "blocking"), ...ads, setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
+  if (S.relayAvail) ads.push(setSelect("Block ads on", "This browser: full filter lists, also hides empty ad spaces. Light: the browser uses your server's ad and tracker list, the fastest and lightest option, and your traffic stays direct. My server: your Lodica server refuses ad and tracker domains for all your traffic, which then goes through the server. YouTube ads are always removed by the browser", [
+    { key: "browser", label: "This browser" }, { key: "lite", label: "Light (server list)" }, { key: "server", label: "My server" }], "adBlockMode"));
+  return [secHead("Blocking", "blocking"), ...ads, setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("coupons", "Find coupons at checkout", "When a shop shows a coupon or promo code field, a “Find coupons” button appears. It tries codes from the web and keeps the one that saves the most. Needs a linked server"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
 }
 function secSuggest() {
   return [secHead("Address bar suggestions", "suggest"),

@@ -11,6 +11,7 @@ const { parseMessage } = require('./mime');
 const page = require('./tabs-page');
 const search = require('./search');
 const shop = require('./shop');
+const coupons = require('./coupons');
 const adblock = require('./adblock');
 const updates = require('./updates');
 const chat = require('./chat');
@@ -632,6 +633,20 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     return pairGet(req, res, r[1]);
   }
+  // The host list itself, for browsers that block locally with the server's lists (no traffic through the server).
+  if (p === '/api/adblock/hosts') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    const l = adblock.hostList(url.searchParams.get('level') || 'standard');
+    const etag = '"' + l.tag + '"';
+    if (req.headers['if-none-match'] === etag) return send(req, res, 304, null, { ETag: etag });
+    const zlib = require('zlib');
+    if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+      if (!l.gz) l.gz = zlib.gzipSync(l.text); // kept with the cached list until it changes
+      return send(req, res, 200, l.gz, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Encoding': 'gzip', ETag: etag, 'Cache-Control': 'private, max-age=3600' });
+    }
+    return send(req, res, 200, l.text, { 'Content-Type': 'text/plain; charset=utf-8', ETag: etag, 'Cache-Control': 'private, max-age=3600' });
+  }
   if (p === '/api/adblock') {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
@@ -680,6 +695,14 @@ async function route(req, res) {
       if (e.status) return sendText(req, res, e.status, e.message);
       throw e;
     }
+  }
+  // Coupon codes for a shop host, for the checkout coupon finder (src/coupons.js).
+  if (p === '/api/coupons') {
+    if (m !== 'GET') return not('GET, HEAD');
+    if (!authed(req, res)) return;
+    const site = String(url.searchParams.get('site') || '').toLowerCase();
+    if (!/^[a-z0-9.-]{3,253}$/.test(site)) return sendText(req, res, 400, 'bad site');
+    return sendJson(req, res, 200, await coupons.find(site));
   }
   if (p === '/api/update/check') {
     if (m !== 'GET') return not('GET, HEAD');

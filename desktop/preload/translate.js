@@ -14,7 +14,12 @@ if (/^https?:$/.test(location.protocol)) {
   addEventListener("pointerdown", (e) => { if (host && e.target !== host) hide(); }, true);
   addEventListener("scroll", () => { if (host) place(read()); }, { capture: true, passive: true });
 
-  function schedule(ms) { clearTimeout(timer); timer = setTimeout(check, ms); }
+  // Off by default: until the setting is on, a selection costs nothing (no timer, no round trip to main).
+  let on = false;
+  const usePage = (p) => { on = !!(p && p.selTranslate); if (!on) hide(); };
+  ipcRenderer.invoke("page").then(usePage, () => {});
+  ipcRenderer.on("page", (e, p) => usePage(p));
+  function schedule(ms) { if (!on) return; clearTimeout(timer); timer = setTimeout(check, ms); }
   function hide() { seq++; shown = ""; if (host) { host.remove(); host = null; } }
 
   // The selected text and a point above it. Text fields, plain pages and shadow DOM all end up here.

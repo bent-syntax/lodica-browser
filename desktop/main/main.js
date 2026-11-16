@@ -54,6 +54,8 @@ function startNotifier(m) {
   m.support.watch(() => openSheet("settings"));
   setTimeout(tick, 15000);
   setInterval(tick, 60 * 1000);
+  // Unread chat messages, also the ones that arrived while the computer was off: a chip on the toolbar until they are read.
+  m.room.events.on("unread", (u) => m.ui.push("unread", u));
   m.room.watch((g) => {
     if (!Notification.isSupported()) return;
     const n = new Notification({
@@ -197,19 +199,22 @@ app.on("second-instance", (_e, argv) => {
   handleArgs(argv);
 });
 
-let altAlone = false;
+// A lone Alt tap opens the menu, like Windows apps. Windows only: on Linux the compositor (Hyprland, Oxide, KDE) takes
+// Alt+key and Alt+drag itself, so the browser sees only the Alt and the menu kept popping up. Held Alt never counts.
+let altAlone = false, altAt = 0;
 
 function shortcut(e, input) {
   if (!M) return;
   const { ui } = M;
   const k = input.key;
   if (input.type === "keyUp") {
-    if (k === "Alt" && altAlone) { altAlone = false; ui.push("shortcut", "menu"); }
+    if (k === "Alt" && altAlone && process.platform === "win32" && Date.now() - altAt < 400) ui.push("shortcut", "menu");
+    if (k === "Alt") altAlone = false;
     return;
   }
   if (input.type !== "keyDown") return;
   if (k !== "Alt") altAlone = false;
-  else if (!input.isAutoRepeat) altAlone = true;
+  else if (!input.isAutoRepeat) { altAlone = true; altAt = Date.now(); }
   if (k === "Escape" && !input.control && !input.meta && !input.alt && !input.shift) { ui.push("shortcut", "escape"); return; }
   const id = M.commands.keyActionFor(keys.fromInput(input));
   if (!id) return;
@@ -242,6 +247,16 @@ global.lodicaWheelDbg = (dx, sum, dy, shift) => {
 };
 // Swipe reports from the page preload. Own channel: no tab lookup, so nothing between the page and history can drop it.
 require("electron").ipcMain.handle("lodica-theme", () => global.lodicaTheme || null);
+// Checkout coupon finder (preload/coupons.js): codes for this shop from the Lodica server. Off with Settings > Shopping.
+require("electron").ipcMain.handle("coupons", async (_e, site) => {
+  const on = !!M && M.relay.available && M.prefs.p.coupons !== false;
+  if (!site) return { on };
+  if (!on || !/^[a-z0-9.-]{3,253}$/i.test(String(site))) return { codes: [] };
+  try {
+    const [status, body] = await M.relay.request("GET", "/api/coupons?site=" + encodeURIComponent(String(site).toLowerCase()), 40000);
+    return status === 200 ? JSON.parse(body) : { codes: [] };
+  } catch { return { codes: [] }; }
+});
 // After a swipe navigation the new page has not seen the mouse yet, and wheel events were dropped until the cursor moved.
 // A mouse move at the real cursor position tells the page it is hovered, so the next swipe works at once.
 function hoverNewPage() {
@@ -276,41 +291,14 @@ function swipeDebugEvents(win) {
   }
 }
 
-// Two-finger horizontal swipe on a touchpad (wheel events with mostly sideways delta) goes back/forward.
+// Two-finger touchpad swipe: the page preload (preload/swipe.js) owns the pull and the decision, so a swipe never goes back
+// twice or without the blob. Main only tells it when Chromium sees the fingers lift (scroll end or fling start).
 function swipeNav(wc) {
-  // Wheel and gesture events describe the same swipe with different signs, so keep them apart and never mix them.
-  // The decision is taken when the fingers stop, from where the swipe ended: going out and coming back cancels it.
-  const acc = { mouseWheel: { x: 0, y: 0, peak: 0 }, gestureScrollUpdate: { x: 0, y: 0, peak: 0 } };
-  let last = 0, locked = 0, timer = null;
-  const reset = () => { for (const k in acc) { acc[k].x = 0; acc[k].y = 0; acc[k].peak = 0; } };
-  const decide = () => {
-    timer = null;
-    // Gesture scroll deltas move the content: fingers right means negative x, which is back. Wheel deltas are the opposite.
-    const g = acc.gestureScrollUpdate, w = acc.mouseWheel;
-    const useG = Math.abs(g.x) >= Math.abs(w.x);
-    const a = useG ? g : w, sx = useG ? g.x : -w.x, sy = a.y;
-    const peak = a.peak;
-    reset();
-    const now = Date.now();
-    if (now < locked || now < (global.lodicaSwipeLock || 0)) return;
-    if (Math.abs(sx) < 100 || Math.abs(sx) < Math.abs(sy) * 1.5) return;
-    if (Math.abs(sx) < peak * 0.7) return;   // came back towards the start: cancelled
-    locked = now + 700;
-    global.lodicaSwipeLock = now + 700;
-    M.commands.mouse(sx < 0 ? "back" : "forward");
-  };
   wc.on("input-event", (_e, ev) => {
     if (global.lodicaSwipeDebug) swipeDebug(wc, ev.type + " dx=" + Math.round(ev.deltaX || 0) + " dy=" + Math.round(ev.deltaY || 0));
-    const a = acc[ev.type];
-    if (!a) return;
-    const now = Date.now();
-    if (now < locked || now < (global.lodicaSwipeLock || 0)) { reset(); return; }
-    if (now - last > 150) reset();
-    last = now;
-    a.x += ev.deltaX || 0; a.y += ev.deltaY || 0;
-    a.peak = Math.max(a.peak, Math.abs(a.x));
-    clearTimeout(timer);
-    timer = setTimeout(decide, 120);
+    if (ev.type === "gestureScrollEnd" || ev.type === "gestureFlingStart") {
+      try { wc.mainFrame.send("lodica-swipe-end"); } catch { /* frame gone */ }
+    }
   });
 }
 
@@ -458,8 +446,12 @@ function wire(m) {
     }
   });
   startNotifier(m);
+  // Every prefs push carries the desktop colours, so the toolbar and panels keep the System theme after any setting changes.
+  const sysTheme = require("./sysaccent");
+  const pushPrefs = () => ui.push("prefs", Object.assign({}, m.prefs.p, { sysAccent: sysTheme.current() }));
+  sysTheme.watch(pushPrefs);
   m.prefs.events.on("change", key => {
-    ui.push("prefs", m.prefs.p);
+    pushPrefs();
     tabs.refresh();
     if (key === "vertTabs" || key === "barBottom" || key === "vertWidth" || key === "vertCollapsed") { ui.fit(); tabs.fit(); }
     if (["theme", "customTheme", "themePlugin", "holidayFx", "bg"].includes(key)) for (const t of tabs.all()) {
@@ -487,7 +479,7 @@ app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
   for (const ses of sessions()) registerProtocol(ses);
   for (const ses of sessions()) {
-    for (const name of ["swipe", "translate", "youtube"]) {
+    for (const name of ["swipe", "translate", "youtube", "coupons"]) {
       try { ses.registerPreloadScript({ type: "frame", id: "lodica-" + name, filePath: path.join(ROOT, "preload", name + ".js") }); } catch (e) { console.error(name + " preload", e.message); }
     }
   }

@@ -1983,8 +1983,29 @@ const lodicaMain = () => {
   }, { passive: true, capture: true });
 })();
 if (/^https?:$/.test(location.protocol) || (location.protocol === "lodica:" && location.hostname === "pdf" && /\/viewer\.html$/.test(location.pathname))) {
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
-  else lodicaMain();
+  const lodicaStart = () => {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", lodicaMain, { once: true });
+    else lodicaMain();
+  };
+  if (window === window.top) lodicaStart();
+  else {
+    // Embedded frames (ads, widgets, every Speedometer test) get no observers: in each iframe they cost half the score.
+    // Like the Android frame probe, the full helper starts only in a frame that holds a sign-in field or a consent dialog,
+    // or once a text field in it gets focus.
+    const FIELD = 'input[type=password],input[type=email],input[inputmode=email],input[autocomplete*=email],'
+      + 'input[autocomplete*=username],input[autocomplete*=one-time-code],input[name*=mail i],input[id*=mail i]';
+    let n = 0, started = false;
+    const go = () => { if (started) return; started = true; removeEventListener("focusin", onFocus, true); lodicaStart(); };
+    const onFocus = (e) => { const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) go(); };
+    const want = () => {
+      if (document.querySelector(FIELD)) return true;
+      const b = document.body;
+      return !!b && b.textContent.length < 6000 && /cookie|consent|privacy|gdpr|toestemming|einwilligung/i.test(b.textContent);
+    };
+    const check = () => { if (started) return; if (want()) go(); else if (++n < 3) setTimeout(check, 1500); };
+    addEventListener("focusin", onFocus, true);
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", check, { once: true }); else check();
+  }
 }
 
 // Draw mode (Ctrl+Shift+D) and move mode (Ctrl+Shift+M). Strokes live in an SVG laid over the page, so they scroll with it.

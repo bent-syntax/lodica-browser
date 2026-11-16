@@ -75,11 +75,12 @@ function subscribe() {
   on("context", openContext);
   on("clipboard", onClipboard);
   on("mail", onMail);
-  on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: d.sysAccent || (S.prefs && S.prefs.sysAccent) }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
+  on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: "sysAccent" in d ? d.sysAccent : S.prefs && S.prefs.sysAccent }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
   on("testsession", onTestSession);
   on("relay", (d) => { S.relay = Object.assign({}, S.relay, d || {}); refreshInbox(); refreshSettings(); });
   on("downloads", (list) => { dlRing(list); refreshDownloads(list); });
   on("openRoom", (r) => { openRoom(); if (r) inv("room.select", r); });
+  on("unread", (u) => { const was = (S.unread && S.unread.count) || 0; S.unread = u || { count: 0, room: null }; if (!was && S.unread.count) S.unreadNew = true; if (was !== S.unread.count) renderBar(); });
   on("room", (d) => { ROOM.state = d || ROOM.state; if (ROOM.L) roomRender(); });
   on("ai.chats", (c) => { CHAT.chats = c || []; if (CHAT.L && !CHAT.busy) chatRender(); });
   on("ai", (d) => { S.ai = Object.assign({}, S.ai, d || {}); refreshSettings(); });
@@ -174,6 +175,7 @@ async function start() {
     if (r.tabs) S.tabs = r.tabs;
     if (r.ai) S.ai = Object.assign({}, S.ai, r.ai);
     S.relayAvail = !!(r.relay && r.relay.available);
+    S.unread = r.unread || { count: 0, room: null };
     S.relay = Object.assign({}, S.relay, r.relay || {});
     S.locked = !!r.locked;
     S.pinSet = !!r.pinSet;

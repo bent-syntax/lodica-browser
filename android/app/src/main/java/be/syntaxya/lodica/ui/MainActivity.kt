@@ -72,10 +72,11 @@ class MainActivity : HostActivity() {
                     tab?.canBack == true -> tab.session?.goBack()
                     tab != null && TabManager.backToOpener(tab) -> Unit
                     tab?.caller != null -> {
-                        // Return to the app that sent the link, like Back does in other browsers.
-                        val to = packageManager.getLaunchIntentForPackage(tab.caller!!)
+                        // Return to the app that sent the link (Gemini, mail, chat), like Firefox: close the tab and finish.
+                        // Android then resumes the app that started us, on the screen it was on. Starting that app's launcher
+                        // instead opened its home screen (or nothing, for Gemini inside the Google app) and minimized it.
                         TabManager.close(tab)
-                        if (to == null || runCatching { startActivity(to) }.isFailure) moveTaskToBack(true)
+                        finish()
                     }
                     else -> moveTaskToBack(true)
                 }
@@ -191,7 +192,8 @@ class MainActivity : HostActivity() {
         val cur = TabManager.current
         // Reuse an untouched start tab instead of piling up blanks.
         val blank = cur != null && cur.url == TabManager.HOME && !cur.private
-        val caller = referrer?.host?.takeIf { i.action == Intent.ACTION_VIEW && it != packageName }
+        // Any link from outside counts, also when Android does not name the sender (Gemini often does not).
+        val caller = if (i.action == Intent.ACTION_VIEW) (referrer?.host ?: "external").takeIf { it != packageName } else null
         // A link from another app gets a tab with no history, so Back goes straight back to that app.
         if (blank && caller == null) TabManager.load(target, cur)
         else {

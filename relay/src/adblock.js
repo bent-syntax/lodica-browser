@@ -105,4 +105,20 @@ function status() {
   return { levels: Object.keys(LEVELS), hosts: { ads: sets.ads.size, hosts: sets.hosts.size, pro: sets.pro.size } };
 }
 
-module.exports = { parse, blocked, levelOf, start, status, sets };
+/** The merged host list of one strength as plain text, one host a line, for browsers that block on their own ("Light" mode).
+ *  Cached per strength until a list refreshes; the tag lets a browser skip the download when nothing changed. */
+const listCache = new Map();
+function hostList(level) {
+  const lv = LEVELS[level] ? level : 'standard', names = LEVELS[lv];
+  const key = names.map((n) => n + ':' + sets[n].size).join(',');
+  const hit = listCache.get(lv);
+  if (hit && hit.key === key) return hit;
+  const all = new Set();
+  for (const n of names) for (const h of sets[n]) all.add(h);
+  const text = [...all].join('\n');
+  const out = { key, tag: require('crypto').createHash('sha1').update(text).digest('hex').slice(0, 16), text, size: all.size };
+  listCache.set(lv, out);
+  return out;
+}
+
+module.exports = { parse, blocked, levelOf, start, status, sets, hostList };

@@ -19,6 +19,10 @@ data class TabRecord(
     val state: String? = null,
     val lastUsed: Long = System.currentTimeMillis(),
     val desktop: Boolean = false,
+    /** Id of the tab that opened this one; kept so Back still returns there after Android killed the app in the background. */
+    val opener: String? = null,
+    /** App that sent the link ("external" when Android did not say which). */
+    val caller: String? = null,
 )
 
 /** Live tab. Compose observes the mutable fields; the session is created on demand. */
@@ -79,9 +83,9 @@ class Tab(
     val displayTitle: String get() = title.ifBlank { host.ifBlank { url } }
     val host: String get() = runCatching { android.net.Uri.parse(url).host.orEmpty() }.getOrDefault("").removePrefix("www.")
 
-    fun record() = TabRecord(id, url, title, private, state, lastUsed, desktop && !autoDesktop)
+    fun record() = TabRecord(id, url, title, private, state, lastUsed, desktop && !autoDesktop, opener?.id, caller)
 
     companion object {
-        fun from(r: TabRecord) = Tab(r.id, r.private, r.url, r.title, r.state, r.lastUsed, r.desktop).also { it.locked = r.private }
+        fun from(r: TabRecord) = Tab(r.id, r.private, r.url, r.title, r.state, r.lastUsed, r.desktop).also { it.locked = r.private; it.caller = r.caller }
     }
 }

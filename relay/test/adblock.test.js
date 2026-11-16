@@ -77,3 +77,16 @@ test('the proxy login accepts "lodica" and "lodica+ads-<strength>" with the toke
   assert.strictEqual(authOf(req('lodica+ads-extreme', tok)), null);
   assert.strictEqual(authOf({ headers: {} }), null);
 });
+
+test('host list for local blocking: merged per strength, cached until a list changes', () => {
+  const ab = require('../src/adblock');
+  ab.sets.hosts.add('tracker.example');
+  const a = ab.hostList('standard');
+  assert.ok(a.text.split('\n').includes('doubleclick.net') && a.text.split('\n').includes('tracker.example'));
+  assert.ok(!ab.hostList('light').text.split('\n').includes('tracker.example'));
+  assert.strictEqual(ab.hostList('standard'), a);
+  ab.sets.hosts.add('tracker2.example');
+  const b = ab.hostList('standard');
+  assert.notStrictEqual(b.tag, a.tag);
+  assert.strictEqual(ab.hostList('nonsense').key, b.key);
+});

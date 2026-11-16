@@ -85,6 +85,9 @@ object TabManager {
             else tabs.add(Tab.from(r))
         }
         trimArchive()
+        // Re-link page-opened tabs to their opener, so Back on their first page still closes them and shows the opener.
+        val byId = tabs.associateBy { it.id }
+        for (r in snap.tabs) r.opener?.let { o -> byId[r.id]?.opener = byId[o] }
         // Private tabs restored after the app was closed wait behind the lock.
         tabs.forEach { if (it.private) it.locked = true }
         val start = tabs.firstOrNull { it.id == snap.currentId } ?: tabs.lastOrNull()
@@ -106,6 +109,8 @@ object TabManager {
             }
         }
         val tab = Tab(private = private, url = url, desktop = if (parent != null && !parent.autoDesktop) parent.desktop else Prefs.desktopDefault)
+        // "Open in new tab" from a page: Back on its first page closes it and returns to that page, like a target=_blank link.
+        tab.opener = parent
         val at = tabs.size
         tabs.add(at, tab)
         if (select) select(tab) else { ensureSession(tab); save() }

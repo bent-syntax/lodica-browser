@@ -10,6 +10,7 @@ const crypto = require('crypto');
 const { execFile } = require('child_process');
 const { cfg } = require('./config');
 const { resolveSafe } = require('./ssrf');
+const { direct } = require('./websearch');
 
 const IMG_DIR = path.join(cfg.dataDir, 'img');
 const TMP_DIR = path.join(IMG_DIR, 'tmp');
@@ -104,28 +105,38 @@ async function searchLive(url) {
     return r.json();
   };
   stats.searches++;
-  let j;
+  // Wikipedia and Wikidata come back even when every web engine is blocked; they fill the box above the results, so they
+  // must not count toward "enough results" (a search for "banana" showed the box, a Wikipedia link and nothing else).
+  const WIKI = /(^|\.)(wikipedia|wikidata|wikimedia)\.org$/i;
+  const list = (r) => (r && Array.isArray(r.results) ? r.results.filter(Boolean) : []);
+  const web = (r) => list(r).filter((x) => !WIKI.test(hostJs(x.url))).length;
+  const merge = (base, extra) => {
+    const have = list(base).map((x) => x.url);
+    return { ...(base || {}), results: [...list(base), ...unseenJs(have, extra.filter((x) => x && typeof x.url === 'string'))] };
+  };
+  let j = null;
   try {
     j = await ask(range);
     // Too few recent hits: widen to a year, then drop the filter, rather than return an empty page.
-    if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = range === 'month' ? 'year' : ''; j = await ask(range); }
-    if (!asked && range && (!Array.isArray(j.results) || j.results.length < 5)) { range = ''; j = await ask(''); }
-    // Blocked or throttled engines can leave only Wikipedia/Wikidata: ask each web engine on its own, so one slow or
-    // blocked engine cannot sink the whole call, and merge what comes back.
-    if (!images && (!Array.isArray(j.results) || j.results.length < 3)) {
-      const got = await Promise.all(FALLBACK_ENGINES.split(',').map((e) => ask(range, e).catch(() => null)));
-      const have = (Array.isArray(j.results) ? j.results : []).map((x) => x && x.url);
-      const more = unseenJs(have, got.flatMap((w) => (w && Array.isArray(w.results) ? w.results : []).filter(Boolean)));
-      j = { ...j, results: [...(Array.isArray(j.results) ? j.results : []), ...more] };
-    }
-    // Some engines (Bing) return nothing for a Dutch language yet answer the same query without one.
-    if (lang !== 'all' && (!Array.isArray(j.results) || !j.results.length)) {
-      const got = await Promise.all((images ? [''] : FALLBACK_ENGINES.split(',')).map((e) => ask(range, e, 'all').catch(() => null)));
-      j = { ...j, results: got.flatMap((w) => (w && Array.isArray(w.results) ? w.results : []).filter(Boolean)) };
-    }
-  } catch (e) {
+    if (!asked && range && web(j) < 5) { range = range === 'month' ? 'year' : ''; j = await ask(range); }
+    if (!asked && range && web(j) < 5) { range = ''; j = await ask(''); }
+  } catch (e) { j = null; /* SearXNG down or hung: the steps below still try */ }
+  // Blocked or throttled engines can leave only Wikipedia/Wikidata: ask each web engine on its own, so one slow or
+  // blocked engine cannot sink the whole call, and merge what comes back.
+  if (!images && web(j) < 3) {
+    const got = await Promise.all(FALLBACK_ENGINES.split(',').map((e) => ask(range, e).catch(() => null)));
+    j = merge(j, got.flatMap(list));
+  }
+  // Some engines (Bing) return nothing for a Dutch language yet answer the same query without one.
+  if (lang !== 'all' && (images ? !list(j).length : web(j) < 3)) {
+    const got = await Promise.all((images ? [''] : FALLBACK_ENGINES.split(',')).map((e) => ask(range, e, 'all').catch(() => null)));
+    j = merge(j, got.flatMap(list));
+  }
+  // Every SearXNG engine blocked: go to DuckDuckGo's and Mojeek's plain HTML pages directly.
+  if (!images && web(j) < 3) j = merge(j, await direct(q, p));
+  if (!j || (!list(j).length && !(Array.isArray(j.infoboxes) && j.infoboxes.length))) {
     stats.searchFail++;
-    throw Object.assign(new Error('search failed'), { status: 502 });
+    if (!j) throw Object.assign(new Error('search failed'), { status: 502 });
   }
   const seen = new Set();
   const results = [];

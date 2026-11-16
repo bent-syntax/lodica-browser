@@ -1,7 +1,6 @@
 // Renderer commands (see IPC.md), registered on the ui dispatcher.
 const keys = require("./keys");
-const { systemAccent } = require("./sysaccent");
-let sysAccentCache;
+const sysTheme = require("./sysaccent");
 const { app, clipboard, shell, session, net, WebContentsView, Menu, screen } = require("electron");
 
 const PANEL_W = 360;
@@ -184,7 +183,7 @@ async function clearSiteData() {
 function initPayload() {
   const t = cur(), o = d.tabs.open();
   return {
-    prefs: d.prefs.p, engines: d.prefs.ENGINES, agents: d.prefs.AGENTS, languages: d.prefs.LANGUAGES,
+    prefs: Object.assign({}, d.prefs.p, { sysAccent: sysTheme.current() }), unread: require("./room").unreadState(), engines: d.prefs.ENGINES, agents: d.prefs.AGENTS, languages: d.prefs.LANGUAGES,
     qualities: d.prefs.QUALITIES, tab: d.tabs.info(t),
     tabs: { count: o.filter(x => !x.private).length, privateCount: o.filter(x => x.private).length },
     version: require("../package.json").lodicaVersion || app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
@@ -313,7 +312,7 @@ function init(deps) {
   on("topSites", () => history.topSites());
   on("prefs.set", (k, v) => { if (str(k) === "pcUnlock") return false; prefs.set(str(k), v); return true; });
   on("vault.setUnlockMode", (mode, pin) => ["pin", "pinphone", "key", "phone", "both"].includes(mode) ? pctabs.setUnlockMode(mode, str(pin)) : { error: "Unknown mode" });
-  on("prefs.all", () => Object.assign({}, prefs.p, { frameless: !!global.lodicaFrameless, sysAccent: sysAccentCache ??= systemAccent() }));
+  on("prefs.all", () => Object.assign({}, prefs.p, { frameless: !!global.lodicaFrameless, sysAccent: sysTheme.current() }));
   on("bg.pick", async () => {
     const { dialog } = require("electron");
     const fs = require("fs"), path = require("path");

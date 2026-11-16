@@ -46,7 +46,8 @@
         "https://*/*"
       ],
       "js": [
-        "content.js"
+        "content.js",
+        "coupons.js"
       ],
       "run_at": "document_idle",
       "all_frames": false

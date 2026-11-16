@@ -14,10 +14,14 @@ function customVars(c) {
 function applyCustom(root, theme, c, sys) {
   const full = c && c.light && typeof c.light === "object" && typeof matchMedia === "function" && !matchMedia("(prefers-color-scheme: dark)").matches ? Object.assign({}, c, c.light) : c;
   const ok = full && ["bg", "text", "accent", "accent2"].every((k) => /^#[0-9a-f]{6}$/i.test(full[k]));
-  const vars = ok && theme === "custom" ? customVars(full) : null;
-  const accent = !vars && theme === "system" && /^#[0-9a-f]{6}$/i.test(sys || "") ? sys : null;
+  // "System" follows the desktop: a full palette (Oxide, pywal) paints everything, an accent alone (KDE, GNOME, Hyprland) only the accent.
+  const pal = theme === "system" && sys && typeof sys === "object" && sys.bg && sys.text && sys.accent ? sys : null;
+  const vars = ok && theme === "custom" ? customVars(full) : pal ? customVars({ bg: pal.bg, raised: pal.raised, text: pal.text, muted: pal.muted, accent: pal.accent, accent2: pal.accent }) : null;
+  const sysAccent = sys && typeof sys === "object" ? sys.accent : sys;
+  const accent = !vars && theme === "system" && /^#[0-9a-f]{6}$/i.test(sysAccent || "") ? sysAccent : null;
   if (accent) { root.style.setProperty("--amber", accent); root.style.setProperty("--link", accent); }
   else if (!vars) { root.style.removeProperty("--amber"); root.style.removeProperty("--link"); }
+  if (pal && pal.line) root.style.setProperty("--line", pal.line); else root.style.removeProperty("--line");
   for (const k of ["--bg", "--raised", "--high", "--mist", "--text", "--muted", "--amber", "--coral", "--link", "--url", "--sub", "--danger", "--tab", "--tab-text", "--tab-edge", "--start-bg", "--bar-bg", "--tile-bg", "color-scheme"]) {
     if (vars && vars[k] !== "") root.style.setProperty(k, vars[k]); else root.style.removeProperty(k);
   }

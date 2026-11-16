@@ -3,12 +3,27 @@
 const STACK = [];
 let ovOn = false, mainOverlay = false, barTimer = null;
 
+// Runs fn in the first frame drawn at the view's new size. The toolbar moves with body.ov; switching the class before the view
+// had grown (or after it had shrunk) drew the toolbar one tab strip too low for a frame or two, which flickered on every menu.
+function atNewSize(fn) {
+  const h0 = innerHeight, w0 = innerWidth;
+  let done = false, t = 0, res;
+  const p = new Promise((r) => { res = r; });
+  const run = () => { if (done) return; done = true; removeEventListener("resize", on); clearTimeout(t); try { fn(); } finally { res(); } };
+  const on = () => { if (innerHeight !== h0 || innerWidth !== w0) run(); };
+  addEventListener("resize", on);
+  // No resize at all (the size did not change, or it came before we listened): do it shortly after main answered.
+  return { p, later: () => { if (!done) t = setTimeout(run, 120); return p; } };
+}
+
 async function ensureOverlay() {
   clearTimeout(barTimer); barTimer = null;
   if (ovOn) return;
   ovOn = true;
-  document.body.classList.add("ov");
-  if (!mainOverlay) await inv("layout", keepOnly() ? "keep" : "overlay");
+  if (mainOverlay) { document.body.classList.add("ov"); return; }
+  const s = atNewSize(() => { if (ovOn) document.body.classList.add("ov"); });
+  await inv("layout", keepOnly() ? "keep" : "overlay");
+  await s.later();
 }
 // Only the Settings tab is open: keep the tab strip and toolbar usable around it.
 const keepOnly = () => STACK.length > 0 && STACK.every((l) => l.el.classList.contains("settings-tab"));
@@ -35,11 +50,14 @@ function maybeBar() {
     barTimer = null;
     if (STACK.length || !ovOn) return;
     ovOn = false; mainOverlay = false;
+    const s = atNewSize(() => {
+      if (STACK.length || ovOn) return;
+      keepOn = false;
+      document.body.classList.remove("keep", "ov");
+      moveToastsToBar();
+    });
     await inv("layout", "bar");
-    if (STACK.length) return;
-    keepOn = false;
-    document.body.classList.remove("keep", "ov");
-    moveToastsToBar();
+    await s.later();
   }, 125);
 }
 // main opened an overlay itself (its own prompt): render in overlay mode without asking for layout.

@@ -241,6 +241,18 @@ browser.runtime.onMessage.addListener(async (msg, sender) => {
       native.postMessage({ type: "search", id, qs: qs.toString(), path: shop ? "/api/shop" : "/api/search" });
     });
   }
+  // Checkout coupon finder (coupons.js): the app asks the server for codes people post for this shop.
+  if (msg.type === "coupons") {
+    for (let k = 0; !native && k < 20; k++) await new Promise((r) => setTimeout(r, 250));
+    if (!msg.site) return { on: !!native && !!domain };
+    if (!native) return { codes: [] };
+    const id = ++askId;
+    return new Promise((resolve) => {
+      asks.set(id, resolve);
+      setTimeout(() => { if (asks.delete(id)) resolve({ codes: [] }); }, 30000);
+      native.postMessage({ type: "search", id, qs: new URLSearchParams({ site: String(msg.site || "").slice(0, 253) }).toString(), path: "/api/coupons" });
+    });
+  }
   if (msg.type === "ask") {
     if (!native || !cfg.ai) return { error: "AI is not connected" };
     const id = ++askId;

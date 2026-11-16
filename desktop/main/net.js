@@ -33,6 +33,54 @@ async function checkServer() {
   applyProxy();
 }
 
+// "Light": the lightest blocking. The browser fetches the server's ad and tracker host list once a day and refuses those hosts
+// with one hash lookup per request. No filter engine in memory, no cosmetic scripts in pages, and traffic does not go through
+// the server. Without a linked server it falls back to the browser's own lists.
+const liteAds = () => prefs.p.adBlockMode === "lite" && relay.available;
+let hostSet = null, hostsLevel = "";
+function hostBlocked(h) {
+  for (let x = h; x;) {
+    if (hostSet.has(x)) return true;
+    const i = x.indexOf(".");
+    if (i < 0) return false;
+    x = x.slice(i + 1);
+  }
+  return false;
+}
+async function loadHosts() {
+  if (!liteAds()) return;
+  const lv = level(), file = path.join(app.getPath("userData"), "adhosts-" + lv + ".txt");
+  const use = (txt) => {
+    const set = new Set();
+    for (const line of String(txt).split("\n")) { const h = line.trim(); if (h) set.add(h); }
+    if (level() === lv && set.size) { hostSet = set; hostsLevel = lv; }
+  };
+  let fresh = false;
+  try { const st = fs.statSync(file); if (hostsLevel !== lv) use(await fs.promises.readFile(file, "utf8")); fresh = Date.now() - st.mtimeMs < DAY; } catch { /* first run */ }
+  if (fresh) return;
+  try {
+    const [status, buf] = await relay.requestRaw("GET", "/api/adblock/hosts?level=" + lv, 60000);
+    if (status === 200 && buf && buf.length) { await fs.promises.writeFile(file, buf); use(buf.toString("utf8")); }
+  } catch { /* offline: keep the cached list */ }
+}
+// The Ghostery page script only runs while Ghostery does the blocking.
+function cosmetics(on) {
+  for (const ses of sessions) {
+    try {
+      if (on) ses.registerPreloadScript({ type: "frame", id: "ghostery", filePath: require.resolve("@ghostery/adblocker-electron-preload") });
+      else ses.unregisterPreloadScript?.("ghostery");
+    } catch { /* already in that state */ }
+  }
+}
+let modeNow = "";
+function applyMode() {
+  const want = liteAds() ? "lite" : "full";
+  if (want === modeNow) return;
+  modeNow = want;
+  if (want === "lite") { blocker = null; cosmetics(false); loadHosts(); }
+  else { hostSet = null; hostsLevel = ""; cosmetics(true); loadBlocker(); }
+}
+
 const hostOf = u => { try { return new URL(u).hostname; } catch { return ""; } };
 const isLocal = h => !h || h === "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || IP.test(h) || !h.includes(".");
 
@@ -78,6 +126,14 @@ function onBeforeRequest(details, cb) {
     if (tab) { tab.blocked++; deps.tabs.pushTab(tab); }
     return cb({ cancel: true });
   }
+  if (liteAds()) {
+    if (!hostSet || prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
+    // A site's own hosts stay reachable when it is itself on the list (you opened it on purpose).
+    if (!hostBlocked(host) || hostBlocked(page)) return cb({});
+    if (tab) { tab.blocked++; deps.tabs.pushTab(tab); }
+    if (!tab?.private) deps.meter.blocked(host);
+    return cb({ cancel: true });
+  }
   if (!blocker || serverAds()) return cb({});
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
   blocker.onBeforeRequest(details, r => {
@@ -90,7 +146,7 @@ function onBeforeRequest(details, cb) {
 }
 
 function onHeadersReceived(details, cb) {
-  if (!blocker || serverAds()) return cb({});
+  if (!blocker || serverAds() || liteAds()) return cb({});
   const tab = tabOf(details);
   const page = tab?.host || hostOf(details.url);
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
@@ -137,11 +193,11 @@ function init(d) {
     ses.webRequest.onHeadersReceived({ urls: ["<all_urls>"] }, onHeadersReceived);
     ses.webRequest.onBeforeSendHeaders({ urls: ["<all_urls>"] }, onBeforeSendHeaders);
     ses.webRequest.onCompleted({ urls: ["<all_urls>"] }, onCompleted);
-    try { ses.registerPreloadScript({ type: "frame", id: "ghostery", filePath: require.resolve("@ghostery/adblocker-electron-preload") }); }
-    catch (e) { console.error("ghostery preload", e.message); }
   }
   ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", (...a) => blocker?.onInjectCosmeticFilters(...a));
-  ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", (...a) => blocker?.onIsMutationObserverEnabled(...a) ?? false);
+  // Cosmetic filters keep watching the DOM only in the top frame. In embedded frames a DOM observer slowed every page script
+  // (Speedometer runs each test in an iframe); their ads are mostly stopped by the network filters anyway.
+  ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", (e, ...a) => (e.senderFrame && e.senderFrame.parent ? false : blocker?.onIsMutationObserverEnabled(e, ...a) ?? false));
   app.on("login", (e, wc, details, authInfo, cb) => {
     if (!authInfo.isProxy || !relay.available || !relay.proxyAuth) return;
     e.preventDefault();
@@ -152,14 +208,16 @@ function init(d) {
   prefs.events.on("change", key => {
     if (!key || key === "routeVps" || key === "adBlockMode" || key === "adBlockLevel") applyProxy();
     if (key === "adBlockMode" || key === "adBlockLevel") for (const ses of sessions) { try { ses.clearAuthCache?.(); ses.closeAllConnections?.(); } catch { /* closing */ } }
-    if (key === "adBlockLevel") loadBlocker();
-    if (key === "adBlockMode") checkServer();
+    if (key === "adBlockLevel") { if (liteAds()) loadHosts(); else loadBlocker(); }
+    if (key === "adBlockMode") { checkServer(); applyMode(); }
   });
   // The YouTube preload asks whether this site is on the allow lists before it touches the player.
   ipcMain.on("lodica-adblock", (e, host) => { e.returnValue = !(prefs.isTrusted(String(host)) || prefs.isCompat(String(host))); });
   applyProxy();
-  loadBlocker();
-  setInterval(() => loadBlocker(), DAY).unref();
+  applyMode();
+  // The server link can come up after start; a daily pass also refreshes whichever list is in use.
+  relay.events?.on?.("change", () => applyMode());
+  setInterval(() => (liteAds() ? loadHosts() : loadBlocker()), DAY).unref();
   checkServer();
 }
 
@@ -179,4 +237,4 @@ function loadBlocker() {
     .catch(e => console.error("ghostery load failed:", e.message));
 }
 
-module.exports = { init, VERSION, applyProxy, get loaded() { return !!blocker; } };
+module.exports = { init, VERSION, applyProxy, get loaded() { return !!blocker || !!hostSet; } };

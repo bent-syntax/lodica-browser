@@ -92,7 +92,7 @@ function openMenuList() {
   if (S.mode !== "main") { exitEdit(); closeFind(); }
   const t = S.tab, home = !!t.home, q = t.quality || S.prefs.quality || 720;
   const bt = document.body.classList.contains("bt");
-  return openLayer({ key: "menu", cls: "menu" }, (L) => {
+  return openLayer({ key: "menu", cls: "menu popL" }, (L) => {
     const go = (fn) => () => { L.close(); fn(); };
     const tile = (icon, label, fn, cls, dis) => {
       const e = h("button", { class: "mtile" + (cls ? " " + cls : ""), title: label, act: go(fn) }, ico(icon), h("span", { text: label }));
@@ -118,7 +118,8 @@ function openMenuList() {
       tile("download", "Downloads", () => openDownloads()),
       tile("history", "History", () => openHistory()));
     const extBox = h("div", { class: "mgroup" });
-    const pop = h("div", { class: "pop menu-pop", style: "right:8px;" + (bt ? "top:" + (document.querySelector(".pill") ? Math.round(document.querySelector(".pill").getBoundingClientRect().bottom + 4) : 52) + "px" : "bottom:" + (document.querySelector(".pill") ? Math.round(innerHeight - document.querySelector(".pill").getBoundingClientRect().top + 4) : 52) + "px") },
+    // Placed by CSS under (or above) the toolbar, so it is right in the overlay view whatever the layout was when it opened.
+    const pop = h("div", { class: "pop menu-pop" + (bt ? " down" : " up") },
       tiles,
       group(
         row("find", "Find in page", openFind, { dis: home }),
