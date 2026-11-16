@@ -4,7 +4,7 @@ See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
 ## 1.18.4 (versionCode 271)
 
-- Android: big pages and benchmarks no longer keep the dark-page recolour running past 8000 elements, which frees the main thread. On the OnePlus the Speedometer 2.0 baseline was 73.8 ± 3.8 before this change; the new score is not measured yet.
+- Android: big pages and benchmarks no longer keep the dark-page recolour running past 8000 elements, which frees the main thread. On the OnePlus the Speedometer 2.0 baseline was 73.8 ± 3.8 before this change; the score after it was 77.7 ± 3.4, which is within noise, so no speedup is claimed. The helper extension now registers its own-name, lite-mode and proxy request listeners only while they have work, which removes an extension round trip per request when they are idle; its effect is not measured yet.
 
 ## 1.18.3 (versionCode 270)
 
