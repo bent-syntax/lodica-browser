@@ -2,6 +2,18 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.18.10 (versionCode 277)
+
+- Desktop: two-finger swipe back and forward uses one decision point with a Firefox-like threshold, and cancels anywhere short of it.
+- Desktop: faster pages, because helper scripts no longer run in every iframe.
+- Desktop: the System theme on Linux takes its full palette from your desktop theme and refreshes live.
+- Desktop: the menu no longer dims the whole window and grows from its button; tabs slide when reordered.
+- Toolbar chip shows unread chat messages and keeps them across restarts.
+- Light ad blocking mode uses the server's host list.
+- Android: Back from a link opened by another app (like Gemini) closes that tab so the calling app resumes.
+- Checkout coupon finder on Android and desktop.
+- Search: Wikipedia hits no longer count as enough results, with a direct DuckDuckGo and Mojeek fallback and longer SearXNG timeouts.
+
 ## 1.18.9 (versionCode 276)
 
 - Android: Back after opening a link from another app (like Gemini) returns to that app instead of closing Lodica.
