@@ -89,7 +89,7 @@ object Helper {
                     .put("quality", Prefs.quality).put("qualities", JSONObject(Prefs.qualities as Map<*, *>)))
                 .put("api", if (Relay.available) Relay.apiToken else "")
                 .put("domain", Relay.DOMAIN)
-                .put("legacy", Relay.legacyPorts)
+                .put("legacy", Relay.legacyPorts).put("mode", Prefs.mode.name)
                 .put("dns", JSONArray(Prefs.dnsPairs().map { JSONArray(it) }))
                 .put("ai", Ai.connected)
                 .put("aiAlways", Prefs.aiAlways)

@@ -182,6 +182,15 @@ browser.webRequest.onBeforeRequest.addListener(stripYoutubeAds, {
 const asks = new Map();
 let askId = 0;
 
+// Features mode: the full helper in every frame, not only frames where frame.js saw a sign-in field.
+let everyFrame = null;
+function allFrames(on) {
+  if (on === !!everyFrame || !browser.contentScripts) return;
+  if (!on) { everyFrame.then((r) => r.unregister()).catch(() => {}); everyFrame = null; return; }
+  everyFrame = browser.contentScripts.register({ matches: ["http://*/*", "https://*/*"], js: [{ file: "/content.js" }], allFrames: true, runAt: "document_idle" });
+  everyFrame.catch(() => { everyFrame = null; });
+}
+
 browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (!msg) return undefined;
   // frame.js found a sign-in field or consent dialog in a subframe: load the full helper into that frame only.
@@ -316,6 +325,7 @@ function connect() {
         if (bs) bs.set({ value: msg.page && (msg.page.dark || msg.page.darkPages) ? "dark" : "light" });
       } catch (e) {}
       syncListeners();
+      if (msg.page) allFrames(msg.mode === "FEATURES");
       ready();
     } else if (msg && msg.type === "found") {
       const done = asks.get(msg.id);

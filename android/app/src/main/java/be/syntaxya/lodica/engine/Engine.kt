@@ -6,9 +6,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.mozilla.geckoview.ContentBlocking
+import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.WebExtension
+import org.mozilla.geckoview.WebExtensionController
 
 /** Owns the single GeckoRuntime. Only ever touched from the main process UI. */
 object Engine {
@@ -54,18 +56,13 @@ object Engine {
         Notebook.onChange = { PcTabs.changed() }
 
         val blocking = ContentBlocking.Settings.Builder()
-            .antiTracking(ContentBlocking.AntiTracking.STRICT)
-            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.STRICT)
             .cookieBehavior(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
             .cookieBehaviorPrivateMode(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
-            .strictSocialTrackingProtection(true)
-            .cookiePurging(true)
             .emailTrackerBlockingPrivateMode(true)
-            .queryParameterStrippingEnabled(true)
             .queryParameterStrippingPrivateBrowsingEnabled(true)
-            .bounceTrackingProtectionMode(ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED)
             .safeBrowsing(ContentBlocking.SafeBrowsing.DEFAULT)
             .build()
+        tune(blocking)
 
         val settings = GeckoRuntimeSettings.Builder()
             .contentBlocking(blocking)
@@ -94,21 +91,16 @@ object Engine {
         // Publish at once: a throw below must not leave rt null, or a relaunch would create a second runtime.
         rt = runtime
         step("fingerprinting") {
-            runtime.settings.setFingerprintingProtection(true)
-            runtime.settings.setFingerprintingProtectionPrivateBrowsing(true)
+            val on = Prefs.mode != Mode.FAST
+            runtime.settings.setFingerprintingProtection(on)
+            runtime.settings.setFingerprintingProtectionPrivateBrowsing(on)
         }
         // Set again after the protection flags: the page colour scheme must follow the Dark pages switch.
         step("colorScheme") { runtime.settings.setPreferredColorScheme(colorScheme()) }
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
         step("notifications") { SiteNotify.init(ctx); runtime.webNotificationDelegate = SiteNotify }
 
-        step("ublock") { runtime.webExtensionController
-            .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
-            .accept({ ext ->
-                if (ext == null) { ublockFailed = true; return@accept }
-                ublock = ext
-                runtime.webExtensionController.setAllowedInPrivateBrowsing(ext, true)
-            }, { e -> ublockFailed = true; Log.w(TAG, "uBlock Origin failed to load", e) }) }
+        step("ublock") { ublockMode(runtime) }
         step("helper") { Helper.install(ctx, runtime) }
         step("extensions") { Extensions.init(ctx) }
         // GeckoView installs its own crash handler while starting; wrap it so Java crashes are still recorded.
@@ -130,6 +122,51 @@ object Engine {
 
     private fun insecurePolicy() =
         if (Prefs.httpsOnly) GeckoRuntimeSettings.HTTPS_ONLY else GeckoRuntimeSettings.HTTPS_ONLY_PRIVATE
+
+    /** Strict tracking rules unless the mode is Fast. Works on a built and on a live settings object. */
+    private fun tune(b: ContentBlocking.Settings) {
+        val strict = Prefs.mode != Mode.FAST
+        b.setAntiTracking(if (strict) ContentBlocking.AntiTracking.STRICT else ContentBlocking.AntiTracking.DEFAULT)
+        b.setEnhancedTrackingProtectionLevel(if (strict) ContentBlocking.EtpLevel.STRICT else ContentBlocking.EtpLevel.DEFAULT)
+        b.setStrictSocialTrackingProtection(strict)
+        b.setCookiePurging(strict)
+        b.setQueryParameterStrippingEnabled(strict)
+        b.setBounceTrackingProtectionMode(if (strict) ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED
+            else ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED)
+    }
+
+    /** uBlock Origin stays installed; Fast mode only disables it, so switching back needs no download or reinstall. */
+    private fun ublockMode(runtime: GeckoRuntime) {
+        val wc = runtime.webExtensionController
+        wc.ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
+            .then { ext ->
+                if (ext == null) return@then GeckoResult.fromValue<WebExtension>(null)
+                val on = Prefs.mode != Mode.FAST
+                when {
+                    on && !ext.metaData.enabled -> wc.enable(ext, WebExtensionController.EnableSource.APP)
+                    !on && ext.metaData.enabled -> wc.disable(ext, WebExtensionController.EnableSource.APP)
+                    else -> GeckoResult.fromValue(ext)
+                }
+            }
+            .accept({ ext ->
+                if (ext == null) { ublockFailed = true; return@accept }
+                ublockFailed = false
+                ublock = if (ext.metaData.enabled) ext else null
+                if (ublock != null) wc.setAllowedInPrivateBrowsing(ext, true)
+            }, { e -> ublockFailed = true; Log.w(TAG, "uBlock Origin failed to load", e) })
+    }
+
+    /** Applies a new Mode to the running engine. */
+    fun applyMode() {
+        val r = rt ?: return
+        step("mode") {
+            tune(r.settings.contentBlocking)
+            val on = Prefs.mode != Mode.FAST
+            r.settings.setFingerprintingProtection(on)
+            r.settings.setFingerprintingProtectionPrivateBrowsing(on)
+            ublockMode(r)
+        }
+    }
 
     /** Push pref changes into a live runtime. No-op before the runtime exists. */
     fun applyPrefs() {

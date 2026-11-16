@@ -6,6 +6,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/** Speed against protection. FAST drops uBlock and the strict tracking rules, FEATURES runs the helper in every frame. */
+enum class Mode(val label: String, val blurb: String) {
+    FAST("Fast", "Quickest pages. Standard tracking protection, no ad blocker."),
+    MEDIUM("Medium", "Strict tracking protection and the ad blocker. The default."),
+    FEATURES("Features", "Everything on, also inside embedded frames. Slowest."),
+}
+
 enum class SearchEngine(val label: String, val query: String, val suggest: String?) {
     DUCKDUCKGO("DuckDuckGo", "https://duckduckgo.com/?q=%s", "https://duckduckgo.com/ac/?type=list&q=%s"),
     STARTPAGE("Startpage", "https://www.startpage.com/do/search?q=%s", null),
@@ -77,6 +84,10 @@ data class SavedTheme(val name: String, val bg: String, val text: String, val ac
 /** App preferences, observable from Compose. */
 object Prefs {
     private lateinit var sp: SharedPreferences
+
+    /** Null until the user picks one; the picker dialog shows while it is null. */
+    var modePicked by mutableStateOf<Mode?>(null); private set
+    val mode: Mode get() = modePicked ?: Mode.MEDIUM
 
     private var searchChosen by mutableStateOf<SearchEngine?>(null)
     /** Chosen engine; until the user picks one, Lodica Search while a server is linked, DuckDuckGo otherwise. */
@@ -216,6 +227,7 @@ object Prefs {
         Secret.init(ctx); Secret.put("deviceGate", null); sp.edit().remove("gatedHosts").apply()
         appCtx = ctx.applicationContext
         searchChosen = runCatching { SearchEngine.valueOf(sp.getString("search", "")!!) }.getOrNull()
+        modePicked = runCatching { Mode.valueOf(sp.getString("mode", "")!!) }.getOrNull()
         searchFallback = runCatching { SearchEngine.valueOf(sp.getString("searchFallback", "")!!) }.getOrNull()?.takeIf { it != SearchEngine.LODICA } ?: SearchEngine.DUCKDUCKGO
         darkPages = sp.getBoolean("darkPages", true)
         httpsOnly = sp.getBoolean("httpsOnly", true)
@@ -380,6 +392,8 @@ object Prefs {
     fun updateSearchFallback(v: SearchEngine) { searchFallback = v; sp.edit().putString("searchFallback", v.name).apply(); Helper.push() }
     fun updateSearch(v: SearchEngine) { searchChosen = v; sp.edit().putString("search", v.name).apply(); Helper.push() }
     fun updateForceDark(v: Boolean) { forceDark = v; sp.edit().putBoolean("forceDark", v).apply(); Engine.applyPrefs(); Helper.push() }
+    fun updateMode(v: Mode) { modePicked = v; sp.edit().putString("mode", v.name).apply(); Engine.applyMode(); Helper.push() }
+
     fun updateDarkPages(v: Boolean) { darkPages = v; sp.edit().putBoolean("darkPages", v).apply(); Engine.applyPrefs(); Helper.push() }
     fun updateHttpsOnly(v: Boolean) { httpsOnly = v; sp.edit().putBoolean("httpsOnly", v).apply(); Engine.applyPrefs() }
     /** User shortcuts as (url, name) pairs. */

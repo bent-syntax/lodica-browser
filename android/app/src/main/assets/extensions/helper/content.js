@@ -5,6 +5,9 @@
 // keep those sites off the VPS. The top frame always connects so the menu action works on any
 // page; subframes connect once they hold a field.
 (() => {
+  // Features mode registers this file in every frame too, so a frame can get it twice.
+  if (window.__lodicaHelper) return;
+  window.__lodicaHelper = true;
   const TOP = window === window.top;
   const KEY = /e-?mail|user-?name|login|identifier|account/i;
   const SKIP = /search|query|otp|code|phone|tel|zip|postal|captcha|coupon|promo/i;

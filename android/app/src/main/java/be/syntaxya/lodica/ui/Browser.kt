@@ -131,6 +131,7 @@ fun LodicaRoot() {
         DownloadAnim()
         Ui.picker?.let { PickerDialog(it) }
         Ui.totpAsk?.let { TotpAskDialog(it) }
+        ModePickDialog()
     }
 }
 

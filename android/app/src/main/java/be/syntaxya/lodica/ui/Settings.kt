@@ -96,6 +96,7 @@ import be.syntaxya.lodica.engine.Language
 import be.syntaxya.lodica.engine.LinkKey
 import be.syntaxya.lodica.engine.PcTabs
 import be.syntaxya.lodica.engine.Prefs
+import be.syntaxya.lodica.engine.Mode
 import be.syntaxya.lodica.engine.TestSession
 import be.syntaxya.lodica.engine.Meter
 import be.syntaxya.lodica.engine.UserAgent
@@ -320,6 +321,9 @@ fun SettingsScreen() {
             Spacer(Modifier.height(8.dp))
                 }
                 7 -> {
+                    Section("Mode")
+            ModeRows(Prefs.mode) { Prefs.updateMode(it) }
+
                     Section("Blocking")
             SwitchRow("Reject cookie banners", "Click \"Reject all\" or hide consent pop-ups", Prefs.cookieReject) { Prefs.updateCookieReject(it) }
             SwitchRow("Smartschool: sign in with Microsoft", "Click \"Microsoft\" on the Smartschool login page when you are already signed in to Microsoft. No password is stored", Prefs.smartschoolMs) { Prefs.updateSmartschoolMs(it) }
@@ -356,7 +360,8 @@ fun SettingsScreen() {
                 }
                 6 -> {
                     StatusCard(LodicaIcons.Shield, if (Engine.ublock != null) "Protection is on" else "Protection is off",
-                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted." else "The blocker is not loaded.")
+                        if (Engine.ublock != null) "Trackers and ads are blocked on every site you have not trusted."
+                        else if (Prefs.mode == Mode.FAST) "Fast mode: standard tracking protection, no ad blocker." else "The blocker is not loaded.")
                     Section("Passwords")
             LinkRow("Passwords") { Ui.go(Screen.Passwords) }
                     val pinAct = LocalContext.current as FragmentActivity
@@ -534,7 +539,7 @@ fun SettingsScreen() {
             }
             var verTaps by remember { mutableIntStateOf(0) }
             Box(Modifier.clickable { if (!Prefs.testUnlocked && ++verTaps >= 7) Prefs.unlockTest() }) { InfoRow("Lodica", version) }
-            InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: if (Engine.ublockFailed) "not loaded" else "loading…")
+            InfoRow("uBlock Origin", Engine.ublock?.metaData?.version ?: if (Prefs.mode == Mode.FAST) "off in Fast mode" else if (Engine.ublockFailed) "not loaded" else "loading…")
             InfoRow("Engine", "GeckoView")
             var diagTaps by remember { mutableIntStateOf(0) }
             Box(Modifier.clickable { diagTaps++ }) { InfoRow("Build", android.os.Build.MODEL + ", Android " + android.os.Build.VERSION.RELEASE) }
