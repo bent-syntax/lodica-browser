@@ -112,7 +112,7 @@ const userSettingsDefault = {
     externalLists: '',
     firewallPaneMinimized: true,
     hyperlinkAuditingDisabled: true,
-    ignoreGenericCosmeticFilters: false,
+    ignoreGenericCosmeticFilters: true, // Lodica: generic hide rules survey every DOM change in every frame, too slow on phones
     importedLists: [],
     largeMediaSize: 50,
     parseAllABPHideFilters: true,

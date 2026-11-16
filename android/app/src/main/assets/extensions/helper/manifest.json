@@ -83,6 +83,17 @@
       ],
       "run_at": "document_start",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "frame.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "incognito": "spanning"
