@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.18.4 (versionCode 271)
+
+- Android: big pages and benchmarks no longer keep the dark-page recolour running past 8000 elements, which frees the main thread. On the OnePlus the Speedometer 2.0 baseline was 73.8 ± 3.8 before this change; the new score is not measured yet.
+
 ## 1.18.3 (versionCode 270)
 
 Desktop password, tab, room, relay and mail-alias helpers now run in the Rust core with the JavaScript kept as a fallback, including the proxy auto-config script, the alias site name and the own-address check. No change to what you see. Checked by parity tests in CI, not run on a device.
