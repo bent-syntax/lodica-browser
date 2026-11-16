@@ -26,6 +26,11 @@ fn num_json(n: f64) -> Value {
     if n.is_finite() { json!(n) } else { Value::Null }
 }
 
+fn entry_of(v: &Value) -> crate::vault::Entry {
+    let t = |k: &str| v.get(k).and_then(Value::as_str).unwrap_or("").to_string();
+    crate::vault::Entry { origin: t("origin"), user: t("user"), pass: t("pass"), saved: v["saved"].as_u64().unwrap_or(0) }
+}
+
 fn list_of(a: &Value) -> Vec<Value> {
     a.get("list").and_then(Value::as_array).cloned().unwrap_or_default()
 }
@@ -48,6 +53,26 @@ impl Shell {
                 .collect::<Vec<_>>()),
             "vault:save" => json!(self.vault.save(s(a, "origin"), s(a, "user"), s(a, "pass"), now)),
             "vault:remove" => json!(self.vault.remove(s(a, "origin"), s(a, "user"), now)),
+            "vault:load" => {
+                self.vault.pin = (!s(a, "salt").is_empty()).then(|| (s(a, "salt").to_string(), s(a, "hash").to_string()));
+                self.vault.entries = list_of(a).iter().map(entry_of).collect();
+                json!(true)
+            }
+            "vault:dump" => json!({
+                "pin": self.vault.pin.as_ref().map(|(salt, hash)| json!({"salt": salt, "hash": hash})),
+                "entries": self.vault.entries.iter().map(|e| json!({"origin": e.origin, "user": e.user, "pass": e.pass, "saved": e.saved})).collect::<Vec<_>>(),
+            }),
+            "vault:find" => json!(self
+                .vault
+                .find(s(a, "origin"))
+                .into_iter()
+                .map(|e| json!({"origin": e.origin, "user": e.user, "pass": e.pass, "saved": e.saved}))
+                .collect::<Vec<_>>()),
+            "vault:grant" => {
+                self.vault.grant(now);
+                json!(true)
+            }
+            "vault:check" => json!(self.vault.check(s(a, "pin"), now)),
             "tabs:close" => json!(self.tabs.close(s(a, "id"))),
             "tabs:move" => json!(self.tabs.move_to(s(a, "id"), s(a, "to"))),
             "tabs:archive" => json!(self.tabs.archive(s(a, "id"))),
