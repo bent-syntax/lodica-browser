@@ -1,3 +1,8 @@
+## 1.18.7
+
+- Android: the page now starts below the status bar instead of drawing under it, so the toolbar and page no longer overlap the phone's clock and icons (not in fullscreen).
+- Desktop: fixed the release build, which failed because the preload generator expected the helper script to start with a line that the 1.18.6 helper no longer has.
+
 ## 1.18.6
 
 - Android: new Fast, Medium and Features modes, chosen in a first-run picker that shows until you pick one (Medium is the default in Settings). Fast uses standard tracking protection, turns off fingerprinting protection and uBlock, and loads no helper script in embedded frames. Medium keeps the strict settings and a small probe in embedded frames. Features also loads the full helper in every frame. On the OnePlus, Speedometer 2.0 scored 138 ± 6.3 in Fast and 138 in Medium, so Fast is not faster than Medium there; the remaining gap to 177 (all protections and helper off) is not explained yet.

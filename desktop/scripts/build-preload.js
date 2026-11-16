@@ -37,7 +37,8 @@ const browser = { runtime: { connectNative() {
 `;
 
 swap('"use strict";\n', '"use strict";\n' + SHIM);
-swap("\n(() => {\n  const TOP", "\nconst lodicaMain = () => {\n  const TOP");
+if (!js.includes("\n(() => {\n")) throw new Error("build-preload: first IIFE not found");
+js = js.replace("\n(() => {\n", "\nconst lodicaMain = () => {\n"); // first one only
 // The first IIFE becomes a function run once the document is ready. Later IIFEs (touch
 // gestures) stay as they are, so only the first closing line is rewritten.
 if (!js.includes("\n})();\n")) throw new Error("build-preload: IIFE end not found");

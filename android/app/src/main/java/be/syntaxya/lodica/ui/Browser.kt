@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -250,8 +251,8 @@ private fun BrowserScreen() {
             // The borders of a turned page show this dark gradient (Tilt rotate).
             .then(if (Tilt.active) Modifier.background(androidx.compose.ui.graphics.Brush.verticalGradient(
                 listOf(androidx.compose.ui.graphics.Color(0xFF0B0C12), androidx.compose.ui.graphics.Color(0xFF132052)))) else Modifier)
-            // Page fills the whole screen: no system-bar padding. The bottom bar pads itself for the nav bar.
-            .then(if (full) Modifier else Modifier.imePadding())
+            // Page sits below the status bar (not in fullscreen). The bottom bar pads itself for the nav bar.
+            .then(if (full) Modifier else Modifier.statusBarsPadding().imePadding())
             .clipToBounds()
             // Long-press where the hidden bar sat brings it back. Watches only (never consumes), so taps there still reach the page.
             .pointerInput(Ui.barHidden) {

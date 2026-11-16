@@ -54,6 +54,9 @@ const browser = { runtime: { connectNative() {
 // keep those sites off the VPS. The top frame always connects so the menu action works on any
 // page; subframes connect once they hold a field.
 const lodicaMain = () => {
+  // Features mode registers this file in every frame too, so a frame can get it twice.
+  if (window.__lodicaHelper) return;
+  window.__lodicaHelper = true;
   const TOP = window === window.top;
   const KEY = /e-?mail|user-?name|login|identifier|account/i;
   const SKIP = /search|query|otp|code|phone|tel|zip|postal|captcha|coupon|promo/i;
@@ -830,7 +833,7 @@ const lodicaMain = () => {
   // the previous inline values remembered so that switching the option off restores the page exactly.
   const DARK_PROPS = ["color", "background-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color"];
   const DARK_SKIP = new Set(["IMG", "VIDEO", "CANVAS", "PICTURE", "IFRAME", "EMBED", "OBJECT", "SOURCE", "SCRIPT", "STYLE", "LINK", "META", "HEAD", "TITLE", "NOSCRIPT", "BR", "WBR"]);
-  const DARK_MAX = 40000;
+  const DARK_MAX = 8000; // shortcut: big or churning pages (apps, benchmarks) stop recolouring past this, to keep the main thread free
   let darkRecs = new WeakMap();
   let darkTouched = [];
   let darkObs = null;
@@ -1046,6 +1049,7 @@ const lodicaMain = () => {
       let pending = new Set();
       let queued = false;
       darkObs = new MutationObserver((muts) => {
+        if (darkCount >= DARK_MAX) { darkObs.disconnect(); if (darkAttrObs) darkAttrObs.disconnect(); return; }
         for (const m of muts) for (const n of m.addedNodes) if (n.nodeType === 1) pending.add(n);
         if (queued || !pending.size) return;
         queued = true;
@@ -1058,6 +1062,7 @@ const lodicaMain = () => {
       });
       darkObs.observe(document.documentElement, { childList: true, subtree: true });
       darkAttrObs = new MutationObserver((muts) => {
+        if (darkCount >= DARK_MAX) { darkAttrObs.disconnect(); return; }
         for (const m of muts) {
           const el = m.target;
           const rec = darkRecs.get(el);
