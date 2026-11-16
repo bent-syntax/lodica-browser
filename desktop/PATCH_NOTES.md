@@ -1,3 +1,7 @@
+## 1.18.8
+
+- Android: change the performance level (Fast, Medium or Features) any time in Settings, Browsing, Performance level. The change applies right away.
+
 ## 1.18.7
 
 - Android: the page now starts below the status bar instead of drawing under it, so the toolbar and page no longer overlap the phone's clock and icons (not in fullscreen).

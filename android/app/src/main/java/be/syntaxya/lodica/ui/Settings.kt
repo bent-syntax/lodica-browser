@@ -245,6 +245,7 @@ fun SettingsScreen() {
                     Section("Browsing")
             SwitchRow("Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site", Prefs.showRedirectOrigin) { Prefs.updateShowRedirectOrigin(it) }
             LanguagePicker()
+            ModePicker()
             QualityPicker()
             SwitchRow("Smoother scrolling", "Faster page drawing. Takes effect after you restart the browser", Prefs.fastRender) { Prefs.updateFastRender(it) }
             TiltRotateSection()
@@ -1102,6 +1103,28 @@ private fun SilentInstallSection() {
 }
 
 @Composable
+private fun ModePicker() {
+    var open by remember { mutableStateOf(false) }
+    Row(
+        Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 20.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Performance level", color = Mist, fontSize = 15.sp)
+            Text(Prefs.mode.blurb, color = Muted, fontSize = 13.sp)
+        }
+        Text(Prefs.mode.label, color = Muted, fontSize = 15.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(start = 12.dp))
+    }
+    if (open) AlertDialog(
+        onDismissRequest = { open = false },
+        containerColor = GraphiteRaised, titleContentColor = Mist, textContentColor = Muted,
+        title = { Text("Performance level") },
+        text = { ModeRows(Prefs.mode) { Prefs.updateMode(it); open = false } },
+        confirmButton = {},
+    )
+}
+
+@Composable
 private fun QualityPicker() {
     var open by remember { mutableStateOf(false) }
     Box {
@@ -1724,6 +1747,7 @@ private val SettingsIndex = listOf(
     SettingsEntry("User agent", 12, "browser identity"),
     SettingsEntry("Language", 1, "accept language"),
     SettingsEntry("Video quality", 1, "data saver"),
+    SettingsEntry("Performance level", 1, "performance mode fast medium features speed lightweight"),
     SettingsEntry("Smoother scrolling", 1, "scroll smooth fast render surface lag jank restart"),
     SettingsEntry("Data use", 8, "meter bandwidth"),
     SettingsEntry("Ask AI", 2, "ai generate always allow summary assistant google overview gemini"),
