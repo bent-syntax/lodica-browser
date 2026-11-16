@@ -54,16 +54,16 @@ object Engine {
         Notebook.onChange = { PcTabs.changed() }
 
         val blocking = ContentBlocking.Settings.Builder()
-            .antiTracking(ContentBlocking.AntiTracking.NONE)
-            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.NONE)
+            .antiTracking(ContentBlocking.AntiTracking.STRICT)
+            .enhancedTrackingProtectionLevel(ContentBlocking.EtpLevel.STRICT)
             .cookieBehavior(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
             .cookieBehaviorPrivateMode(ContentBlocking.CookieBehavior.ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS)
-            .strictSocialTrackingProtection(false)
-            .cookiePurging(false)
+            .strictSocialTrackingProtection(true)
+            .cookiePurging(true)
             .emailTrackerBlockingPrivateMode(true)
             .queryParameterStrippingEnabled(true)
             .queryParameterStrippingPrivateBrowsingEnabled(true)
-            .bounceTrackingProtectionMode(ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_DISABLED)
+            .bounceTrackingProtectionMode(ContentBlocking.BounceTrackingProtectionMode.BOUNCE_TRACKING_PROTECTION_MODE_ENABLED)
             .safeBrowsing(ContentBlocking.SafeBrowsing.DEFAULT)
             .build()
 
@@ -94,22 +94,22 @@ object Engine {
         // Publish at once: a throw below must not leave rt null, or a relaunch would create a second runtime.
         rt = runtime
         step("fingerprinting") {
-            runtime.settings.setFingerprintingProtection(false)
-            runtime.settings.setFingerprintingProtectionPrivateBrowsing(false)
+            runtime.settings.setFingerprintingProtection(true)
+            runtime.settings.setFingerprintingProtectionPrivateBrowsing(true)
         }
         // Set again after the protection flags: the page colour scheme must follow the Dark pages switch.
         step("colorScheme") { runtime.settings.setPreferredColorScheme(colorScheme()) }
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
         step("notifications") { SiteNotify.init(ctx); runtime.webNotificationDelegate = SiteNotify }
 
-        step("ublock") { runtime.webExtensionController
+        if (false) step("ublock") { runtime.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
             .accept({ ext ->
                 if (ext == null) { ublockFailed = true; return@accept }
                 ublock = ext
                 runtime.webExtensionController.setAllowedInPrivateBrowsing(ext, true)
             }, { e -> ublockFailed = true; Log.w(TAG, "uBlock Origin failed to load", e) }) }
-        if (false) step("helper") { Helper.install(ctx, runtime) }
+        step("helper") { Helper.install(ctx, runtime) }
         step("extensions") { Extensions.init(ctx) }
         // GeckoView installs its own crash handler while starting; wrap it so Java crashes are still recorded.
         val h = android.os.Handler(android.os.Looper.getMainLooper())
