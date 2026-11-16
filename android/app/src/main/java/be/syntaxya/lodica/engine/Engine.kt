@@ -102,7 +102,7 @@ object Engine {
         step("autocomplete") { runtime.autocompleteStorageDelegate = Vault }
         step("notifications") { SiteNotify.init(ctx); runtime.webNotificationDelegate = SiteNotify }
 
-        if (false) step("ublock") { runtime.webExtensionController
+        step("ublock") { runtime.webExtensionController
             .ensureBuiltIn("resource://android/assets/extensions/ubo/", "uBlock0@raymondhill.net")
             .accept({ ext ->
                 if (ext == null) { ublockFailed = true; return@accept }
