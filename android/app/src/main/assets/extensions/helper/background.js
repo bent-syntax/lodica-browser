@@ -182,8 +182,15 @@ browser.webRequest.onBeforeRequest.addListener(stripYoutubeAds, {
 const asks = new Map();
 let askId = 0;
 
-browser.runtime.onMessage.addListener(async (msg) => {
+browser.runtime.onMessage.addListener(async (msg, sender) => {
   if (!msg) return undefined;
+  // frame.js found a sign-in field or consent dialog in a subframe: load the full helper into that frame only.
+  if (msg.type === "frameHelper") {
+    if (sender.tab && sender.frameId) {
+      browser.tabs.executeScript(sender.tab.id, { frameId: sender.frameId, file: "/content.js", runAt: "document_idle" }).catch(() => {});
+    }
+    return undefined;
+  }
   // Smartschool sign-in: does the browser already hold a Microsoft sign-in cookie? Names only, values never read.
   if (msg.type === "msSession") {
     try {
