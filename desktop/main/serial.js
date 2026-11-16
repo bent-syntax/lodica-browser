@@ -8,13 +8,19 @@ let saved = store.load("devices", {}); // "origin|key" -> true
 const memory = new Set(); // grants made in private sessions
 const persist = () => store.save("devices", () => saved);
 
-const originOf = u => { try { const x = new URL(u); return x.protocol === "file:" ? "file://" : x.origin; } catch { return ""; } };
-const keyOf = (type, d) => [type, d.vendorId ?? "", d.productId ?? "", d.serialNumber ?? "", d.portName ?? d.name ?? ""].join(":");
+const originOfJs = u => { try { const x = new URL(u); return x.protocol === "file:" ? "file://" : x.origin; } catch { return ""; } };
+const keyOfJs = (type, d) => [type, d.vendorId ?? "", d.productId ?? "", d.serialNumber ?? "", d.portName ?? d.name ?? ""].join(":");
 
-function label(d) {
+function labelJs(d) {
   const n = d.displayName || d.productName || d.name || d.portName || "Unknown device";
   return d.portName && !n.includes(d.portName) ? `${n} (${d.portName})` : n;
 }
+
+// Rust core does the work when the addon is loaded; the JS originals stay as fallback and for parity tests.
+const rs = require("./native").call;
+const originOf = rs ? u => rs("serial:originOf", { url: String(u || "") }) : originOfJs;
+const keyOf = rs ? (type, d) => rs("serial:keyOf", { type: String(type), device: d }) : keyOfJs;
+const label = rs ? d => rs("serial:label", { device: d }) : labelJs;
 
 function grant(ses, origin, key) {
   const id = origin + "|" + key;
@@ -65,4 +71,4 @@ function init(d) {
 
 function reset() { saved = {}; memory.clear(); persist(); return true; }
 
-module.exports = { init, reset };
+module.exports = { init, reset, _js: { originOf: originOfJs, keyOf: keyOfJs, label: labelJs } };

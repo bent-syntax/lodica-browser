@@ -48,7 +48,7 @@ function otp(b) {
 }
 
 /** Entries of an export link, or null when invalid. HOTP entries are skipped. */
-function parse(link) {
+function parseJs(link) {
   const t = String(link || "").trim();
   if (!/^otpauth-migration:\/\//i.test(t)) return null;
   const m = /[?&]data=([^&#]*)/.exec(t);
@@ -64,4 +64,7 @@ function parse(link) {
   } catch { return null; }
 }
 
-module.exports = { parse, base32 };
+const rs = require("./native").call;
+const parse = rs ? link => rs("totp:migrate", { link: String(link || "") }) : parseJs;
+
+module.exports = { parse, base32, _js: { parse: parseJs } };
