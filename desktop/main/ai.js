@@ -1,5 +1,5 @@
 // Browser assistant: a Hearth server with the user's own address and key, else an Anthropic API key, else the local `claude` CLI.
-// The Anthropic and CLI paths use Haiku 5.5 only; Hearth picks the model itself ("auto").
+// The Anthropic and CLI paths use the model chosen in the panel (Haiku 5.5 by default); Hearth picks the model itself ("auto").
 const { spawn, execFile } = require("child_process");
 const store = require("./store");
 const memory = require("./memory");
@@ -113,7 +113,7 @@ const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b =
 /** One Haiku 5.5 call. Web search is tried first (deep research); when the org has it off the call retries without. */
 async function viaApi(messages, system, search, plain, opts = {}) {
   const c = sdk();
-  const base = { model: opts.model || MODEL, max_tokens: opts.maxTokens || (search ? 2048 : 1000), system: search || plain ? system : system + FOLLOW_UP, messages };
+  const base = { model: opts.model || prefs.p.aiModel || MODEL, max_tokens: opts.maxTokens || (search ? 2048 : 1000), system: search || plain ? system : system + FOLLOW_UP, messages };
   const tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 1 }];
   let input = 0, output = 0, msg, conv = messages.slice();
   const add = m => { const u = m.usage || {}; input += (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0); output += u.output_tokens || 0; };
@@ -134,7 +134,7 @@ async function viaApi(messages, system, search, plain, opts = {}) {
   return { text: textOf(msg), input, output };
 }
 
-function viaCli(prompt, system, model = "claude-haiku-5-5") {
+function viaCli(prompt, system, model = prefs.p.aiModel || MODEL) {
   return new Promise((resolve, reject) => {
     const p = spawn("claude", ["-p", "--model", model, "--output-format", "json", "--append-system-prompt", system], {
       windowsHide: true, shell: process.platform === "win32", stdio: ["pipe", "pipe", "pipe"],

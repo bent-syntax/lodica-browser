@@ -110,6 +110,8 @@ object Prefs {
     var aiAlways by mutableStateOf(false); private set
     /** How much the AI may do on its own in the browser: read, plan, edit or auto. */
     var aiAgentMode by mutableStateOf("edit"); private set
+    /** Model that answers AI chat and agent steps. */
+    var aiModel by mutableStateOf(Ai.MODEL); private set
     /** Most actions the AI may take in one browser task. */
     var aiAgentMaxSteps by mutableStateOf(20); private set
     var googleOverview by mutableStateOf(false); private set
@@ -239,6 +241,7 @@ object Prefs {
         showRedirectOrigin = sp.getBoolean("showRedirectOrigin", false)
         aiAlways = sp.getBoolean("aiAlways", false)
         googleOverview = sp.getBoolean("googleOverview", false)
+        aiModel = sp.getString("aiModel", Ai.MODEL).orEmpty().takeIf { it in Ai.MODELS } ?: Ai.MODEL
         aiAgentMode = sp.getString("aiAgentMode", "edit").orEmpty().takeIf { it in AiAgent.MODES } ?: "edit"
         aiAgentMaxSteps = sp.getInt("aiAgentMaxSteps", 20).coerceAtLeast(1)
         plannerIcs = sp.getString("plannerIcs", "") ?: ""
@@ -450,6 +453,7 @@ object Prefs {
     fun updatePlannerSlots(v: String) { plannerSlots = v.take(4000); sp.edit().putString("plannerSlots", plannerSlots).apply(); Helper.push() }
     fun updateAiAlways(v: Boolean) { aiAlways = v; sp.edit().putBoolean("aiAlways", v).apply(); Helper.push() }
     fun updateGoogleOverview(v: Boolean) { googleOverview = v; sp.edit().putBoolean("googleOverview", v).apply() }
+    fun updateAiModel(v: String) { if (v !in Ai.MODELS) return; aiModel = v; sp.edit().putString("aiModel", v).apply() }
     fun updateAiAgentMode(v: String) { if (v !in AiAgent.MODES) return; aiAgentMode = v; sp.edit().putString("aiAgentMode", v).apply() }
     fun updateAiAgentMaxSteps(v: Int) { if (v < 1) return; aiAgentMaxSteps = v; sp.edit().putInt("aiAgentMaxSteps", v).apply() }
     fun updateShowRedirectOrigin(v: Boolean) { showRedirectOrigin = v; sp.edit().putBoolean("showRedirectOrigin", v).apply() }

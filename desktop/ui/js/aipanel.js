@@ -2,6 +2,7 @@
 // Right-hand AI panel: chat or browse mode, older chats, full screen and minimize. Runs in its own view.
 const inv = (...a) => window.lodica.invoke(...a);
 const $ = id => document.getElementById(id);
+const MODELS = { "claude-haiku-5-5": "Haiku 5.5", "claude-sonnet-5-5": "Sonnet 5.5", "claude-opus-5-5": "Opus 5.5" };
 const LEVELS = { read: "Read only", plan: "Plan", edit: "Edit", auto: "Full auto" };
 let pluginVars = [], pluginKey = "";
 const applyPlugin = async id => {
@@ -23,6 +24,12 @@ const applyPrefs = p => {
   applyPlugin((p && p.themePlugin) || "");
   document.documentElement.style.setProperty("--ui-a", "1");
   const cur = LEVELS[p && p.aiAgentMode] ? p.aiAgentMode : "edit";
+  const sel = $("mdl");
+  if (!sel.firstChild) {
+    for (const k of Object.keys(MODELS)) sel.add(new Option(MODELS[k], k));
+    sel.addEventListener("change", () => inv("prefs.set", "aiModel", sel.value));
+  }
+  sel.value = MODELS[p && p.aiModel] ? p.aiModel : "claude-haiku-5-5";
   const box = $("lvl");
   if (!box.firstChild) for (const k of Object.keys(LEVELS)) {
     const b = document.createElement("button"); b.dataset.k = k; b.textContent = LEVELS[k]; b.title = LEVELS[k];

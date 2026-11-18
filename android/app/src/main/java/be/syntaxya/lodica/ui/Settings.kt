@@ -899,6 +899,9 @@ private fun AiSection() {
         color = Muted, fontSize = 12.sp, lineHeight = 16.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
     )
     Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Ai.MODELS.forEach { (k, label) -> Chip(label, Prefs.aiModel == k) { Prefs.updateAiModel(k) } }
+    }
+    Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf("read" to "Read only", "plan" to "Plan", "edit" to "Edit", "auto" to "Full auto").forEach { (k, label) ->
             Chip(label, Prefs.aiAgentMode == k) { Prefs.updateAiAgentMode(k) }
         }

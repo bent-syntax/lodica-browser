@@ -38,6 +38,8 @@ object Ai {
     private const val CONTEXT_CHARS = 480
     /** Haiku 5.5 only, on purpose: cheap and fast. */
     const val MODEL = "claude-haiku-5-5"
+    /** Models the user can pick for chat and agent steps. */
+    val MODELS = linkedMapOf(MODEL to "Haiku 5.5", "claude-sonnet-5-5" to "Sonnet 5.5", "claude-opus-5-5" to "Opus 5.5")
     private const val SYSTEM = "You are Lodica's browser assistant. Plain text only, no markdown headings. " +
         "Answer the question that was actually asked, directly. Keep it short for simple questions and thorough for hard ones. " +
         "A 'Background about the user' list may follow. It is private context, not a topic. Use a fact only when the question is about the user or the fact changes the answer. " +
@@ -230,7 +232,7 @@ object Ai {
 
     /** One browser-agent step: the caller's own system prompt, no search, no memory, the reply is raw text. */
     /** [model] defaults to Haiku; [pngB64] is an optional picture sent with the last user turn (API key only, Hearth and the CLI get the text). */
-    fun agentStep(turns: List<Pair<String, String>>, system: String, maxTokens: Int = 600, model: String = MODEL, pngB64: String? = null, done: (Result<String>) -> Unit) {
+    fun agentStep(turns: List<Pair<String, String>>, system: String, maxTokens: Int = 600, model: String = Prefs.aiModel, pngB64: String? = null, done: (Result<String>) -> Unit) {
         val key = apiKey
         io.execute {
             val r = runCatching {
@@ -459,7 +461,7 @@ object Ai {
         var last: JSONObject? = null
         var failed = !search
         for (i in 0 until (if (search) 4 else 0)) {
-            val body = JSONObject().put("model", MODEL).put("max_tokens", 4096).put("system", system + RESEARCH).put("messages", conv)
+            val body = JSONObject().put("model", Prefs.aiModel).put("max_tokens", 4096).put("system", system + RESEARCH).put("messages", conv)
                 .put("tools", JSONArray().put(JSONObject().put("type", "web_search_20250305").put("name", "web_search").put("max_uses", 1)))
             val (code, j) = post(key, body)
             if (code == 400 || code == 403) { failed = true; break }
@@ -469,7 +471,7 @@ object Ai {
             conv.put(JSONObject().put("role", "assistant").put("content", j.optJSONArray("content")))
         }
         if (failed || last == null) {
-            val (code, j) = post(key, JSONObject().put("model", MODEL).put("max_tokens", if (search) 4096 else 1500).put("system", if (search) system else system + FOLLOW_UP).put("messages", msgs()))
+            val (code, j) = post(key, JSONObject().put("model", Prefs.aiModel).put("max_tokens", if (search) 4096 else 1500).put("system", if (search) system else system + FOLLOW_UP).put("messages", msgs()))
             if (code !in 200..299) throw apiError(code, j)
             add(j); last = j
         }
