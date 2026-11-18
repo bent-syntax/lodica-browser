@@ -1779,9 +1779,8 @@ const lodicaMain = () => {
     if (!spell.on) hideBubble();
   }
 
-  // Google results: restyle with the Lodica theme and add a Shopping link to Lodica Search.
   function googleTheme() {
-    const G = /(^|\.)google\.[a-z.]+$/.test(location.hostname) && location.pathname === "/search" && window === window.top;
+    const G = /(^|\.)google\.[a-z.]+$/.test(location.hostname) && location.pathname === "/search" && TOP;
     let st = document.getElementById("lodica-gtheme");
     const t = page.theme;
     if (!G || !t) { if (st) st.remove(); return; }
@@ -1803,7 +1802,8 @@ input,textarea,.RNNXgb,.SDkEP,.a4bIc{background:${t.raised}!important;color:${t.
       const a = document.createElement("a");
       a.id = "lodica-shop";
       a.textContent = "Shop";
-      a.href = "lodica://search/search.html?c=shop&q=" + encodeURIComponent(q);
+      a.href = "#";
+      a.addEventListener("click", e => { e.preventDefault(); port && port.postMessage({ type: "shop", q }); });
       bar.appendChild(a);
     }
   }
@@ -2044,7 +2044,7 @@ if (/^https?:$/.test(location.protocol) || (location.protocol === "lodica:" && l
 if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   const NS = "http://www.w3.org/2000/svg";
   const pageKey = () => location.origin + location.pathname + location.search;
-  let key = "", data = { strokes: [], moves: [] };
+  let key = "", data = { strokes: [], moves: [], texts: [] };
   let mode = "", tool = "pen", color = "#F59E0B", size = 4, theme = null, bar = null, svg = null, host = null;
 
   const save = () => ipcRenderer.send("drawSave", key, data);
@@ -2095,6 +2095,9 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   };
   const shift = (el, dx, dy) => { if (dx || dy) el.style.setProperty("translate", dx + "px " + dy + "px", "important"); else el.style.removeProperty("translate"); };
   let applyTimer = 0;
+  const origText = new WeakMap();
+  const SNAP = 6, GRID = 8;
+  const offs = el => { const m = /(-?[\d.]+)px (-?[\d.]+)px/.exec(el.style.translate || ""); return m ? [+m[1], +m[2]] : [0, 0]; };
   function applyMoves(tries = 0) {
     clearTimeout(applyTimer);
     let missing = false;
@@ -2103,6 +2106,11 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
       try { el = document.querySelector(m.s); } catch { /* bad selector */ }
       if (el) shift(el, m.x, m.y); else missing = true;
     }
+    for (const t of data.texts) {
+      let el = null;
+      try { el = document.querySelector(t.s); } catch { /* bad selector */ }
+      if (el) { if (!origText.has(el)) origText.set(el, el.textContent); if (el.textContent !== t.t) el.textContent = t.t; } else missing = true;
+    }
     // Pages that build their content late: keep looking for a few seconds.
     if (missing && tries < 20) applyTimer = setTimeout(() => applyMoves(tries + 1), 500);
   }
@@ -2110,13 +2118,15 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     // The preload can run before the page has a root element; the interval and DOMContentLoaded retry.
     if (!document.documentElement) return;
     key = pageKey();
-    data = ipcRenderer.sendSync("drawLoad", key) || { strokes: [], moves: [] };
+    data = ipcRenderer.sendSync("drawLoad", key) || { strokes: [], moves: [], texts: [] };
+    if (!data.texts) data.texts = [];
     render(); applyMoves();
   }
 
   function eraseAll() {
     for (const m of data.moves) { try { const el = document.querySelector(m.s); if (el) shift(el, 0, 0); } catch { /* ignore */ } }
-    data = { strokes: [], moves: [] };
+    for (const t of data.texts) { try { const el = document.querySelector(t.s); if (el && origText.has(el)) el.textContent = origText.get(el); } catch { /* ignore */ } }
+    data = { strokes: [], moves: [], texts: [] };
     render(); save();
   }
 
@@ -2138,7 +2148,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   function drawBar() {
     if (!bar) bar = buildBar();
     if (mode === "move") {
-      bar.innerHTML = `<span class="m">Move: drag any spot on the page. Esc to finish.</span><button data-a="erase" class="x">Erase from tab</button><button data-a="done">Done</button>`;
+      bar.innerHTML = `<span class="m">Move: drag any spot on the page, double-click text to edit it. Snaps to a grid and to other spots; hold Alt for free movement. Esc to finish.</span><button data-a="erase" class="x">Erase from tab</button><button data-a="done">Done</button>`;
     } else {
       const t = (id, l) => `<button data-t="${id}" class="${tool === id ? "on" : ""}">${l}</button>`;
       bar.innerHTML = t("pen", "Pen") + t("hl", "Highlighter") + t("eraser", "Eraser") +
@@ -2177,9 +2187,17 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     if ("s" in t.dataset) size = +t.value;
   }, true);
 
+  // Offsets are measured from the element's original slot: snap to the nearest other slot edge, else to the grid.
+  const snapAxis = (v, slots) => {
+    let best = null;
+    for (const c of slots) if (Math.abs(c - v) <= SNAP && (best === null || Math.abs(c - v) < Math.abs(best - v))) best = c;
+    return best !== null ? best : Math.round(v / GRID) * GRID;
+  };
+  const snapTo = (x, y, free) => free ? [x, y] : [snapAxis(x, dragEl.xs), snapAxis(y, dragEl.ys)];
   const stop = e => { e.preventDefault(); e.stopPropagation(); };
   addEventListener("pointerdown", e => {
     if (!mode || e.button !== 0 || onBar(e)) return;
+    if (e.target.isContentEditable) return;
     stop(e);
     const x = e.pageX, y = e.pageY;
     if (mode === "draw") {
@@ -2190,7 +2208,19 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
       const el = document.elementFromPoint(e.clientX, e.clientY);
       if (!el || el === document.documentElement || el === document.body || el === host) return;
       let s = ""; try { s = cssPath(el); } catch { return; }
-      dragEl = { el, s, x, y, m: data.moves.find(m => m.s === s) || { s, x: 0, y: 0 } };
+      const m = data.moves.find(v => v.s === s) || { s, x: 0, y: 0 };
+      const r = el.getBoundingClientRect(), [ox, oy] = offs(el);
+      const home = { l: r.left - ox, t: r.top - oy, w: r.width, h: r.height };
+      const xs = [], ys = [];
+      for (const o of Array.from((el.parentElement || document.body).children).slice(0, 80)) {
+        if (o === el || o === host) continue;
+        const q = o.getBoundingClientRect(), [qx, qy] = offs(o);
+        if (!q.width || !q.height) continue;
+        const l = q.left - qx, t = q.top - qy;
+        xs.push(l - home.l, l + q.width - home.l - home.w);
+        ys.push(t - home.t, t + q.height - home.t - home.h);
+      }
+      dragEl = { el, s, x, y, m, xs, ys };
     }
   }, true);
   addEventListener("pointermove", e => {
@@ -2209,7 +2239,9 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
       if (data.strokes.length !== n) render();
     } else if (dragEl) {
       stop(e);
-      shift(dragEl.el, dragEl.m.x + e.pageX - dragEl.x, dragEl.m.y + e.pageY - dragEl.y);
+      const [nx, ny] = snapTo(dragEl.m.x + e.pageX - dragEl.x, dragEl.m.y + e.pageY - dragEl.y, e.altKey);
+      dragEl.nx = nx; dragEl.ny = ny;
+      shift(dragEl.el, nx, ny);
     }
   }, true);
   addEventListener("pointerup", e => {
@@ -2217,7 +2249,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     else if (cur) save();
     else if (dragEl) {
       const m = dragEl.m;
-      m.x += e.pageX - dragEl.x; m.y += e.pageY - dragEl.y;
+      m.x = dragEl.nx ?? m.x; m.y = dragEl.ny ?? m.y;
       if (!data.moves.includes(m)) data.moves.push(m);
       data.moves = data.moves.filter(v => v.x || v.y);
       save();
@@ -2227,7 +2259,27 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   // A click ends a drag in move mode; the page must not also follow a link.
   addEventListener("click", e => { if (mode && !onBar(e)) stop(e); }, true);
 
+  addEventListener("dblclick", e => {
+    if (mode !== "move" || onBar(e)) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el.children.length || !el.textContent.trim() || el === document.documentElement || el === document.body) return;
+    let s = ""; try { s = cssPath(el); } catch { return; }
+    stop(e);
+    if (!origText.has(el)) origText.set(el, el.textContent);
+    el.contentEditable = "plaintext-only"; el.focus();
+    const done = () => {
+      el.removeEventListener("blur", done);
+      el.removeAttribute("contenteditable");
+      data.texts = data.texts.filter(t => t.s !== s);
+      const t = el.textContent.slice(0, 500);
+      if (t !== origText.get(el)) data.texts.push({ s, t });
+      save();
+    };
+    el.addEventListener("blur", done);
+  }, true);
   addEventListener("keydown", e => {
+    const ed = document.activeElement && document.activeElement.isContentEditable ? document.activeElement : null;
+    if (ed && mode && (e.key === "Enter" || e.key === "Escape")) { stop(e); ed.blur(); return; }
     if (e.key === "Escape" && mode) { stop(e); setMode(mode); return; }
   }, true);
 
