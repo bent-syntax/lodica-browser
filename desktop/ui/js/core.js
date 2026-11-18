@@ -68,7 +68,7 @@ function optList(src) {
   return Object.keys(src).map((k) => ({ key: k, label: typeof src[k] === "string" ? src[k] : (src[k] && (src[k].label || src[k].name)) || k }));
 }
 function optLabel(src, key) { const o = optList(src).find((x) => x.key === key); return o ? o.label : (key || ""); }
-const engineLabel = () => optLabel(S.engines, S.prefs.search || "DUCKDUCKGO") || "DuckDuckGo";
+const engineLabel = () => optLabel(S.engines, S.prefs.search || "GOOGLE") || "Google";
 
 function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u || ""; } }
 function fmtBytes(n) {

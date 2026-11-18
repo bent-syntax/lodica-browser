@@ -93,10 +93,10 @@ function chips(items, cur, pick) {
 
 // 1. Search
 function secSearch() {
-  const cur = S.prefs.search || (S.relayAvail ? "LODICA" : "DUCKDUCKGO");
+  const cur = S.prefs.search || "GOOGLE";
   const out = [secHead("Search"), chips(optList(S.engines), cur, (k) => setPref("search", k))];
   out.push(setRow("Fallback search engine", S.relayAvail ? "Used when Lodica Search is chosen but the server cannot be reached" : "Lodica Search is not available on this computer, so this engine is used"),
-    chips(optList(S.engines).filter((o) => o.key !== "LODICA"), S.prefs.searchFallback || "DUCKDUCKGO", (k) => setPref("searchFallback", k)));
+    chips(optList(S.engines).filter((o) => o.key !== "LODICA"), S.prefs.searchFallback || "GOOGLE", (k) => setPref("searchFallback", k)));
   return out;
 }
 // 2. Browsing
