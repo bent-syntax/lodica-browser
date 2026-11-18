@@ -147,6 +147,8 @@ function wire(t, wc) {
     src.setWindowOpenHandler(handleOpen);
     src.on("did-create-window", win => {
       win.setMenuBarVisibility(false);
+      popupWins.add(win);
+      win.once("closed", () => popupWins.delete(win));
       // Like tabs after a swipe: a page that appears under a still cursor drops wheel events until a mouse move.
       win.webContents.once("did-finish-load", () => {
         try {
@@ -628,7 +630,12 @@ function init(d) {
   if (start) select(start.id); else create({});
 }
 
+/** Real popup windows (for example a school mail composer) that pages opened; the AI agent can read and control them. */
+const popupWins = new Set();
+const popups = () => [...popupWins].filter(w => !w.isDestroyed());
+
 module.exports = {
+  popups,
   HOME, init, byContents, all, current, open, info, listing, select, create, move, newTab: create, close, reopen,
   undoClose, closeAll, archive, setLogo, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
   _js, isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
