@@ -1,3 +1,9 @@
+## 1.19.1
+
+- AI model selector: pick Haiku, Sonnet or Opus 5.5 for chat and agent steps.
+- Start page shortcuts drop the circles; icons fill a rounded tile.
+- Address bar, tab and keyboard fixes.
+
 ## 1.19.0
 
 - Google is the default search engine on desktop and Android.

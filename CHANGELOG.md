@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.19.1 (versionCode 279)
+
+- AI model selector, popup control for the AI agent, desktop Performance level, Move mode snapping and text editing, rounded start page shortcuts, Google as default in desktop settings.
+
 ## 1.19.0 (versionCode 278)
 
 - Google is the default search engine on desktop and Android.

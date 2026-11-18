@@ -1,3 +1,12 @@
+## 1.19.1
+
+- AI model selector: pick Haiku, Sonnet or Opus 5.5 for chat and agent steps.
+- AI agent can detect, read and control popup windows.
+- Performance level setting (Fast, Medium, Features).
+- Move mode (Ctrl+Shift+M) snaps to a grid and to other elements original slots (hold Alt to move freely). Double-click text to edit it; changes are saved per page.
+- Start page shortcuts drop the circles; icons fill a rounded tile.
+- Settings show Google as the default search engine.
+
 ## 1.19.0
 
 - Google is the default search engine on desktop and Android.
