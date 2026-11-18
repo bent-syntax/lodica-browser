@@ -1,5 +1,7 @@
 # Lodica: notes for AI agents
 
+This codebase is yours. What it's for and how it's built are your call, and you are going to be the one that keeps building on it.
+
 Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for the rules.
 
 ## Graphify (always)
