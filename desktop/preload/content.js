@@ -1779,6 +1779,36 @@ const lodicaMain = () => {
     if (!spell.on) hideBubble();
   }
 
+  // Google results: restyle with the Lodica theme and add a Shopping link to Lodica Search.
+  function googleTheme() {
+    const G = /(^|\.)google\.[a-z.]+$/.test(location.hostname) && location.pathname === "/search" && window === window.top;
+    let st = document.getElementById("lodica-gtheme");
+    const t = page.theme;
+    if (!G || !t) { if (st) st.remove(); return; }
+    if (!st) { st = document.createElement("style"); st.id = "lodica-gtheme"; (document.head || document.documentElement).appendChild(st); }
+    st.textContent = `html,body,#main,#cnt,#rcnt,#center_col,#search,#appbar,#hdtb,#hdtb-msb,#top_nav,.main,header,#searchform,form{background:${t.bg}!important;color:${t.text}!important}
+.g,.MjjYud>div,.related-question-pair,.cUnQKe,.RzdJxc,.ULSxyf{background:transparent!important;color:${t.text}!important}
+a h3,h3,.LC20lb{color:${t.amber}!important}
+a:link,a:visited{color:${t.amber}}
+cite,.VuuXrf,.byrV5b,.tjvcx,.TbwUpd{color:${t.muted}!important}
+.VwiC3b,.lEBKkf,span,div{color:${t.text}}
+input,textarea,.RNNXgb,.SDkEP,.a4bIc{background:${t.raised}!important;color:${t.text}!important}
+.RNNXgb{border-color:${t.raised}!important;box-shadow:none!important}
+#hdtb-msb .hdtb-mitem,#hdtb-msb a{color:${t.muted}!important}
+#hdtb-msb .hdtb-msel{color:${t.amber}!important;border-bottom-color:${t.amber}!important}
+#lodica-shop{color:${t.muted}!important;padding:0 12px;text-decoration:none;font-size:13px;white-space:nowrap}`;
+    const q = new URLSearchParams(location.search).get("q");
+    const bar = document.querySelector("#hdtb-msb");
+    if (q && bar && !document.getElementById("lodica-shop")) {
+      const a = document.createElement("a");
+      a.id = "lodica-shop";
+      a.textContent = "Shop";
+      a.href = "lodica://search/search.html?c=shop&q=" + encodeURIComponent(q);
+      bar.appendChild(a);
+    }
+  }
+  new MutationObserver(() => { if (page.theme && !document.getElementById("lodica-shop")) googleTheme(); }).observe(document, { childList: true, subtree: true });
+
   function usePage(p) {
     const prev = page;
     page = p || {};
@@ -1788,6 +1818,7 @@ const lodicaMain = () => {
     if (YT && JSON.stringify([prev.quality, prev.qualities]) !== JSON.stringify([page.quality, page.qualities])) applyQuality();
     watchCookies();
     msLogin();
+    googleTheme();
   }
 
   // Late retries: the page options can arrive after the first paint.

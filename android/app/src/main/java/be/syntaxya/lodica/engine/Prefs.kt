@@ -17,7 +17,7 @@ enum class SearchEngine(val label: String, val query: String, val suggest: Strin
     DUCKDUCKGO("DuckDuckGo", "https://duckduckgo.com/?q=%s", "https://duckduckgo.com/ac/?type=list&q=%s"),
     STARTPAGE("Startpage", "https://www.startpage.com/do/search?q=%s", null),
     BRAVE("Brave", "https://search.brave.com/search?q=%s", null),
-    GOOGLE("Google", "https://www.google.com/search?q=%s", null),
+    GOOGLE("Google", "https://www.google.com/search?q=%s", "https://suggestqueries.google.com/complete/search?client=firefox&q=%s"),
     /** SearXNG on the VPS, rendered by the helper extension's search page; falls back to DuckDuckGo. */
     LODICA("Lodica Search", "", null),
 }
@@ -91,11 +91,11 @@ object Prefs {
 
     private var searchChosen by mutableStateOf<SearchEngine?>(null)
     /** Chosen engine; until the user picks one, Lodica Search while a server is linked, DuckDuckGo otherwise. */
-    val search: SearchEngine get() = searchChosen ?: if (Relay.available) SearchEngine.LODICA else SearchEngine.DUCKDUCKGO
+    val search: SearchEngine get() = searchChosen ?: SearchEngine.GOOGLE
     /** The engine the user picked, or null while it is still the automatic choice. */
     val searchPicked: SearchEngine? get() = searchChosen
     /** Used when Lodica Search is the engine but the server cannot be reached. */
-    var searchFallback by mutableStateOf(SearchEngine.DUCKDUCKGO); private set
+    var searchFallback by mutableStateOf(SearchEngine.GOOGLE); private set
     var darkPages by mutableStateOf(true); private set
     var forceDark by mutableStateOf(false); private set
     var httpsOnly by mutableStateOf(true); private set
@@ -228,7 +228,7 @@ object Prefs {
         appCtx = ctx.applicationContext
         searchChosen = runCatching { SearchEngine.valueOf(sp.getString("search", "")!!) }.getOrNull()
         modePicked = runCatching { Mode.valueOf(sp.getString("mode", "")!!) }.getOrNull()
-        searchFallback = runCatching { SearchEngine.valueOf(sp.getString("searchFallback", "")!!) }.getOrNull()?.takeIf { it != SearchEngine.LODICA } ?: SearchEngine.DUCKDUCKGO
+        searchFallback = runCatching { SearchEngine.valueOf(sp.getString("searchFallback", "")!!) }.getOrNull()?.takeIf { it != SearchEngine.LODICA } ?: SearchEngine.GOOGLE
         darkPages = sp.getBoolean("darkPages", true)
         httpsOnly = sp.getBoolean("httpsOnly", true)
         dummyLogin = sp.getBoolean("dummyLogin", true)

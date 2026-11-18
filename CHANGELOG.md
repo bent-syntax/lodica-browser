@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.19.0 (versionCode 278)
+
+- Google is the default search engine on desktop and Android.
+- Google results take the active Lodica theme, and a Shop link next to the result tabs opens Lodica Shop search.
+
 ## 1.18.10 (versionCode 277)
 
 - Desktop: two-finger swipe back and forward uses one decision point with a Firefox-like threshold, and cancels anywhere short of it.

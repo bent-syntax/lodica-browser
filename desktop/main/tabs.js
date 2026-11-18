@@ -222,6 +222,7 @@ function wire(t, wc) {
   wc.on("will-navigate", e => {
     if (isSettingsUrl(e.url)) { e.preventDefault(); create({ url: SETTINGS }); return; }
     if (toViewer(e)) return;
+    if (/^lodica:\/\/search\/search\.html\?/.test(e.url) && !(wc.getURL() || "").startsWith("lodica:")) { e.preventDefault(); wc.loadURL(e.url).catch(() => {}); return; }
     if (!errorpage.isActionUrl(e.url)) return;
     e.preventDefault();
     const { action, url } = errorpage.parseAction(e.url);

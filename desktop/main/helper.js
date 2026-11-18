@@ -153,6 +153,7 @@ function pageState(tab) {
     quality: prefs.qualityFor(host) ?? p.quality,
     qualities: p.qualities,
     siteOverrides: p.siteOverrides || {},
+    theme: global.lodicaTheme || null,
   };
 }
 

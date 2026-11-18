@@ -27,7 +27,7 @@ const QUALITIES = [144, 240, 360, 480, 720, 1080, 1440, 2160];
 const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com"]);
 
 const DEFAULTS = {
-  search: "", searchFallback: "DUCKDUCKGO", darkPages: true, forceDark: false, chatScale: 100, remoteTest: false, remoteTestAlways: false, testUnlocked: false, chatEmojiScale: 150, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
+  search: "", searchFallback: "GOOGLE", darkPages: true, forceDark: false, chatScale: 100, remoteTest: false, remoteTestAlways: false, testUnlocked: false, chatEmojiScale: 150, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,
   desktopDefault: true, routeVps: false, direct: [], cookieReject: true, smartschoolMs: false, spell: true, spellAuto: false, selTranslate: false, coupons: true, adBlockMode: "browser", adBlockLevel: "standard", translateAi: false, spellLangs: ["en"], speed: 1,
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, pcUnlock: "pinphone", themeFrom: "newest", shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiAgentMode: "edit", aiAgentMaxSteps: 20, aiChatDir: "", trusted: [], showRedirectOrigin: false,
@@ -45,9 +45,9 @@ const p = Object.assign({}, DEFAULTS, store.load("prefs", {}));
 // Device-gate enrollment was removed in 1.7.7: drop the old per-device token and host list.
 delete p.gatedHosts;
 try { require("fs").rmSync(require("path").join(require("electron").app.getPath("userData"), "deviceGate.bin"), { force: true }); } catch {}
-// An empty engine means "not chosen yet": Lodica Search while a server is linked, DuckDuckGo otherwise.
+// An empty engine means "not chosen yet": Google.
 if (p.search && !ENGINES[p.search]) p.search = "";
-if (!ENGINES[p.searchFallback] || p.searchFallback === "LODICA") p.searchFallback = "DUCKDUCKGO";
+if (!ENGINES[p.searchFallback] || p.searchFallback === "LODICA") p.searchFallback = "GOOGLE";
 if (!AGENTS[p.userAgent]) p.userAgent = "DEFAULT";
 if (!LANGUAGES[p.language]) p.language = "EN";
 
@@ -142,9 +142,9 @@ function resolve(input, lodicaAvailable) {
   const named = hl.includes(".") && hl.split(".").every(l => label.test(l)) && /\p{L}/u.test(hl.split(".").pop());
   const host = !t.includes(" ") && portOk && (hn === "localhost" || named || (ip && hn.split(".").every(n => n <= 255)) || /^\[[0-9a-f:]+\](:\d+)?$/i.test(hp));
   if (host) return withLanguage((hn === "localhost" || isBareIp(hp) ? "http://" : "https://") + t);
-  const want = p.search || (lodicaAvailable ? "LODICA" : "DUCKDUCKGO");
-  let engine = ENGINES[want] || ENGINES.DUCKDUCKGO;
-  if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback] || ENGINES.DUCKDUCKGO;
+  const want = p.search || "GOOGLE";
+  let engine = ENGINES[want] || ENGINES.GOOGLE;
+  if (want === "LODICA" && !lodicaAvailable) engine = ENGINES[p.searchFallback] || ENGINES.GOOGLE;
   return withLanguage(engine.query.replace("%s", encodeURIComponent(t)));
 }
 

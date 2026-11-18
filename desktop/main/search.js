@@ -21,7 +21,7 @@ function init(deps) {
 
 /** Query URL of the engine the start page should use; empty means Lodica Search itself. */
 function engineQuery() {
-  const want = prefs.p.search || (relay.available ? "LODICA" : "DUCKDUCKGO");
+  const want = prefs.p.search || "GOOGLE";
   if (want !== "LODICA") return prefs.ENGINES[want].query;
   return relay.available ? "" : prefs.ENGINES[prefs.p.searchFallback].query;
 }

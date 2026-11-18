@@ -86,7 +86,7 @@ object Helper {
                 .put("lite", JSONArray(Prefs.lite.toList()))
                 .put("page", JSONObject().put("cookies", Prefs.cookieReject).put("msLogin", Prefs.smartschoolMs).put("dark", Prefs.forceDark || Prefs.darkPages).put("darkPages", Prefs.darkPages)
                     .put("spell", JSONObject().put("on", Prefs.spell).put("auto", Prefs.spellAuto).put("langs", JSONArray(Prefs.spellLangs.toList()))).put("speed", Prefs.speed.toDouble())
-                    .put("quality", Prefs.quality).put("qualities", JSONObject(Prefs.qualities as Map<*, *>)))
+                    .put("quality", Prefs.quality).put("qualities", JSONObject(Prefs.qualities as Map<*, *>)).put("theme", themeJson()))
                 .put("api", if (Relay.available) Relay.apiToken else "")
                 .put("domain", Relay.DOMAIN)
                 .put("legacy", Relay.legacyPorts).put("mode", Prefs.mode.name)
@@ -448,6 +448,7 @@ object Helper {
                     when (m.optString("type")) {
                         "email" -> { frame.form = true; frame.focus = m.optBoolean("focused"); frame.signup = m.optBoolean("signup"); sync(tab) }
                         "focus" -> { frame.form = true; frame.focus = m.optBoolean("on"); frame.signup = m.optBoolean("signup"); sync(tab) }
+                        "shop" -> searchBase?.let { b -> android.os.Handler(android.os.Looper.getMainLooper()).post { TabManager.load(b + "search.html?c=shop&q=" + java.net.URLEncoder.encode(m.optString("q"), "UTF-8"), tab) } }
                         "filled" -> filled(port, m.optBoolean("ok"))
                         "login" -> { signedIn(tab, m.optString("host")); autoLogin(tab, frame, m.optString("host")) }
                         "user" -> remember(tab, m.optString("host"), m.optString("value"))
