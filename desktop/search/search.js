@@ -241,6 +241,7 @@ function wireSg() {
     rows.forEach((r, i) => r.classList.toggle("sel", i === sgSel));
     if (!rows[sgSel].querySelector("small")) q$.value = rows[sgSel].firstChild.textContent;
   });
+$("f").addEventListener("pointerdown", (e) => { if (e.target !== q$ && document.activeElement === q$) e.preventDefault(); });
   q$.addEventListener("blur", () => setTimeout(closeSg, 150));
   $("f").addEventListener("submit", (e) => {
     const r = $("sg").querySelector("a.sel");

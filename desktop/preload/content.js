@@ -1791,20 +1791,34 @@ a h3,h3,.LC20lb{color:${t.amber}!important}
 a:link,a:visited{color:${t.amber}}
 cite,.VuuXrf,.byrV5b,.tjvcx,.TbwUpd{color:${t.muted}!important}
 .VwiC3b,.lEBKkf,span,div{color:${t.text}}
-input,textarea,.RNNXgb,.SDkEP,.a4bIc{background:${t.raised}!important;color:${t.text}!important}
+input,textarea{background:transparent!important;color:${t.text}!important}
+.RNNXgb,.SDkEP,.a4bIc{background:${t.raised}!important;color:${t.text}!important}
 .RNNXgb{border-color:${t.raised}!important;box-shadow:none!important}
+.RNNXgb *{background:transparent!important;background-image:none!important;box-shadow:none!important}
+.RNNXgb *::before,.RNNXgb *::after{background:none!important}
+a[href*="accounts.google.com"][href*="ServiceLogin"],a.gb_Ka,a.gb_Ea{background:#F59E0B!important;color:#1A1300!important;border-radius:8px!important}
+a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color:#1A1300!important}
+.H9lube,.H9lube img,.XNo5Ab,.eqA2re img,.WZ8Tjf img,.xA33Gc img,a img[src*="favicon"],a img[src^="data:image"][width="16"]{width:18px!important;height:18px!important;max-width:18px!important;max-height:18px!important;position:static!important;transform:none!important}
+#tads,#tadsb,#bottomads,.commercial-unit-desktop-top,.commercial-unit-desktop-rhs,.cu-container,.pla-unit,.top-pla-group-inner,[data-text-ad],[data-pla],[aria-label*="Gesponsord"],[aria-label*="Sponsored"]{display:none!important}
 #hdtb-msb .hdtb-mitem,#hdtb-msb a{color:${t.muted}!important}
 #hdtb-msb .hdtb-msel{color:${t.amber}!important;border-bottom-color:${t.amber}!important}
 #lodica-shop{color:${t.muted}!important;padding:0 12px;text-decoration:none;font-size:13px;white-space:nowrap}`;
     const q = new URLSearchParams(location.search).get("q");
-    const bar = document.querySelector("#hdtb-msb");
+    const imgTab = document.querySelector('a[href*="udm=2"],a[href*="tbm=isch"]');
+    const bar = imgTab ? imgTab.parentElement : document.querySelector("#hdtb-msb");
+    for (const h of document.querySelectorAll("h1,h2,h3,div[role=heading],span")) {
+      if (h.children.length === 0 && /^(gesponsorde producten|sponsored products|sponsored)$/i.test(h.textContent.trim())) {
+        const blk = h.closest("[data-hveid],.MjjYud,.cu-container,g-section-with-header") || h.parentElement;
+        if (blk && blk.style.display !== "none") blk.style.display = "none";
+      }
+    }
     if (q && bar && !document.getElementById("lodica-shop")) {
       const a = document.createElement("a");
       a.id = "lodica-shop";
       a.textContent = "Shop";
       a.href = "#";
       a.addEventListener("click", e => { e.preventDefault(); port && port.postMessage({ type: "shop", q }); });
-      bar.appendChild(a);
+      if (imgTab) { a.className = imgTab.className; imgTab.insertAdjacentElement("afterend", a); } else bar.appendChild(a);
     }
   }
   new MutationObserver(() => { if (page.theme && !document.getElementById("lodica-shop")) googleTheme(); }).observe(document, { childList: true, subtree: true });

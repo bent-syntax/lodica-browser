@@ -8,6 +8,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -86,7 +87,9 @@ fun AgentPanel() {
     LaunchedEffect(AiAgent.steps.size) { if (AiAgent.steps.isNotEmpty()) list.animateScrollToItem(AiAgent.steps.size - 1) }
     // The panel sits above the keyboard so the input stays visible while typing.
     val imeOpen = androidx.compose.foundation.layout.WindowInsets.isImeVisible
-    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().imePadding().padding(top = 48.dp, bottom = if (imeOpen) 0.dp else 88.dp), contentAlignment = Alignment.CenterEnd) {
+    // Over a full screen (Settings etc.) the panel gets an opaque backdrop so nothing bleeds through or takes taps.
+    val opaque = if (Ui.screen != Screen.Browser) Modifier.background(Graphite).pointerInput(Unit) { awaitPointerEventScope { while (true) awaitPointerEvent().changes.forEach { it.consume() } } } else Modifier
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize().then(opaque).imePadding().padding(top = 48.dp, bottom = if (imeOpen) 0.dp else 88.dp), contentAlignment = Alignment.CenterEnd) {
         // Always the full screen width, also with the keyboard open.
         Column(
             Modifier.fillMaxWidth().fillMaxHeight(if (imeOpen) 1f else 0.75f).clip(RoundedCornerShape(20.dp)).background(GraphiteRaised)
@@ -110,6 +113,14 @@ fun AgentPanel() {
                     val on = m == cur
                     Text(AiAgent.levelName(m), color = if (on) OnAmber else Muted, fontSize = 12.sp, maxLines = 1,
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (on) Amber else Graphite).clickable { AiAgent.chooseLevel(m) }.padding(vertical = 6.dp),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                }
+            }
+            if (!older) Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for ((k, label) in be.syntaxya.lodica.engine.Ai.MODELS) {
+                    val on = Prefs.aiModel == k
+                    Text(label, color = if (on) OnAmber else Muted, fontSize = 12.sp, maxLines = 1,
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(50)).background(if (on) Amber else Graphite).clickable { Prefs.updateAiModel(k) }.padding(vertical = 6.dp),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }

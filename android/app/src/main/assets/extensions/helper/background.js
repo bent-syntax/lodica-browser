@@ -292,7 +292,20 @@ function icon(host) {
   if (!icons.has(host)) icons.set(host, fetchIcon(host));
   return icons.get(host).then((url) => ({ url }));
 }
+// Subdomain icon missing or blank: fall back to the parent, up to the apex (my.contabo.com -> contabo.com).
+function parentHost(host) {
+  const l = host.split(".");
+  if (l.length < 3) return null;
+  const sld = l.length === 3 && l[1].length <= 3 && l[2].length === 2;
+  return sld ? null : l.slice(1).join(".");
+}
 async function fetchIcon(host) {
+  const got = await fetchOwnIcon(host);
+  if (got) return got;
+  const parent = parentHost(host);
+  return parent ? fetchIcon(parent) : null;
+}
+async function fetchOwnIcon(host) {
   try {
     const ctl = new AbortController();
     setTimeout(() => ctl.abort(), 4000);
@@ -300,7 +313,7 @@ async function fetchIcon(host) {
     const type = (r.headers.get("content-type") || "").split(";")[0];
     if (!r.ok || !/^image\/(x-icon|vnd\.microsoft\.icon|png|svg\+xml|webp|gif|jpeg)$/.test(type)) return null;
     const blob = await r.blob();
-    if (!blob.size || blob.size > 200000) return null;
+    if (blob.size < 100 || blob.size > 200000) return null;
     return await new Promise((res) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = () => res(null); f.readAsDataURL(new Blob([blob], { type })); });
   } catch (e) { return null; }
 }

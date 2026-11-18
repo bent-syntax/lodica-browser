@@ -189,6 +189,7 @@ function setup() {
   }
   const sync = () => { $("x").hidden = !$("q").value; };
   sync();
+  $("f").addEventListener("pointerdown", (e) => { if (e.target !== $("q") && document.activeElement === $("q")) e.preventDefault(); });
   $("x").addEventListener("click", () => { $("q").value = ""; sync(); closeSg(); $("q").focus(); });
   $("q").addEventListener("input", () => { sync(); clearTimeout(sgTimer); sgTimer = setTimeout(showSg, 150); });
   $("q").addEventListener("blur", () => setTimeout(closeSg, 200));

@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.19.2 (versionCode 280)
+
+- Mobile bug fixes: address and search bars, start page icons, AI panel, Google Shop tab and theme fixes. Desktop parity.
+
 ## 1.19.1 (versionCode 279)
 
 - AI model selector, popup control for the AI agent, desktop Performance level, Move mode snapping and text editing, rounded start page shortcuts, Google as default in desktop settings.

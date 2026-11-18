@@ -62,6 +62,15 @@ object SiteIcons {
             synchronized(cache) { cache[h] = img; failed.remove(h); if (mostlyDark(cleared)) dark.add(h) else dark.remove(h) }
             return img
         }
+        // Subdomain has no icon: use the parent's, up to the apex (my.contabo.com -> contabo.com).
+        val parts = lower.split(".")
+        val sld = parts.size == 3 && parts[1].length <= 3 && parts[2].length == 2
+        if (parts.size >= 3 && !sld) {
+            load(parts.drop(1).joinToString("."), http)?.let { img ->
+                synchronized(cache) { cache[h] = img; failed.remove(h) }
+                return img
+            }
+        }
         synchronized(cache) { failed[h] = System.currentTimeMillis() }
         return null
     }

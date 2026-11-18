@@ -6,7 +6,7 @@ header { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 1
 .brand { display: flex; align-items: center; gap: 2px; font-weight: 600; font-size: 20px; margin-bottom: 10px; }
 #f { display: flex; align-items: center; background: var(--raised); border-radius: 24px; padding: 0 6px 0 16px; border: 1px solid transparent; }
 #f:focus-within { border-color: var(--amber); }
-#q { flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 15px; }
+#q { white-space: nowrap; overflow-x: auto; flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 15px; }
 #q::-webkit-search-cancel-button { display: none; }
 #f button#clr { color: var(--muted); }
 #f button[hidden] { display: none; }
@@ -238,7 +238,7 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 /* 1.14.15: shortcuts are a round logo with the site name below, no card around them. */
 #top { gap: 16px; }
 #top a, #top a:hover { width: 84px; padding: 4px 0; border: 0; border-radius: 12px; background: transparent; transform: none; gap: 8px; }
-#top a .fav { width: 56px; height: 56px; border-radius: 50%; background: var(--raised); border: 1px solid color-mix(in srgb, var(--high) 60%, transparent); transition: background .15s, transform .15s; }
+#top a .fav { width: 56px; height: 56px; border-radius: 50%; background: var(--raised); border: 0; transition: background .15s, transform .15s; }
 #top a:hover .fav { background: var(--hover2, var(--raised)); transform: translateY(-2px); }
 #top a .fav img { width: 28px; height: 28px; border-radius: 4px; }
 #top a span.n { font-size: 12px; color: var(--text); max-width: 84px; }
@@ -475,3 +475,4 @@ html { scrollbar-color: var(--high) var(--bg); scrollbar-width: thin; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--high); border-radius: 5px; border: 2px solid var(--bg); }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+#top a.add .fav, #edit { border: 0; outline: 0; box-shadow: none; }

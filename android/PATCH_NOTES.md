@@ -1,3 +1,10 @@
+## 1.19.2
+
+- Address bar and Lodica Search bar scroll sideways and keep the caret on tap.
+- Start page: no border on the add shortcut tile; shortcut icons fall back to the main domain icon.
+- AI panel sits on its own opaque screen on mobile; model picker on mobile.
+- Google results: Shop tab, sponsored shopping hidden, one-colour search pill, readable sign-in button, small site icons.
+
 ## 1.19.1
 
 - AI model selector: pick Haiku, Sonnet or Opus 5.5 for chat and agent steps.

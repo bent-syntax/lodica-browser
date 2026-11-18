@@ -248,6 +248,7 @@ async function onMessage(tab, frame, m) {
         require("./commands").mouse(m.dir);
       }
       return;
+    case "shop": if (!frame.parent && m.q) tab.view?.webContents.loadURL("lodica://search/search.html?c=shop&q=" + encodeURIComponent(String(m.q).slice(0, 200))).catch(() => {}); return;
     case "wheelx":
       if (global.lodicaWheelDbg) global.lodicaWheelDbg(m.dx, m.sum, m.dy, m.shift);
       return;

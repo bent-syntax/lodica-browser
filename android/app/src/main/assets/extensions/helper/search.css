@@ -12,7 +12,7 @@ header { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 1
 .brand { display: flex; align-items: center; gap: 2px; font-weight: 600; font-size: 18px; margin-bottom: 10px; }
 #f { display: flex; align-items: center; background: var(--raised); border-radius: 24px; padding: 0 6px 0 16px; border: 1px solid transparent; }
 #f:focus-within { border-color: var(--amber); }
-#q { flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 16px; }
+#q { white-space: nowrap; overflow-x: auto; flex: 1; min-width: 0; height: 44px; border: 0; outline: 0; background: none; color: var(--text); font: inherit; font-size: 16px; }
 #q::-webkit-search-cancel-button { display: none; }
 #f button { border: 0; background: none; color: var(--amber); width: 40px; height: 40px; border-radius: 20px; }
 #tabs { display: flex; gap: 22px; padding: 8px 4px 0; }
@@ -299,3 +299,4 @@ body:not(.home) #plan, body:not(.home) #notes { display: none; }
   .sh-out.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .sh-bars i, .sh-filters, .sh-scrim { transition: none !important; } }
+#top a .fav, #top a.add .fav, #edit { outline: 0; box-shadow: none; } #edit { border: 0; background: none; }
