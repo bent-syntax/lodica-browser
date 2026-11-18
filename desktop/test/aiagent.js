@@ -42,7 +42,7 @@ async function run(mode, script, opts = {}) {
     },
   };
   const tab = { id: 1, title: "Shop", url: "https://shop.example/page" };
-  const tabs = { wcOf: () => wc, open: () => [tab], current: () => tab, load() {}, create() {}, back() {}, select() {} };
+  const tabs = { popups: () => [], wcOf: () => wc, open: () => [tab], current: () => tab, load() {}, create() {}, back() {}, select() {} };
   let i = 0;
   const ai = { complete: async (_t, system) => { systems.push(system); return JSON.stringify(script[Math.min(i++, script.length - 1)]); } };
   const r = await start("buy a thing", { tabs, ai, mode, push: (p) => pushed.push(p.step), confirm: async (m, d, allow) => { asked.push([m, allow]); return opts.answer !== false; } });

@@ -17,10 +17,10 @@ check("packaged files include preload/", read("package.json").includes('"preload
 // Plays wheel events (dx, dy) 5 ms apart. Returns what was sent to main: the back/forward calls with their time since the
 // start, the arrow styles drawn, and the index of the last event sent when each call happened.
 function run(events, platform = "win32") {
-  const sent = [], listeners = {}, made = [];
+  const sent = [], listeners = {}, made = []; let gs = 0;
   const win = { addEventListener: (t, fn) => (listeners[t] = fn) };
   win.top = win;
-  const doc = { documentElement: { appendChild() {} }, createElement: () => { const el = { setAttribute(_, v) { made.push(v); }, style: {}, firstChild: { style: {} }, remove() {}, isConnected: false }; return Object.defineProperty(el, "innerHTML", { set() {}, get: () => "" }); } };
+  const doc = { documentElement: { appendChild() {} }, createElementNS: (_, n) => doc.createElement(n), createElement: (n) => { const g = n === "g" ? ++gs : 0; const el = { append() {}, setAttribute(k, v) { made.push(k + "=" + v); }, style: {}, firstChild: { style: {}, setAttribute(k, v) { made.push("g" + g + ":" + k + "=" + v); } }, remove() {}, isConnected: false }; return Object.defineProperty(el, "innerHTML", { set() {}, get: () => "" }); } };
   const ctx = vm.createContext({
     process: { platform }, window: win, document: doc, getComputedStyle: () => ({ overflowX: "visible" }), setTimeout, clearTimeout, requestAnimationFrame: (fn) => setTimeout(fn, 16), cancelAnimationFrame: clearTimeout, Date, Math, String, Number,
     require: (m) => { if (m === "electron") return { ipcRenderer: { on: () => {}, send: (c, m2) => sent.push([c, m2, Date.now()]), invoke: () => Promise.resolve({ bg: "#112233", amber: "#aabbcc", text: "#ffffff" }) } }; throw new Error(m); },
@@ -48,12 +48,12 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   [0, 0], ...Array.from({ length: momentum }, (_, k) => [sign * Math.round(58 * Math.pow(0.975, k)), 0])];
 
 (async () => {
-  let r = await run([...burst(-14, 0, 12), [0, 0]]);
+  let r = await run([...burst(-14, 0, 20), [0, 0]]);
   check("fingers right (deltaX < 0) goes back, after the fingers stop", r.length === 1 && r[0] === "back", JSON.stringify(r));
-  r = await run([...burst(14, 0, 12), [0, 0]]);
+  r = await run([...burst(14, 0, 20), [0, 0]]);
   check("fingers left (deltaX > 0) goes forward", r.length === 1 && r[0] === "forward", JSON.stringify(r));
   // Linux sends no zero step and no momentum: the events just stop when the fingers lift.
-  r = await run(burst(-14, 0, 12), "linux");
+  r = await run(burst(-14, 0, 20), "linux");
   check("linux: a long pull that just stops goes back", r.length === 1 && r[0] === "back", JSON.stringify(r));
   r = await run(burst(-3, 0, 5), "linux");
   check("linux: a short nudge that just stops does nothing", r.length === 0, JSON.stringify(r));
@@ -70,9 +70,9 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
 
   r = await run(burst(-14, 0, 80));
   check("it does not go while the fingers keep moving, or when they stop and stay on the pad", r.length === 0 && r.at.length === 0, JSON.stringify(r));
-  r = await run([...burst(-14, 0, 12), [-14, 0, 600], [0, 0]]);
+  r = await run([...burst(-14, 0, 20), [-14, 0, 600], [0, 0]]);
   check("pull, hold still for 600 ms with the fingers on the pad, then lift: goes only at the lift", r.length === 1 && r.at.length === 1 && r.at[0].ms > 600, JSON.stringify(r.at));
-  r = await run([...burst(-14, 0, 12), [-14, 0, 900]]);
+  r = await run([...burst(-14, 0, 20), [-14, 0, 900]]);
   check("pull, hold, never lift: nothing happens", r.length === 0, JSON.stringify(r));
   r = await run([...burst(-14, 0, 10), ...[40, 36, 33, 30, 26, 22, 19, 16, 13, 10].map((v) => [-v, 0, 0])]);
   check("slowing down by hand is not a lift", r.length === 0, JSON.stringify(r));
@@ -83,7 +83,7 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   check("it goes right when the fingers lift (the zero step), not when the momentum ends", r.at.length === 1 && r.at[0].event === 22, JSON.stringify(r.at) + " of " + r.evMs + "ms");
   r = await run(swipe(1));
   check("same for forward", r.length === 1 && r[0] === "forward", JSON.stringify(r));
-  r = await run([...swipe(-1, 60), ...swipe(1, 60)]);
+  r = await run([...swipe(-1, 60), [0, 0, 300], ...swipe(1, 60)]);
   check("a turn around after the momentum is a new gesture", r.length === 2 && r[0] === "back" && r[1] === "forward", JSON.stringify(r));
   r = await run([[-14, 0], [-21, 0], [-28, 0], [0, 0], ...Array.from({ length: 40 }, (_, k) => [Math.round(-30 * Math.pow(0.975, k)), 0])]);
   check("a gesture that stays short of the limit does nothing", r.length === 0, JSON.stringify(r));
@@ -92,17 +92,17 @@ const swipe = (sign, momentum = 150) => [...[14, 21, 28, 15, 44, 44, 39, 41, 43,
   r = await run([...burst(-20, 0, 8), ...burst(20, 0, 8), [0, 0], ...Array.from({ length: 30 }, (_, k) => [Math.round(-3 * Math.pow(0.97, k)), 0])]);
   check("pulling back to the start before lifting cancels", r.length === 0, JSON.stringify(r));
   // pulled out far, eased back a little but still far from the start, then lifted: goes
-  r = await run([...burst(-20, 0, 12), ...burst(20, 0, 3), [0, 0]]);
+  r = await run([...burst(-20, 0, 16), ...burst(20, 0, 3), [0, 0]]);
   check("lifting while still far from the start goes", r.length === 1 && r[0] === "back", JSON.stringify(r));
   // momentum that turns back toward the start does not release early
   r = await run([...burst(-20, 0, 8), ...Array.from({ length: 12 }, (_, k) => [Math.round(30 * Math.pow(0.9, k)), 0])]);
   check("a return movement is not a release", r.at.length === 0, JSON.stringify(r.at));
 
   r = await run(burst(-14, 0, 4));
-  check("arrow uses the theme colours", r.arrows.length > 0 && r.arrows.every((v) => v.includes("#112233") && v.includes("#aabbcc")), JSON.stringify(r.arrows));
-  check("arrow stays an outline short of the limit", r.arrows.every((v) => !/background:#aabbcc/.test(v)));
-  r = await run(burst(-14, 0, 12));
-  check("arrow fills in past the limit", r.arrows.some((v) => /background:#aabbcc/.test(v)), JSON.stringify(r.arrows.slice(-1)));
+  check("arrow uses the theme colours", r.arrows.includes("g2:fill=#112233") && r.arrows.includes("stroke=#aabbcc"), JSON.stringify(r.arrows));
+  check("arrow stays an outline short of the limit", !r.arrows.includes("g2:fill=#aabbcc"));
+  r = await run(burst(-14, 0, 20));
+  check("arrow fills in past the limit", r.arrows.includes("g2:fill=#aabbcc"), JSON.stringify(r.arrows.slice(-1)));
 
   const content = read("preload/content.js");
   check("content.js sends translation through the main process", content.includes('invoke("translate"') && content.includes('invoke("fetchJson"'));

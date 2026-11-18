@@ -14,10 +14,10 @@ const run = (name, priv, ...args) => { const e = { sender: {}, returnValue: null
 test("drawings save and load per page, skip private tabs, clear when empty", () => {
   let priv = false;
   draw.init({ tabs: { byContents: () => ({ private: priv }) } });
-  const d = { strokes: [{ c: "#fff", w: 4, p: [[1, 2]] }], moves: [{ s: "#a", x: 5, y: 6 }] };
+  const d = { strokes: [{ c: "#fff", w: 4, p: [[1, 2]] }], moves: [{ s: "#a", x: 5, y: 6 }], texts: [{ s: "#b", t: "hi" }] };
   run("drawSave", false, "https://a.test/x", d);
   assert.deepStrictEqual(run("drawLoad", false, "https://a.test/x"), d);
-  assert.deepStrictEqual(run("drawLoad", false, "https://a.test/y"), { strokes: [], moves: [] });
+  assert.deepStrictEqual(run("drawLoad", false, "https://a.test/y"), { strokes: [], moves: [], texts: [] });
   run("drawSave", false, "https://a.test/x", { strokes: [], moves: [] });
   assert.strictEqual(saved["https://a.test/x"], undefined);
   priv = true;
