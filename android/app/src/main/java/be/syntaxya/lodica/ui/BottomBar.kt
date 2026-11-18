@@ -401,6 +401,8 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
             }
             IconButton(onClick = { onQuery(TextFieldValue()) }) { Icon(LodicaIcons.Close, "Clear", tint = Muted) }
         }
+        // Tab switching stays reachable while typing.
+        TabCount(TabManager.current)
     }
 }
 

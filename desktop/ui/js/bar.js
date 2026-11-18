@@ -120,7 +120,9 @@ function editBar() {
   BAR.ask = ask; BAR.clr = clr;
   const pill = h("div", { class: "pill edit" }, ico("search", "muted"), input, ask, clr);
   setTimeout(syncEditBtns);
-  return [ib("back", "Cancel", exitEdit), pill];
+  // Tab switching stays reachable while typing.
+  const tabs = h("button", { class: "ib", title: "Tabs", act: () => { exitEdit(); openSwitcher(); } }, h("span", { class: "tc", text: cap(S.tabs.count || 0, ":D") }));
+  return [ib("back", "Cancel", exitEdit), pill, tabs];
 }
 function syncEditBtns() {
   if (!BAR.edit) return;
