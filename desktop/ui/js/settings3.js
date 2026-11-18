@@ -374,6 +374,8 @@ function secBlocking() {
   // Without a linked server the browser always does it.
   if (S.relayAvail) ads.push(setSelect("Block ads on", "This browser: full filter lists, also hides empty ad spaces. Light: the browser uses your server's ad and tracker list, the fastest and lightest option, and your traffic stays direct. My server: your Lodica server refuses ad and tracker domains for all your traffic, which then goes through the server. YouTube ads are always removed by the browser", [
     { key: "browser", label: "This browser" }, { key: "lite", label: "Light (server list)" }, { key: "server", label: "My server" }], "adBlockMode"));
+  ads.unshift(setSelect("Performance level", "Fast: quickest pages, no ad blocker. Medium: the ad blocker at the strength below. Features: everything on, also inside embedded frames",
+    [{ key: "fast", label: "Fast" }, { key: "medium", label: "Medium" }, { key: "features", label: "Features" }], "perfMode"));
   return [secHead("Blocking", "blocking"), ...ads, setToggle("cookieReject", "Reject cookie banners", "Click “Reject all” or hide consent pop-ups"), setToggle("coupons", "Find coupons at checkout", "When a shop shows a coupon or promo code field, a “Find coupons” button appears. It tries codes from the web and keeps the one that saves the most. Needs a linked server"), setToggle("smartschoolMs", "Smartschool: sign in with Microsoft", "Click “Microsoft” on the Smartschool login page when you are already signed in to Microsoft. No password is stored")];
 }
 function secSuggest() {

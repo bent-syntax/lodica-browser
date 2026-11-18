@@ -26,7 +26,7 @@ const CATS = [
 /** On for a fresh link, until the user switches it off. Passwords and keys still only travel once the link key is on both devices. Wi-Fi, history and Bluetooth stay off. */
 const DEFAULT_SHARE = { tabs: true, settings: true, shortcuts: true, sites: true, chatName: true, passwords: true, totp: true, character: true, notes: true };
 const isShared = (share, id) => (share && share[id] !== undefined ? !!share[id] : !!DEFAULT_SHARE[id]);
-const SETTINGS = ["theme", "customTheme", "savedThemes", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "cookieReject", "spell", "spellAuto",
+const SETTINGS = ["theme", "customTheme", "savedThemes", "language", "darkPages", "httpsOnly", "search", "searchFallback", "adBlockLevel", "perfMode", "cookieReject", "spell", "spellAuto",
   "spellLangs", "selTranslate", "translateAi", "chatScale", "chatEmojiScale", "uiBlur", "uiAlpha", "vertTabs", "barBottom", "bg",
   "searchWords", "shortcutNames", "autoTop", "startNotes", "startPlanner", "plannerPos", "notesPos"];
 /** Where the theme comes from: the newest change on either device, this device only, or the other device. */

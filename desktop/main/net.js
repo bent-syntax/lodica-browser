@@ -21,6 +21,8 @@ let blocker = null, deps = null, sessions = [];
 // Ad blocking runs in the browser (the Ghostery lists, strength by Settings) or on the Lodica server, which then refuses ad and tracker
 // domains for everything sent through it. Without a linked server it is always the browser. YouTube is handled in the browser either way.
 const LEVELS = ["light", "standard", "strict"];
+// Performance level "fast" (as on Android) turns the in-browser blocker off; "medium" and "features" keep it.
+const fast = () => prefs.p.perfMode === "fast";
 const level = () => (LEVELS.includes(prefs.p.adBlockLevel) ? prefs.p.adBlockLevel : "standard");
 // Only when the server says it can (a relay from before this feature answers 404 and would refuse the login).
 let serverSupport = false;
@@ -134,7 +136,7 @@ function onBeforeRequest(details, cb) {
     if (!tab?.private) deps.meter.blocked(host);
     return cb({ cancel: true });
   }
-  if (!blocker || serverAds()) return cb({});
+  if (!blocker || fast() || serverAds()) return cb({});
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
   blocker.onBeforeRequest(details, r => {
     if (r && (r.cancel || r.redirectURL)) {
@@ -146,7 +148,7 @@ function onBeforeRequest(details, cb) {
 }
 
 function onHeadersReceived(details, cb) {
-  if (!blocker || serverAds() || liteAds()) return cb({});
+  if (!blocker || fast() || serverAds() || liteAds()) return cb({});
   const tab = tabOf(details);
   const page = tab?.host || hostOf(details.url);
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});
@@ -194,7 +196,7 @@ function init(d) {
     ses.webRequest.onBeforeSendHeaders({ urls: ["<all_urls>"] }, onBeforeSendHeaders);
     ses.webRequest.onCompleted({ urls: ["<all_urls>"] }, onCompleted);
   }
-  ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", (...a) => blocker?.onInjectCosmeticFilters(...a));
+  ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", (...a) => (fast() ? undefined : blocker?.onInjectCosmeticFilters(...a)));
   // Cosmetic filters keep watching the DOM only in the top frame. In embedded frames a DOM observer slowed every page script
   // (Speedometer runs each test in an iframe); their ads are mostly stopped by the network filters anyway.
   ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", (e, ...a) => (e.senderFrame && e.senderFrame.parent ? false : blocker?.onIsMutationObserverEnabled(e, ...a) ?? false));
@@ -207,7 +209,7 @@ function init(d) {
   });
   prefs.events.on("change", key => {
     if (!key || key === "routeVps" || key === "adBlockMode" || key === "adBlockLevel") applyProxy();
-    if (key === "adBlockMode" || key === "adBlockLevel") for (const ses of sessions) { try { ses.clearAuthCache?.(); ses.closeAllConnections?.(); } catch { /* closing */ } }
+    if (key === "adBlockMode" || key === "adBlockLevel" || key === "perfMode") for (const ses of sessions) { try { ses.clearAuthCache?.(); ses.closeAllConnections?.(); } catch { /* closing */ } }
     if (key === "adBlockLevel") { if (liteAds()) loadHosts(); else loadBlocker(); }
     if (key === "adBlockMode") { checkServer(); applyMode(); }
   });
