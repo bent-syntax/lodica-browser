@@ -129,7 +129,7 @@ function servePdf(req, u) {
     const headers = {};
     const range = req.headers.get("range");
     if (range) headers.Range = range;
-    return net.fetch(target, { headers });
+    return fetchPdf(target, headers, range);
   }
   let rel;
   try { rel = decodeURIComponent(u.pathname); } catch { return new Response("Bad request", { status: 400 }); }
@@ -137,6 +137,29 @@ function servePdf(req, u) {
   if (!file.startsWith(PDF_DIR + path.sep)) return new Response("Forbidden", { status: 403 });
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return new Response("Not found", { status: 404 });
   return net.fetch(pathToFileURL(file).toString());
+}
+
+// A PDF that loaded once stays readable while its tab is open: after a session expiry the same address answers with a
+// login page, so a later fetch that is not a PDF is served from the copy kept here (shortcut: 20 files in memory).
+const pdfKeep = new Map();
+async function fetchPdf(target, headers, range) {
+  const kept = pdfKeep.get(target);
+  const res = await net.fetch(target, { headers }).catch(() => null);
+  const type = res ? res.headers.get("content-type") || "" : "";
+  if (res && res.ok && /pdf/i.test(type)) {
+    if (res.status === 200 && !range) {
+      const buf = Buffer.from(await res.clone().arrayBuffer());
+      pdfKeep.delete(target); pdfKeep.set(target, buf);
+      if (pdfKeep.size > 20) pdfKeep.delete(pdfKeep.keys().next().value);
+    }
+    return res;
+  }
+  if (!kept) return res || new Response("Not found", { status: 502 });
+  const h = { "Content-Type": "application/pdf", "Accept-Ranges": "bytes" };
+  const m = /bytes=(\d*)-(\d*)/.exec(range || "");
+  if (!m) return new Response(kept, { headers: h });
+  const a = m[1] ? +m[1] : 0, b = m[2] ? Math.min(+m[2], kept.length - 1) : kept.length - 1;
+  return new Response(kept.subarray(a, b + 1), { status: 206, headers: { ...h, "Content-Range": `bytes ${a}-${b}/${kept.length}` } });
 }
 
 function registerProtocol(ses) {

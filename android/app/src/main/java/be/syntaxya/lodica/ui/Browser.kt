@@ -203,6 +203,10 @@ private fun BrowserScreen() {
     LaunchedEffect(Ui.editing, Ui.finding) { if (Ui.editing || Ui.finding) Ui.barHidden = false }
     // Opening the bar on a blank tab (e.g. from the widget) must not show text left over from an earlier edit.
     LaunchedEffect(Ui.editing) { if (Ui.editing && TabManager.current?.url == TabManager.HOME) query = TextFieldValue() }
+    // Switching to another tab while the bar is being edited ends the edit (keyboard and focus follow Ui.editing).
+    var editTab by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Ui.editing) { editTab = if (Ui.editing) TabManager.current?.id else null }
+    LaunchedEffect(TabManager.current?.id) { if (Ui.editing && editTab != null && editTab != TabManager.current?.id) Ui.editing = false }
     LaunchedEffect(Ui.barHidden, Ui.barHeight) { Ui.barOffset = if (Ui.barHidden) Ui.barHeight else 0f }
     // Bottom toolbar slides with the page: tell Gecko how much of the viewport the bar still covers.
     LaunchedEffect(Unit) {

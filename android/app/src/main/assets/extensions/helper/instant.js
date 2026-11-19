@@ -60,6 +60,23 @@
   const rint = (rand, lo, hi) => lo + Math.floor(rand() * (hi - lo + 1));
   const median = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
 
+  // Value rounded to 15 decimals, trailing zeros dropped (toFixed is exact up to 1e21).
+  const dec15 = v => Math.abs(v) < 1e21 ? v.toFixed(15).replace(/\.?0+$/, "") : String(v);
+  // Closest fraction by continued fractions, denominator up to 1e6; null for whole numbers or no close fit.
+  function frac(v) {
+    if (!isFinite(v) || Number.isInteger(v) || Math.abs(v) > 1e9) return null;
+    let a = Math.abs(v), n0 = 0, d0 = 1, n1 = 1, d1 = 0, x = a;
+    for (let i = 0; i < 40; i++) {
+      const f = Math.floor(x), n2 = f * n1 + n0, d2 = f * d1 + d0;
+      if (d2 > 1e6) return null;
+      n0 = n1; d0 = d1; n1 = n2; d1 = d2;
+      if (Math.abs(a - n1 / d1) < 1e-12 * Math.max(1, a)) return (v < 0 ? "-" : "") + n1 + "/" + d1;
+      if (x === f) break;
+      x = 1 / (x - f);
+    }
+    return null;
+  }
+
   function fmt(n, lang, sig) {
     if (!isFinite(n)) return String(n);
     return Number(n.toPrecision(sig || 6)).toLocaleString(loc(lang), { maximumFractionDigits: 12 });
@@ -549,7 +566,7 @@
       s = (m ? m[1] : s).replace(/^(?:calculate|calc|compute|solve|bereken)\s+/, "").replace(/^=\s*/, "").replace(/\s*=\s*\??$/, "");
       if ((m = /^(-?[\d.,]+)\s*(?:%|percent|procent) (?:of|van) (-?[\d.,]+)$/.exec(s))) {
         const v = num(m[1]) / 100 * num(m[2]);
-        return isFinite(v) ? { type: "calc", expr: s, value: v, text: fmt(v, c.lang, 12) } : null;
+        return isFinite(v) ? { type: "calc", expr: s, value: v, text: dec15(v), frac: frac(v) } : null;
       }
       if (!/^[\d\s.,+\-*\/x×÷^%()!a-z]+$/.test(s) || !/\d/.test(s)) return null;
       if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s) || /^\d{4}-\d{4}$/.test(s) || /^\d+(?:-\d+){2,}$/.test(s)) return null;
@@ -562,7 +579,7 @@
       const binary = /[\d)!%.]\s*(?:[-+*\/^]|mod\b)\s*[\d(.a-z-]/.test(e), fn = /\b(?:sqrt|cbrt|abs|sin|cos|tan|asin|acos|atan|ln|log2|log|exp|round|floor|ceil)\s*\(/.test(e), bang = /\d!/.test(e);
       if (!binary && !fn && !bang) return null;
       const v = calc(e);
-      return isFinite(v) ? { type: "calc", expr: s.replace(/\s+/g, " "), value: v, text: fmt(v, c.lang, 12) } : null;
+      return isFinite(v) ? { type: "calc", expr: s.replace(/\s+/g, " "), value: v, text: dec15(v), frac: frac(v) } : null;
     }
   ];
 
@@ -656,7 +673,7 @@
 
   const R = {};
   R.fact = d => card(d.label, h("div", "inst-big", d.big), d.sub && h("div", "inst-sub", d.sub));
-  R.calc = (d, c) => card(d.expr + " =", h("div", "inst-big", d.text));
+  R.calc = (d, c) => card(d.expr + " =", h("div", "inst-big", d.text), d.frac ? h("div", "inst-mono", "= " + d.frac) : null);
 
   R.speed = (d, c) => {
     const L = T(c.lang), val = {};
@@ -866,7 +883,7 @@
     for (const k of keys) grid.append(btn(k, () => {
       if (k === "C") ex = "";
       else if (k === "⌫") ex = ex.slice(0, -1);
-      else if (k === "=") { const v = calc(ex.replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-")); ex = isFinite(v) ? plain(v, 12) : ""; out.textContent = ex || T(c.lang).error; return; }
+      else if (k === "=") { const v = calc(ex.replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-")); ex = isFinite(v) ? dec15(v) : ""; const fr = ex && frac(v); out.textContent = ex ? ex + (fr ? "  = " + fr : "") : T(c.lang).error; return; }
       else ex += k;
       out.textContent = ex || "0";
     }, /[\d.]/.test(k) ? "inst-key" : "inst-key inst-op"));
