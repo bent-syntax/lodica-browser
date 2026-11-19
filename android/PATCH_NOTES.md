@@ -1,3 +1,10 @@
+## 1.19.3
+
+- Calculator shows the value to 15 decimals and as a fraction.
+- Tap a tab while typing in the address bar: switches tab and stops typing.
+- Server chat: name field is narrow, message box has room.
+- PDFs stay visible after the site logs you out and back in (desktop).
+
 ## 1.19.2
 
 - Address bar and Lodica Search bar scroll sideways and keep the caret on tap.

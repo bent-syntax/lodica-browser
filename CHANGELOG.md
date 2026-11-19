@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.19.3 (versionCode 281)
+
+- Calculator shows 15 decimals and the fraction. Tapping a tab while editing the address bar switches tab and ends editing. Desktop server chat name field no longer crowds the message box. Desktop PDFs stay visible after a session expiry.
+
 ## 1.19.2 (versionCode 280)
 
 - Mobile bug fixes: address and search bars, start page icons, AI panel, Google Shop tab and theme fixes. Desktop parity.
