@@ -261,7 +261,7 @@
         if (ok) startSignup(msg);
       }
       if (msg.type === "signup") startSignup(msg);
-      if (msg.type === "autologin") autoLogin(msg.value, msg.pass);
+      if (msg.type === "autologin") autoLogin(msg.value, msg.pass, msg.submit);
       if (msg.type === "reader" && TOP) port.postMessage(article());
       if (msg.type === "agent" && TOP) agentOp(msg.value);
       if (msg.type === "code") {
@@ -1820,7 +1820,7 @@ a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color
   } catch (e) { /* storage unavailable */ }
 
   // Saved login for a trusted site: fill the visible username and password fields and submit once.
-  function autoLogin(name, pass) {
+  function autoLogin(name, pass, submit) {
     if (!name || !pass) return;
     let tries = 0;
     const go = () => {
@@ -1830,6 +1830,7 @@ a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color
       const un = [...scope.querySelectorAll("input")].filter((el) => visible(el) && el !== pw && /^(text|email|tel|)$/.test(attr(el, "type").toLowerCase()))[0];
       if (un) { un.focus(); typeIn(un, name); }
       pw.focus(); typeIn(pw, pass);
+      if (submit === false) return;
       setTimeout(() => {
         const btn = (pw.form || document).querySelector("button[type=submit], input[type=submit], button:not([type])");
         if (pw.form && pw.form.requestSubmit) pw.form.requestSubmit(btn || undefined);

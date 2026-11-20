@@ -28,7 +28,7 @@ if (!app.requestSingleInstanceLock()) {
 app.userAgentFallback = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${String(process.versions.chrome).split(".")[0]}.0.0.0 Safari/537.36`;
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: "lodica", privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  { scheme: "lodica", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
 ]);
 
 let win = null, uiView = null, topView = null, dividerView = null, panelView = null, lastClip = "";
@@ -147,12 +147,16 @@ async function fetchPdf(target, headers, range) {
   const res = await net.fetch(target, { headers }).catch(() => null);
   const type = res ? res.headers.get("content-type") || "" : "";
   if (res && res.ok && /pdf/i.test(type)) {
+    // Rebuild the response: net.fetch leaves content-encoding/length headers that no longer match the decoded body.
+    const buf = Buffer.from(await res.arrayBuffer());
+    const h = { "Content-Type": "application/pdf", "Accept-Ranges": "bytes" };
+    const cr = res.headers.get("content-range");
+    if (cr) h["Content-Range"] = cr;
     if (res.status === 200 && !range) {
-      const buf = Buffer.from(await res.clone().arrayBuffer());
       pdfKeep.delete(target); pdfKeep.set(target, buf);
       if (pdfKeep.size > 20) pdfKeep.delete(pdfKeep.keys().next().value);
     }
-    return res;
+    return new Response(buf, { status: res.status, headers: h });
   }
   if (!kept) return res || new Response("Not found", { status: 502 });
   const h = { "Content-Type": "application/pdf", "Accept-Ranges": "bytes" };

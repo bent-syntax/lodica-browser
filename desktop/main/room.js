@@ -61,10 +61,15 @@ async function loop(my) {
 
 let peerTimer = null, readSent = {};
 
+/** True only while a Lodica window is focused and on screen; a background or minimised window must not count as present or as having read. */
+function attended() {
+  try { return require("electron").BrowserWindow.getAllWindows().some(w => !w.isDestroyed() && w.isVisible() && !w.isMinimized() && w.isFocused()); } catch { return true; }
+}
+
 /** Tells the server the newest message this device has seen in the open conversation. */
 async function markRead() {
   const room = state.room, top = state.messages.reduce((n, m) => Math.max(n, m.id || 0), 0);
-  if (!running || !top || readSent[room] === top) return;
+  if (!running || !top || readSent[room] === top || !attended()) return;
   readSent[room] = top;
   try {
     const [status] = await relay.request("POST", "/api/chat/read", 10000, { name: state.name, room, id: top });
@@ -74,7 +79,7 @@ async function markRead() {
 
 /** Refreshes who is online and who has read what in the open conversation. */
 async function peers() {
-  if (!running) return;
+  if (!running || !attended()) return;
   const room = state.room;
   const list = await onlineUsers(true);
   let reads = {};
@@ -460,7 +465,7 @@ function noteMessages(r, list, lastId) {
   if (typeof lastId === "number" && typeof seen[r] === "number" && lastId < seen[r]) { seen[r] = lastId; saveSeen(); }
   // First time this chat is watched on this device: its history counts as read.
   if (typeof seen[r] !== "number") { seen[r] = typeof lastId === "number" ? lastId : 0; saveSeen(); return; }
-  if (running && state.room === r) { markSeen(r, lastId); return; }
+  if (running && state.room === r && attended()) { markSeen(r, lastId); return; }
   const ids = unread.get(r) || new Set(), before = ids.size;
   for (const m of list) if (m && typeof m.id === "number" && m.id > seen[r] && (m.room || "") === r && !m.re && !isMine(m.name)) ids.add(m.id);
   unread.set(r, ids);

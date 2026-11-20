@@ -1,3 +1,10 @@
+## 1.20.2
+
+- Reactions no longer add spacing between messages. Long-press or right-click a message to react.
+- The server chat is only marked seen while the window is in focus.
+- A single saved login is filled in on any site, no repeat save prompt, and code prompts offer authenticator setup.
+- The character maker shows progress. PDF opener fix attempt.
+
 ## 1.20.1
 
 - Same as 1.20.0: server chat reactions, links, sender faces, bubble colours and looks, no-head characters. Version kept in step with Android.

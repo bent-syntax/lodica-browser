@@ -107,10 +107,24 @@ fun RoomScreen() {
     val msgs = Room.messages
     var adding by remember { mutableStateOf(false) }
     var emojis by remember { mutableStateOf(false) }
-    DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); Room.loadUsers(ctx, open = true); Room.start(); onDispose { Room.stop() } }
+    // Only the foreground, screen-on app counts as present: a locked or backgrounded phone must not mark chats read.
+    var active by remember { mutableStateOf(false) }
+    DisposableEffect(ctx) {
+        val owner = ctx as? androidx.lifecycle.LifecycleOwner
+        fun on() = (ctx.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager)?.isInteractive != false
+        active = owner?.lifecycle?.currentState?.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) != false && on()
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e ->
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) active = on()
+            if (e == androidx.lifecycle.Lifecycle.Event.ON_PAUSE) active = false
+        }
+        owner?.lifecycle?.addObserver(obs)
+        onDispose { owner?.lifecycle?.removeObserver(obs) }
+    }
+    DisposableEffect(Unit) { Emojis.syncNow(); Room.resumeOutbox(ctx); Room.loadChats(ctx); Room.discover(ctx); onDispose { Room.stop() } }
+    LaunchedEffect(active) { if (active) { Room.loadChats(ctx); Room.loadUsers(ctx, open = true); Room.start() } else Room.stop() }
     LaunchedEffect(msgs.size) { if (msgs.isNotEmpty()) runCatching { state.animateScrollToItem(msgs.size - 1) } }
-    LaunchedEffect(Room.room, msgs.size) { Room.markRead(ctx); Room.loadReads() }
-    LaunchedEffect(Room.room) { while (true) { delay(3_000); Room.loadUsers(ctx, open = true); Room.loadReads() } }
+    LaunchedEffect(Room.room, msgs.size, active) { if (active) { Room.markRead(ctx); Room.loadReads() } }
+    LaunchedEffect(Room.room, active) { while (active) { delay(3_000); Room.loadUsers(ctx, open = true); Room.loadReads() } }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedTextColor = Mist, unfocusedTextColor = Mist, cursorColor = Amber,
         focusedBorderColor = Amber, unfocusedBorderColor = GraphiteHigh,
@@ -610,6 +624,10 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
                     Switch(noHead, { noHead = it }, enabled = !busy)
                 }
                 if (strokes.isNotEmpty()) TextButton(enabled = !busy, onClick = { strokes.clear() }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Clear sketch", fontSize = 12.sp) }
+                if (busy) {
+                    Text("Making your character…", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+                    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 4.dp))
+                }
                 err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF43F5E), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }
                 if (alts.isNotEmpty()) {
                     Text("Try one of these instead:", fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))

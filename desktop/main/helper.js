@@ -187,20 +187,35 @@ const AUTOLOGIN = /(^|\.)pelckmansportaal\.be$/i;
 const tried = new WeakMap();
 function autoLogin(tab, host) {
   const { vault } = deps;
-  if (!AUTOLOGIN.test(String(host || "")) || tab.private) return;
+  if (!host || tab.private) return;
   if (tried.get(tab) === host) return;
   if (vault.pinSet() && !vault.state().unlocked) return;
-  const e = vault.find("https://" + host)[0] || vault.exportAll().find(x => AUTOLOGIN.test(x.origin.replace(/^https?:\/\//, "")));
+  const auto = AUTOLOGIN.test(String(host));
+  // Other sites: fill only, and only when exactly one login is saved for the site.
+  const found = vault.find("https://" + host);
+  const e = auto ? found[0] || vault.exportAll().find(x => AUTOLOGIN.test(x.origin.replace(/^https?:\/\//, ""))) : found.length === 1 ? found[0] : null;
   if (!e) return;
   tried.set(tab, host);
-  for (const f of live(tab)) send(f, { type: "autologin", value: e.user, pass: e.pass });
+  for (const f of live(tab)) send(f, { type: "autologin", value: e.user, pass: e.pass, submit: auto });
 }
 
 let totpAsking = false;
 /** A verification-code field got focus: fill the authenticator code saved for this site, or ask which account to use. */
 async function totpFill(tab, host) {
   const totp = require("./totp"), { ui, vault } = deps;
-  if (tab.private || totpAsking || !totp.list().length) return;
+  if (tab.private || totpAsking) return;
+  if (!totp.list().length) {
+    // No authenticator saved yet: offer to add one from the site's setup key, once per site.
+    const b0 = Relay.baseDomain(host);
+    if (!b0 || prefs.p.totpSkip.includes(b0)) return;
+    totpAsking = true;
+    try {
+      const key = await ui.prompt({ kind: "text", title: "Authenticator code for " + b0, message: "Paste the setup key (or otpauth link) from the site to add it and fill codes automatically.", ok: "Add", placeholder: "Setup key" });
+      if (key == null || !String(key).trim()) { prefs.set("totpSkip", prefs.p.totpSkip.concat(b0)); return; }
+      if (!totp.add(String(key), b0)) return;
+      totp.setHost(totp.list()[0].id, b0);
+    } finally { totpAsking = false; }
+  }
   if (vault.pinSet() && !vault.state().unlocked) {
     // Ask for the PIN right here instead of sending the user to Settings.
     totpAsking = true;
@@ -282,7 +297,11 @@ async function onMessage(tab, frame, m) {
       const h = hostOf(m.origin);
       const known = users.get(tab);
       const user = String(m.user || "").trim() || (known && known[0] === Relay.baseDomain(h) ? known[1] : "");
-      const ok = await ui.prompt({ title: `Save password for ${h}?`, message: `Login: ${user || "(none)"}. Stored encrypted on this PC only.`, ok: "Save", cancel: "Not now" });
+      let saved = [];
+      try { saved = vault.find(m.origin); } catch {}
+      if (saved.some(x => x.user === user && x.pass === m.pass)) break; // already stored: nothing to ask
+      const upd = saved.some(x => x.user === user);
+      const ok = await ui.prompt({ title: `${upd ? "Update" : "Save"} password for ${h}?`, message: `Login: ${user || "(none)"}. Stored encrypted on this PC only.`, ok: upd ? "Update" : "Save", cancel: "Not now" });
       if (ok) vault.save(m.origin, user, m.pass);
       break;
     }

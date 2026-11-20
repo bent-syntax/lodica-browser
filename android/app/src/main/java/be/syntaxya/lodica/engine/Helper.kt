@@ -266,10 +266,14 @@ object Helper {
     private val autoTried = HashSet<String>()
 
     private fun autoLogin(tab: Tab, frame: Frame, host: String) {
-        if (tab.private || !autoLoginHost.containsMatchIn(host) || !autoTried.add(System.identityHashCode(tab).toString() + host)) return
+        if (tab.private || !autoTried.add(System.identityHashCode(tab).toString() + host)) return
+        val auto = autoLoginHost.containsMatchIn(host)
+        val base = Relay.baseDomain(host)
         Vault.all().then<Unit>({ list ->
-            val e = list?.firstOrNull { autoLoginHost.containsMatchIn(Uri.parse(it.origin).host ?: "") }
-            if (e != null) frame.port.postMessage(JSONObject().put("type", "autologin").put("value", e.username).put("pass", e.password))
+            // Other sites: fill only, and only when exactly one login is saved for the site.
+            val hits = list?.filter { (Relay.baseDomain(Uri.parse(it.origin).host ?: "") == base) } ?: emptyList()
+            val e = if (auto) list?.firstOrNull { autoLoginHost.containsMatchIn(Uri.parse(it.origin).host ?: "") } else hits.singleOrNull()
+            if (e != null) frame.port.postMessage(JSONObject().put("type", "autologin").put("value", e.username).put("pass", e.password).put("submit", auto))
             GeckoResult.fromValue(Unit)
         }, { GeckoResult.fromValue(Unit) })
     }
@@ -295,7 +299,13 @@ object Helper {
         val s = tab.session ?: return
         val user = m.optString("user").trim().ifBlank { userFor(s, origin) }
         remember(tab, Uri.parse(origin).host.orEmpty(), user)
-        Prompts.offerSave(s, origin, user, pass)
+        // Same login already stored: nothing to offer.
+        Vault.all().then<Unit>({ list ->
+            val host = Uri.parse(origin).host.orEmpty()
+            val known = list?.any { it.username == user && it.password == pass && Uri.parse(it.origin).host == host } == true
+            if (!known) Prompts.offerSave(s, origin, user, pass)
+            GeckoResult.fromValue(Unit)
+        }, { Prompts.offerSave(s, origin, user, pass); GeckoResult.fromValue(Unit) })
     }
 
     /** The page took the generated password; store it with the alias right away, no prompt. */

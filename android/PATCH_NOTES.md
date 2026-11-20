@@ -1,3 +1,9 @@
+## 1.20.2
+
+- The server chat is only marked seen while the app is open and the screen is on.
+- A single saved login is filled in on any site, and you are not asked to save a login you already have.
+- The character maker shows progress while it works.
+
 ## 1.20.1
 
 - Fixes the Android build of 1.20.0. Same server chat features.

@@ -196,7 +196,8 @@ function roomFace(u, cls) {
 async function roomCostume() {
   let ask = await roomSketch();
   while (ask) {
-    const r = await inv("room.face", ask.text, ask.png, !!ask.noHead);
+    const wait = toast({ text: "Making your character…", ms: 0 });
+    const r = await inv("room.face", ask.text, ask.png, !!ask.noHead).finally(() => wait.close());
     if (r && r.ok) { ROOM.state.face = r.glyph || ""; ROOM.state.art = r.art || ""; roomRender(); return; }
     const alts = (r && r.alternatives) || [];
     if (!alts.length) { toast({ text: (r && r.error) || "Could not make the character" }); return; }
@@ -360,10 +361,18 @@ function roomRender() {
     bub.addEventListener("contextmenu", (e) => { e.preventDefault(); roomReactMenu(m, e); });
     L.thread.append(bub);
     const rs = reacts.get(m.id);
-    const chips = h("div", { style: "display:flex;gap:4px;flex-wrap:wrap;margin:2px 0" + (mine ? ";justify-content:flex-end" : "") });
-    if (rs) for (const [e, who] of rs) chips.append(h("button", { class: "btn", style: "padding:0 8px;font-size:13px", title: who.join(", "), text: e + (who.length > 1 ? " " + who.length : ""), act: () => inv("room.send", e, m.id) }));
-    chips.append(h("button", { class: "ib", title: "React", "aria-label": "React", style: "font-size:13px", text: "☺", on: { click: (e) => { e.stopPropagation(); roomReactMenu(m, e); } } }));
-    L.thread.append(chips);
+    if (rs) {
+      const chips = h("div", { style: "display:flex;gap:4px;flex-wrap:wrap;margin:2px 0" + (mine ? ";justify-content:flex-end" : "") });
+      for (const [e, who] of rs) chips.append(h("button", { class: "btn", style: "padding:0 8px;font-size:13px", title: who.join(", "), text: e + (who.length > 1 ? " " + who.length : ""), act: () => inv("room.send", e, m.id) }));
+      L.thread.append(chips);
+    }
+    // Reacting is right-click or a long press on the bubble: no extra row per message.
+    bub.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "touch") return;
+      const t = setTimeout(() => roomReactMenu(m, e), 500);
+      const stop = () => { clearTimeout(t); bub.removeEventListener("pointerup", stop); bub.removeEventListener("pointermove", stop); };
+      bub.addEventListener("pointerup", stop); bub.addEventListener("pointermove", stop);
+    });
     const here = seen.find((x) => x.id === m.id);
     if (here) {
       const row = h("div", { class: "chat-seen" + (mine ? "" : " left") });

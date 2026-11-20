@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.2 (versionCode 284)
+
+- Chat reactions take no extra space (long-press or right-click to react). The chat only counts as seen while you are looking at it. Saved logins fill in without a repeat save prompt. Desktop offers authenticator setup on code prompts. Character maker shows progress. PDF opener fix attempt.
+
 ## 1.20.1 (versionCode 283)
 
 - Fixes the Android build of 1.20.0 (server chat batch). Same features.
