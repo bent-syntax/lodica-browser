@@ -477,9 +477,9 @@ function init(deps) {
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("room.start", () => room.start());
   on("room.stop", () => { room.stop(); return true; });
-  on("room.send", text => room.send(str(text)));
+  on("room.send", (text, re) => room.send(str(text), re));
   on("room.name", name => room.setName(str(name)));
-  on("room.face", (desc, sketch) => room.setFace(str(desc), str(sketch)));
+  on("room.face", (desc, sketch, noHead) => room.setFace(str(desc), str(sketch), noHead === true));
   on("room.typing", () => room.typing());
   on("room.select", r => room.select(str(r)));
   on("room.open", (kind, target) => { const r = kind === "group" ? room.group(str(target)) : room.dm(str(target)); room.addChat(r); return room.select(r); });
@@ -488,6 +488,16 @@ function init(deps) {
     const r = await dialog.showOpenDialog(d.win(), { title: "Send a file to this chat (max 5 GB)", properties: ["openFile"] });
     if (r.canceled || !r.filePaths[0]) return null;
     return room.upload(r.filePaths[0]);
+  });
+  // Pasted image bytes from the renderer: write to a temp file, upload, delete.
+  on("room.uploadData", async (bytes, name) => {
+    const fs = require("fs"), os = require("os"), path = require("path");
+    const buf = Buffer.from(bytes || []);
+    if (!buf.length) return "Nothing to send";
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lodica-paste-"));
+    const file = path.join(dir, room.safeName(str(name)));
+    try { fs.writeFileSync(file, buf); return await room.upload(file); }
+    finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
   on("room.preview", id => room.fetchFile(str(id)));
   on("room.save", async (id, name) => {

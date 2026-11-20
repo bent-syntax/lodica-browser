@@ -151,6 +151,9 @@ server.listen(0, '127.0.0.1', async () => {
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 1);
     assert.strictEqual((await call(port, 'POST', '/api/chat/read', { name: 'Cy', room: '', id: 99999 })).status, 200); // clamped to the newest message
     assert.strictEqual((await call(port, 'GET', '/api/chat/reads?room=')).json.reads.Cy, 8);
+    // Reactions keep their target id; long ones are plain messages.
+    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Cy', text: '👍', re: 1 })).json.re, 1);
+    assert.strictEqual((await call(port, 'POST', '/api/chat', { name: 'Cy', text: 'too long reaction', re: 1 })).json.re, undefined);
     // Rate limit: more than 20 posts in the window are refused.
     let limited = 0;
     for (let i = 0; i < 25; i++) if ((await call(port, 'POST', '/api/chat', { text: 'x' })).status === 429) limited++;

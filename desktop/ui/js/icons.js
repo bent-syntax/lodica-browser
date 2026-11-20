@@ -1,6 +1,7 @@
 "use strict";
 // Outline 24px glyphs (1.75 stroke, round caps and joins, stroke = currentColor) and the Lodica kite.
 const ICONS = {
+  expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   chat: "M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z",
   palette: "M12 3a9 9 0 1 0 0 18c1.2 0 2-.8 2-1.8 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-1 .8-1.8 1.8-1.8H17a4 4 0 0 0 4-4c0-4-4-8-9-8zM6.9 11a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM9.4 7.5a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0zM13.9 7.5a0.6 0.6 0 1 0 1.2 0a0.6 0.6 0 1 0 -1.2 0z",
   tabs: "M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 9.5h18M10 5v4.5",

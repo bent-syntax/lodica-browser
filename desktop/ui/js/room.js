@@ -30,6 +30,14 @@ function openRoom() {
     L.ta.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
     // Tell the others we are typing; the main process rate-limits the pings.
     L.ta.addEventListener("input", () => { if (L.ta.value.trim()) inv("room.typing"); });
+    // Pasted images and files go up as attachments instead of being dropped.
+    L.ta.addEventListener("paste", async (e) => {
+      const f = [...(e.clipboardData?.files || [])][0];
+      if (!f) return;
+      e.preventDefault();
+      const err = await inv("room.uploadData", new Uint8Array(await f.arrayBuffer()), f.name || "pasted-image.png");
+      if (err) toast(err);
+    });
     L.prog = h("div", { class: "empty", style: "padding:0 12px;display:none" });
     const attach = async () => {
       const err = await inv("room.upload");
@@ -61,7 +69,7 @@ function openRoom() {
     };
     return h("div", { class: "spage" },
       h("div", { class: "sp-main" },
-        h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("close", "Close chat", () => L.close())),
+        h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("expand", "Full page", () => { const on = L.el.classList.toggle("room-full"); inv("ui.dock", on ? 0 : 360); }), ib("close", "Close chat", () => L.close())),
         L.tabs, L.note, L.thread, L.prog, L.who,
         L.pick,
         h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
@@ -105,16 +113,53 @@ function roomFile(f) {
 
 const ROOM_EMOJI = [..."😀😃😄😁😆😅😂🤣😊😇🙂😉😍🥰😘😋😎🤩🥳😏😒😞😔😢😭😤😡🤯😱😨😰🤔🙄😴🤗🤭🫡👍👎👏🙌🙏💪👀🔥✨🎉💯❤️💔💙💚💛🧡💜🖤🤝👋✅❌⭐🚀"].reduce((a, c) => { if (c === "\ufe0f" || c === "\u200d") a[a.length - 1] += c; else a.push(c); return a; }, []);
 
-// Text with :name: of a server emoji drawn as its image.
-function roomText(t) {
-  const map = ROOM.emojis; if (!map || !map.size) return t;
+// Reaction picker: a small row of emoji at the pointer; picking one sends it as a reaction to the message.
+function roomReactMenu(m, e) {
+  document.querySelector(".react-menu")?.remove();
+  const bar = h("div", { class: "react-menu", style: "position:fixed;z-index:9999;display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--raised,#2B2E33);border:1px solid var(--line,#33363C);left:" + Math.max(8, Math.min(e.clientX, innerWidth - 220)) + "px;top:" + Math.max(8, e.clientY - 44) + "px" });
+  for (const x of ["👍", "❤️", "😂", "😮", "😢", "🔥"]) bar.append(h("button", { class: "ib", text: x, act: () => { bar.remove(); inv("room.send", x, m.id); } }));
+  document.body.append(bar);
+  setTimeout(() => document.addEventListener("click", () => bar.remove(), { once: true }), 0);
+}
+// Per-user bubble colour, kept in prefs.chatColors by username ("" is your own bubble).
+// Bubble style for one sender ("" is you): colour and shape, kept on this device.
+const ROOM_SHAPES = { Round: "12px", Square: "2px", Pill: "20px", Leaf: "20px 4px 20px 4px" };
+function roomPickColor(name) {
+  const cur = (S.prefs.chatColors || {})[name] || "#2B2E33";
+  const inp = h("input", { type: "color", value: /^#[0-9a-f]{6}$/i.test(cur) ? cur : "#2B2E33" });
+  const sel = h("select", { class: "field" }, ...Object.keys(ROOM_SHAPES).map((k) => h("option", { value: ROOM_SHAPES[k], text: k, selected: ROOM_SHAPES[k] === (S.prefs.chatShapes || {})[name] })));
+  dialog({ key: "bubble-style", title: name ? "Bubble of " + name : "Your bubble", cancelValue: null }, (d, L) => {
+    const save = () => { setPref("chatColors", { ...(S.prefs.chatColors || {}), [name]: inp.value }); setPref("chatShapes", { ...(S.prefs.chatShapes || {}), [name]: sel.value }); L.close(true); };
+    const reset = () => { const c = { ...(S.prefs.chatColors || {}) }, sh = { ...(S.prefs.chatShapes || {}) }; delete c[name]; delete sh[name]; setPref("chatColors", c); setPref("chatShapes", sh); L.close(true); };
+    d.append(h("label", { class: "muted", style: "font-size:12px" }, "Colour"), inp, h("label", { class: "muted", style: "font-size:12px" }, "Shape"), sel, btnRow(btn("Reset", reset, "muted"), btn("Cancel", () => L.close(null), "muted"), btn("Save", save)));
+  });
+}
+// Black or white text, whichever reads on the given #rrggbb.
+function roomInk(c) {
+  const n = parseInt(c.slice(1), 16), y = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  return y > 150 ? "#1B1C1F" : "#ECEDEE";
+}
+// Plain text with http(s) links made clickable; the main process opens them in the browser.
+function roomLinks(t) {
   const out = []; let at = 0;
-  for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
-    const png = map.get(m[1]); if (!png) continue;
-    out.push(t.slice(at, m.index), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));height:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));vertical-align:middle" }));
+  for (const m of String(t).matchAll(/https?:\/\/[^\s<>"']+/g)) {
+    out.push(t.slice(at, m.index), h("a", { href: m[0], text: m[0], style: "color:inherit;text-decoration:underline", on: { click: (e) => { e.preventDefault(); inv("openExternal", m[0]); } } }));
     at = m.index + m[0].length;
   }
   out.push(t.slice(at));
+  return out;
+}
+
+// Text with :name: of a server emoji drawn as its image.
+function roomText(t) {
+  const map = ROOM.emojis; if (!map || !map.size) return h("span", {}, ...roomLinks(t));
+  const out = []; let at = 0;
+  for (const m of t.matchAll(/:([a-z0-9_]{1,32}):/g)) {
+    const png = map.get(m[1]); if (!png) continue;
+    out.push(...roomLinks(t.slice(at, m.index)), h("img", { src: "data:image/png;base64," + png, alt: m[0], title: m[0], style: "width:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));height:calc(32px * var(--chat-scale, 1) * var(--emoji-scale, 1));vertical-align:middle" }));
+    at = m.index + m[0].length;
+  }
+  out.push(...roomLinks(t.slice(at)));
   return h("span", {}, ...out);
 }
 
@@ -151,7 +196,7 @@ function roomFace(u, cls) {
 async function roomCostume() {
   let ask = await roomSketch();
   while (ask) {
-    const r = await inv("room.face", ask.text, ask.png);
+    const r = await inv("room.face", ask.text, ask.png, !!ask.noHead);
     if (r && r.ok) { ROOM.state.face = r.glyph || ""; ROOM.state.art = r.art || ""; roomRender(); return; }
     const alts = (r && r.alternatives) || [];
     if (!alts.length) { toast({ text: (r && r.error) || "Could not make the character" }); return; }
@@ -173,9 +218,10 @@ function roomSketch() {
     cv.addEventListener("pointermove", (e) => { if (!on) return; const [x, y] = at(e); g.lineTo(x, y); g.stroke(); });
     cv.addEventListener("pointerup", () => { on = false; });
     const clear = btn("Clear sketch", () => { g.clearRect(0, 0, 240, 240); drawn = false; }, "muted");
-    const go = () => { let png = ""; if (drawn) { const o = document.createElement("canvas"); o.width = o.height = 240; const c = o.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, 240, 240); c.drawImage(cv, 0, 0); png = o.toDataURL("image/png").split(",")[1]; } L.close({ text: text.value.trim(), png }); };
+    const nohead = h("input", { type: "checkbox" });
+    const go = () => { let png = ""; if (drawn) { const o = document.createElement("canvas"); o.width = o.height = 240; const c = o.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, 240, 240); c.drawImage(cv, 0, 0); png = o.toDataURL("image/png").split(",")[1]; } L.close({ text: text.value.trim(), png, noHead: nohead.checked }); };
     text.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
-    d.append(text, h("div", { class: "muted", text: "Sketch (optional)", style: "font-size:12px" }), cv, btnRow(clear, btn("Cancel", () => L.close(null), "muted"), btn("Make it", go, "primary")));
+    d.append(text, h("label", { style: "display:flex;gap:8px;align-items:center;font-size:13px" }, nohead, "No head or face"), h("div", { class: "muted", text: "Sketch (optional)", style: "font-size:12px" }), cv, btnRow(clear, btn("Cancel", () => L.close(null), "muted"), btn("Make it", go, "primary")));
     setTimeout(() => text.focus(), 0);
   });
 }
@@ -294,15 +340,30 @@ function roomRender() {
   L.thread.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(14 * scale) + "px";
   const seen = roomSeen();
-  const sig = JSON.stringify([scale, emo, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
+  const sig = JSON.stringify([scale, emo, S.prefs.chatColors, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
   clear(L.thread);
+  // Reactions are messages with `re`: fold them into chips under their target.
+  const reacts = new Map();
+  for (const m of ROOM.state.messages) if (m.re) { const r = reacts.get(m.re) || new Map(); r.set(m.text, [...(r.get(m.text) || []), m.name]); reacts.set(m.re, r); }
+  const colors = S.prefs.chatColors || {};
   for (const m of ROOM.state.messages) {
+    if (m.re) continue;
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
-    L.thread.append(h("div", { class: mine ? "aiq chat-q" : "prose chat-a" },
-      mine ? "" : h("div", { style: "color:var(--amber);font-size:calc(12px * var(--chat-scale, 1))", text: m.name }), m.file ? roomFile(m.file) : roomText(m.text)));
+    const col = colors[mine ? "" : m.name], shape = (S.prefs.chatShapes || {})[mine ? "" : m.name];
+    const face = mine ? null : (ROOM.state.online || []).find((u) => u.name === m.name);
+    const bub = h("div", { class: mine ? "aiq chat-q" : "prose chat-a", style: (col ? "background:" + col + ";color:" + roomInk(col) + ";" : "") + (shape ? "border-radius:" + shape : "") },
+      mine ? "" : h("div", { style: "display:flex;gap:4px;align-items:center;color:" + (col ? "inherit" : "var(--amber)") + ";font-size:calc(12px * var(--chat-scale, 1));cursor:pointer", title: "Bubble style", on: { click: () => roomPickColor(m.name) } }, face ? roomFace(face, "chat-mini")[0] : "", m.name), m.file ? roomFile(m.file) : roomText(m.text));
+    if (mine) bub.addEventListener("dblclick", () => roomPickColor(""));
+    bub.addEventListener("contextmenu", (e) => { e.preventDefault(); roomReactMenu(m, e); });
+    L.thread.append(bub);
+    const rs = reacts.get(m.id);
+    const chips = h("div", { style: "display:flex;gap:4px;flex-wrap:wrap;margin:2px 0" + (mine ? ";justify-content:flex-end" : "") });
+    if (rs) for (const [e, who] of rs) chips.append(h("button", { class: "btn", style: "padding:0 8px;font-size:13px", title: who.join(", "), text: e + (who.length > 1 ? " " + who.length : ""), act: () => inv("room.send", e, m.id) }));
+    chips.append(h("button", { class: "ib", title: "React", "aria-label": "React", style: "font-size:13px", text: "☺", on: { click: (e) => { e.stopPropagation(); roomReactMenu(m, e); } } }));
+    L.thread.append(chips);
     const here = seen.find((x) => x.id === m.id);
     if (here) {
       const row = h("div", { class: "chat-seen" + (mine ? "" : " left") });

@@ -1,3 +1,11 @@
+## 1.20.0
+
+- Server chat: long-press a message to react, copy it or change the bubble look (colour and shape) for you or any sender.
+- Links in messages open on tap. Each message shows the sender's face.
+- Character maker: switch for a character without head and face.
+- Fixed: characters were cut off at the top and bottom; file attach is more tolerant of file sizes.
+- Reactions need the relay update to reach others.
+
 ## 1.19.3
 
 - Calculator shows the value to 15 decimals and as a fraction.

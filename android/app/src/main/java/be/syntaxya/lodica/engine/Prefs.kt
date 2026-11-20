@@ -136,6 +136,8 @@ object Prefs {
     var plannerY by mutableStateOf(0f); private set
     var plannerW by mutableStateOf(0f); private set
     var chatScale by mutableStateOf(100); private set
+    /** Local chat bubble looks by sender name ("" = own bubble). Value is "colour|shape", colour as #RRGGBB or empty. */
+    val bubbleStyles = androidx.compose.runtime.mutableStateMapOf<String, String>()
     var notesBook by mutableStateOf(""); private set
     var plannerDone by mutableStateOf(setOf<String>()); private set
     private val PLACES = listOf("left", "right", "below")
@@ -256,6 +258,8 @@ object Prefs {
         notesX = sp.getFloat("notesX", 0f); notesY = sp.getFloat("notesY", 0f); notesW = sp.getFloat("notesW", 0f)
         plannerX = sp.getFloat("plannerX", 0f); plannerY = sp.getFloat("plannerY", 0f); plannerW = sp.getFloat("plannerW", 0f)
         chatScale = sp.getInt("chatScale", 100).coerceIn(80, 250)
+        bubbleStyles.clear()
+        sp.getStringSet("bubbleStyles", emptySet())?.forEach { e -> e.split("\t", limit = 2).let { if (it.size == 2) bubbleStyles[it[0]] = it[1] } }
         notesBook = sp.getString("notesBook", "") ?: ""
         plannerDone = sp.getStringSet("plannerDone", emptySet())?.toSet() ?: emptySet()
         plannerPos = sp.getString("plannerPos", "below")?.takeIf { it in PLACES } ?: "below"
@@ -432,6 +436,10 @@ object Prefs {
     fun updatePlannerWidgetMode(v: String) { plannerWidgetMode = if (v == "tasks") "tasks" else "full"; sp.edit().putString("plannerWidgetMode", plannerWidgetMode).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updatePlannerWidgetAlpha(v: Float) { plannerWidgetAlpha = v.coerceIn(0f, 1f); sp.edit().putFloat("plannerWidgetAlpha", plannerWidgetAlpha).apply(); appCtx?.let { be.syntaxya.lodica.ui.PlannerWidget.refresh(it) } }
     fun updateNotesBook(v: String) { notesBook = v; sp.edit().putString("notesBook", v).apply() }
+    fun updateBubbleStyle(name: String, style: String?) {
+        if (style == null) bubbleStyles.remove(name) else bubbleStyles[name] = style
+        sp.edit().putStringSet("bubbleStyles", bubbleStyles.map { "${it.key}\t${it.value}" }.toSet()).apply()
+    }
     fun updateChatScale(v: Int) { chatScale = v.coerceIn(80, 250); sp.edit().putInt("chatScale", chatScale).apply() }
     /** Planner window on the start page: offset in dp from its default slot, width in dp (0 = full width). Double tap the title to reset. */
     fun updateNotesRect(x: Float, y: Float, w: Float) {

@@ -26,7 +26,8 @@ async function ensureOverlay() {
   await s.later();
 }
 // Only the Settings tab is open: keep the tab strip and toolbar usable around it.
-const keepOnly = () => STACK.length > 0 && STACK.every((l) => l.el.classList.contains("settings-tab"));
+// Dialogs and popups on top of a settings-tab layer (e.g. the character sketch over the chat dock) keep the layout.
+const keepOnly = () => { const t = (l) => l.el.classList.contains("settings-tab"); return STACK.some(t) && STACK.every((l) => t(l) || !l.el.classList.contains("spage-layer")); };
 let keepOn = false;
 // Full-page layers (settings, notebook, chat) hide the tab strip so they take over the window.
 let covered = false;

@@ -34,7 +34,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.offset
 import androidx.compose.animation.core.RepeatMode
@@ -51,12 +53,14 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import be.syntaxya.lodica.engine.Emojis
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.Image
@@ -181,8 +185,9 @@ fun RoomScreen() {
             Modifier.weight(1f).fillMaxWidth(), state = state,
             contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(msgs, key = { it.id }) { m ->
-                Bubble(m, mine = Room.isMine(ctx, m.name))
+            val chips = msgs.filter { it.re > 0 }.groupBy { it.re }.mapValues { (_, l) -> l.groupBy { it.text }.map { (e, x) -> e to x.size } }
+            items(msgs.filter { it.re == 0L }, key = { it.id }) { m ->
+                Bubble(m, mine = Room.isMine(ctx, m.name), reactions = chips[m.id].orEmpty())
                 seenAt[m.id]?.sorted()?.let { here ->
                     Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
                         here.forEach { n ->
@@ -214,13 +219,13 @@ fun RoomScreen() {
         }
         val grip = if (Room.uploading == null && sendError == null) 12.dp else 0.dp
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp).offset(y = grip).zIndex(1f), verticalAlignment = Alignment.Bottom) {
-            Row(Modifier.weight(1f).height(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.weight(1f).height(48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 others.take(5).forEach { p ->
-                    Box(Modifier.width(48.dp).height(24.dp).clickable { peek = p }) {
-                        Box(Modifier.width(48.dp).height(24.dp).clipToBounds()) {
+                    Box(Modifier.width(48.dp).height(48.dp).clickable { peek = p }) {
+                        Box(Modifier.width(48.dp).height(48.dp)) {
                             val pose = if (p.typing) p.bubble.ifEmpty { p.art } else if (p.online) p.hands.ifEmpty { p.art } else p.art
-                            if (pose.isNotEmpty()) CostumeArt(pose, 48.dp, Modifier.requiredSize(48.dp).align(Alignment.TopCenter))
-                            else if (p.face.isEmpty()) Box(Modifier.requiredSize(48.dp).align(Alignment.TopCenter)) { Avatar(p.name, 48.dp) }
+                            if (pose.isNotEmpty()) CostumeArt(pose, 48.dp)
+                            else if (p.face.isEmpty()) Avatar(p.name, 48.dp)
                             else Text(p.face, fontSize = 40.sp, modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         }
                     }
@@ -323,25 +328,99 @@ private fun NewChatDialog(onDone: () -> Unit) {
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false) {
+private val BUBBLE_SHAPES = linkedMapOf(
+    "Round" to RoundedCornerShape(12.dp), "Square" to RoundedCornerShape(2.dp),
+    "Pill" to RoundedCornerShape(20.dp), "Leaf" to RoundedCornerShape(20.dp, 4.dp, 20.dp, 4.dp),
+)
+private val BUBBLE_COLORS = listOf("#2B2E33", "#3B2A12", "#12343B", "#1F3B21", "#3B1F2E", "#2E2A4A", "#4A2323", "#F3F3F1")
+private val REACTIONS = listOf("👍", "❤️", "😂", "😮", "😢", "🎉")
+
+@Composable
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reactions: List<Pair<String, Int>> = emptyList()) {
     val clip = androidx.compose.ui.platform.LocalClipboardManager.current
     val ctx = LocalContext.current
+    var menu by remember { mutableStateOf(false) }
+    var look by remember { mutableStateOf(false) }
+    val key = if (mine) "" else m.name
+    val parts = Prefs.bubbleStyles[key]?.split("|", limit = 2)
+    val tint = parts?.getOrNull(0)?.takeIf { it.isNotEmpty() }?.let { runCatching { Color(android.graphics.Color.parseColor(it)) }.getOrNull() }
+    val shape = BUBBLE_SHAPES[parts?.getOrNull(1)] ?: BUBBLE_SHAPES.getValue("Round")
+    val light = tint != null && tint.luminance() > 0.6f
+    if (menu) AlertDialog(
+        onDismissRequest = { menu = false },
+        title = { Text("Message", color = Mist) },
+        text = {
+            Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    REACTIONS.forEach { e ->
+                        Text(e, fontSize = 24.sp, modifier = Modifier.clickable {
+                            menu = false
+                            Room.send(ctx, Room.name(ctx), e, re = m.id) { }
+                        }.padding(4.dp))
+                    }
+                }
+                if (m.fileId == null) TextButton(onClick = {
+                    menu = false
+                    clip.setText(androidx.compose.ui.text.AnnotatedString(m.text))
+                    android.widget.Toast.makeText(ctx, "Message copied", android.widget.Toast.LENGTH_SHORT).show()
+                }) { Text("Copy text", color = Mist) }
+                TextButton(onClick = { menu = false; look = true }) { Text(if (mine) "Your bubble look" else "Bubble look for ${m.name}", color = Mist) }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = { menu = false }) { Text("Close") } },
+        containerColor = GraphiteRaised,
+    )
+    if (look) {
+        var col by remember { mutableStateOf(parts?.getOrNull(0).orEmpty()) }
+        var shp by remember { mutableStateOf(parts?.getOrNull(1) ?: "Round") }
+        AlertDialog(
+            onDismissRequest = { look = false },
+            title = { Text(if (mine) "Your bubble" else "Bubble of ${m.name}", color = Mist) },
+            text = {
+                Column {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        BUBBLE_COLORS.forEach { c ->
+                            Box(Modifier.size(28.dp).clip(CircleShape).background(Color(android.graphics.Color.parseColor(c)))
+                                .border(if (c == col) 2.dp else 1.dp, if (c == col) Amber else Muted, CircleShape).clickable { col = c })
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        BUBBLE_SHAPES.keys.forEach { s ->
+                            Text(s, color = if (s == shp) Amber else Mist, fontSize = 13.sp, modifier = Modifier.clickable { shp = s }.padding(4.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { Prefs.updateBubbleStyle(key, "$col|$shp"); look = false }) { Text("Save", color = Amber) } },
+            dismissButton = { TextButton(onClick = { Prefs.updateBubbleStyle(key, null); look = false }) { Text("Reset") } },
+            containerColor = GraphiteRaised,
+        )
+    }
     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
         Column(
-            Modifier.fillMaxWidth(0.88f).clip(RoundedCornerShape(12.dp)).background(if (mine) GraphiteHigh else GraphiteRaised)
-                .combinedClickable(onClick = {}, onLongClick = {
-                    if (m.fileId == null) {
-                        clip.setText(androidx.compose.ui.text.AnnotatedString(m.text))
-                        android.widget.Toast.makeText(ctx, "Message copied", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }).padding(12.dp),
+            Modifier.fillMaxWidth(0.88f).clip(shape).background(tint ?: if (mine) GraphiteHigh else GraphiteRaised)
+                .combinedClickable(onClick = {}, onLongClick = { menu = true }).padding(12.dp),
         ) {
-            if (!mine) Text(m.name, color = Amber, fontSize = 12.sp)
-            if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text) }
+            val ink = if (light) androidx.compose.ui.graphics.Color(0xFF1B1C1F) else Mist
+            if (!mine) {
+                val q = Room.peers.firstOrNull { it.name == m.name }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PeerFace(m.name, q?.face.orEmpty(), q?.art.orEmpty(), 24.dp)
+                    Text(m.name, color = if (light) androidx.compose.ui.graphics.Color(0xFF9A4B08) else Amber, fontSize = 12.sp)
+                }
+            }
+            if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text, ink) }
+            if (reactions.isNotEmpty()) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                reactions.forEach { (e, n) ->
+                    Text(if (n > 1) "$e $n" else e, color = ink, fontSize = 12.sp, modifier = Modifier.border(1.dp, Muted, RoundedCornerShape(10.dp)).padding(horizontal = 6.dp, vertical = 2.dp))
+                }
+            }
             if (waiting) Text("Waiting for the server…", color = Muted, fontSize = 12.sp)
             Text(
                 java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(m.at)),
-                color = Muted, fontSize = 12.sp,
+                color = if (light) androidx.compose.ui.graphics.Color(0xFF5F636A) else Muted, fontSize = 12.sp,
             )
         }
     }
@@ -390,17 +469,29 @@ private fun FileBody(m: RoomMsg) {
 
 /** Message text where :name: of a known server emoji is drawn as its image. */
 @Composable
-private fun EmojiText(t: String) {
+private fun EmojiText(t: String, ink: Color = Mist) {
     val known = Emojis.list.map { it.name }.toSet()
     val re = Regex(":([a-z0-9_]{1,32}):")
     val used = re.findAll(t).map { it.groupValues[1] }.filter { it in known }.toSet()
+    val link = androidx.compose.ui.text.TextLinkStyles(androidx.compose.ui.text.SpanStyle(color = Amber, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+    val urls = Regex("https?://[^\\s<>\"]+")
     val text = buildAnnotatedString {
+        fun plain(s: String) {
+            var p = 0
+            for (u in urls.findAll(s)) {
+                append(s.substring(p, u.range.first))
+                val url = u.value.trimEnd('.', ',', ')', '!', '?', ';', ':')
+                withLink(androidx.compose.ui.text.LinkAnnotation.Url(url, link)) { append(url) }
+                p = u.range.first + url.length
+            }
+            append(s.substring(p))
+        }
         var at = 0
         for (m in re.findAll(t)) {
             if (m.groupValues[1] !in used) continue
-            append(t.substring(at, m.range.first)); appendInlineContent(m.groupValues[1], m.value); at = m.range.last + 1
+            plain(t.substring(at, m.range.first)); appendInlineContent(m.groupValues[1], m.value); at = m.range.last + 1
         }
-        append(t.substring(at))
+        plain(t.substring(at))
     }
     val inline = used.associateWith { n ->
         InlineTextContent(Placeholder((27 * Emojis.scale / 100f).sp, (27 * Emojis.scale / 100f).sp, PlaceholderVerticalAlign.TextCenter)) {
@@ -408,7 +499,7 @@ private fun EmojiText(t: String) {
             if (bmp != null) Image(bmp, n, Modifier.fillMaxSize())
         }
     }
-    Text(text, color = Mist, fontSize = (14 * Prefs.chatScale / 100f).sp, inlineContent = inline)
+    Text(text, color = ink, fontSize = (14 * Prefs.chatScale / 100f).sp, inlineContent = inline)
 }
 
 private val OS_GLYPH = mapOf("android" to "🤖", "windows" to "🪟", "macos" to "🍎", "ios" to "📱", "linux" to "🐧")
@@ -465,6 +556,7 @@ private fun Avatar(name: String, size: androidx.compose.ui.unit.Dp) {
 private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var noHead by remember { mutableStateOf(false) }
     var err by remember { mutableStateOf<String?>(null) }
     var alts by remember { mutableStateOf<List<String>>(emptyList()) }
     val strokes = remember { mutableStateListOf<List<androidx.compose.ui.geometry.Offset>>() }
@@ -486,7 +578,7 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
     }
     fun make(t: String) {
         busy = true; err = null; alts = emptyList()
-        Room.setFace(ctx, t, if (t == text) sketchPng() else null) { e ->
+        Room.setFace(ctx, t, if (t == text) sketchPng() else null, noHead) { e ->
             if (e == null) { busy = false; onDone(); onClose() }
             else { err = e; Room.alternatives(t) { a -> alts = a; busy = false } }
         }
@@ -514,6 +606,10 @@ private fun CostumeDialog(ctx: Context, onClose: () -> Unit, onDone: () -> Unit)
                         st.forEachIndexed { i, o -> if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y) }
                         drawPath(path, androidx.compose.ui.graphics.Color(0xFF111827), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5f * size.width / 240f, cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round))
                     }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("No head or face", fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    Switch(noHead, { noHead = it }, enabled = !busy)
                 }
                 if (strokes.isNotEmpty()) TextButton(enabled = !busy, onClick = { strokes.clear() }, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Clear sketch", fontSize = 12.sp) }
                 err?.let { Text(it, color = androidx.compose.ui.graphics.Color(0xFFF43F5E), fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)) }

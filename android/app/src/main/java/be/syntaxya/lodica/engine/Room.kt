@@ -18,6 +18,7 @@ import org.json.JSONObject
 data class RoomMsg(
     val id: Long, val name: String, val text: String, val at: Long, val room: String = "",
     val fileId: String? = null, val fileName: String = "", val fileSize: Long = 0, val fileType: String = "",
+    val re: Long = 0,
 )
 
 /**
@@ -283,7 +284,7 @@ object Room {
     }
 
     /** Makes a costume character from [desc] with the linked AI. Empty [desc] goes back to the automatic one. [done] gets an error text or null. */
-    fun setFace(ctx: Context, desc: String, png: String? = null, done: (String?) -> Unit) {
+    fun setFace(ctx: Context, desc: String, png: String? = null, noHead: Boolean = false, done: (String?) -> Unit) {
         val sp = ctx.getSharedPreferences("room", Context.MODE_PRIVATE)
         val d = desc.trim().take(300)
         if (d.isEmpty() && png == null) {
@@ -292,7 +293,7 @@ object Room {
             ensureFace(ctx, name(ctx)); done(null); return
         }
         if (!Ai.connected) { done("Link an AI in Settings first."); return }
-        val subject = "Costume: " + d.ifEmpty { "the character in the sketch" }
+        val subject = "Costume: " + d.ifEmpty { "the character in the sketch" } + if (noHead) " (headless: draw only the body, no head or face)" else ""
         askGlyph(subject, GLYPH_COSTUME) { g ->
             askArt(subject, png = png) { art ->
                 if (art.isEmpty()) { done("The AI would not draw that. Your character stays as it is."); return@askArt }
@@ -474,7 +475,7 @@ object Room {
                     val o = JSONObject(body)
                     val arr: JSONArray = o.optJSONArray("messages") ?: JSONArray()
                     val fresh = (0 until arr.length()).map { arr.getJSONObject(it) }
-                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room")).withFile(it.optJSONObject("file")) }
+                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room"), re = it.optLong("re")).withFile(it.optJSONObject("file")) }
                         .distinctBy { it.id }
                     val srvLast = o.optLong("last", last)
                     if (last >= 0 && srvLast < last) {
@@ -513,13 +514,13 @@ object Room {
         outboxLoaded = true
         runCatching {
             val a = JSONArray(rp(ctx).getString("outbox", "[]"))
-            for (i in 0 until a.length()) { val o = a.getJSONObject(i); pending.add(RoomMsg(-(++seq), o.getString("name"), o.getString("text"), o.optLong("at"), o.optString("room"))) }
+            for (i in 0 until a.length()) { val o = a.getJSONObject(i); pending.add(RoomMsg(-(++seq), o.getString("name"), o.getString("text"), o.optLong("at"), o.optString("room"), re = o.optLong("re"))) }
         }
     }
 
     private fun saveOutbox(ctx: Context) {
         val a = JSONArray()
-        for (m in pending) a.put(JSONObject().put("name", m.name).put("text", m.text).put("at", m.at).put("room", m.room))
+        for (m in pending) a.put(JSONObject().put("name", m.name).put("text", m.text).put("at", m.at).put("room", m.room).put("re", m.re))
         rp(ctx).edit().putString("outbox", a.toString()).apply()
     }
 
@@ -531,7 +532,7 @@ object Room {
 
     /** 0 = sent, 1 = retry later, 2 = refused for good. */
     private fun post(m: RoomMsg): Pair<Int, String?> = try {
-        val b = JSONObject().put("name", m.name).put("text", m.text).put("room", m.room).toString().toByteArray()
+        val b = JSONObject().put("name", m.name).put("text", m.text).put("room", m.room).apply { if (m.re > 0) put("re", m.re) }.toString().toByteArray()
         val (code, _) = Relay.request("POST", "/api/chat", b, "application/json")
         when {
             code == 200 -> 0 to null
@@ -557,9 +558,9 @@ object Room {
     }
 
     /** Posts [text]; [done] gets an error message, or null on success or when it was queued for later. */
-    fun send(ctx: Context, name: String, text: String, done: (String?) -> Unit) {
+    fun send(ctx: Context, name: String, text: String, re: Long = 0, done: (String?) -> Unit) {
         val app = ctx.applicationContext
-        val m = RoomMsg(-(++seq), name, text, System.currentTimeMillis(), room)
+        val m = RoomMsg(-(++seq), name, text, System.currentTimeMillis(), room, re = re)
         loadOutbox(app)
         if (pending.isNotEmpty()) {
             if (pending.size >= MAX_OUTBOX) { done("Too many unsent messages"); return }
@@ -591,7 +592,14 @@ object Room {
                         if (!it.isNull(1)) size = it.getLong(1)
                     }
                 }
-                if (size <= 0) size = cr.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L
+                if (size <= 0) size = try { cr.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: -1L } catch (e: Exception) { -1L }
+                var src = uri
+                if (size <= 0) {
+                    // Some providers hide the size: copy to cache once to learn it.
+                    val tmp = java.io.File(app.cacheDir, "upload.tmp")
+                    cr.openInputStream(uri)?.use { i -> tmp.outputStream().use { o -> i.copyTo(o) } }
+                    size = tmp.length(); src = android.net.Uri.fromFile(tmp)
+                }
                 when {
                     size == 0L -> "Can't read that file"
                     size < 0 -> "Can't read that file"
@@ -600,7 +608,7 @@ object Room {
                         main.post { uploading = 0 }
                         val q = "?name=" + java.net.URLEncoder.encode(fname, "UTF-8") + "&from=" + java.net.URLEncoder.encode(from, "UTF-8") +
                             if (r.isEmpty()) "" else "&room=" + java.net.URLEncoder.encode(r, "UTF-8")
-                        val input = cr.openInputStream(uri)
+                        val input = cr.openInputStream(src)
                         if (input == null) "Can't read that file" else {
                             val (code, _) = input.use { Relay.uploadStream("/api/chat/file$q", it, size) { p -> main.post { uploading = p } } }
                             when (code) {

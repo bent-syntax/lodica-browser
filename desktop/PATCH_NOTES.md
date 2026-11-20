@@ -1,3 +1,11 @@
+## 1.20.0
+
+- Server chat: react to messages, click links, see the sender's face, choose a colour and shape for any sender's bubble and your own.
+- Paste images into the chat. Button to switch the chat to full page.
+- Character maker: switch for a character without head and face.
+- Fixed: file attach; "change character" no longer forces full screen.
+- Reactions need the relay update to reach others.
+
 ## 1.19.3
 
 - Calculator shows the value to 15 decimals and as a fraction.

@@ -122,6 +122,8 @@ async function post(req, res, ip, h) {
   const room = cleanRoom(b?.room);
   if (badRoom(b?.room)) return h.sendText(req, res, 400, 'bad room');
   const msg = { id: ++seq, name, text, at: Date.now(), room };
+  // A reaction is a short message that points at another message id; clients fold it into that message.
+  if (Number.isInteger(b?.re) && b.re > 0 && [...text].length <= 8) msg.re = b.re;
   touch(name);
   log.push(msg);
   prune();

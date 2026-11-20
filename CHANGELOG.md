@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.0 (versionCode 282)
+
+- Server chat: reactions, clickable links, sender face on messages, your own bubble look and a colour and shape per sender, paste images (desktop), full-screen toggle (desktop), characters without head and face. Fixes: file attach, cut-off characters on mobile, "change character" no longer forces full screen (desktop).
+
 ## 1.19.3 (versionCode 281)
 
 - Calculator shows 15 decimals and the fraction. Tapping a tab while editing the address bar switches tab and ends editing. Desktop server chat name field no longer crowds the message box. Desktop PDFs stay visible after a session expiry.
