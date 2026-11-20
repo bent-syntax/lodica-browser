@@ -18,7 +18,7 @@ import org.json.JSONObject
 data class RoomMsg(
     val id: Long, val name: String, val text: String, val at: Long, val room: String = "",
     val fileId: String? = null, val fileName: String = "", val fileSize: Long = 0, val fileType: String = "",
-    val re: Long = 0,
+    val re: Long = 0, val rt: Long = 0,
 )
 
 /**
@@ -475,7 +475,7 @@ object Room {
                     val o = JSONObject(body)
                     val arr: JSONArray = o.optJSONArray("messages") ?: JSONArray()
                     val fresh = (0 until arr.length()).map { arr.getJSONObject(it) }
-                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room"), re = it.optLong("re")).withFile(it.optJSONObject("file")) }
+                        .map { RoomMsg(it.getLong("id"), it.optString("name"), it.optString("text"), it.optLong("at"), it.optString("room"), re = it.optLong("re"), rt = it.optLong("rt")).withFile(it.optJSONObject("file")) }
                         .distinctBy { it.id }
                     val srvLast = o.optLong("last", last)
                     if (last >= 0 && srvLast < last) {
@@ -514,13 +514,13 @@ object Room {
         outboxLoaded = true
         runCatching {
             val a = JSONArray(rp(ctx).getString("outbox", "[]"))
-            for (i in 0 until a.length()) { val o = a.getJSONObject(i); pending.add(RoomMsg(-(++seq), o.getString("name"), o.getString("text"), o.optLong("at"), o.optString("room"), re = o.optLong("re"))) }
+            for (i in 0 until a.length()) { val o = a.getJSONObject(i); pending.add(RoomMsg(-(++seq), o.getString("name"), o.getString("text"), o.optLong("at"), o.optString("room"), re = o.optLong("re"), rt = o.optLong("rt"))) }
         }
     }
 
     private fun saveOutbox(ctx: Context) {
         val a = JSONArray()
-        for (m in pending) a.put(JSONObject().put("name", m.name).put("text", m.text).put("at", m.at).put("room", m.room).put("re", m.re))
+        for (m in pending) a.put(JSONObject().put("name", m.name).put("text", m.text).put("at", m.at).put("room", m.room).put("re", m.re).put("rt", m.rt))
         rp(ctx).edit().putString("outbox", a.toString()).apply()
     }
 
@@ -532,7 +532,7 @@ object Room {
 
     /** 0 = sent, 1 = retry later, 2 = refused for good. */
     private fun post(m: RoomMsg): Pair<Int, String?> = try {
-        val b = JSONObject().put("name", m.name).put("text", m.text).put("room", m.room).apply { if (m.re > 0) put("re", m.re) }.toString().toByteArray()
+        val b = JSONObject().put("name", m.name).put("text", m.text).put("room", m.room).apply { if (m.re > 0) put("re", m.re); if (m.rt > 0) put("rt", m.rt) }.toString().toByteArray()
         val (code, _) = Relay.request("POST", "/api/chat", b, "application/json")
         when {
             code == 200 -> 0 to null
@@ -558,9 +558,9 @@ object Room {
     }
 
     /** Posts [text]; [done] gets an error message, or null on success or when it was queued for later. */
-    fun send(ctx: Context, name: String, text: String, re: Long = 0, done: (String?) -> Unit) {
+    fun send(ctx: Context, name: String, text: String, re: Long = 0, rt: Long = 0, done: (String?) -> Unit) {
         val app = ctx.applicationContext
-        val m = RoomMsg(-(++seq), name, text, System.currentTimeMillis(), room, re = re)
+        val m = RoomMsg(-(++seq), name, text, System.currentTimeMillis(), room, re = re, rt = rt)
         loadOutbox(app)
         if (pending.isNotEmpty()) {
             if (pending.size >= MAX_OUTBOX) { done("Too many unsent messages"); return }

@@ -1,3 +1,9 @@
+## 1.20.3
+
+- Reply to a specific chat message from the react menu.
+- Other people's bubbles have a default background; double-click one to pick its colour.
+- Reactions attach to the message they target (needs the updated relay).
+- PDF opener fix attempt.
 ## 1.20.2
 
 - Reactions no longer add spacing between messages. Long-press or right-click a message to react.

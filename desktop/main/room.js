@@ -342,7 +342,7 @@ function saveOutbox() { store.save("roomOutbox", () => outbox); syncPending(); c
 /** POSTs one message. Resolves { ok } on success, { retry } for a down server, { error } for a refusal that retrying cannot fix. */
 async function post(m) {
   try {
-    const [status] = await relay.request("POST", "/api/chat", 15000, { name: m.name, text: m.text, room: m.room, re: m.re });
+    const [status] = await relay.request("POST", "/api/chat", 15000, { name: m.name, text: m.text, room: m.room, re: m.re, rt: m.rt });
     if (status === 200) return { ok: true };
     if (status === 429) return { retry: true, error: "Slow down a little" };
     if (status >= 500 || status === 408) return { retry: true, error: "Server answered " + status };
@@ -373,9 +373,10 @@ async function flush() {
 }
 
 /** Posts a message; resolves to an error string or null. A message the server cannot take right now is queued and sent later. */
-async function send(text, re) {
+async function send(text, re, rt) {
   const m = { name: state.name, text: String(text || ""), room: state.room, at: Date.now() };
   if (Number.isInteger(re) && re > 0) m.re = re;
+  else if (Number.isInteger(rt) && rt > 0) m.rt = rt;
   if (!m.text.trim()) return null;
   if (outbox.length) {
     // Keep order: nothing jumps the queue.

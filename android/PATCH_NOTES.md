@@ -1,3 +1,7 @@
+## 1.20.3
+
+- Reply to a specific chat message: long-press and choose Reply.
+- Reactions attach to the message they target (needs the updated relay).
 ## 1.20.2
 
 - The server chat is only marked seen while the app is open and the screen is on.

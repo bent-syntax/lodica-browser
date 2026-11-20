@@ -136,7 +136,13 @@ function servePdf(req, u) {
   const file = path.resolve(PDF_DIR, "." + rel);
   if (!file.startsWith(PDF_DIR + path.sep)) return new Response("Forbidden", { status: 403 });
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return new Response("Not found", { status: 404 });
-  return net.fetch(pathToFileURL(file).toString());
+  return net.fetch(pathToFileURL(file).toString()).then(r => {
+    // Module workers need a JavaScript type; file:// answers can lack one for .mjs.
+    const type = { ".mjs": "text/javascript", ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".wasm": "application/wasm" }[path.extname(file)];
+    if (!type) return r;
+    const h = new Headers(r.headers); h.set("Content-Type", type);
+    return new Response(r.body, { status: r.status, headers: h });
+  });
 }
 
 // A PDF that loaded once stays readable while its tab is open: after a session expiry the same address answers with a

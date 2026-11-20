@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.3 (versionCode 285)
+
+- Reply to a specific chat message. Reactions attach to their target message. Desktop bubbles of other people have a default look and colour picker. PDF opener fix attempt.
+
 ## 1.20.2 (versionCode 284)
 
 - Chat reactions take no extra space (long-press or right-click to react). The chat only counts as seen while you are looking at it. Saved logins fill in without a repeat save prompt. Desktop offers authenticator setup on code prompts. Character maker shows progress. PDF opener fix attempt.

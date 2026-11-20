@@ -16,7 +16,8 @@ function openRoom() {
     const send = async () => {
       const v = L.ta.value.trim(); if (!v) return;
       L.ta.value = "";
-      const err = await inv("room.send", v);
+      const to = ROOM.reply; roomReplyTo(null);
+      const err = await inv("room.send", v, undefined, to?.id);
       if (err) { L.ta.value = v; toast(err); }
     };
     L.el.addEventListener("keydown", (e) => {
@@ -71,7 +72,7 @@ function openRoom() {
       h("div", { class: "sp-main" },
         h("div", { class: "sp-head" }, h("h2", { text: "Server chat" }), ib("expand", "Full page", () => { const on = L.el.classList.toggle("room-full"); inv("ui.dock", on ? 0 : 360); }), ib("close", "Close chat", () => L.close())),
         L.tabs, L.note, L.thread, L.prog, L.who,
-        L.pick,
+        L.pick, L.rbar = h("div", { style: "display:none;align-items:center;gap:6px;padding:4px 12px;font-size:13px;color:var(--muted)" }),
         h("div", { class: "ai-in" }, L.name, L.ta, ib("clip", "Send a file (max 5 GB)", attach), ib("smile", "Emojis", togglePick), ib("up", "Send", send))));
   });
   // Fetch the server emojis on every open; an empty answer keeps what we have, and one retry covers a slow link.
@@ -113,11 +114,23 @@ function roomFile(f) {
 
 const ROOM_EMOJI = [..."😀😃😄😁😆😅😂🤣😊😇🙂😉😍🥰😘😋😎🤩🥳😏😒😞😔😢😭😤😡🤯😱😨😰🤔🙄😴🤗🤭🫡👍👎👏🙌🙏💪👀🔥✨🎉💯❤️💔💙💚💛🧡💜🖤🤝👋✅❌⭐🚀"].reduce((a, c) => { if (c === "\ufe0f" || c === "\u200d") a[a.length - 1] += c; else a.push(c); return a; }, []);
 
+// Reply target shown above the composer; null clears it.
+function roomReplyTo(m) {
+  ROOM.reply = m;
+  const b = ROOM.L?.rbar; if (!b) return;
+  clear(b);
+  b.style.display = m ? "flex" : "none";
+  if (!m) return;
+  b.append(h("span", { style: "flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap", text: "Replying to " + m.name + ": " + (m.file ? m.file.name || "file" : m.text) }), h("button", { class: "ib", title: "Cancel reply", text: "✕", act: () => roomReplyTo(null) }));
+  ROOM.L.ta.focus();
+}
+
 // Reaction picker: a small row of emoji at the pointer; picking one sends it as a reaction to the message.
 function roomReactMenu(m, e) {
   document.querySelector(".react-menu")?.remove();
   const bar = h("div", { class: "react-menu", style: "position:fixed;z-index:9999;display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--raised,#2B2E33);border:1px solid var(--line,#33363C);left:" + Math.max(8, Math.min(e.clientX, innerWidth - 220)) + "px;top:" + Math.max(8, e.clientY - 44) + "px" });
   for (const x of ["👍", "❤️", "😂", "😮", "😢", "🔥"]) bar.append(h("button", { class: "ib", text: x, act: () => { bar.remove(); inv("room.send", x, m.id); } }));
+  bar.append(h("button", { class: "btn", text: "Reply", act: () => { bar.remove(); roomReplyTo(m); } }));
   document.body.append(bar);
   setTimeout(() => document.addEventListener("click", () => bar.remove(), { once: true }), 0);
 }
@@ -341,7 +354,7 @@ function roomRender() {
   L.thread.style.setProperty("--emoji-scale", emo);
   L.ta.style.fontSize = Math.round(14 * scale) + "px";
   const seen = roomSeen();
-  const sig = JSON.stringify([scale, emo, S.prefs.chatColors, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
+  const sig = JSON.stringify([scale, emo, S.prefs.chatColors, S.prefs.chatShapes, ROOM.state.messages, ROOM.state.pending, ROOM.state.name, ROOM.state.room, seen]);
   if (L.sig === sig) return;
   L.sig = sig;
   const stick = L.thread.scrollTop + L.thread.clientHeight >= L.thread.scrollHeight - 40;
@@ -350,14 +363,20 @@ function roomRender() {
   const reacts = new Map();
   for (const m of ROOM.state.messages) if (m.re) { const r = reacts.get(m.re) || new Map(); r.set(m.text, [...(r.get(m.text) || []), m.name]); reacts.set(m.re, r); }
   const colors = S.prefs.chatColors || {};
+  const quoted = (m) => {
+    const t = m.rt && ROOM.state.messages.find((x) => x.id === m.rt);
+    return t ? h("div", { style: "border-left:2px solid var(--amber);padding-left:6px;margin-bottom:4px;opacity:.7;font-size:calc(12px * var(--chat-scale, 1));overflow:hidden;text-overflow:ellipsis;white-space:nowrap", text: t.name + ": " + (t.file ? t.file.name || "file" : t.text) }) : "";
+  };
   for (const m of ROOM.state.messages) {
     if (m.re) continue;
     const mine = m.name === ROOM.state.name || (ROOM.state.names || []).includes(m.name);
     const col = colors[mine ? "" : m.name], shape = (S.prefs.chatShapes || {})[mine ? "" : m.name];
     const face = mine ? null : (ROOM.state.online || []).find((u) => u.name === m.name);
-    const bub = h("div", { class: mine ? "aiq chat-q" : "prose chat-a", style: (col ? "background:" + col + ";color:" + roomInk(col) + ";" : "") + (shape ? "border-radius:" + shape : "") },
-      mine ? "" : h("div", { style: "display:flex;gap:4px;align-items:center;color:" + (col ? "inherit" : "var(--amber)") + ";font-size:calc(12px * var(--chat-scale, 1));cursor:pointer", title: "Bubble style", on: { click: () => roomPickColor(m.name) } }, face ? roomFace(face, "chat-mini")[0] : "", m.name), m.file ? roomFile(m.file) : roomText(m.text));
+    const bub = h("div", { class: mine ? "aiq chat-q" : "prose chat-a", style: (col ? "background:" + col + ";color:" + roomInk(col) + ";" : mine ? "" : "background:var(--raised);padding:8px 12px;border-radius:12px;") + (shape ? "border-radius:" + shape : "") },
+      mine ? "" : h("div", { style: "display:flex;gap:4px;align-items:center;color:" + (col ? "inherit" : "var(--amber)") + ";font-size:calc(12px * var(--chat-scale, 1));cursor:pointer", title: "Bubble style", on: { click: () => roomPickColor(m.name) } }, face ? roomFace(face, "chat-mini")[0] : "", m.name),
+      quoted(m), m.file ? roomFile(m.file) : roomText(m.text));
     if (mine) bub.addEventListener("dblclick", () => roomPickColor(""));
+    else bub.addEventListener("dblclick", () => roomPickColor(m.name));
     bub.addEventListener("contextmenu", (e) => { e.preventDefault(); roomReactMenu(m, e); });
     L.thread.append(bub);
     const rs = reacts.get(m.id);

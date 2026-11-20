@@ -148,7 +148,7 @@ function onBeforeRequest(details, cb) {
 }
 
 function onHeadersReceived(details, cb) {
-  if (!blocker || fast() || serverAds() || liteAds()) return cb({});
+  if (!blocker || fast() || serverAds() || liteAds() || !/^https?:/i.test(details.url)) return cb({});
   const tab = tabOf(details);
   const page = tab?.host || hostOf(details.url);
   if (prefs.isTrusted(page) || prefs.isCompat(page) || (tab?.noBlock && tab.noBlock === page)) return cb({});

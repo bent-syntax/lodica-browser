@@ -102,6 +102,7 @@ fun RoomScreen() {
     val ctx = LocalContext.current
     var name by remember { mutableStateOf(Room.name(ctx)) }
     var text by remember { mutableStateOf("") }
+    var replyTo by remember { mutableStateOf<RoomMsg?>(null) }
     var sendError by remember { mutableStateOf<String?>(null) }
     val state = rememberLazyListState()
     val msgs = Room.messages
@@ -201,7 +202,7 @@ fun RoomScreen() {
         ) {
             val chips = msgs.filter { it.re > 0 }.groupBy { it.re }.mapValues { (_, l) -> l.groupBy { it.text }.map { (e, x) -> e to x.size } }
             items(msgs.filter { it.re == 0L }, key = { it.id }) { m ->
-                Bubble(m, mine = Room.isMine(ctx, m.name), reactions = chips[m.id].orEmpty())
+                Bubble(m, mine = Room.isMine(ctx, m.name), reactions = chips[m.id].orEmpty(), quoted = msgs.firstOrNull { it.id == m.rt && m.rt > 0 }, onReply = { replyTo = m })
                 seenAt[m.id]?.sorted()?.let { here ->
                     Row(Modifier.fillMaxWidth().padding(end = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
                         here.forEach { n ->
@@ -250,6 +251,12 @@ fun RoomScreen() {
         }
         Room.uploading?.let { Text("Uploading $it%", color = Amber, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
         sendError?.let { Text(it, color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp)) }
+        replyTo?.let { q ->
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Replying to ${q.name}: ${q.text.take(60)}", color = Muted, fontSize = 12.sp, maxLines = 1, modifier = Modifier.weight(1f))
+                TextButton(onClick = { replyTo = null }) { Text("Cancel", color = Muted) }
+            }
+        }
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Column {
                 IconButton(enabled = Room.uploading == null, onClick = { pick.launch("*/*") }) { Icon(LodicaIcons.Clip, "Send a file (max 5 GB)", tint = Amber) }
@@ -279,7 +286,9 @@ fun RoomScreen() {
                     val t = text
                     text = ""
                     sendError = null
-                    Room.send(ctx, Room.name(ctx), t) { err -> if (err != null) { sendError = err; text = t } }
+                    val rt = replyTo?.id ?: 0
+                    replyTo = null
+                    Room.send(ctx, Room.name(ctx), t, rt = rt) { err -> if (err != null) { sendError = err; text = t } }
                 },
             ) { Icon(LodicaIcons.Forward, "Send", tint = if (text.isNotBlank()) Amber else Muted) }
         }
@@ -349,7 +358,7 @@ private val REACTIONS = listOf("👍", "❤️", "😂", "😮", "😢", "🎉")
 
 @Composable
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reactions: List<Pair<String, Int>> = emptyList()) {
+private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reactions: List<Pair<String, Int>> = emptyList(), quoted: RoomMsg? = null, onReply: (() -> Unit)? = null) {
     val clip = androidx.compose.ui.platform.LocalClipboardManager.current
     val ctx = LocalContext.current
     var menu by remember { mutableStateOf(false) }
@@ -377,6 +386,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reaction
                     clip.setText(androidx.compose.ui.text.AnnotatedString(m.text))
                     android.widget.Toast.makeText(ctx, "Message copied", android.widget.Toast.LENGTH_SHORT).show()
                 }) { Text("Copy text", color = Mist) }
+                if (onReply != null && !waiting) TextButton(onClick = { menu = false; onReply() }) { Text("Reply", color = Mist) }
                 TextButton(onClick = { menu = false; look = true }) { Text(if (mine) "Your bubble look" else "Bubble look for ${m.name}", color = Mist) }
             }
         },
@@ -423,6 +433,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reaction
                     Text(m.name, color = if (light) androidx.compose.ui.graphics.Color(0xFF9A4B08) else Amber, fontSize = 12.sp)
                 }
             }
+            quoted?.let { Text("${it.name}: ${it.text.take(80)}", color = Muted, fontSize = 12.sp, maxLines = 2, modifier = Modifier.padding(bottom = 4.dp)) }
             if (m.fileId != null) FileBody(m) else SelectionContainer { EmojiText(m.text, ink) }
             if (reactions.isNotEmpty()) Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 reactions.forEach { (e, n) ->

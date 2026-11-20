@@ -477,7 +477,7 @@ function init(deps) {
   on("relay.refresh", () => { relay.refresh(); return true; });
   on("room.start", () => room.start());
   on("room.stop", () => { room.stop(); return true; });
-  on("room.send", (text, re) => room.send(str(text), re));
+  on("room.send", (text, re, rt) => room.send(str(text), re, rt));
   on("room.name", name => room.setName(str(name)));
   on("room.face", (desc, sketch, noHead) => room.setFace(str(desc), str(sketch), noHead === true));
   on("room.typing", () => room.typing());

@@ -124,6 +124,8 @@ async function post(req, res, ip, h) {
   const msg = { id: ++seq, name, text, at: Date.now(), room };
   // A reaction is a short message that points at another message id; clients fold it into that message.
   if (Number.isInteger(b?.re) && b.re > 0 && [...text].length <= 8) msg.re = b.re;
+  // A reply points at the message it answers; it stays a normal message.
+  else if (Number.isInteger(b?.rt) && b.rt > 0) msg.rt = b.rt;
   touch(name);
   log.push(msg);
   prune();
