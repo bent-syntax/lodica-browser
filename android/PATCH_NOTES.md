@@ -1,3 +1,7 @@
+## 1.20.1
+
+- Fixes the Android build of 1.20.0. Same server chat features.
+
 ## 1.20.0
 
 - Server chat: long-press a message to react, copy it or change the bubble look (colour and shape) for you or any sender.

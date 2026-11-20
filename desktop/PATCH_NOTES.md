@@ -1,3 +1,7 @@
+## 1.20.1
+
+- Same as 1.20.0: server chat reactions, links, sender faces, bubble colours and looks, no-head characters. Version kept in step with Android.
+
 ## 1.20.0
 
 - Server chat: react to messages, click links, see the sender's face, choose a colour and shape for any sender's bubble and your own.

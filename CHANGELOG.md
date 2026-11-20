@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.1 (versionCode 283)
+
+- Fixes the Android build of 1.20.0 (server chat batch). Same features.
+
 ## 1.20.0 (versionCode 282)
 
 - Server chat: reactions, clickable links, sender face on messages, your own bubble look and a colour and shape per sender, paste images (desktop), full-screen toggle (desktop), characters without head and face. Fixes: file attach, cut-off characters on mobile, "change character" no longer forces full screen (desktop).

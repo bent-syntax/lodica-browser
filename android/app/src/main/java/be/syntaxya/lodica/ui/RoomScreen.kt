@@ -326,8 +326,6 @@ private fun NewChatDialog(onDone: () -> Unit) {
     )
 }
 
-@Composable
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 private val BUBBLE_SHAPES = linkedMapOf(
     "Round" to RoundedCornerShape(12.dp), "Square" to RoundedCornerShape(2.dp),
     "Pill" to RoundedCornerShape(20.dp), "Leaf" to RoundedCornerShape(20.dp, 4.dp, 20.dp, 4.dp),
