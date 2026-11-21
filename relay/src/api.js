@@ -14,6 +14,7 @@ const shop = require('./shop');
 const coupons = require('./coupons');
 const adblock = require('./adblock');
 const updates = require('./updates');
+const selfupdate = require('./selfupdate');
 const chat = require('./chat');
 const support = require('./support');
 const testsession = require('./testsession');
@@ -703,6 +704,14 @@ async function route(req, res) {
     const site = String(url.searchParams.get('site') || '').toLowerCase();
     if (!/^[a-z0-9.-]{3,253}$/.test(site)) return sendText(req, res, 400, 'bad site');
     return sendJson(req, res, 200, await coupons.find(site));
+  }
+  if (p === '/api/relay/update') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    try { return sendJson(req, res, m === 'POST' ? 202 : 200, m === 'POST' ? await selfupdate.request() : await selfupdate.status()); } catch (e) {
+      if (e.status) return sendText(req, res, e.status, e.message);
+      throw e;
+    }
   }
   if (p === '/api/update/check') {
     if (m !== 'GET') return not('GET, HEAD');

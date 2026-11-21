@@ -396,12 +396,28 @@ function secServer() {
     { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
   out.push(setSelect("Emoji size", "Size of server emojis in the chat, apart from the text size", [
     { key: 100, label: "Small" }, { key: 150, label: "Medium" }, { key: 200, label: "Large" }, { key: 300, label: "Extra large" }], "chatEmojiScale", Number));
+  if (S.relayAvail) out.push(serverUpdateRow());
   if (S.relayAvail) out.push(secHead("Hidden email", "mail"),
     setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms"),
     setRow("Sites without the hidden-email button", noDummy.length ? noDummy.join(", ") : "None. The button shows on sign-up pages",
       noDummy.length ? "Clear" : null, noDummy.length ? () => setPref("noDummy", []) : null),
     h("div", { class: "set-note", text: "On a sign-up form, right-click a field and choose Use hidden email. One use fills name, address, phone, birth date, username and email with one consistent identity." }));
   return out;
+}
+let srvUpd = null;
+function serverUpdateRow() {
+  if (!srvUpd) {
+    srvUpd = { status: 0 };
+    inv("relay.serverUpdate", false).then((r) => { srvUpd = r || { status: 0 }; refreshSettings(); }).catch(() => {});
+  }
+  const u = srvUpd;
+  if (u.status !== 200 || !u.newer) return setRow("Server version", u.status === 200 ? u.current + ", up to date" : "Unknown. Needs a server with update support");
+  if (u.pending) return setRow("Server update", "Updating to " + u.latest + ". The server restarts in a few seconds");
+  return setRow("Server update", u.current + " to " + u.latest, "Update server", async () => {
+    const r = await inv("relay.serverUpdate", true);
+    srvUpd = r.status === 202 ? Object.assign(srvUpd, { pending: true }) : null;
+    refreshSettings();
+  });
 }
 function secIdentity() {
   return [secHead("Browser identity", "identity"), setSelect("Identify as", null, S.agents, "userAgent")];

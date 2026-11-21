@@ -245,8 +245,42 @@ if command -v ufw >/dev/null && timeout 15 ufw status </dev/null 2>/dev/null | g
   timeout 30 ufw allow "$PROXY_PORT/tcp" </dev/null >/dev/null 2>&1 || true
 fi
 
+# In-app relay update: the relay (hardened, cannot write /opt) drops update.request; this root path unit
+# runs the helper, which ignores the file's content and only moves to the newest official v* tag.
+cat >/usr/local/sbin/lodica-relay-update <<UPD
+#!/bin/sh
+set -eu
+rm -f /var/lib/lodica-relay/update.request
+cd $DIR
+git fetch -q --tags --force "$REPO" 'refs/heads/main:refs/remotes/origin/main'
+TAG=\$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -1)
+[ -n "\$TAG" ] || exit 1
+git reset -q --hard "\$TAG"
+systemctl restart lodica-relay
+UPD
+chmod 755 /usr/local/sbin/lodica-relay-update
+cat >/etc/systemd/system/lodica-relay-update.service <<UNIT
+[Unit]
+Description=Lodica relay self-update
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/lodica-relay-update
+UNIT
+cat >/etc/systemd/system/lodica-relay-update.path <<UNIT
+[Unit]
+Description=Lodica relay update requested
+
+[Path]
+PathExists=/var/lib/lodica-relay/update.request
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
 systemctl daemon-reload
 systemctl enable lodica-relay >/dev/null 2>&1
+systemctl enable --now lodica-relay-update.path >/dev/null 2>&1
 systemctl restart lodica-relay
 sleep 2
 systemctl is-active --quiet lodica-relay || die "relay did not start: journalctl -u lodica-relay"

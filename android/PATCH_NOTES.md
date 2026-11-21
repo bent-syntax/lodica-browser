@@ -1,3 +1,7 @@
+## 1.20.4
+
+- Update the server relay from Settings > Server when a newer version exists (needs one `install.sh` re-run on the server).
+
 ## 1.20.3
 
 - Reply to a specific chat message: long-press and choose Reply.

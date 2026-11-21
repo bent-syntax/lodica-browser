@@ -174,6 +174,26 @@ object Relay {
         if (ok != up) { up = ok; main.post { Helper.push() } }
     }
 
+    // ---- Server update ----------------------------------------------------------------------
+
+    /** Server relay version state from /api/relay/update. Null until fetched or when the server cannot self-update. */
+    class ServerUpdate(val current: String, val latest: String, val newer: Boolean, val pending: Boolean)
+    var serverUpdate by mutableStateOf<ServerUpdate?>(null); private set
+
+    /** Reads the server version state, or asks the server to update itself when [install] is true. */
+    fun refreshServerUpdate(install: Boolean = false) {
+        if (!available) return
+        scope.launch {
+            val r = runCatching {
+                val (code, body) = requestBytes(if (install) "POST" else "GET", "/api/relay/update")
+                if (code !in 200..299) null else org.json.JSONObject(String(body)).let {
+                    ServerUpdate(it.optString("current"), it.optString("latest"), it.optBoolean("newer"), it.optBoolean("pending"))
+                }
+            }.getOrNull()
+            withContext(Dispatchers.Main) { serverUpdate = r }
+        }
+    }
+
     // ---- Setup ------------------------------------------------------------------------------
 
     /** True once the user finished or skipped the first-run setup. Existing installs with a built-in server skip it. */

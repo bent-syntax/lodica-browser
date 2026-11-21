@@ -506,6 +506,12 @@ fun SettingsScreen() {
                         StatusCard(LodicaIcons.Globe, "No server linked", "Set one up for hidden email, tab sharing and Lodica Search.")
                     } else {
                         StatusCard(LodicaIcons.Globe, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
+                        androidx.compose.runtime.LaunchedEffect(Unit) { Relay.refreshServerUpdate() }
+                        Relay.serverUpdate?.let { u ->
+                            if (u.pending) InfoRow("Server update", "Updating to ${u.latest}")
+                            else if (u.newer) LinkRow("Update server (${u.current} to ${u.latest})") { Relay.refreshServerUpdate(install = true) }
+                            else InfoRow("Server version", u.current)
+                        }
                         LinkRow("Inbox") { Ui.go(Screen.Inbox) }
                         LinkRow("Disconnect server") { Relay.disconnect() }
                         Section("Chat")

@@ -152,4 +152,4 @@ async function download(url) {
   return { stream: Readable.fromWeb(body.body), size: info.size, name: info.file, sha256: info.sha256 };
 }
 
-module.exports = { check, download, newer, configured, TARGETS };
+module.exports = { check, download, newer, configured, latest, TARGETS };

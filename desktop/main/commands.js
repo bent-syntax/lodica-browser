@@ -475,6 +475,12 @@ function init(deps) {
   on("relay.unlink", () => { const r = relay.unlink(); require("./net").applyProxy(); return r; });
   on("relay.info", () => relay.linked());
   on("relay.refresh", () => { relay.refresh(); return true; });
+  on("relay.serverUpdate", async (doPost) => {
+    const [status, body] = await relay.request(doPost ? "POST" : "GET", "/api/relay/update");
+    let j = {};
+    try { j = JSON.parse(body); } catch { j = { error: body }; }
+    return { status, ...j };
+  });
   on("room.start", () => room.start());
   on("room.stop", () => { room.stop(); return true; });
   on("room.send", (text, re, rt) => room.send(str(text), re, rt));

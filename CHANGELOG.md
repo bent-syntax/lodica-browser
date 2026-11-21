@@ -2,6 +2,10 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.4 (versionCode 286)
+
+- Settings button to update the server relay from the app when a newer version exists. Existing servers need one `install.sh` re-run as root to enable it.
+
 ## 1.20.3 (versionCode 285)
 
 - Reply to a specific chat message. Reactions attach to their target message. Desktop bubbles of other people have a default look and colour picker. PDF opener fix attempt.
