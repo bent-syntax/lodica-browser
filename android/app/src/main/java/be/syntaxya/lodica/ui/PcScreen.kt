@@ -89,7 +89,8 @@ fun PcScreen() {
                 },
             contentAlignment = Alignment.Center,
         ) {
-            if (bitmap != null) Image(bitmap.asImageBitmap(), "Linked PC screen", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+            val frame = bitmap
+            if (frame != null) Image(frame.asImageBitmap(), "Linked PC screen", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
             else Text(if (live) "Waiting for the first frame" else "Start “PC to phone” on the desktop", color = Muted, fontSize = 13.sp)
         }
         if (!full) Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {

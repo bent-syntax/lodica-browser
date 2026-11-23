@@ -6,6 +6,7 @@ use std::sync::OnceLock;
 // (id, label, default combos), in table order: that order decides clashes.
 const ACTIONS: &[(&str, &str, &[&str])] = &[
     ("newTab", "New tab", &["Ctrl+T"]),
+    ("duplicateTab", "Duplicate tab", &["Ctrl+D"]),
     ("newPrivate", "New private tab", &["Ctrl+Shift+N"]),
     ("undoClose", "Reopen closed tab", &["Ctrl+Shift+T"]),
     ("closeTab", "Close tab", &["Ctrl+W"]),
@@ -135,6 +136,7 @@ mod tests {
     fn defaults_overrides_and_clashes() {
         let m = map(&json!({}));
         assert_eq!(m["Ctrl+T"], "newTab");
+        assert_eq!(m["Ctrl+D"], "duplicateTab");
         // override, even empty, wins over the default
         let m = map(&json!({"newTab": [], "find": ["Ctrl+T", "bad+Ctrl"]}));
         assert_eq!(m["Ctrl+T"], "find");
@@ -154,7 +156,7 @@ mod tests {
     fn list_has_all_actions() {
         let l = list(&json!({"find": []}));
         assert_eq!(l.as_array().unwrap().len(), ACTIONS.len());
-        assert_eq!(l[8]["keys"], json!([]));
-        assert_eq!(l[8]["def"], json!(["Ctrl+F"]));
+        assert_eq!(l[9]["keys"], json!([]));
+        assert_eq!(l[9]["def"], json!(["Ctrl+F"]));
     }
 }

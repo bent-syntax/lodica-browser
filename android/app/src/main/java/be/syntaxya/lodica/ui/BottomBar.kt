@@ -13,7 +13,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +31,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitPointerEvent
+import androidx.compose.ui.input.pointer.awaitPointerEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
@@ -54,6 +53,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,10 +64,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -349,10 +347,8 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     var focused by remember { mutableStateOf(false) }
-    val scroll = rememberScrollState()
-    val scope = rememberCoroutineScope()
+    val currentQuery by rememberUpdatedState(query)
     val density = LocalDensity.current
-    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     var fieldWidth by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
         focus.requestFocus()
@@ -375,8 +371,6 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 value = query,
                 onValueChange = { onQuery(selectPathOnWordPick(query, it)) },
                 singleLine = true,
-                scrollState = scroll,
-                onTextLayout = { layout = it },
                 textStyle = TextStyle(color = Mist, fontSize = 15.sp),
                 cursorBrush = SolidColor(Amber),
                 keyboardOptions = KeyboardOptions(
@@ -404,16 +398,12 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 decorationBox = { inner ->
                     Box(
                         Modifier.fillMaxWidth().onSizeChanged { fieldWidth = it.width.toFloat() }
-                            // Dragging a selection handle to the edge scrolls long URLs instead of stopping at the visible edge.
-                            .pointerInput(query.text, fieldWidth, scroll.value) {
+                            // Dragging a selection handle to the edge extends it; the field then scrolls the caret into view.
+                            .pointerInput(fieldWidth) {
                                 val edge = with(density) { 24.dp.toPx() }
                                 awaitEachGesture {
-                                    val down = awaitFirstDown(requireUnconsumed = false)
-                                    val l = layout ?: return@awaitEachGesture
-                                    if (fieldWidth <= 0f || l.size.width <= 0) return@awaitEachGesture
-                                    val startX = l.getCursorRect(query.selection.start).left - scroll.value
-                                    val endX = l.getCursorRect(query.selection.end).left - scroll.value
-                                    val movingEnd = kotlin.math.abs(down.position.x - endX) <= kotlin.math.abs(down.position.x - startX)
+                                    awaitFirstDown(requireUnconsumed = false)
+                                    if (fieldWidth <= 0f) return@awaitEachGesture
                                     while (true) {
                                         val event = awaitPointerEvent()
                                         if (event.changes.none { it.pressed }) break
@@ -424,12 +414,13 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                                             else -> 0f
                                         }
                                         if (dx != 0f) {
-                                            scope.launch { scroll.scrollBy(dx) }
-                                            val at = l.getOffsetForPosition(Offset((x + scroll.value).coerceIn(0f, l.size.width.toFloat()), l.size.height / 2f))
-                                            val fixed = edgeScrollOffset(query.text, at, x, fieldWidth, edge)
-                                            onQuery(query.copy(selection = if (movingEnd)
-                                                TextRange(query.selection.start, fixed.coerceAtLeast(query.selection.start))
-                                            else TextRange(fixed.coerceAtMost(query.selection.end), query.selection.end)))
+                                            val q = currentQuery
+                                            val extendEnd = x >= fieldWidth / 2f
+                                            val anchor = if (extendEnd) q.selection.end else q.selection.start
+                                            val fixed = edgeScrollOffset(q.text, anchor, x, fieldWidth, edge)
+                                            onQuery(q.copy(selection = if (extendEnd)
+                                                TextRange(q.selection.start, fixed.coerceAtLeast(q.selection.start))
+                                            else TextRange(fixed.coerceAtMost(q.selection.end), q.selection.end)))
                                         }
                                     }
                                 }
