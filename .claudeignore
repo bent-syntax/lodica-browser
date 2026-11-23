@@ -1,0 +1,11 @@
+node_modules/
+.gradle/
+build/
+dist/
+out/
+*.lock
+package-lock.json
+*.jar
+*.apk
+*.exe
+*.log

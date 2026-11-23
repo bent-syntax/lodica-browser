@@ -4,11 +4,23 @@ This codebase is yours. What it's for and how it's built are your call, and you 
 
 Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for the rules.
 
+## Anti-Burn Startup Rule (Top Priority)
+
+- Never run broad directory scans (`find`, `ls -R`, `tree`) or read full files just to explore the repo on session start.
+- Always run `graphify query "<concept>"` first to locate exact symbols/files, then read only targeted line ranges (`start_line` to `end_line`).
+- Never scan `node_modules/`, `.gradle/`, `build/`, `dist/`, `out/`, `.git/`, or lockfiles.
+
 ## Graphify (always)
 
 - Before Grep or Read to find code, run `graphify query "<question>" --budget 1500`. It names files and symbols. Then Read small line ranges.
 - After you change code, run `graphify update .` (no LLM, about a minute). Do it before you finish.
 - `graphify-out/` is git-ignored. The support bridge uses and refreshes the same graph.
+
+## Token Optimization & Anti-Amnesia Workflow
+
+- Batch independent tool calls together. Output minimal diffs and concise summaries with zero filler.
+- Before editing code, output a numbered pre-execution checklist covering every requested fix, feature, and edge case.
+- Audit every checklist item before finishing, run local tests + `graphify update .`, verify `git status`, commit with conventional commits, and push when a target branch is specified.
 
 ## Builds
 
@@ -49,3 +61,8 @@ Read `docs/STRUCTURE.md` for where everything lives, and `.claude/RULES.md` for 
 - No secrets in the repo: no tokens, passwords, keystores or private file contents.
 - Do not read credential files or keystores.
 - Contact address in files: `lodica@syntaxya.be` only.
+
+## Slack Support Optimization
+
+- Compress Slack context (strip boilerplate/greetings; retain core issue, stack trace, and repro steps).
+- Format replies in crisp Slack mrkdwn (`*bold*`, `` `code` ``, bullets) grounded in `graphify query` code verification.
