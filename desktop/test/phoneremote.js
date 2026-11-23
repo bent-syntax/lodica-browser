@@ -53,7 +53,7 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(rc.includes('ACTION_SET_TEXT'));
   assert.ok(/finally\s*\{\s*node\?\.recycle\(\)/.test(rc));
   assert.ok(rc.includes('FOCUS_INPUT'));
-  assert.ok(rc.includes('ScreenShare.capturedWidth') && rc.includes('ScreenShare.rotation(this)'));
+  assert.ok(rc.includes('ScreenShare.capturedWidth') && rc.includes('rotation(this)'));
 
   const ss = read('android/app/src/main/java/be/syntaxya/lodica/engine/ScreenShare.kt');
   assert.ok(ss.includes('e.optString("t") == "stop"'));
