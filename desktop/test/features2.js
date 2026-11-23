@@ -26,4 +26,16 @@ for (const f of ["qr.js", "pcscreen.js", "settings.js", "settings4.js", "switche
   const file = path.join(__dirname, "..", "ui", "js", f);
   new Function(fs.readFileSync(file, "utf8")); // compile only: catches syntax errors without a display
 }
+
+// QR hover wiring stays local and uses text nodes, never innerHTML.
+const read = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
+const qrUi = read("ui/js/qr.js");
+assert.ok(qrUi.includes("function showQrDecoded"));
+assert.ok(qrUi.includes('inv("qr.decode", img.src)'));
+assert.ok(!/showQrDecoded[\s\S]*?innerHTML/.test(qrUi));
+assert.ok(read("ui/js/main.js").includes('on("qrDecoded", showQrDecoded)'));
+assert.ok(read("ui/ui.css").includes(".hoverqr.qr-decoded"));
+assert.ok(read("scripts/build-preload.js").includes('overlay("qrhover.js")'));
+assert.ok(read("main/totp.js").includes('require("./qrdecode")'));
+assert.ok(read("IPC.md").includes("qr.decode(dataUrl)"));
 console.log("feature batch ok");

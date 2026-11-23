@@ -31,6 +31,8 @@ function set(patch, replace) {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const HDR = { Accept: "application/vnd.github+json", "User-Agent": "Lodica-updater" };
+// GitHub answers may be cached by the network; a changing query makes a repeated check a real check.
+const noCache = (url) => url + (url.includes("?") ? "&" : "?") + "_=" + Date.now();
 
 // A "-beta.N" suffix sorts below the same version without one.
 function parse(v) {
@@ -91,10 +93,14 @@ async function pickVersion(tag) {
 async function check() {
   if (job) return state;
   if (!env.platform) { set({ state: "error", message: "Updates are not available on this system" }, true); return state; }
+  // Replace, never merge: an old "available" offer must not survive a new check.
   set({ state: "checking" }, true);
   try {
     const beta = !!(env.beta && env.beta());
-    const r = await fetch(env.api + (beta ? "/releases?per_page=30" : "/releases/latest"), { headers: HDR, signal: AbortSignal.timeout(20000) });
+    const base = env.api + (beta ? "/releases?per_page=30" : "/releases/latest");
+    const opts = { headers: HDR, cache: "no-store", signal: AbortSignal.timeout(20000) };
+    let r = await fetch(noCache(base), opts);
+    if (r.status === 404) r = await fetch(base, opts); // strict proxies may reject an unknown query parameter
     if (r.status === 404) throw new Error("No release published yet");
     if (r.status !== 200) throw new Error("GitHub answered " + r.status);
     let rel = await r.json();

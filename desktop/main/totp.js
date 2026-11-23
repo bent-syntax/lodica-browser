@@ -87,12 +87,9 @@ function addImage(file) {
     const { nativeImage } = require("electron");
     const img = nativeImage.createFromPath(file);
     if (img.isEmpty()) return { added: 0, error: "Could not read that image" };
-    const { width, height } = img.getSize();
-    const bgra = img.toBitmap(), rgba = new Uint8ClampedArray(bgra.length);
-    for (let i = 0; i < bgra.length; i += 4) { rgba[i] = bgra[i + 2]; rgba[i + 1] = bgra[i + 1]; rgba[i + 2] = bgra[i]; rgba[i + 3] = 255; }
-    const r = require("jsqr")(rgba, width, height, { inversionAttempts: "attemptBoth" });
-    if (!r || !r.data) return { added: 0, error: "No QR code found in that image" };
-    const n = add(r.data);
+    const text = require("./qrdecode").decodeImage(img);
+    if (!text) return { added: 0, error: "No QR code found in that image" };
+    const n = add(text);
     return n ? { added: n } : { added: 0, error: "That QR code is not an authenticator code, or it was already added" };
   } catch (e) { return { added: 0, error: "Could not read that image" }; }
 }

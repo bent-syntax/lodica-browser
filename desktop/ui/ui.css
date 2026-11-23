@@ -89,6 +89,9 @@ body.ov #layers{z-index:60}
 .hoverqr{position:absolute;right:18px;bottom:82px;width:300px;padding:12px;display:grid;gap:6px;justify-items:center;
   background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.22))}
 .hoverqr .qr-img{width:144px;height:144px}
+.qr-decoded-layer{pointer-events:none}
+.hoverqr.qr-decoded{position:absolute;right:auto;bottom:auto;width:auto;max-width:min(340px,calc(100vw - 16px));justify-items:start;pointer-events:none}
+.hoverqr.qr-decoded .qr-url{max-width:320px;max-height:160px;overflow:hidden;color:var(--text);font-size:13px;white-space:pre-wrap;word-break:break-word}
 .pc-panel-layer{background:transparent!important;pointer-events:none}
 .pc-panel{position:absolute;right:0;top:0;bottom:0;width:360px;max-width:100%;pointer-events:auto;
   background:var(--surface);border-left:1px solid var(--line);padding:20px;overflow:auto;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center;justify-content:center}

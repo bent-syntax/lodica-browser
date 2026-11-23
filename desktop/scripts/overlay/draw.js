@@ -1,5 +1,5 @@
 
-// Draw mode (Ctrl+Shift+D) and move mode (Ctrl+Shift+M). Strokes live in an SVG laid over the page, so they scroll with it.
+// Draw mode (Ctrl+Shift+G) and move mode (Ctrl+Shift+M). Strokes live in an SVG laid over the page, so they scroll with it.
 // Moves are saved as a CSS selector plus an offset. Both are stored per page address by the main process.
 if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
   const NS = "http://www.w3.org/2000/svg";
@@ -126,7 +126,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
     ensureSvg();
   }
 
-  // The main process catches Ctrl+Shift+D/M even when the page does not own focus.
+  // The main process catches Ctrl+Shift+G/M even when the page does not own focus.
   ipcRenderer.on("drawToggle", (e, m, vars) => { theme = vars || null; if (m === "draw" || m === "move") { if (mode && mode !== m) mode = ""; setMode(m); } });
   const onBar = e => e.composedPath().includes(host);
   let cur = null, dragEl = null, start = null, hover = null;

@@ -10,7 +10,10 @@ const h = {
   sendText: (req, res, s, t) => send(req, res, s, t),
   readBody: (req) => new Promise((ok) => { const c = []; req.on('data', (d) => c.push(d)); req.on('end', () => ok(Buffer.concat(c))); }),
 };
-const routes = { GET: screen.get, PUT: screen.put, DELETE: screen.remove };
+const routes = {
+  GET: (req, res, h) => (req.url.includes('/input') ? screen.inputGet(req, res, h) : screen.get(req, res, h)),
+  PUT: screen.put, POST: screen.inputPost, DELETE: screen.remove,
+};
 const server = http.createServer((req, res) => routes[req.method](req, res, h));
 const call = (port, method, body, q = '') => new Promise((ok, bad) => {
   const r = http.request({ port, method, path: '/api/screen' + q }, (res) => {
@@ -24,6 +27,8 @@ test('screen', async () => {
   await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
   const port = server.address().port;
   try {
+    assert.deepStrictEqual(screen.cleanEvent({ t: 'text', text: 'hello' }), { t: 'text', text: 'hello' });
+    assert.strictEqual(screen.cleanEvent({ t: 'text', text: 'x'.repeat(501) }).text.length, 500);
     assert.strictEqual((await call(port, 'GET')).status, 204); // nobody sharing
     assert.strictEqual((await call(port, 'PUT', Buffer.from('hello'))).status, 400); // not a jpeg
     assert.strictEqual(JSON.parse((await call(port, 'PUT', jpeg(1))).body).seq, 1);
@@ -39,5 +44,7 @@ test('screen', async () => {
     assert.strictEqual((await call(port, 'DELETE')).status, 204);
     assert.strictEqual((await call(port, 'GET')).status, 204);
     assert.strictEqual(JSON.parse((await call(port, 'GET', undefined, '?status=1')).body).live, false);
+    // The phone gets one control event in the normal input stream so it shuts down its capture service.
+    assert.deepStrictEqual(JSON.parse((await call(port, 'GET', undefined, '/input')).body), { events: [{ t: 'stop' }] });
   } finally { screen.reset(); server.close(); }
 });

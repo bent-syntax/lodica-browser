@@ -396,7 +396,7 @@ function secServer() {
     { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
   out.push(setSelect("Emoji size", "Size of server emojis in the chat, apart from the text size", [
     { key: 100, label: "Small" }, { key: 150, label: "Medium" }, { key: 200, label: "Large" }, { key: 300, label: "Extra large" }], "chatEmojiScale", Number));
-  if (S.relayAvail) out.push(serverUpdateRow());
+  if (S.relayAvail) out.push(...serverUpdateRow());
   if (S.relayAvail) out.push(secHead("Hidden email", "mail"),
     setToggle("dummyLogin", "Hidden email", "Offer a private @example.com address and a full fake identity on sign-up forms"),
     setRow("Sites without the hidden-email button", noDummy.length ? noDummy.join(", ") : "None. The button shows on sign-up pages",
@@ -404,20 +404,87 @@ function secServer() {
     h("div", { class: "set-note", text: "On a sign-up form, right-click a field and choose Use hidden email. One use fills name, address, phone, birth date, username and email with one consistent identity." }));
   return out;
 }
-let srvUpd = null;
-function serverUpdateRow() {
-  if (!srvUpd) {
-    srvUpd = { status: 0 };
-    inv("relay.serverUpdate", false).then((r) => { srvUpd = r || { status: 0 }; refreshSettings(); }).catch(() => {});
+// Server update state is time-bounded on the relay. Never keep an optimistic pending flag without polling it.
+const SRV_FETCH_MIN_MS = 1000, SRV_POLL_MS = 3000, SRV_POLL_MAX_MS = 120000;
+let srvUpd = null, srvDomain = null, srvAt = 0, srvFetch = null, srvGen = 0, srvTimer = null, srvPollUntil = 0;
+const srvKey = () => (S.relay && S.relay.domain) || "";
+function srvStopPoll() { if (srvTimer) { clearTimeout(srvTimer); srvTimer = null; } srvPollUntil = 0; }
+
+function srvLoad(force) {
+  const domain = srvKey();
+  if (!S.relayAvail || !domain) {
+    if (srvUpd || srvTimer) { ++srvGen; srvUpd = null; srvDomain = null; srvAt = 0; srvStopPoll(); refreshSettings(); }
+    return Promise.resolve();
   }
-  const u = srvUpd;
-  if (u.status !== 200 || !u.newer) return setRow("Server version", u.status === 200 ? u.current + ", up to date" : "Unknown. Needs a server with update support");
-  if (u.pending) return setRow("Server update", "Updating to " + u.latest + ". The server restarts in a few seconds");
-  return setRow("Server update", u.current + " to " + u.latest, "Update server", async () => {
-    const r = await inv("relay.serverUpdate", true);
-    srvUpd = r.status === 202 ? Object.assign(srvUpd, { pending: true }) : null;
-    refreshSettings();
+  if (srvDomain !== domain) { ++srvGen; srvUpd = null; srvDomain = domain; srvAt = 0; srvStopPoll(); }
+  if (srvFetch) return srvFetch;
+  if (!force && srvUpd && Date.now() - srvAt < SRV_FETCH_MIN_MS) return Promise.resolve();
+  const gen = srvGen;
+  srvFetch = inv("relay.serverUpdate", false).then((r) => {
+    if (gen !== srvGen) return;
+    srvUpd = r && r.status ? r : { status: 0, state: "failed", message: "The server could not be reached" };
+    srvAt = Date.now();
+  }).catch(() => {
+    if (gen !== srvGen) return;
+    srvUpd = { status: 0, state: "failed", message: "The server could not be reached" };
+    srvAt = Date.now();
+  }).finally(() => { srvFetch = null; refreshSettings(); });
+  return srvFetch;
+}
+
+function srvTick() {
+  srvTimer = null;
+  if (!S.relayAvail || srvKey() !== srvDomain) return;
+  if (Date.now() >= srvPollUntil) {
+    srvUpd = Object.assign({}, srvUpd || {}, { state: "expired", pending: false, message: "The server update did not finish. Check again" });
+    srvStopPoll(); refreshSettings(); return;
+  }
+  srvLoad(true).then(() => {
+    if (!srvUpd || srvUpd.status !== 200 || srvUpd.state === "failed" || srvUpd.state === "expired" || !srvUpd.pending) { srvStopPoll(); return; }
+    srvTimer = setTimeout(srvTick, SRV_POLL_MS);
   });
+}
+
+function srvRequestUpdate() {
+  const gen = ++srvGen;
+  srvStopPoll();
+  const prev = srvUpd || {};
+  srvUpd = Object.assign({}, prev, {
+    status: 202, state: "pending", pending: true, newer: prev.newer !== false,
+    current: prev.current || "", latest: prev.latest || "",
+    message: "Update requested", requestedAt: Date.now(), optimistic: true,
+  });
+  srvAt = Date.now();
+  refreshSettings();
+  inv("relay.serverUpdate", true).then((r) => {
+    if (gen !== srvGen) return;
+    if (r && (r.status === 202 || r.status === 200)) {
+      srvUpd = Object.assign({}, r, { state: r.state || "pending", pending: r.pending !== false });
+      srvAt = Date.now();
+      srvPollUntil = Date.now() + SRV_POLL_MAX_MS;
+      srvTimer = setTimeout(srvTick, SRV_POLL_MS);
+    } else {
+      srvUpd = { status: 0, state: "failed", pending: false, newer: false, current: prev.current || "", latest: prev.latest || "", message: "The server did not accept the update request" };
+    }
+  }).catch(() => {
+    if (gen !== srvGen) return;
+    srvUpd = { status: 0, state: "failed", pending: false, newer: false, current: prev.current || "", latest: prev.latest || "", message: "The server could not be reached" };
+  }).then(() => { if (gen === srvGen) refreshSettings(); });
+}
+
+function serverUpdateRow() {
+  srvLoad(false);
+  const u = srvUpd;
+  if (!u || u.status !== 200) {
+    return [setRow("Server update", u && u.state === "failed" ? (u.message || "Could not check the server update") : "Checking server version…", null, () => srvLoad(true))];
+  }
+  const checkAgain = setRow("Check again", "Look for a newer server version", null, () => srvLoad(true));
+  if (u.state === "expired") return [setRow("Server update", u.message || "The update did not finish. Try again", null, srvRequestUpdate), checkAgain];
+  if (u.state === "failed") return [setRow("Server update", u.message || "Could not check the server update", null, srvRequestUpdate), checkAgain];
+  if (u.pending && !u.newer) return [setRow("Server version", u.current + ", up to date. The update is finishing", null, () => srvLoad(true))];
+  if (u.pending) return [setRow("Server update", "Updating " + u.current + " to " + u.latest + ". The server restarts in a few seconds", null, () => srvLoad(true))];
+  if (!u.newer) return [setRow("Server version", u.current + ", up to date", null, () => srvLoad(true))];
+  return [setRow("Server update", u.current + " to " + u.latest, "Update server", srvRequestUpdate), checkAgain];
 }
 function secIdentity() {
   return [secHead("Browser identity", "identity"), setSelect("Identify as", null, S.agents, "userAgent")];

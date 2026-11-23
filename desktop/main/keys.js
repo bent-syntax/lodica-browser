@@ -5,7 +5,7 @@
 
 const ACTIONS = [
   { id: "newTab", label: "New tab", def: ["Ctrl+T"] },
-  { id: "duplicateTab", label: "Duplicate tab", def: ["Ctrl+D"] },
+  { id: "duplicateTab", label: "Duplicate tab", def: ["Ctrl+D", "Ctrl+Shift+D"] },
   { id: "newPrivate", label: "New private tab", def: ["Ctrl+Shift+N"] },
   { id: "undoClose", label: "Reopen closed tab", def: ["Ctrl+Shift+T"] },
   { id: "closeTab", label: "Close tab", def: ["Ctrl+W"] },
@@ -29,7 +29,7 @@ const ACTIONS = [
   { id: "osk", label: "On-screen keyboard", def: ["Ctrl+Alt+K"] },
   { id: "toggleVertical", label: "Vertical tabs on/off", def: ["Ctrl+Shift+V"] },
   { id: "toggleSplit", label: "Split view on/off", def: ["Ctrl+Shift+S"] },
-  { id: "draw", label: "Draw on tab", def: ["Ctrl+Shift+D"] },
+  { id: "draw", label: "Draw on tab", def: ["Ctrl+Shift+G"] },
   { id: "move", label: "Move page part", def: ["Ctrl+Shift+M"] },
 ];
 

@@ -25,8 +25,9 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `share(url?, raw?)` (copies URL without `?query`, toast "Link copied"; `raw` keeps it intact); `copyLink(url)` (same stripping); `copy(text)`; `openExternal(url)`
 - `email.fill` (helper.fill on current tab; also the top view's "Use dummy mail" button); `reader` -> {title,text}|null
 - `screen.frame(after)` -> `{seq, img}` (img is a JPEG data URL) once a frame newer than `after` exists, `{idle: true}` when the phone is not sharing its screen, or null (waits up to 20 s); `screen.stop` -> true when the share was stopped on the relay
+- `screen.input(events)` sends tap/swipe/key controls; `screen.text(text)` sends text to the focused field on the linked phone
 - `tab.duplicate(id?)` clones a tab beside its original; `tab.new` accepts `after` so links open next to the opener.
-- `qr(url)` -> local QR data URL (no upload); `bubble.ai(idea, name?)` -> AI chat bubble colour/shape; `pcscreen.start` / `pcscreen.stop` / `pcscreen.state` control a PC screen share for the linked phone (requires `pcRemote`).
+- `qr(url)` -> local QR data URL (no upload); `qr.decode(dataUrl)` -> decoded text or null (local jsQR decode of the built-in generator preview, no upload); `bubble.ai(idea, name?)` -> AI chat bubble colour/shape; `pcscreen.start` / `pcscreen.stop` / `pcscreen.state` control a PC screen share for the linked phone (requires `pcRemote`).
 - `notebook.list` -> `[{id, title, at}]` or null; `notebook.get(id)` -> `{id, text, rev, at}` or null; `notebook.put(id, text, base)` -> `{id, text, rev, at, conflict?}`, `{gone: true}` when the note was deleted elsewhere, or null (shared notebook, `base` is the revision the edit started from); `notebook.create` -> new note or null; `notebook.remove(id)` -> remaining `[{id, title, at}]` or null
 - `room.start` -> state; `room.stop`; `room.send(text)` -> error or null; `room.name(name)` -> name; push `room` (same-server chat)
 - `relay.state` -> state; `relay.refresh`; `relay.delete(id)` -> bool; `relay.forget(address)` -> bool
@@ -64,6 +65,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `prompt` {id, kind:"confirm"|"auth"|"pin"|"color"|"select", title, message, ok, cancel, extra?, options?}
 - `context` {x, y, linkURL, srcURL, mediaType, selectionText, editable}
 - `clipboard` {url}
+- `qrDecoded` {url,x,y}: exact decoded QR payload at the cursor position (window coordinates); `url:""` clears the tooltip. Hover decoding is local: the page preload reports only a clamped element rect and cursor point, main crops the trusted tab and decodes with jsQR.
 - `mail` {site, link, alias}
 - `prefs` full prefs object; `relay` state; `downloads` list; `ai` status
 - `shortcut` name: "address" | "find" | "switcher" | "menu" | "escape"

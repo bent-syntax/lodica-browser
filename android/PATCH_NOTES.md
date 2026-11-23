@@ -1,3 +1,9 @@
+## 1.20.6
+
+- Server update status clears when the relay finishes restarting, expires a stuck request and offers Check again.
+- Skipping an app update no longer pins the updater; each check fetches the newest release and replaces the cached version.
+- Linked-phone control accepts typed text and stops sharing from the desktop; touch coordinates follow the shared frame when the phone rotates.
+
 ## 1.20.5
 
 - Settings typing is no longer interrupted, and the Settings screen shows the Lodica mark.

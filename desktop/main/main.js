@@ -453,6 +453,7 @@ function wire(m) {
   };
   m.helper.init({ tabs, ui: helperUi, vault: m.vault, meter: m.meter, ai: m.ai });
   require("./draw").init({ tabs });
+  require("./qrhover").init({ tabs, ui, win: () => win });
   m.ai.init({ onChange: s => ui.push("ai", s) });
   if (m.ai.status().connected && !m.prefs.p.ai && !m.prefs.p.aiAutoOn) { m.prefs.set("ai", true); m.prefs.set("aiAutoOn", true); }
   m.net.init({ tabs, meter: m.meter, ui, sessions: ses });

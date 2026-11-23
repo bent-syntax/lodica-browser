@@ -7,11 +7,12 @@ const assert = require('assert');
 const blob = crypto.randomBytes(300000);
 const sha = crypto.createHash('sha256').update(blob).digest('hex');
 let seenAuth = [];
+let tag = 'v0.2.0';
 const up = http.createServer((req, res) => {
   seenAuth.push(req.url + ' ' + (req.headers.authorization || '-'));
   if (req.url === '/repos/bent-syntax/lodica-browser/releases/latest') {
     res.setHeader('content-type', 'application/json');
-    return res.end(JSON.stringify({ tag_name: 'v0.2.0', name: 'Lodica 0.2.0', body: 'notes', published_at: '2026-10-01T00:00:00Z',
+    return res.end(JSON.stringify({ tag_name: tag, name: 'Lodica ' + tag, body: 'notes', published_at: '2026-10-01T00:00:00Z',
       assets: [{ id: 7, name: 'lodica.apk', size: blob.length, state: 'uploaded', digest: 'sha256:' + sha },
         { id: 8, name: 'Lodica-Setup-0.2.0.exe', size: blob.length, state: 'uploaded' },
         { id: 9, name: 'SHA256SUMS', size: 90, state: 'uploaded' }] }));
@@ -53,6 +54,19 @@ const up = http.createServer((req, res) => {
   assert(seenAuth.filter((a) => a.startsWith('/blob')).every((a) => a.endsWith(' -')), 'no token to redirect target');
 
   assert(u.newer('1.10.0', '1.9.9') && !u.newer('1.0', '1.0.0') && u.newer('v2', '1.9'));
+
+  // A new tag must surface without waiting for the cache TTL when the caller asks for fresh info.
+  tag = 'v1.20.4';
+  assert.strictEqual((await u.check(U('app=android&version=1.20.3'), true)).version, '1.20.4', 'fresh 1.20.4');
+  tag = 'v1.20.5';
+  assert.strictEqual((await u.check(U('app=android&version=1.20.4'), true)).version, '1.20.5', 'fresh 1.20.5');
+  tag = 'v1.20.6';
+  assert.strictEqual((await u.check(U('app=android&version=1.20.5&force=1'))).version, '1.20.6', 'force=1 surfaces 1.20.6');
+  tag = 'v1.20.7';
+  assert.strictEqual((await u.check(U('app=android&version=1.20.6'))).version, '1.20.6', 'non-forced within TTL may be cached');
+  assert.strictEqual((await u.latest('android', true)).version, '1.20.7', 'fresh bypasses cache and failed');
+  assert.strictEqual((await u.check(U('app=android&version=1.20.6'))).version, '1.20.7', 'fresh overwrote the cache');
+
   console.log('updates: all PASS');
   up.close(); process.exit(0);
 })().catch((e) => { console.error('FAIL', e.message); process.exit(1); });

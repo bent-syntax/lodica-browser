@@ -730,7 +730,7 @@ async function route(req, res) {
   if (p === '/api/update/check') {
     if (m !== 'GET') return not('GET, HEAD');
     if (!authed(req, res)) return;
-    try { stats.updChecks++; return sendJson(req, res, 200, await updates.check(url)); } catch (e) {
+    try { stats.updChecks++; return sendJson(req, res, 200, await updates.check(url, url.searchParams.get('force') === '1')); } catch (e) {
       if (e.status) return sendText(req, res, e.status, e.message);
       throw e;
     }

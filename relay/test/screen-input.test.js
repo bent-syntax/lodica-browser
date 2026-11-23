@@ -10,9 +10,16 @@ const h = {
   sendText: (req, res, s, t) => send(req, res, s, t),
   readBody: (req) => new Promise((ok) => { const c = []; req.on('data', (d) => c.push(d)); req.on('end', () => ok(Buffer.concat(c))); }),
 };
+const jpeg = (n) => Buffer.from([0xff, 0xd8, 0xff, 0xe0, n]);
 const server = http.createServer((req, res) => {
-  if (req.url.startsWith('/input')) return (req.method === 'POST' ? screen.inputPost : screen.inputGet)(req, res, h);
-  return (req.method === 'PUT' ? screen.put : screen.get)(req, res, h);
+  if (req.url.startsWith('/input')) {
+    if (req.method === 'POST') return screen.inputPost(req, res, h);
+    if (req.method === 'DELETE') return screen.remove(req, res);
+    return screen.inputGet(req, res, h);
+  }
+  if (req.method === 'PUT') return screen.put(req, res, h);
+  if (req.method === 'DELETE') return screen.remove(req, res);
+  return screen.get(req, res, h);
 });
 const call = (port, method, path, body) => new Promise((ok, bad) => {
   const r = http.request({ port, method, path }, (res) => {
@@ -29,16 +36,28 @@ test('screen input', async () => {
   try {
     // not sharing: nothing is queued
     assert.strictEqual((await post([{ t: 'tap', x: 0.5, y: 0.5 }])).json.queued, 0);
-    await call(port, 'PUT', '/', Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1]));
-    const r = await post([{ t: 'tap', x: 0.5, y: 0.5 }, { t: 'tap', x: 2, y: 0 }, { t: 'key', key: 'back' }, { t: 'key', key: 'power' }, { t: 'swipe', x: 0.5, y: 0.8, x2: 0.5, y2: 0.2 }, 'x']);
-    assert.strictEqual(r.json.queued, 3);
+    await call(port, 'PUT', '/', jpeg(1));
+    const text = 'hi ' + 'x'.repeat(600);
+    const r = await post([{ t: 'tap', x: 0.5, y: 0.5 }, { t: 'tap', x: 2, y: 0 }, { t: 'key', key: 'back' }, { t: 'key', key: 'power' }, { t: 'swipe', x: 0.5, y: 0.8, x2: 0.5, y2: 0.2 }, { t: 'text', text }, 'x']);
+    assert.strictEqual(r.json.queued, 4);
     const got = await call(port, 'GET', '/input');
-    assert.deepStrictEqual(got.json.events.map((e) => e.t), ['tap', 'key', 'swipe']);
+    assert.deepStrictEqual(got.json.events.map((e) => e.t), ['tap', 'key', 'swipe', 'text']);
+    assert.strictEqual(got.json.events[3].text.length, 500);
+    assert.strictEqual(got.json.events[3].text.startsWith('hi '), true);
     assert.strictEqual((await call(port, 'GET', '/input')).json.events.length, 0); // drained
     // a waiting phone is woken by a new event
     const waiting = call(port, 'GET', '/input?wait=5');
     await new Promise((ok) => setTimeout(ok, 50));
     await post([{ t: 'key', key: 'home' }]);
     assert.strictEqual((await waiting).json.events[0].key, 'home');
-  } finally { server.close(); }
+    // clearing the frame queues a stop for the phone even when it was not waiting
+    assert.strictEqual((await call(port, 'DELETE', '/')).status, 204);
+    assert.deepStrictEqual((await call(port, 'GET', '/input')).json.events, [{ t: 'stop' }]);
+    // a new frame starts a new share: the old stop must not survive to kill it
+    await call(port, 'PUT', '/', jpeg(2));
+    assert.deepStrictEqual((await call(port, 'GET', '/input')).json.events, []);
+    assert.deepStrictEqual(screen.cleanEvent({ t: 'stop' }), { t: 'stop' });
+    assert.deepStrictEqual(screen.cleanEvent({ t: 'text', text: 'ok' }), { t: 'text', text: 'ok' });
+    assert.strictEqual(screen.cleanEvent({ t: 'text', text: 7 }), null);
+  } finally { screen.reset(); server.close(); }
 });

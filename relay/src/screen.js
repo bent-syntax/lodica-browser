@@ -5,14 +5,19 @@
 //   GET    /api/screen?after=<seq>&wait=<s> -> the JPEG (header X-Frame-Seq) when newer than `after`; 204 when nothing new
 //                                       within `wait` seconds (max 25) or no one is sharing
 //   GET    /api/screen?status=1      -> { live, seq }
-//   DELETE /api/screen               -> stops the share and drops the frame
-//   POST   /api/screen/input         body: { events: [...] } from the desktop -> { queued }. Event kinds: tap, swipe, key (see cleanEvent)
+//   DELETE /api/screen               -> drops the frame and queues one stop event so the phone ends the share
+//   POST   /api/screen/input         body: { events: [...] } from the desktop -> { queued }. Event kinds: tap, swipe, key, text, stop (see cleanEvent)
 //   GET    /api/screen/input?wait=<s> -> { events: [...] } for the phone; long-polls up to `wait` seconds (max 25)
 const FRAME_MAX = 1024 * 1024;
 const EXPIRE_MS = 10000;
+const TEXT_MAX = 500;
+const KEYS = new Set(['back', 'home', 'recents', 'notifications']);
+const QUEUE_MAX = 50;
 let frame = null; // { seq, at, data }
 let seq = 0;
 let waiters = [];
+let queue = [];
+let inWaiters = [];
 
 const live = () => !!frame && Date.now() - frame.at < EXPIRE_MS;
 
@@ -33,6 +38,8 @@ async function put(req, res, h) {
   // JPEG files start with FF D8 FF.
   if (!b || b.length < 4 || b[0] !== 0xff || b[1] !== 0xd8 || b[2] !== 0xff) return h.sendText(req, res, 400, 'not a jpeg');
   frame = { seq: ++seq, at: Date.now(), data: b };
+  // A new frame starts a new share; a stop left over from the previous one must not shut this one down.
+  queue = queue.filter((e) => e.t !== 'stop');
   wake();
   h.sendJson(req, res, 200, { seq });
 }
@@ -59,7 +66,8 @@ function get(req, res, h) {
 
 function remove(req, res) {
   frame = null;
-  queue = [];
+  // The relay has no separate control channel: the phone sees the stop in the same event stream as taps and keys.
+  queue = [{ t: 'stop' }];
   wake();
   wakeInput();
   res.writeHead(204); res.end();
@@ -69,11 +77,6 @@ function remove(req, res) {
 function reset() { frame = null; seq = 0; queue = []; wake(); wakeInput(); }
 
 // Remote control: the desktop queues input events, the phone fetches them. Coordinates are fractions (0..1) of the shared screen.
-const KEYS = new Set(['back', 'home', 'recents', 'notifications']);
-const QUEUE_MAX = 50;
-let queue = [];
-let inWaiters = [];
-
 const frac = (v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : null);
 
 /** Returns a clean event or null. Anything unknown is dropped. */
@@ -90,6 +93,8 @@ function cleanEvent(e) {
     return { t: 'swipe', x: a[0], y: a[1], x2: a[2], y2: a[3], ms: Math.min(2000, Math.max(50, Number(e.ms) || 250)) };
   }
   if (e.t === 'key' && KEYS.has(e.key)) return { t: 'key', key: e.key };
+  if (e.t === 'text' && typeof e.text === 'string') return { t: 'text', text: e.text.slice(0, TEXT_MAX) };
+  if (e.t === 'stop') return { t: 'stop' };
   return null;
 }
 
@@ -97,7 +102,7 @@ function wakeInput() { const w = inWaiters; inWaiters = []; for (const f of w) f
 
 async function inputPost(req, res, h) {
   let b;
-  try { b = JSON.parse((await h.readBody(req, 8192)).toString('utf8')); }
+  try { b = JSON.parse((await h.readBody(req, 16384)).toString('utf8')); }
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   const list = Array.isArray(b && b.events) ? b.events.slice(0, 20) : [];
   const ok = list.map(cleanEvent).filter(Boolean);

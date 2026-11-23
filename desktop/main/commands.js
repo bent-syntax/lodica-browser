@@ -297,7 +297,7 @@ function init(deps) {
         ],
       });
     }
-    items.push({ type: "separator" }, { label: "Duplicate tab", accelerator: "Ctrl+D", click: () => tabs.duplicate(t.id) },
+    items.push({ type: "separator" }, { label: "Duplicate tab", accelerator: "CmdOrCtrl+Shift+D", click: () => tabs.duplicate(t.id) },
       { label: "Reload", click: () => { tabs.select(t.id); tabs.reload(); } }, { label: "Close tab", click: () => tabs.close(t.id) });
     Menu.buildFromTemplate(items).popup({ window: d.win() });
     return true;
@@ -541,7 +541,9 @@ function init(deps) {
   on("screen.frame", (after) => require("./screen").frame(after));
   on("screen.stop", () => require("./screen").stop());
   on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
+  on("screen.text", (text) => require("./screen").text(str(text)));
   on("qr", (url) => require("./qr").data(url));
+  on("qr.decode", (dataUrl) => require("./qrdecode").decodeDataUrl(str(dataUrl)));
   on("pcscreen.start", () => require("./pcscreen").start());
   on("pcscreen.stop", () => require("./pcscreen").stop());
   on("pcscreen.state", () => require("./pcscreen").on());

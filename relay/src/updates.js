@@ -88,7 +88,9 @@ async function sha256Of(release, asset) {
 const failed = new Map();      // target -> { at, e }, so an upstream outage is not hammered by every client check
 const FAIL_MS = 45e3;
 
-async function latest(key) {
+async function latest(key, fresh = false) {
+  // A forced check skips both the short-lived cache and the outage back-off. fetchLatest overwrites the cache.
+  if (fresh) return await fetchLatest(key);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.info;
   const bad = failed.get(key);
@@ -125,10 +127,10 @@ async function fetchLatest(key) {
 }
 
 // -> JSON for the client (no GitHub ids, URLs or tokens).
-async function check(url) {
+async function check(url, fresh = false) {
   if (!configured()) throw err(503, 'updates not configured');
   const key = targetOf(url);
-  const info = await latest(key);
+  const info = await latest(key, fresh || url.searchParams.get('force') === '1');
   const cur = (url.searchParams.get('version') || '').trim();
   return {
     version: info.version, name: info.name, notes: info.notes, published: info.published,
@@ -140,7 +142,8 @@ async function check(url) {
 // -> { stream, size, name, sha256 }. Streams the asset; the token never leaves this process.
 async function download(url) {
   if (!configured()) throw err(503, 'updates not configured');
-  const info = await latest(targetOf(url));
+  const key = targetOf(url);
+  const info = await latest(key, true); // never stream an asset id from a cached release
   const r = await gh(`/repos/${OWNER}/${info.repo}/releases/assets/${info.assetId}`, 'application/octet-stream');
   let body = r;
   if (r.status >= 300 && r.status < 400 && r.headers.get('location')) {
@@ -148,7 +151,7 @@ async function download(url) {
     if (loc.protocol !== 'https:' && !process.env.LODICA_GH_API) throw err(502, 'bad upstream redirect');
     try { body = await fetch(loc, { signal: AbortSignal.timeout(10 * 60e3) }); } catch { throw err(502, 'upstream unreachable'); }
   }
-  if (!body.ok || !body.body) { cache.delete(targetOf(url)); throw err(502, 'upstream error ' + body.status); }
+  if (!body.ok || !body.body) { cache.delete(key); throw err(502, 'upstream error ' + body.status); }
   return { stream: Readable.fromWeb(body.body), size: info.size, name: info.file, sha256: info.sha256 };
 }
 

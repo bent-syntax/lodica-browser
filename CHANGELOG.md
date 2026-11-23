@@ -2,6 +2,14 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.6 (versionCode 288)
+
+- Server self-update no longer stays on “Updating to …” after the relay restarts; it polls the running version, expires a stuck request and can be checked again.
+- Skipping a release no longer hides newer ones. Update checks always query the latest GitHub release and replace the cached available version.
+- Desktop can view and control a linked phone from a docked side panel, including text input and a landscape fullscreen remote view.
+- Hovering a QR code on a page or in the QR generator decodes it locally and shows the exact URL in a tooltip.
+- Desktop tab right-click menu and Ctrl/Cmd+Shift+D duplicate the tab immediately to its right. Draw moves to Ctrl+Shift+G.
+
 ## 1.20.5 (versionCode 287)
 
 - Settings no longer rebuilds while you type. Settings shows the Lodica mark in the tab strip, and Google results follow the app theme on mobile and current desktop layouts.

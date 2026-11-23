@@ -180,7 +180,7 @@ function secAbout() {
         } } }),
         h("div", { class: "t2", text: "Engine Chromium " + (S.chromium || "") }),
         S.ghostery ? h("div", { class: "t2", text: "Ghostery " + S.ghostery }) : null)),
-    updateRow(),
+    ...updateRow(),
     setRow("Contact support", "Report a bug or ask for a feature. You get a notification when it is sent and when there is news", null, openSupport),
     !S.prefs.testUnlocked ? null : S.prefs.remoteTest ? setToggle("remoteTest", "Let support connect for testing", "Off by default. Lets support test the app with you, only inside Lodica. No vault, passwords or files, and no secret access. A badge shows while it runs and you can stop it any time. Your settings are put back afterwards")
       : setRow("Let support connect for testing", "Needs the support code", null, async () => {
@@ -235,16 +235,27 @@ function updateRow() {
   }
   const u = SET.upd || { state: "idle" };
   const mb = (n) => (n ? (n / 1048576).toFixed(1) + " MB" : "");
+  // A check can be repeated while a release is offered: show "checking" at once so no stale offer lingers.
+  const recheck = () => {
+    SET.upd = { state: "checking" };
+    refreshSettings();
+    return inv("update.check").then((next) => { if (next) { SET.upd = next; refreshSettings(); } });
+  };
+  const checkAgain = (sub) => setRow("Check again", sub || "Look for a newer Lodica", null, recheck);
   switch (u.state) {
-    case "checking": return setRow("Check for updates", "Checking...", null);
-    case "latest": return setRow("Check for updates", "Up to date (" + u.version + ")", null, () => inv("update.check"));
-    case "available": if (u.older) return setRow("Go back to " + u.version, mb(u.size) + " · tap to download this older version", null, () => inv("update.download"));
-      return setRow("Update " + u.version + " available", (u.notes ? u.notes.split("\n")[0] + " · " : "") + mb(u.size) + " · tap to download", null, () => inv("update.download"));
-    case "downloading": return setRow("Downloading " + (u.version || ""), (u.size ? Math.round(100 * (u.received || 0) / u.size) + "% · " : "") + mb(u.received) + " · tap to cancel", null, () => inv("update.cancel"));
-    case "installing": return setRow("Installing " + (u.version || ""), "Lodica restarts by itself when it is done · " + Math.round(70 + 30 * (u.progress || 0)) + "%", null);
-    case "ready": return setRow("Update ready", u.path ? "Checksum verified. Tap to install" : "", null, () => inv("update.install"));
-    case "error": return setRow("Check for updates", u.message + " · tap to retry", null, () => inv("update.check"), "danger-row");
-    default: return setRow("Check for updates", "Look for a newer Lodica", null, () => inv("update.check"));
+    case "checking": return [setRow("Check for updates", "Checking...", null)];
+    case "latest": return [setRow("Check for updates", "Up to date (" + u.version + ")", null, recheck)];
+    case "available": {
+      const offer = u.older
+        ? setRow("Go back to " + u.version, mb(u.size) + " · tap to download this older version", null, () => inv("update.download"))
+        : setRow("Update " + u.version + " available", (u.notes ? u.notes.split("\n")[0] + " · " : "") + mb(u.size) + " · tap to download", null, () => inv("update.download"));
+      return [offer, checkAgain("Look for a newer release than " + u.version)];
+    }
+    case "downloading": return [setRow("Downloading " + (u.version || ""), (u.size ? Math.round(100 * (u.received || 0) / u.size) + "% · " : "") + mb(u.received) + " · tap to cancel", null, () => inv("update.cancel"))];
+    case "installing": return [setRow("Installing " + (u.version || ""), "Lodica restarts by itself when it is done · " + Math.round(70 + 30 * (u.progress || 0)) + "%", null)];
+    case "ready": return [setRow("Update ready", u.path ? "Checksum verified. Tap to install" : "", null, () => inv("update.install"))];
+    case "error": return [setRow("Check for updates", u.message + " · tap to retry", null, recheck, "danger-row")];
+    default: return [setRow("Check for updates", "Look for a newer Lodica", null, recheck)];
   }
 }
 // Shrinks a picked image to a JPEG data (longest side 1280 px) for the support relay.

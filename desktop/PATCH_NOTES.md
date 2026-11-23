@@ -1,3 +1,11 @@
+## 1.20.6
+
+- Server updates now finish cleanly: the Settings row re-checks the running relay, expires a stuck request and offers Check again.
+- Skipping a release no longer pins the updater to it; every check fetches the newest GitHub release and replaces the cached version.
+- View and control a linked phone from a docked desktop side panel. The remote view keeps a phone portrait shape, types text, and rotates to landscape in fullscreen.
+- Hover a QR image, canvas or SVG on any page, or the built-in generator preview, to decode it locally and see the exact URL.
+- Duplicate Tab is in the tab right-click menu and bound to Ctrl/Cmd+Shift+D; the clone opens immediately to the right. Draw now uses Ctrl+Shift+G.
+
 ## 1.20.5
 
 - Settings no longer rebuilds while typing or when the authenticator codes refresh; the Settings tab shows the Lodica mark.

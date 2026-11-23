@@ -115,6 +115,7 @@ const overlay = (f) => fs.readFileSync(path.join(__dirname, "overlay", f), "utf8
 const ipcLine = 'const { ipcRenderer, webFrame } = require("electron");\n';
 swap(ipcLine, ipcLine + overlay("google-ua.js"));
 js += overlay("draw.js");
+js += overlay("qrhover.js");
 fs.mkdirSync(path.join(root, "preload"), { recursive: true });
 fs.writeFileSync(path.join(root, "preload", "content.js"), js);
 console.log("preload/content.js generated");

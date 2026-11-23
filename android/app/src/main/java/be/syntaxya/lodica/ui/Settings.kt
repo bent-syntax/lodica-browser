@@ -512,9 +512,14 @@ fun SettingsScreen() {
                         StatusCard(LodicaIcons.Globe, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
                         androidx.compose.runtime.LaunchedEffect(Unit) { Relay.refreshServerUpdate() }
                         Relay.serverUpdate?.let { u ->
-                            if (u.pending) InfoRow("Server update", "Updating to ${u.latest}")
-                            else if (u.newer) LinkRow("Update server (${u.current} to ${u.latest})") { Relay.refreshServerUpdate(install = true) }
-                            else InfoRow("Server version", u.current)
+                            when {
+                                u.failed -> LinkRow("Server update check failed — check again", color = Danger) { Relay.refreshServerUpdate() }
+                                u.expired -> LinkRow("Server update did not finish (running ${u.current}) — check again", color = Danger) { Relay.refreshServerUpdate() }
+                                u.pending && !u.newer -> LinkRow("Server version ${u.current} — check again") { Relay.refreshServerUpdate() }
+                                u.pending -> InfoRow("Server update", "Updating ${u.current} to ${u.latest}. The server restarts in a few seconds")
+                                u.newer -> LinkRow("Update server (${u.current} to ${u.latest})") { Relay.refreshServerUpdate(install = true) }
+                                else -> LinkRow("Server version ${u.current} — check again") { Relay.refreshServerUpdate() }
+                            }
                         }
                         LinkRow("Inbox") { Ui.go(Screen.Inbox) }
                         LinkRow("Disconnect server") { Relay.disconnect() }
@@ -583,7 +588,10 @@ fun SettingsScreen() {
                 is UpdateState.Idle -> LinkRow("Check for updates") { Updater.check(ctx) }
                 is UpdateState.Checking -> InfoRow("Updates", "Checking…")
                 is UpdateState.Latest -> LinkRow("Up to date (${upd.version}) — check again") { Updater.check(ctx) }
-                is UpdateState.Available -> LinkRow("Download ${upd.info.version} (${upd.info.size / 1_048_576} MB)", color = Amber) { Updater.download(ctx) }
+                is UpdateState.Available -> {
+                    LinkRow("Download ${upd.info.version} (${upd.info.size / 1_048_576} MB)", color = Amber) { Updater.download(ctx) }
+                    LinkRow("Check again for a newer version") { Updater.check(ctx) }
+                }
                 is UpdateState.Downloading -> LinkRow(
                     "Downloading ${if (upd.info.size > 0) upd.received * 100 / upd.info.size else 0}% — tap to cancel",
                 ) { Updater.cancel() }

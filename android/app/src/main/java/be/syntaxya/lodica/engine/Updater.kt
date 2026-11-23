@@ -66,6 +66,8 @@ object Updater {
 
     private const val LATEST = "https://api.github.com/repos/bent-syntax/lodica-browser/releases/latest"
     private const val ALL = "https://api.github.com/repos/bent-syntax/lodica-browser/releases?per_page=30"
+    /** A changing query makes a repeated check a real check instead of a cached release answer. */
+    private fun noCache(url: String) = url + (if ('?' in url) "&" else "?") + "_=" + System.currentTimeMillis()
 
     /** Numeric parts first; a "-beta.N" suffix sorts below the same version without one. */
     internal fun cmp(a: String, b: String): Int {
@@ -115,32 +117,51 @@ object Updater {
         UpdateState.Available(UpdateInfo(ver, "v$ver", "", name, 0L, sha, true, base + name))
     }.getOrNull()
 
+    /** Pure: turns a release response into a state. No network access, so repeated checks can be compared directly. */
+    internal fun applyRelease(releaseJson: String, current: String, beta: Boolean): UpdateState = runCatching {
+        val rel = if (beta) {
+            json.decodeFromString<List<GhRelease>>(releaseJson)
+                .filter { !it.draft && it.tag_name.isNotEmpty() }
+                .maxWithOrNull { x, y -> cmp(x.tag_name, y.tag_name) } ?: GhRelease()
+        } else json.decodeFromString<GhRelease>(releaseJson)
+        val ver = rel.tag_name.removePrefix("v")
+        val a = rel.assets.firstOrNull { it.name.endsWith(".apk") }
+        when {
+            ver.isEmpty() || cmp(ver, current) <= 0 -> UpdateState.Latest(current)
+            a == null -> UpdateState.Failed("This release has no APK")
+            else -> UpdateState.Available(
+                UpdateInfo(ver, rel.name ?: "v$ver", rel.body ?: "", a.name, a.size,
+                    a.digest?.removePrefix("sha256:")?.lowercase(), true, a.browser_download_url)
+            )
+        }
+    }.getOrElse { Log.w(TAG, "release parse failed", it); UpdateState.Failed("Could not read the release") }
+
+    /** Only fetched when GitHub did not attach the digest to the asset. */
+    private fun shaFallback(releaseJson: String, beta: Boolean, assetName: String): String? {
+        val rel = if (beta) {
+            json.decodeFromString<List<GhRelease>>(releaseJson)
+                .filter { !it.draft && it.tag_name.isNotEmpty() }
+                .maxWithOrNull { x, y -> cmp(x.tag_name, y.tag_name) }
+        } else json.decodeFromString<GhRelease>(releaseJson)
+        val sidecar = rel?.assets?.firstOrNull { it.name == assetName + ".sha256" } ?: return null
+        return Regex("[0-9a-fA-F]{64}").find(get(sidecar.browser_download_url).second)?.value?.lowercase()
+    }
+
     fun check(ctx: Context) {
         if (state is UpdateState.Checking || state is UpdateState.Downloading) return
+        // Replacing the state up front means an older Available offer can never survive a new check.
         state = UpdateState.Checking
         val cur = currentVersion(ctx)
         job = Relay.scope.launch(kotlinx.coroutines.Dispatchers.IO) {
             state = runCatching {
                 val beta = Prefs.betaEnabled
-                val (code, body) = get(if (beta) ALL else LATEST)
+                val (code, body) = get(noCache(if (beta) ALL else LATEST))
                 when (code) {
                     200 -> {
-                        val rel = if (beta) {
-                            json.decodeFromString<List<GhRelease>>(body).filter { !it.draft && it.tag_name.isNotEmpty() }
-                                .maxWithOrNull { x, y -> cmp(x.tag_name, y.tag_name) } ?: GhRelease()
-                        } else json.decodeFromString<GhRelease>(body)
-                        val ver = rel.tag_name.removePrefix("v")
-                        val a = rel.assets.firstOrNull { it.name.endsWith(".apk") }
-                        if (ver.isEmpty() || cmp(ver, cur) <= 0) UpdateState.Latest(cur)
-                        else if (a == null) UpdateState.Failed("This release has no APK")
-                        else {
-                            var sha = a.digest?.removePrefix("sha256:")?.lowercase()
-                            if (sha.isNullOrEmpty()) {
-                                val s = rel.assets.firstOrNull { it.name == a.name + ".sha256" }
-                                if (s != null) sha = Regex("[0-9a-fA-F]{64}").find(get(s.browser_download_url).second)?.value?.lowercase()
-                            }
-                            UpdateState.Available(UpdateInfo(ver, rel.name ?: "v$ver", rel.body ?: "", a.name, a.size, sha, true, a.browser_download_url))
-                        }
+                        val picked = applyRelease(body, cur, beta)
+                        if (picked is UpdateState.Available && picked.info.sha256.isNullOrEmpty())
+                            picked.copy(info = picked.info.copy(sha256 = shaFallback(body, beta, picked.info.file)))
+                        else picked
                     }
                     404 -> UpdateState.Failed("No release published yet")
                     else -> viaRedirect(cur) ?: UpdateState.Failed("Update check failed ($code)")

@@ -63,6 +63,10 @@ class ScreenShare : Service() {
         val m = resources.displayMetrics
         val w = minOf(WIDTH, m.widthPixels) and 1.inv()
         val h = (m.heightPixels.toLong() * w / m.widthPixels).toInt() and 1.inv()
+        // Gestures are mapped from this captured geometry, not from whatever size the phone has later.
+        capturedWidth = w
+        capturedHeight = h
+        capturedRotation = RemoteControl.rotation(this)
         val r = ImageReader.newInstance(w, h, PixelFormat.RGBA_8888, 2)
         reader = r
         display = mp.createVirtualDisplay("lodica-share", w, h, m.densityDpi, DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
@@ -148,18 +152,23 @@ class ScreenShare : Service() {
         }
     }
 
-    /** Fetches taps, swipes and keys sent from the desktop and hands them to [RemoteControl]. */
+    /** Fetches taps, swipes, keys and text sent from the desktop and hands them to [RemoteControl]. */
     private suspend fun pollInput() {
         var fails = 0
         while (scope.isActive) {
-            if (!RemoteControl.enabled) { delay(2_000); continue }
             try {
                 val (code, body) = Relay.request("GET", "/api/screen/input?wait=20", readTimeoutMs = 30_000)
                 if (code !in 200..299) throw java.io.IOException("status $code")
                 fails = 0
                 val events = org.json.JSONObject(body).optJSONArray("events") ?: continue
                 for (i in 0 until events.length()) {
-                    events.optJSONObject(i)?.let { e -> Handler(Looper.getMainLooper()).post { RemoteControl.run(e) } }
+                    val e = events.optJSONObject(i) ?: continue
+                    if (e.optString("t") == "stop") {
+                        // DELETE /api/screen queues this control event. Stop even when the accessibility service is off.
+                        Handler(Looper.getMainLooper()).post { shutdown() }
+                        return
+                    }
+                    if (RemoteControl.enabled) Handler(Looper.getMainLooper()).post { RemoteControl.run(e) }
                     delay(60)
                 }
             } catch (e: Exception) {
@@ -181,6 +190,9 @@ class ScreenShare : Service() {
         private const val KEEP_ALIVE_MS = 4_000L
         private const val MAX_FAILS = 10
         @Volatile var running = false; private set
+        @Volatile var capturedWidth = 0; private set
+        @Volatile var capturedHeight = 0; private set
+        @Volatile var capturedRotation = 0; private set
 
         /** The system dialog that asks the user to allow capturing the screen. */
         fun consentIntent(ctx: Context): Intent = ctx.getSystemService(MediaProjectionManager::class.java).createScreenCaptureIntent()

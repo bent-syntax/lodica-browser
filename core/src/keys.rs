@@ -6,7 +6,7 @@ use std::sync::OnceLock;
 // (id, label, default combos), in table order: that order decides clashes.
 const ACTIONS: &[(&str, &str, &[&str])] = &[
     ("newTab", "New tab", &["Ctrl+T"]),
-    ("duplicateTab", "Duplicate tab", &["Ctrl+D"]),
+    ("duplicateTab", "Duplicate tab", &["Ctrl+D", "Ctrl+Shift+D"]),
     ("newPrivate", "New private tab", &["Ctrl+Shift+N"]),
     ("undoClose", "Reopen closed tab", &["Ctrl+Shift+T"]),
     ("closeTab", "Close tab", &["Ctrl+W"]),
@@ -30,7 +30,7 @@ const ACTIONS: &[(&str, &str, &[&str])] = &[
     ("osk", "On-screen keyboard", &["Ctrl+Alt+K"]),
     ("toggleVertical", "Vertical tabs on/off", &["Ctrl+Shift+V"]),
     ("toggleSplit", "Split view on/off", &["Ctrl+Shift+S"]),
-    ("draw", "Draw on tab", &["Ctrl+Shift+D"]),
+    ("draw", "Draw on tab", &["Ctrl+Shift+G"]),
     ("move", "Move page part", &["Ctrl+Shift+M"]),
 ];
 
@@ -137,6 +137,8 @@ mod tests {
         let m = map(&json!({}));
         assert_eq!(m["Ctrl+T"], "newTab");
         assert_eq!(m["Ctrl+D"], "duplicateTab");
+        assert_eq!(m["Ctrl+Shift+D"], "duplicateTab");
+        assert_eq!(m["Ctrl+Shift+G"], "draw");
         // override, even empty, wins over the default
         let m = map(&json!({"newTab": [], "find": ["Ctrl+T", "bad+Ctrl"]}));
         assert_eq!(m["Ctrl+T"], "find");

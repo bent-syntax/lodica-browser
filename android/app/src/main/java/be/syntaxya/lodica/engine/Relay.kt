@@ -176,22 +176,86 @@ object Relay {
 
     // ---- Server update ----------------------------------------------------------------------
 
-    /** Server relay version state from /api/relay/update. Null until fetched or when the server cannot self-update. */
-    class ServerUpdate(val current: String, val latest: String, val newer: Boolean, val pending: Boolean)
-    var serverUpdate by mutableStateOf<ServerUpdate?>(null); private set
+    /** Server relay version state from /api/relay/update. Null until a server is linked and checked. */
+    class ServerUpdate(
+        val current: String,
+        val latest: String,
+        val newer: Boolean,
+        val pending: Boolean,
+        val state: String = "",
+        val message: String = "",
+        val requestedAt: Long = 0L,
+        val failed: Boolean = false,
+        val expired: Boolean = false,
+    )
 
-    /** Reads the server version state, or asks the server to update itself when [install] is true. */
+    var serverUpdate by mutableStateOf<ServerUpdate?>(null); private set
+    @Volatile private var serverUpdateJob: Job? = null
+
+    private val serverPollMs = 3_000L
+    private val serverPollMaxMs = 120_000L
+
+    /** An unreachable server or a bad answer is an explicit state, not "unknown". Keeps the last known running version. */
+    private fun serverUpdateFailure(code: Int? = null): ServerUpdate {
+        val prev = serverUpdate
+        return ServerUpdate(
+            current = prev?.current.orEmpty(), latest = prev?.latest.orEmpty(), newer = prev?.newer ?: false,
+            pending = false, state = "failed",
+            message = if (code != null) "The server answered $code" else "Could not reach the server",
+            requestedAt = prev?.requestedAt ?: 0L, failed = true,
+        )
+    }
+
+    private fun readServerUpdate(install: Boolean): ServerUpdate {
+        val (code, body) = requestBytes(if (install) "POST" else "GET", "/api/relay/update")
+        if (code !in 200..299) return serverUpdateFailure(code)
+        val j = runCatching { org.json.JSONObject(String(body)) }.getOrNull() ?: return serverUpdateFailure()
+        val st = j.optString("state")
+        return ServerUpdate(
+            current = j.optString("current"), latest = j.optString("latest"),
+            newer = j.optBoolean("newer"), pending = j.optBoolean("pending"),
+            state = st, message = j.optString("message"), requestedAt = j.optLong("requestedAt"),
+            failed = st == "failed", expired = st == "expired",
+        )
+    }
+
+    /** Reads the server version state, or asks the server to update itself and polls until it settles. */
     fun refreshServerUpdate(install: Boolean = false) {
-        if (!available) return
-        scope.launch {
-            val r = runCatching {
-                val (code, body) = requestBytes(if (install) "POST" else "GET", "/api/relay/update")
-                if (code !in 200..299) null else org.json.JSONObject(String(body)).let {
-                    ServerUpdate(it.optString("current"), it.optString("latest"), it.optBoolean("newer"), it.optBoolean("pending"))
+        if (!available || serverUpdateJob?.isActive == true) return
+        val job = scope.launch {
+            if (install) {
+                val prev = serverUpdate
+                withContext(Dispatchers.Main) {
+                    serverUpdate = ServerUpdate(
+                        current = prev?.current.orEmpty(), latest = prev?.latest.orEmpty(),
+                        newer = prev?.newer ?: true, pending = true, state = "pending",
+                        message = "Update requested", requestedAt = System.currentTimeMillis(),
+                    )
                 }
-            }.getOrNull()
-            withContext(Dispatchers.Main) { serverUpdate = r }
+            }
+            val deadline = System.currentTimeMillis() + serverPollMaxMs
+            var doPost = install
+            var first = true
+            while (true) {
+                if (!first) delay(serverPollMs)
+                first = false
+                val next = runCatching { readServerUpdate(doPost) }.getOrElse { serverUpdateFailure() }
+                doPost = false
+                withContext(Dispatchers.Main) { serverUpdate = next }
+                if (!install || next.failed || next.expired || !next.pending) break
+                if (System.currentTimeMillis() >= deadline) {
+                    withContext(Dispatchers.Main) {
+                        serverUpdate = next.copy(
+                            state = "expired", expired = true, pending = false,
+                            message = "The server update did not finish. Check again",
+                        )
+                    }
+                    break
+                }
+            }
+            withContext(Dispatchers.Main) { serverUpdateJob = null }
         }
+        serverUpdateJob = job
     }
 
     // ---- Setup ------------------------------------------------------------------------------
