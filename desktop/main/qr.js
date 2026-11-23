@@ -20,4 +20,18 @@ async function data(input) {
   });
 }
 
-module.exports = { normalise, data };
+/** Permanent SVG for the same text; vector download without any network call. */
+async function svg(input) {
+  const text = normalise(input);
+  if (!text) return null;
+  const qrcode = require("qrcode");
+  return qrcode.toString(text, {
+    type: "svg",
+    errorCorrectionLevel: "M",
+    margin: 2,
+    width: 256,
+    color: { dark: "#1A1300ff", light: "#FFFFFFff" },
+  });
+}
+
+module.exports = { normalise, data, svg };

@@ -1,3 +1,9 @@
+## 1.20.7
+
+- "Phone controls this PC" is now an opaque docked side panel of its own; it never overlaps the Lodica AI chat view. The permission stays a clean toggle in Settings → Link.
+- PC-to-phone streaming starts reliably from the desktop or from the phone's "PC screen" page, and phone-to-PC frames render in the docked controller panel (portrait or fullscreen landscape).
+- QR hover decoding now shows a one-click Copy button for the exact decoded text. The generator makes permanent PNG and SVG codes from any custom URL/text, with text and image copy buttons.
+
 ## 1.20.6
 
 - Server updates now finish cleanly: the Settings row re-checks the running relay, expires a stuck request and offers Check again.

@@ -13,6 +13,11 @@ const h = {
 const routes = { GET: pcscreen.get, PUT: pcscreen.put, DELETE: pcscreen.remove };
 const server = http.createServer((req, res) => routes[req.method](req, res, h));
 const input = http.createServer((req, res) => (req.method === 'GET' ? pcscreen.inputGet : pcscreen.inputPost)(req, res, h));
+const request = http.createServer((req, res) => {
+  if (req.method === 'GET') return pcscreen.requestGet(req, res, h);
+  if (req.method === 'DELETE') return pcscreen.requestDelete(req, res);
+  return pcscreen.requestPost(req, res, h);
+});
 const call = (srv, method, body, q = '') => new Promise((ok, bad) => {
   const r = http.request({ port: srv.address().port, method, path: '/api/pcscreen' + q }, (res) => {
     const c = []; res.on('data', (d) => c.push(d)); res.on('end', () => ok({ status: res.statusCode, seq: res.headers['x-frame-seq'], body: Buffer.concat(c) }));
@@ -22,7 +27,7 @@ const call = (srv, method, body, q = '') => new Promise((ok, bad) => {
 const jpeg = (n) => Buffer.from([0xff, 0xd8, 0xff, 0xe0, n]);
 
 test('pcscreen frames and input round-trip', async () => {
-  await Promise.all([new Promise((ok) => server.listen(0, '127.0.0.1', ok)), new Promise((ok) => input.listen(0, '127.0.0.1', ok))]);
+  await Promise.all([new Promise((ok) => server.listen(0, '127.0.0.1', ok)), new Promise((ok) => input.listen(0, '127.0.0.1', ok)), new Promise((ok) => request.listen(0, '127.0.0.1', ok))]);
   try {
     assert.strictEqual((await call(server, 'GET')).status, 204);
     assert.strictEqual((await call(server, 'PUT', Buffer.from('hello'))).status, 400);
@@ -35,7 +40,15 @@ test('pcscreen frames and input round-trip', async () => {
     assert.strictEqual(got.events.length, 1);
     assert.strictEqual(got.events[0].t, 'tap');
     assert.strictEqual(got.events[0].x, 0.5);
+    // A phone can ask the desktop to start the stream; the request is one-shot.
+    assert.strictEqual(JSON.parse((await call(request, 'POST')).body).pending, true);
+    assert.strictEqual(JSON.parse((await call(request, 'GET')).body).pending, true);
+    assert.strictEqual(JSON.parse((await call(server, 'PUT', jpeg(2))).body).seq, 2);
+    assert.strictEqual(JSON.parse((await call(request, 'GET')).body).pending, false);
+    await call(request, 'POST');
+    assert.strictEqual((await call(request, 'DELETE')).status, 204);
+    assert.strictEqual(JSON.parse((await call(request, 'GET')).body).pending, false);
     assert.strictEqual((await call(server, 'DELETE')).status, 204);
     assert.strictEqual((await call(server, 'GET')).status, 204);
-  } finally { pcscreen.reset(); server.close(); input.close(); }
+  } finally { pcscreen.reset(); server.close(); input.close(); request.close(); }
 });

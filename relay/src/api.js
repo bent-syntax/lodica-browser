@@ -638,6 +638,14 @@ async function route(req, res) {
     const h = { sendJson, sendText, readBody };
     return m === 'GET' ? pcscreen.inputGet(req, res, h) : pcscreen.inputPost(req, res, h);
   }
+  if (p === '/api/pcscreen/request') {
+    if (m !== 'GET' && m !== 'POST' && m !== 'DELETE') return not('GET, POST, DELETE');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    if (m === 'GET') return pcscreen.requestGet(req, res, h);
+    if (m === 'DELETE') return pcscreen.requestDelete(req, res);
+    return pcscreen.requestPost(req, res, h);
+  }
   if (p === '/api/pair') {
     if (m !== 'POST') return not('POST');
     if (!authed(req, res)) return;

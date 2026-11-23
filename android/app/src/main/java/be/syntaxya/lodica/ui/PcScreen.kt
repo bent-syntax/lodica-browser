@@ -6,6 +6,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,7 +36,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import be.syntaxya.lodica.engine.PcRemote
-import be.syntaxya.lodica.ui.theme.Amber
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
@@ -91,17 +92,24 @@ fun PcScreen() {
         ) {
             val frame = bitmap
             if (frame != null) Image(frame.asImageBitmap(), "Linked PC screen", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-            else Text(if (live) "Waiting for the first frame" else "Start “PC to phone” on the desktop", color = Muted, fontSize = 13.sp)
+            else Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (live) "Waiting for the first frame" else "Start “PC to phone” on the desktop, or ask below", color = Muted, fontSize = 13.sp)
+                if (!live) Button(onClick = { PcRemote.request() }, modifier = Modifier.padding(top = 10.dp)) {
+                    Text("Ask desktop to share", maxLines = 1, softWrap = false)
+                }
+            }
         }
         if (!full) Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(text, { text = it }, Modifier.weight(1f), singleLine = true,
                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Send),
                 placeholder = { Text("Type on the PC", color = Muted) })
-            Button(onClick = { if (text.isNotEmpty()) { PcRemote.text(text + "\n"); text = "" } }) { Text("Send", color = Amber) }
+            Button(onClick = { if (text.isNotBlank()) { PcRemote.text(text); text = "" } }) { Text("➤ Send", maxLines = 1, softWrap = false) }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp).horizontalScroll(rememberScrollState())) {
             listOf("back", "enter", "escape", "tab", "left", "right", "up", "down").forEach {
-                Button(onClick = { PcRemote.key(it) }, modifier = Modifier.padding(end = 4.dp)) { Text(it, fontSize = 12.sp) }
+                Button(onClick = { PcRemote.key(it) }, modifier = Modifier.padding(end = 4.dp)) {
+                    Text(it, fontSize = 12.sp, maxLines = 1, softWrap = false)
+                }
             }
         }
     }

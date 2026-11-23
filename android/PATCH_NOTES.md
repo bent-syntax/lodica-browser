@@ -1,3 +1,8 @@
+## 1.20.7
+
+- "PC screen" can ask the linked desktop to start sharing directly; frames arrive and render live in the canvas.
+- The Send button is visible next to "Type on the PC", and the bottom key row scrolls horizontally with single-line labels.
+
 ## 1.20.6
 
 - Server update status clears when the relay finishes restarting, expires a stuck request and offers Check again.

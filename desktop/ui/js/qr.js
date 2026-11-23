@@ -37,6 +37,12 @@ function hideQrDecoded() {
   if (QR_DECODE) { QR_DECODE.close(); QR_DECODE = null; }
 }
 
+async function copyQrText(text) {
+  if (!text) return;
+  try { await navigator.clipboard.writeText(text); toast("Copied QR text"); }
+  catch { toast("Could not copy"); }
+}
+
 function placeQrDecoded(x, y) {
   if (!QR_DECODE || !QR_DECODE.el) return;
   const el = QR_DECODE.el.querySelector(".hoverqr.qr-decoded");
@@ -66,7 +72,8 @@ function showQrDecoded(d) {
   QR_DECODE = openLayer({ key: "qrdecoded", dim: false, cls: "hoverqr-layer qr-decoded-layer", onClose: () => { QR_DECODE = null; } }, () =>
     h("div", { class: "hoverqr qr-decoded" },
       h("div", { class: "t2", text: "Decoded QR" }),
-      h("div", { class: "qr-url", text })));
+      h("div", { class: "qr-url", text }),
+      h("button", { class: "chip", text: "Copy", act: () => copyQrText(QR_DECODE && QR_DECODE.decodedText || "") })));
   QR_DECODE.decodedText = text;
   QR_DECODE.urlEl = QR_DECODE.el.querySelector(".qr-url");
   placeQrDecoded(x, y);
@@ -75,22 +82,40 @@ function showQrDecoded(d) {
 function openQr() {
   return sheet({ title: "QR code", key: "qr", onClose: hideQrDecoded }, (b) => {
     let timer = 0, current = "", hoverToken = 0;
-    const input = h("input", { class: "sp-find", type: "url", placeholder: "Text or link to encode", "aria-label": "Text or link" });
+    // Permanent, entirely client-side: any text pasted here becomes a QR that never expires or uploads.
+    const input = h("input", { class: "sp-find", type: "text", placeholder: "Type or paste any URL / text", "aria-label": "Custom QR text" });
+    const useTab = btn("Use tab URL", () => { input.value = (S.tab && S.tab.url) || ""; update(); });
     const img = h("img", { class: "qr-img", alt: "QR preview", width: 224, height: 224 });
-    const link = h("a", { class: "btn", download: "lodica-qr.png" }, "Download");
-    const copy = btn("Copy link", async () => {
+    const png = h("a", { class: "btn", download: "lodica-qr.png" }, "PNG");
+    const svg = h("a", { class: "btn", download: "lodica-qr.svg" }, "SVG");
+    const copy = btn("Copy text", async () => {
       if (!current) return;
-      try { await navigator.clipboard.writeText(current); toast("Copied"); } catch { toast("Could not copy"); }
+      try { await navigator.clipboard.writeText(current); toast("Copied QR text"); } catch { toast("Could not copy"); }
+    });
+    const copyImage = btn("Copy image", async () => {
+      if (!img.src) return;
+      try {
+        const blob = await (await fetch(img.src)).blob();
+        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+        toast("Copied QR image");
+      } catch { toast("Could not copy image"); }
     });
     const update = async () => {
       clearTimeout(timer);
       const text = String(input.value || "").trim();
-      if (!text || text.length > 2000) { img.removeAttribute("src"); link.removeAttribute("href"); current = ""; return; }
-      const src = await inv("qr", text).catch(() => null);
+      if (!text || text.length > 2000) {
+        img.removeAttribute("src"); png.removeAttribute("href"); svg.removeAttribute("href"); current = ""; return;
+      }
+      const [src, vector] = await Promise.all([
+        inv("qr", text).catch(() => null),
+        inv("qr.svg", text).catch(() => null),
+      ]);
       if (!src || !input.isConnected || input.value.trim() !== text) return;
       current = text;
       img.src = src;
-      link.href = src;
+      png.href = src;
+      svg.href = vector ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(vector) : "";
+      if (!vector) svg.removeAttribute("href");
     };
     input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(update, 120); });
     img.addEventListener("pointerenter", async (e) => {
@@ -103,9 +128,9 @@ function openQr() {
     });
     img.addEventListener("pointerleave", () => { hoverToken++; hideQrDecoded(); });
     b.append(
-      h("div", { class: "row" }, input),
+      h("div", { class: "row" }, input, useTab),
       h("div", { class: "qr-preview" }, img),
-      h("div", { class: "row" }, copy, link));
+      h("div", { class: "row" }, copy, copyImage, png, svg));
     input.value = (S.tab && S.tab.url) || "";
     update();
     setTimeout(() => { input.focus(); input.select(); }, 30);

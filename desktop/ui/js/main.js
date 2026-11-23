@@ -87,6 +87,12 @@ function subscribe() {
   on("room", (d) => { ROOM.state = d || ROOM.state; if (ROOM.L) roomRender(); });
   on("ai.chats", (c) => { CHAT.chats = c || []; if (CHAT.L && !CHAT.busy) chatRender(); });
   on("ai", (d) => { S.ai = Object.assign({}, S.ai, d || {}); refreshSettings(); });
+  // Opening the dedicated AI view closes the docked remote panels; they are separate views and must not overlap.
+  on("aipanel", (d) => {
+    if (!d || !d.open) return;
+    try { if (typeof PC !== "undefined" && PC.L) PC.L.close(); } catch {}
+    try { if (typeof PS !== "undefined" && PS.L) PS.L.close(); } catch {}
+  });
   on("shortcut", (d) => runShortcut(typeof d === "string" ? d : d && d.name));
   on("sheet", openSheet);
   on("overlay", onMainOverlay);

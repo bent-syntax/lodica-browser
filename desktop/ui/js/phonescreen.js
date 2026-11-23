@@ -31,6 +31,8 @@ function phoneContent(box, nw, nh, rotated) {
 
 function openPhoneScreen() {
   if (PS.L) return PS.L;
+  // A separate BrowserView hosts the AI panel; close it so the docked video cannot bleed into the chat.
+  inv("ai.panel.close");
   // Dock right like the notebook so the page shrinks instead of being covered.
   inv("ui.dock", 360);
   PS.L = openLayer({ key: "phonescreen", cls: "spage-layer settings-tab nb-dock phone-dock", dim: false, onClose: () => { inv("ui.dock", 0); const L = PS.L; PS.L = null; L.dead = true; } }, (L) => {

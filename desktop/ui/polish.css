@@ -397,6 +397,10 @@ body.keep .layer.settings-tab{top:0;left:0}
 body:not(.bt) .layer.settings-tab.nb-dock{top:0;left:auto;right:0;width:360px;bottom:var(--bar-h,44px)}
 body.keep.bt .layer.settings-tab.nb-dock{left:auto;right:0;width:360px}
 body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
+/* PC controller: opaque docked side panel, never a transparent overlay on the AI view */
+.layer.settings-tab.pc-dock .spage{height:100%}
+.layer.settings-tab.pc-dock .empty{text-align:left}
+.layer.settings-tab.pc-dock .phone-keys{justify-content:flex-start}
 /* Phone screen: the docked portrait view and its full-window rotated landscape view */
 .layer.settings-tab.phone-dock .spage{height:100%}
 .layer.settings-tab.phone-dock .phone-keys{display:flex;flex:none;flex-wrap:wrap;gap:8px;padding:0 12px 8px}

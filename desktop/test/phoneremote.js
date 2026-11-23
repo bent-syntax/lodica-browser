@@ -54,6 +54,28 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(/finally\s*\{\s*node\?\.recycle\(\)/.test(rc));
   assert.ok(rc.includes('FOCUS_INPUT'));
   assert.ok(rc.includes('ScreenShare.capturedWidth') && rc.includes('rotation(this)'));
+  const pcr = read('android/app/src/main/java/be/syntaxya/lodica/engine/PcRemote.kt');
+  assert.ok(pcr.includes('fun request()') && pcr.includes('"/api/pcscreen/request"'));
+
+  // PC controller is an opaque docked panel, not a transparent overlay above the AI view.
+  const pc = read('desktop/ui/js/pcscreen.js');
+  assert.ok(pc.includes('cls: "spage-layer settings-tab nb-dock pc-dock"'));
+  assert.ok(pc.includes('inv("ai.panel.close")') && pc.includes('inv("ui.dock", 360)'));
+  assert.ok(pc.includes('inv("pcscreen.stop")') && pc.includes('inv("ui.dock", 0)'));
+  assert.ok(!pc.includes('pc-panel-layer'));
+  const pcm = read('desktop/main/pcscreen.js');
+  assert.ok(pcm.includes('async function checkRequest()'));
+  assert.ok(pcm.includes('"/api/pcscreen/request"'));
+  assert.ok(!pcm.includes('setPanelWidth'));
+  assert.ok(pcm.includes('Math.round(Number(x) * b.width)'));
+  const rp = read('relay/src/pcscreen.js');
+  assert.ok(rp.includes('function requestPost') && rp.includes('function requestGet') && rp.includes('function requestDelete'));
+
+  const screenUi = read('android/app/src/main/java/be/syntaxya/lodica/ui/PcScreen.kt');
+  assert.ok(screenUi.includes('horizontalScroll(rememberScrollState())'));
+  assert.ok(screenUi.includes('maxLines = 1, softWrap = false'));
+  assert.ok(screenUi.includes('Ask desktop to share'));
+  assert.ok(screenUi.includes('➤ Send'));
 
   const ss = read('android/app/src/main/java/be/syntaxya/lodica/engine/ScreenShare.kt');
   assert.ok(ss.includes('e.optString("t") == "stop"'));

@@ -3,10 +3,27 @@
 // Sharing requires the explicit "Allow phone control" setting. The user stops it by closing the panel.
 const relay = require("./relay");
 
-let deps = null, sharing = false, timer = 0, polling = false;
+let deps = null, sharing = false, timer = 0, polling = false, watcher = 0;
 
-function init(d) { deps = d; }
+function init(d) {
+  deps = d;
+  // The phone can ask for this screen from the "PC screen" page. Respect the desktop permission setting.
+  if (!watcher) {
+    watcher = setInterval(checkRequest, 2000);
+    if (watcher.unref) watcher.unref();
+  }
+}
 const on = () => !!sharing;
+
+async function checkRequest() {
+  if (!deps || sharing || !deps.relay || !deps.relay.available) return;
+  try {
+    const [status, body] = await relay.request("GET", "/api/pcscreen/request", 10000);
+    if (status !== 200 || !JSON.parse(body || "{}").pending) return;
+    await relay.request("DELETE", "/api/pcscreen/request", 10000);
+    if (deps.prefs.p.pcRemote) await start();
+  } catch { /* relay offline: try again on the next tick */ }
+}
 
 async function upload() {
   if (!sharing || !deps) return;
@@ -30,7 +47,8 @@ async function apply(events) {
   const wc = deps.tabs.wcOf();
   if (!wc || wc.isDestroyed()) return;
   const b = deps.ui.pageBounds();
-  const pt = (x, y) => ({ x: Math.round(b.x + x * b.width), y: Math.round(b.y + y * b.height) });
+  // capturePage() and sendInputEvent() both use page coordinates; the window x/y offsets must not be added.
+  const pt = (x, y) => ({ x: Math.round(Number(x) * b.width), y: Math.round(Number(y) * b.height) });
   for (const e of events) {
     if (!e || !sharing || wc.isDestroyed()) break;
     try {
@@ -76,8 +94,7 @@ async function poll() {
 async function start() {
   if (!deps || !deps.prefs.p.pcRemote || sharing) return false;
   sharing = true;
-  deps.ui.setPanelWidth(360);
-  deps.tabs.fit();
+  // The renderer owns the docked controller panel; never reserve the AI panel's BrowserView here.
   upload();
   timer = setInterval(upload, 200);
   poll();
@@ -88,9 +105,8 @@ async function stop() {
   if (!sharing) return false;
   sharing = false;
   clearInterval(timer); timer = 0;
-  if (deps) { deps.ui.setPanelWidth(0); deps.tabs.fit(); }
   try { await relay.request("DELETE", "/api/pcscreen", 10000); } catch { /* already gone */ }
   return true;
 }
 
-module.exports = { init, start, stop, on, apply };
+module.exports = { init, start, stop, on, apply, checkRequest };

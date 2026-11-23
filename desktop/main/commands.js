@@ -543,6 +543,7 @@ function init(deps) {
   on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
   on("screen.text", (text) => require("./screen").text(str(text)));
   on("qr", (url) => require("./qr").data(url));
+  on("qr.svg", (url) => require("./qr").svg(url));
   on("qr.decode", (dataUrl) => require("./qrdecode").decodeDataUrl(str(dataUrl)));
   on("pcscreen.start", () => require("./pcscreen").start());
   on("pcscreen.stop", () => require("./pcscreen").stop());

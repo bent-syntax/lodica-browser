@@ -44,6 +44,9 @@ object PcRemote {
                     } else if (code != 200) {
                         main.post { live.value = false }
                         delay(1_000)
+                    } else {
+                        // after=0 always returns the newest frame; slow the loop so the relay is not hammered.
+                        delay(120)
                     }
                 } catch (e: Exception) {
                     main.post { live.value = false }
@@ -51,6 +54,12 @@ object PcRemote {
                 }
             }
         }
+    }
+
+    /** Asks the linked desktop to start sending its screen. The desktop still enforces its pcRemote permission. */
+    fun request() {
+        if (scope == null) start()
+        scope?.launch { runCatching { Relay.request("POST", "/api/pcscreen/request") } }
     }
 
     /** Sends tap/swipe/move/key/text events. Coordinates are fractions of the PC screen (0..1). */

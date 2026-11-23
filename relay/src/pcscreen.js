@@ -7,13 +7,19 @@
 //   DELETE /api/pcscreen               -> stops sharing and drops the frame
 //   POST   /api/pcscreen/input         body: { events: [...] } from the phone -> { queued }
 //   GET    /api/pcscreen/input?wait=<s> -> { events: [...] } for the desktop; long-polls up to `wait` seconds (max 25)
+//   POST   /api/pcscreen/request        -> the phone asks the desktop to start sharing
+//   GET    /api/pcscreen/request        -> { pending }
+//   DELETE /api/pcscreen/request        -> clears a handled request
 const FRAME_MAX = 1024 * 1024;
 const EXPIRE_MS = 10000;
+const REQUEST_MS = 60000;
 let frame = null;
 let seq = 0;
 let waiters = [];
+let requestAt = 0;
 
 const live = () => !!frame && Date.now() - frame.at < EXPIRE_MS;
+const requestPending = () => requestAt > 0 && Date.now() - requestAt < REQUEST_MS;
 
 function wake() { const w = waiters; waiters = []; for (const f of w) f(); }
 function sendFrame(req, res) {
@@ -27,6 +33,7 @@ async function put(req, res, h) {
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   if (!b || b.length < 4 || b[0] !== 0xff || b[1] !== 0xd8 || b[2] !== 0xff) return h.sendText(req, res, 400, 'not a jpeg');
   frame = { seq: ++seq, at: Date.now(), data: b };
+  requestAt = 0; // a running share makes any earlier phone request irrelevant
   wake();
   h.sendJson(req, res, 200, { seq });
 }
@@ -52,13 +59,20 @@ function get(req, res, h) {
 
 function remove(req, res) {
   frame = null;
+  requestAt = 0;
   queue = [];
   wake();
   wakeInput();
   res.writeHead(204); res.end();
 }
 /** Test hook. */
-function reset() { frame = null; seq = 0; queue = []; wake(); wakeInput(); }
+function reset() { frame = null; seq = 0; queue = []; requestAt = 0; wake(); wakeInput(); }
+
+// A phone with the "Allow phone to control this PC" setting on can ask the desktop to start sharing without
+// touching the desktop UI. The flag expires so an old request cannot start a stream minutes later.
+function requestPost(req, res, h) { requestAt = Date.now(); h.sendJson(req, res, 200, { pending: true }); }
+function requestGet(req, res, h) { h.sendJson(req, res, 200, { pending: requestPending() }); }
+function requestDelete(req, res) { requestAt = 0; res.writeHead(204); res.end(); }
 
 // Input events use fractions (0..1) of the shared PC screen. Only known kinds are relayed.
 const KEYS = new Set(['back', 'home', 'enter', 'escape', 'tab', 'space', 'backspace', 'delete', 'left', 'right', 'up', 'down']);
@@ -115,4 +129,4 @@ function inputGet(req, res, h) {
   req.on('close', () => { clearTimeout(timer); inWaiters = inWaiters.filter((f) => f !== done); });
 }
 
-module.exports = { put, get, remove, reset, inputPost, inputGet, cleanEvent };
+module.exports = { put, get, remove, reset, inputPost, inputGet, cleanEvent, requestPost, requestGet, requestDelete, requestPending };

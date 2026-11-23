@@ -225,5 +225,24 @@ function staticGuards() {
   await mainHandlerTests();
   overlayTests();
   staticGuards();
+  // qrcode is a runtime dependency that is not installed in every test checkout; stub only that module.
+  const Module = require("module");
+  const originalLoad = Module._load;
+  const fakeQr = {
+    toDataURL: async () => "data:image/png;base64,AAAA",
+    toString: async (text, opts) => {
+      assert.strictEqual(opts.type, "svg");
+      return `<svg data-text="${text}"></svg>`;
+    },
+  };
+  Module._load = function (request, parent, isMain) {
+    if (request === "qrcode") return fakeQr;
+    return originalLoad.call(this, request, parent, isMain);
+  };
+  let svg;
+  try { svg = await require("../main/qr").svg("https://example.com/qr"); }
+  finally { Module._load = originalLoad; }
+  assert.ok(typeof svg === "string" && svg.startsWith("<svg"));
+  assert.ok(svg.includes("</svg>"));
   console.log("qr hover ok");
 })().catch(e => { console.error(e); process.exitCode = 1; });

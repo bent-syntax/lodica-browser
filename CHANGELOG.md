@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.7 (versionCode 289)
+
+- The PC-to-phone controller is a dedicated opaque docked panel, separate from the Lodica AI view; the control permission remains in Settings.
+- Fixed both screen-stream directions: desktop frames reach the Android "PC screen" canvas (desktop- or phone-initiated), and phone frames render in the desktop controller panel in portrait or landscape.
+- Android "PC screen" has a visible Send action and a single-line horizontally scrollable key row.
+- QR hover tooltips copy the exact decoded text; the generator makes permanent PNG/SVG codes from any custom text and copies text or image.
+
 ## 1.20.6 (versionCode 288)
 
 - Server self-update no longer stays on “Updating to …” after the relay restarts; it polls the running version, expires a stuck request and can be checked again.
