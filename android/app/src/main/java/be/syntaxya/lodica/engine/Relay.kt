@@ -177,7 +177,7 @@ object Relay {
     // ---- Server update ----------------------------------------------------------------------
 
     /** Server relay version state from /api/relay/update. Null until a server is linked and checked. */
-    class ServerUpdate(
+    data class ServerUpdate(
         val current: String,
         val latest: String,
         val newer: Boolean,

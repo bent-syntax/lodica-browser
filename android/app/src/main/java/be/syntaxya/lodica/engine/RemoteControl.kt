@@ -1,7 +1,6 @@
 package be.syntaxya.lodica.engine
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.graphics.Path
@@ -17,15 +16,7 @@ import org.json.JSONObject
  * text that [ScreenShare] fetches from the server.
  */
 class RemoteControl : AccessibilityService() {
-    override fun onServiceConnected() {
-        instance = this
-        // Text needs the focused node; the manifest keeps gestures as the only default capability.
-        runCatching {
-            val info = serviceInfo ?: AccessibilityServiceInfo()
-            info.flags = info.flags or AccessibilityServiceInfo.FLAG_RETRIEVE_WINDOW_CONTENT
-            serviceInfo = info
-        }
-    }
+    override fun onServiceConnected() { instance = this }
     override fun onUnbind(intent: android.content.Intent?): Boolean { if (instance === this) instance = null; return super.onUnbind(intent) }
     override fun onAccessibilityEvent(e: AccessibilityEvent?) {}
     override fun onInterrupt() {}
@@ -42,7 +33,7 @@ class RemoteControl : AccessibilityService() {
         val dw = m.widthPixels.toFloat().coerceAtLeast(1f)
         val dh = m.heightPixels.toFloat().coerceAtLeast(1f)
         if (ScreenShare.capturedWidth <= 0 || ScreenShare.capturedHeight <= 0) return u * dw to v * dh
-        val turn = ((ScreenShare.rotation(this) - ScreenShare.capturedRotation) % 4 + 4) % 4
+        val turn = ((rotation(this) - ScreenShare.capturedRotation) % 4 + 4) % 4
         val (x, y) = when (turn) {
             1 -> 1f - v to u       // phone turned 90° clockwise after capture
             2 -> 1f - u to 1f - v
@@ -55,7 +46,7 @@ class RemoteControl : AccessibilityService() {
     private fun typeText(text: String) {
         var node: AccessibilityNodeInfo? = null
         try {
-            node = findFocus(AccessibilityService.FOCUS_INPUT)
+            node = findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
             val target = node ?: return
             val args = Bundle().apply {
                 putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text)

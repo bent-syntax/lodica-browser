@@ -2,7 +2,7 @@
 
 - Server update status clears when the relay finishes restarting, expires a stuck request and offers Check again.
 - Skipping an app update no longer pins the updater; each check fetches the newest release and replaces the cached version.
-- Linked-phone control accepts typed text and stops sharing from the desktop; touch coordinates follow the shared frame when the phone rotates.
+- Linked-phone control accepts typed text and stops sharing from the desktop; touch coordinates follow the shared frame when the phone rotates. If Lodica's accessibility service was already on, switch it off and on once so typing is enabled.
 
 ## 1.20.5
 

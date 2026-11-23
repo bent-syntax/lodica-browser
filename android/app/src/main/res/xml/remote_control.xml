@@ -3,4 +3,5 @@
     android:description="@string/remote_control_description"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
     android:notificationTimeout="100" />
