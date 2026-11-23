@@ -1,5 +1,7 @@
 package be.syntaxya.lodica.ui
 
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import be.syntaxya.lodica.ui.theme.LodicaIcons
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -176,8 +178,15 @@ fun AgentPanel() {
 
 @Composable
 private fun Bubble(text: String, mine: Boolean) {
+    val ctx = LocalContext.current
     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
-        Text(text, color = if (mine) OnAmber else Mist, fontSize = 13.sp,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (mine) Amber else Graphite).padding(horizontal = 12.dp, vertical = 8.dp))
+        Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+            Text(text, color = if (mine) OnAmber else Mist, fontSize = 13.sp,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (mine) Amber else Graphite).padding(horizontal = 12.dp, vertical = 8.dp))
+            if (!mine) IconButton(onClick = {
+                copy(ctx, text)
+                Toast.makeText(ctx, "Answer copied", Toast.LENGTH_SHORT).show()
+            }, modifier = Modifier.size(28.dp)) { Icon(LodicaIcons.Copy, "Copy answer", tint = Muted, modifier = Modifier.size(14.dp)) }
+        }
     }
 }

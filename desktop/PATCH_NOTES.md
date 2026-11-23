@@ -1,3 +1,11 @@
+## 1.20.5
+
+- Settings no longer rebuilds while typing or when the authenticator codes refresh; the Settings tab shows the Lodica mark.
+- Google results follow the app theme on current layouts. Hover a link for its exact URL and a locally generated QR code; the QR generator is also in the menu.
+- Duplicate Tab in the tab menu, switcher and keybinds. Links and redirects open beside their opener.
+- AI can make chat bubble styles from a description, and AI panel answers have a copy button.
+- Start a PC-to-phone side panel to show and control this desktop from a linked phone (after enabling it in Settings > Linked devices).
+
 ## 1.20.4
 
 - Update the server relay from Settings > Server when a newer version exists (needs one `install.sh` re-run on the server).

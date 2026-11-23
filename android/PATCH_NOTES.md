@@ -1,3 +1,11 @@
+## 1.20.5
+
+- Settings typing is no longer interrupted, and the Settings screen shows the Lodica mark.
+- Google search results follow the app theme on current mobile and desktop layouts.
+- Duplicate a tab from the switcher; tabs opened from links sit next to their opener. Swipe a tab card left to close or right to skip, and long URL selection handles now scroll the address bar.
+- Generate QR codes locally and see the exact URL in link previews. AI can make a chat bubble style, and AI answers have a copy button.
+- View and control a linked PC from the menu, with a landscape fullscreen remote view.
+
 ## 1.20.4
 
 - Update the server relay from Settings > Server when a newer version exists (needs one `install.sh` re-run on the server).

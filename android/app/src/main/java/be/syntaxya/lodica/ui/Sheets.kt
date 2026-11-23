@@ -186,6 +186,8 @@ fun MenuSheet() {
                 })
                 add(MenuItem("downloads", LodicaIcons.Download, "Downloads") { Ui.screen = Screen.Downloads })
                 add(MenuItem("history", LodicaIcons.History, "History") { Ui.go(Screen.History) })
+                add(MenuItem("qr", LodicaIcons.Link, "QR code") { Ui.qrOpen = true })
+                if (Relay.available) add(MenuItem("pcscreen", LodicaIcons.Desktop, "PC screen") { Ui.go(Screen.PcScreen) })
                 add(MenuItem("aichats", LodicaIcons.Ai, "AI chats") { Ui.go(Screen.Chats) })
                 add(MenuItem("passwords", LodicaIcons.Key, "Passwords") { Ui.go(Screen.Passwords) })
                 add(MenuItem("settings", LodicaIcons.Sliders, "Settings") { Ui.screen = Screen.Settings })

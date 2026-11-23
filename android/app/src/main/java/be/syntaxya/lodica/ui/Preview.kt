@@ -99,7 +99,7 @@ fun PreviewSheet(url: String) {
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text(title.ifBlank { host }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("Preview · $host", color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Preview · $current", color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     TextButton(onClick = { Ui.preview = null; Ui.screen = Screen.Browser; TabManager.open(current) }) {
                         Text("Open in tab", color = Amber, fontSize = 13.sp)

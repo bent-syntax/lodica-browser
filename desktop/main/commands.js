@@ -43,6 +43,7 @@ function runKey(id) {
   if (UI_ACTIONS.has(id)) { ui.push("shortcut", id); return true; }
   switch (id) {
     case "newTab": tabs.create({}); break;
+    case "duplicateTab": tabs.duplicate(tabs.current()?.id); break;
     case "newPrivate": tabs.create({ private: true }); break;
     case "undoClose": tabs.undoClose(); break;
     case "closeTab": tabs.close(tabs.current()?.id); break;
@@ -195,6 +196,7 @@ function initPayload() {
 
 function init(deps) {
   d = deps;
+  require("./pcscreen").init(d);
   const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support, testsession } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
   on("drawTheme", v => { if (v && typeof v === "object") drawTheme = Object.fromEntries(Object.entries(v).filter(([k, x]) => typeof x === "string" && x.length < 200 && !/[;{}<]/.test(x))); });
@@ -257,7 +259,8 @@ function init(deps) {
   });
   on("home", () => tabs.home());
 
-  on("tab.new", (o = {}) => tabs.create({ url: isWeb(o?.url) || str(o?.url).startsWith("lodica:") ? o.url : undefined, private: !!o?.private, background: !!o?.background }));
+  on("tab.new", (o = {}) => tabs.create({ url: isWeb(o?.url) || str(o?.url).startsWith("lodica:") ? o.url : undefined, private: !!o?.private, background: !!o?.background, after: o?.after == null ? undefined : str(o.after) }));
+  on("tab.duplicate", id => tabs.duplicate(id == null ? cur()?.id : str(id)));
   on("tab.select", id => tabs.select(str(id)));
   on("tab.move", (id, to) => tabs.move(str(id), str(to)));
   on("tab.close", id => tabs.close(id == null ? cur()?.id : str(id)));
@@ -294,7 +297,8 @@ function init(deps) {
         ],
       });
     }
-    items.push({ type: "separator" }, { label: "Reload", click: () => { tabs.select(t.id); tabs.reload(); } }, { label: "Close tab", click: () => tabs.close(t.id) });
+    items.push({ type: "separator" }, { label: "Duplicate tab", accelerator: "Ctrl+D", click: () => tabs.duplicate(t.id) },
+      { label: "Reload", click: () => { tabs.select(t.id); tabs.reload(); } }, { label: "Close tab", click: () => tabs.close(t.id) });
     Menu.buildFromTemplate(items).popup({ window: d.win() });
     return true;
   });
@@ -451,6 +455,20 @@ function init(deps) {
     pullTheme();
     return { ok: true };
   });
+  // Make a chat bubble from a text description; only a hex colour and a known shape are accepted.
+  on("bubble.ai", async (idea, name) => {
+    const what = str(idea).trim().slice(0, 200);
+    if (!what) return { error: "Describe the bubble first" };
+    let reply;
+    try { reply = await d.ai.complete([{ role: "user", content: "Bubble: " + what }], require("./bubble").SYSTEM); }
+    catch (e) { return { error: /connect/i.test(String(e && e.message)) ? "Connect the AI in Settings first" : "The AI could not answer" }; }
+    const b = require("./bubble").parse(reply);
+    if (!b) return { error: "The AI gave no usable bubble. Try again" };
+    const who = str(name).slice(0, 80);
+    d.prefs.set("chatColors", Object.assign({}, d.prefs.p.chatColors, { [who]: b.color }));
+    d.prefs.set("chatShapes", Object.assign({}, d.prefs.p.chatShapes, { [who]: b.radius }));
+    return { ok: true, color: b.color, radius: b.radius, shape: b.shape };
+  });
   // Community theme plugins (see themeplugins.js).
   const tp = require("./themeplugins");
   on("plugins.list", () => tp.list().map(({ css, ...p }) => p));
@@ -523,6 +541,10 @@ function init(deps) {
   on("screen.frame", (after) => require("./screen").frame(after));
   on("screen.stop", () => require("./screen").stop());
   on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
+  on("qr", (url) => require("./qr").data(url));
+  on("pcscreen.start", () => require("./pcscreen").start());
+  on("pcscreen.stop", () => require("./pcscreen").stop());
+  on("pcscreen.state", () => require("./pcscreen").on());
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.own", email => relay.addOwn(email));
   on("relay.forget", address => relay.forget(str(address)));
@@ -843,7 +865,7 @@ function init(deps) {
 
   on("link.open", (url, priv) => {
     if (!isWeb(url)) return false;
-    tabs.create({ url: str(url), private: priv == null ? !!cur()?.private : !!priv, background: true });
+    tabs.create({ url: str(url), private: priv == null ? !!cur()?.private : !!priv, background: true, after: cur()?.id });
     return true;
   });
   on("link.download", url => (isWeb(url) ? (downloads.download(str(url), curSession()), true) : false));

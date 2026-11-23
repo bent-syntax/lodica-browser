@@ -51,6 +51,8 @@ function openMenuGrid() {
       cell("chat", "Server chat", () => openRoom(), "", !S.relayAvail),
       cell("edit", "Notebook", () => openNotebook(), "", !S.relayAvail),
       cell("phone", "Phone screen", () => openPhoneScreen(), "", !S.relayAvail),
+      cell("desktop", "PC to phone", () => openPcScreen(), "", !S.relayAvail || !S.prefs.pcRemote),
+      cell("link", "QR code", () => openQr(), "", home),
       cell("ai", "AI chat", () => inv("ai.panel.toggle"), "", !(S.prefs.ai && S.ai && S.ai.connected)),
       cell("settings", "Settings", () => openSettings()),
     ];
@@ -139,6 +141,8 @@ function openMenuList() {
         row("chat", "Server chat", () => openRoom(), { dis: !relay }),
         row("edit", "Notebook", () => openNotebook(), { dis: !relay }),
         row("phone", "Phone screen", () => openPhoneScreen(), { dis: !relay }),
+        row("desktop", "PC to phone", () => openPcScreen(), { dis: !relay || !S.prefs.pcRemote }),
+        row("link", "QR code", () => openQr()),
         row("ai", "AI chat", () => inv("ai.panel.toggle"), { dis: !ai }),
         row("serial", "Serial monitor", () => openSerial())),
       extBox,

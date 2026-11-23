@@ -21,6 +21,7 @@ const testsession = require('./testsession');
 const chatfile = require('./chatfile');
 const notebook = require('./notebook');
 const screen = require('./screen');
+const pcscreen = require('./pcscreen');
 const enroll = require('./enroll');
 const { cleanTheme } = require('./theme');
 const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
@@ -623,6 +624,19 @@ async function route(req, res) {
     if (!authed(req, res)) return;
     const h = { sendJson, sendText, readBody };
     return m === 'GET' ? screen.inputGet(req, res, h) : screen.inputPost(req, res, h);
+  }
+  if (p === '/api/pcscreen') {
+    if (m !== 'GET' && m !== 'PUT' && m !== 'DELETE') return not('GET, HEAD, PUT, DELETE');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    if (m === 'DELETE') return pcscreen.remove(req, res, h);
+    return m === 'GET' ? pcscreen.get(req, res, h) : pcscreen.put(req, res, h);
+  }
+  if (p === '/api/pcscreen/input') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, POST');
+    if (!authed(req, res)) return;
+    const h = { sendJson, sendText, readBody };
+    return m === 'GET' ? pcscreen.inputGet(req, res, h) : pcscreen.inputPost(req, res, h);
   }
   if (p === '/api/pair') {
     if (m !== 'POST') return not('POST');

@@ -124,6 +124,21 @@ impl Tabs {
         true
     }
 
+    /// Copy tab `id` with a fresh id and put the copy directly to its right.
+    pub fn duplicate(&mut self, id: &str, new_id: &str) -> bool {
+        let Some(i) = self.pos(id) else { return false };
+        let mut copy = self.list[i].clone();
+        copy.id = new_id.to_string();
+        self.list.insert(i + 1, copy);
+        true
+    }
+
+    /// Insert a new tab directly to the right of `after`, or rightmost when it is unknown.
+    pub fn insert_after(&mut self, tab: Tab, after: Option<&str>) {
+        let at = after.and_then(|id| self.pos(id)).map(|i| i + 1).unwrap_or(self.list.len());
+        self.list.insert(at, tab);
+    }
+
     /// Drop every open tab of one privacy; private close also forgets private closed tabs.
     pub fn close_all(&mut self, private: bool) {
         self.list.retain(|t| !(t.private == private && !t.archived));
@@ -270,6 +285,20 @@ mod tests {
         s.closed.push(Closed { private: true, ..Default::default() });
         s.close_all(true);
         assert!(s.list.iter().all(|t| !t.private) && s.closed.is_empty());
+    }
+
+    #[test]
+    fn duplicate_and_insert_after() {
+        let mut s = sample();
+        assert!(s.duplicate("a", "a2"));
+        assert_eq!(s.list[1].id, "a2");
+        assert_eq!(s.list[1].url, "https://a.com");
+        assert_ne!(s.list[0].id, s.list[1].id);
+        assert!(!s.duplicate("missing", "x"));
+        s.insert_after(t("n", "https://n.com", 0, false), Some("a"));
+        assert_eq!(s.list[1].id, "n");
+        s.insert_after(t("end", "https://end.com", 0, false), None);
+        assert_eq!(s.list.last().unwrap().id, "end");
     }
 
     #[test]

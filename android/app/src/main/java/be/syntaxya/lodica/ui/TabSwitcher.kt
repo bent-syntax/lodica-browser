@@ -19,7 +19,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -45,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -154,6 +159,11 @@ fun TabSwitcher() {
                             }
                         },
                         onClose = { closeTab(t) },
+                        onDuplicate = { TabManager.duplicate(t) },
+                        onAdvance = {
+                            val next = shown.getOrNull(shown.indexOf(t) + 1) ?: shown.firstOrNull()
+                            if (next != null && next !== t) TabManager.select(next)
+                        },
                     )
                 }
                 item(key = "new-tab") {
@@ -233,7 +243,7 @@ private fun ModeToggle(private: Boolean, onChange: (Boolean) -> Unit) {
 }
 
 @Composable
-private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit) {
+private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Boolean, onOpen: () -> Unit, onClose: () -> Unit, onDuplicate: () -> Unit, onAdvance: () -> Unit) {
     val shape = RoundedCornerShape(20.dp)
     val accent = if (incognito) Private else Amber
     val customEdge = if (incognito) null else customExtraColor("tabEdge")
@@ -245,15 +255,30 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
     val motion = be.syntaxya.lodica.ui.theme.themeMotion("openAnim")
     val grow by animateFloatAsState(if (entered) 1f else 0.82f, ease(), label = "tab-in")
     val open by animateFloatAsState(if (entered) 1f else 0f, be.syntaxya.lodica.ui.theme.motionSpec(motion), label = "tab-motion")
+    // Tinder-style: swipe left closes, swipe right advances without closing. The close button still works.
+    var swipe by remember { mutableFloatStateOf(0f) }
     Column(
         (if (motion.isEmpty()) modifier.graphicsLayer { scaleX = grow; scaleY = grow; alpha = (grow - 0.82f) / 0.18f } else modifier.then(Modifier.themeEnter(motion, open)))
+            .offset { IntOffset(swipe.roundToInt(), 0) }
+            .pointerInput(t.id) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        when {
+                            swipe <= -96f -> onClose()
+                            swipe >= 96f -> onAdvance()
+                        }
+                        swipe = 0f
+                    },
+                    onDragCancel = { swipe = 0f },
+                ) { _, dx -> swipe = (swipe + dx).coerceIn(-240f, 240f) }
+            }
             .clip(shape).background(if (incognito) Private.copy(alpha = 0.10f).compositeOver(GraphiteRaised) else (customExtraColor("tab") ?: GraphiteRaised))
             .then(if (texture != null) Modifier.drawBehind { drawTabTexture(texture, edge.copy(alpha = 0.28f)) } else Modifier)
             .then(if (selected) Modifier.border(BorderStroke(2.dp, accent), shape) else if (incognito) Modifier.border(BorderStroke(1.dp, Private.copy(alpha = 0.35f)), shape) else if (customEdge != null) Modifier.border(BorderStroke(1.dp, customEdge), shape) else Modifier)
             .clickable(onClick = onOpen),
     ) {
         Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (t.url == TabManager.HOME || (Helper.searchBase?.let { t.url.startsWith(it) } == true)) Kite(16.dp, tail = false)
+            if (t.url == TabManager.HOME || t.url.startsWith("lodica://settings") || (Helper.searchBase?.let { t.url.startsWith(it) } == true)) Kite(16.dp, tail = false)
             else if (!t.locked) SiteIcon(t.host, t.url)
             Spacer(Modifier.width(8.dp))
             Text(
@@ -265,6 +290,9 @@ private fun TabCard(t: Tab, selected: Boolean, modifier: Modifier, incognito: Bo
                 color = tabText, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
+            IconButton(onClick = onDuplicate, modifier = Modifier.size(40.dp)) {
+                Icon(LodicaIcons.Copy, "Duplicate tab", tint = if (tabText == Mist) Muted else tabText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
+            }
             IconButton(onClick = onClose, modifier = Modifier.size(44.dp)) {
                 Icon(LodicaIcons.Close, "Close tab", tint = if (tabText == Mist) Muted else tabText.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
             }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -95,11 +96,17 @@ fun ChatsScreen() {
                     val m = msgs[i]
                     val mine = m.role == "user"
                     Box(Modifier.fillMaxWidth(), contentAlignment = if (mine) Alignment.CenterEnd else Alignment.CenterStart) {
-                        androidx.compose.foundation.text.selection.SelectionContainer(
-                            (if (mine) Modifier.fillMaxWidth(0.88f) else Modifier.fillMaxWidth()).clip(RoundedCornerShape(20.dp))
-                                .background(if (mine) GraphiteRaised else Graphite),
-                        ) {
-                            Text(m.text, color = Mist, fontSize = 15.sp, modifier = Modifier.padding(12.dp))
+                        Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+                            androidx.compose.foundation.text.selection.SelectionContainer(
+                                (if (mine) Modifier.fillMaxWidth(0.88f) else Modifier.fillMaxWidth()).clip(RoundedCornerShape(20.dp))
+                                    .background(if (mine) GraphiteRaised else Graphite),
+                            ) {
+                                Text(m.text, color = Mist, fontSize = 15.sp, modifier = Modifier.padding(12.dp))
+                            }
+                            if (!mine) IconButton(onClick = {
+                                copy(ctx, m.text)
+                                Toast.makeText(ctx, "Answer copied", Toast.LENGTH_SHORT).show()
+                            }) { Icon(LodicaIcons.Copy, "Copy answer", tint = Muted, modifier = Modifier.size(16.dp)) }
                         }
                     }
                 }

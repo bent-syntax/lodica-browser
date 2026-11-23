@@ -5,6 +5,7 @@
 
 const ACTIONS = [
   { id: "newTab", label: "New tab", def: ["Ctrl+T"] },
+  { id: "duplicateTab", label: "Duplicate tab", def: ["Ctrl+D"] },
   { id: "newPrivate", label: "New private tab", def: ["Ctrl+Shift+N"] },
   { id: "undoClose", label: "Reopen closed tab", def: ["Ctrl+Shift+T"] },
   { id: "closeTab", label: "Close tab", def: ["Ctrl+W"] },

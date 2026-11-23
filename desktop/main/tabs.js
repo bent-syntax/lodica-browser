@@ -140,7 +140,7 @@ function wire(t, wc) {
       const size = /\b(width|height)\s*=/i.test(features || "") ? {} : { width: 900, height: 700 };
       return { action: "allow", overrideBrowserWindowOptions: { autoHideMenuBar: true, backgroundColor: "#ffffff", ...size } };
     }
-    if (/^(https?|lodica):/i.test(url)) create({ url, private: t.private, background: disposition === "background-tab" });
+    if (/^(https?|lodica):/i.test(url)) create({ url, private: t.private, background: disposition === "background-tab", after: t.id });
     return { action: "deny" };
   };
   const adopt = (src, owner) => {
@@ -261,6 +261,8 @@ function wire(t, wc) {
     });
   });
   wc.on("found-in-page", (_, r) => { if (t === cur) deps.ui.push("find", { cur: r.activeMatchOrdinal, total: r.matches }); });
+  // Hover preview shows the exact target URL, not just its host, with a locally rendered QR code.
+  wc.on("update-target-url", (_, url) => { if (t === cur) deps.ui.push("hover", { url: String(url || "") }); });
 }
 
 function capture(t) {
@@ -416,13 +418,25 @@ function create(o = {}) {
     }
   }
   const t = make({ url: o.url || HOME, private: !!o.private });
-  list.push(t); // new tabs always open rightmost
+  // Links and redirects open beside the tab they came from; a plain new tab still goes rightmost.
+  const at = o.after ? list.findIndex(x => x.id === o.after) : -1;
+  if (at >= 0) list.splice(at + 1, 0, t); else list.push(t);
   if (o.background) {
     createView(t);
     pushCount(); persist();
     deps.ui.toast("Opened in background");
     return info(t);
   }
+  return select(t.id);
+}
+
+/** Clone a tab with its history and put the copy immediately to its right. */
+function duplicate(id) {
+  const s = list.find(x => x.id === (id ?? cur?.id));
+  if (!s) return null;
+  snapshot(s);
+  const t = make({ url: s.url, title: s.title, entries: s.entries.slice(), index: s.index, private: s.private });
+  list.splice(list.indexOf(s) + 1, 0, t);
   return select(t.id);
 }
 
@@ -549,7 +563,7 @@ function setLogo(png) { LOGO = "data:image/png;base64," + png.toString("base64")
 function listing() {
   const byRecent = (a, b) => b.lastUsed - a.lastUsed;
   return {
-    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: (t.url || "").startsWith("lodica://search/") ? LOGO : (t.icons && t.icons[0]) || fallbackIcon(t.url) })),
+    tabs: open().map(t => ({ ...info(t), current: t === cur, icon: ((t.url || "").startsWith("lodica://search/") || isSettingsUrl(t.url)) ? LOGO : (t.icons && t.icons[0]) || fallbackIcon(t.url) })),
     archived: list.filter(t => t.archived).sort(byRecent).map(info),
     closed: closed.map(c => ({ title: c.title || c.url, url: c.url })),
   };
@@ -636,7 +650,7 @@ const popups = () => [...popupWins].filter(w => !w.isDestroyed());
 
 module.exports = {
   popups,
-  HOME, init, byContents, all, current, open, info, listing, select, create, move, newTab: create, close, reopen,
+  HOME, init, byContents, all, current, open, info, listing, select, create, duplicate, move, newTab: create, close, reopen,
   undoClose, closeAll, archive, setLogo, restore, deleteArchived, clearArchived, autoArchive, thumb, setLocked,
   _js, isLocked, cycle, splitWith, toggleSplit, endSplit, setSplitRatio, isSplit: () => !!split, go, load, back, forward, stop, home, reload, refresh, fit, show, wcOf, pushTab, persist,
 };

@@ -162,7 +162,11 @@ fun SettingsScreen() {
         if (tab >= 0 && find.isBlank()) TopBar(SettingsTabs[tab]) { tab = -1 }
         else {
             TopBar(if (find.isBlank()) "" else "Find") { if (find.isNotBlank()) find = "" else Ui.screen = Screen.Browser }
-            if (find.isBlank()) Text("Settings", color = Mist, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+            if (find.isBlank()) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)) {
+                Kite(26.dp, tail = false)
+                Spacer(Modifier.width(10.dp))
+                Text("Settings", color = Mist, fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+            }
             FilterField(find, "Find a setting") { find = it }
         }
         if (find.isNotBlank()) {
@@ -1847,9 +1851,13 @@ private fun CustomThemeEditor() {
     var text by remember { mutableStateOf(saved?.text ?: "#ECEDEE") }
     var accent by remember { mutableStateOf(saved?.accent ?: "#F59E0B") }
     var accent2 by remember { mutableStateOf(saved?.accent2 ?: "#F87185") }
-    // A theme pulled from another device replaces the fields.
+    var lastThemeAt by remember { mutableStateOf(saved?.at ?: 0L) }
+    // Only a theme from another device replaces the fields; a silent redraw or a local edit must not.
     androidx.compose.runtime.LaunchedEffect(saved) {
-        saved?.let { bg = it.bg; text = it.text; accent = it.accent; accent2 = it.accent2 }
+        val s = saved ?: return@LaunchedEffect
+        if (s.at == lastThemeAt) return@LaunchedEffect
+        lastThemeAt = s.at
+        bg = s.bg; text = s.text; accent = s.accent; accent2 = s.accent2
     }
     val ok = CustomTheme.valid(bg, text, accent, accent2)
     Column(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

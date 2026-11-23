@@ -111,10 +111,23 @@ object TabManager {
         val tab = Tab(private = private, url = url, desktop = if (parent != null && !parent.autoDesktop) parent.desktop else Prefs.desktopDefault)
         // "Open in new tab" from a page: Back on its first page closes it and returns to that page, like a target=_blank link.
         tab.opener = parent
-        val at = tabs.size
+        // A tab opened from a link or redirect goes directly right of its opener, not at the far end.
+        val openerAt = parent?.let { tabs.indexOf(it) }?.takeIf { it >= 0 }
+        val at = if (openerAt != null) openerAt + 1 else tabs.size
         tabs.add(at, tab)
         if (select) select(tab) else { ensureSession(tab); save() }
         return tab
+    }
+
+    /** Clone a tab with its page and session state, placing the copy directly to its right. */
+    fun duplicate(tab: Tab): Tab {
+        val copy = Tab(private = tab.private, url = tab.url, title = tab.title, state = tab.state, desktop = tab.desktop)
+        copy.autoDesktop = tab.autoDesktop
+        val at = tabs.indexOf(tab)
+        tabs.add(if (at >= 0) at + 1 else tabs.size, copy)
+        select(copy)
+        save()
+        return copy
     }
 
     fun select(tab: Tab) {

@@ -1,7 +1,7 @@
 {
   "name": "lodica-desktop",
   "productName": "Lodica",
-  "version": "1.20.4",
+  "version": "1.20.5",
   "description": "Lodica browser for Windows",
   "author": "Lodica contributors",
   "license": "MIT",
@@ -20,7 +20,8 @@
     "@anthropic-ai/sdk": "^0.131.0",
     "@ghostery/adblocker-electron": "2.18.2",
     "jsqr": "^1.4.0",
-    "mammoth": "1.13.0"
+    "mammoth": "1.13.0",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "electron": "44.6.0",

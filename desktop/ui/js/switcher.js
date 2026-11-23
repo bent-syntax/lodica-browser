@@ -65,8 +65,10 @@ function card(t) {
   const c = h("div", { class: "card" + (cur ? " cur" : "") + (t.private ? " priv" : ""), act: () => { SW.L && SW.L.close(); inv("tab.select", t.id); } },
     h("div", { class: "card-top" }, ico(t.private ? "private" : "globe", "fav"),
       h("span", { class: "t", text: t.home ? "New tab" : (t.title || t.url || "New tab") }),
+      ib("copy", "Duplicate tab", () => { SW.L && SW.L.close(); inv("tab.duplicate", t.id); }),
       ib("close", "Close tab", () => closeTab(t.id))),
     th);
+  c.addEventListener("contextmenu", (e) => { e.preventDefault(); inv("tab.menu", t.id); });
   if (!t.locked) dragTab(c, t.id);
   return c;
 }

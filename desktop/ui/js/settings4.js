@@ -45,37 +45,48 @@ async function openAuthenticator() {
   if (!(await authUnlock())) return;
   return sheet({ title: "Authenticator", key: "authenticator", tall: true }, (b, L) => {
     let timer = 0;
+    let rowsKey = "";
+    const line = (r) => {
+      const shown = r.code.slice(0, r.code.length / 2) + " " + r.code.slice(r.code.length / 2);
+      return shown + " · " + r.left + "s · " + (r.host ? "auto-fills on " + r.host : "copy only");
+    };
     setTimeout(() => L.close(), 30000); // vault relocks after 30 s
-    const load = async () => {
+    const load = async (force = false) => {
       if (!b.isConnected) { clearInterval(timer); return; }
       const rows = await inv("auth.list");
       if (!Array.isArray(rows)) return;
+      // Only the countdown changes every second. Rebuilding the whole sheet closes the add-account field.
+      const key = rows.map(r => r.id).join("|");
+      if (!force && key === rowsKey) {
+        b.querySelectorAll("[data-auth-left]").forEach((el, i) => { if (rows[i]) el.textContent = line(rows[i]); });
+        return;
+      }
+      rowsKey = key;
       clear(b);
       b.append(h("div", { class: "row" }, h("div", { class: "main" }, h("div", { class: "t2", text: "Tap a code to copy it" })),
-        ib("add", "Add with a key or link", async () => { await authAddText(); load(); }),
-        ib("image", "Add from a QR screenshot", async () => { await authImportImage(); load(); })));
+        ib("add", "Add with a key or link", async () => { await authAddText(); load(true); }),
+        ib("image", "Add from a QR screenshot", async () => { await authImportImage(); load(true); })));
       if (!rows.length) { b.append(h("div", { class: "empty", text: "No accounts yet" })); return; }
       for (const r of rows) {
-        const shown = r.code.slice(0, r.code.length / 2) + " " + r.code.slice(r.code.length / 2);
         b.append(h("div", { class: "row" }, ico("key"),
           h("button", { class: "main click", act: async () => { await inv("auth.copy", r.id); toast("Code copied"); } },
             h("div", { class: "t1", text: r.label }),
-            h("div", { class: "t2", text: shown + " · " + r.left + "s · " + (r.host ? "auto-fills on " + r.host : "copy only") })),
+            h("div", { class: "t2", data: { authLeft: r.id }, text: line(r) })),
           ib("globe", "Auto-fill site", async () => {
             const site = await textDialog({ title: "Auto-fill site", message: "Site, e.g. github.com. Leave empty for copy only.", value: r.host || (S.tab && /^https?:/.test(S.tab.url || "") ? hostOf(S.tab.url) : ""), ok: "Save" });
-            if (site != null) { await inv("auth.setHost", r.id, String(site).trim()); load(); }
+            if (site != null) { await inv("auth.setHost", r.id, String(site).trim()); load(true); }
           }),
           ib("edit", "Rename", async () => {
             const name = await textDialog({ title: "Rename", value: r.label, ok: "Save" });
-            if (name != null && String(name).trim()) { await inv("auth.rename", r.id, String(name).trim()); load(); }
+            if (name != null && String(name).trim()) { await inv("auth.rename", r.id, String(name).trim()); load(true); }
           }),
           ib("delete", "Delete", async () => {
             if (!(await confirmDialog({ title: "Delete account?", message: r.label + ". You will not be able to get codes for it from here.", ok: "Delete", danger: true }))) return;
-            await inv("auth.remove", r.id); load();
+            await inv("auth.remove", r.id); load(true);
           })));
       }
     };
-    load();
+    load(true);
     timer = setInterval(load, 1000);
   });
 }

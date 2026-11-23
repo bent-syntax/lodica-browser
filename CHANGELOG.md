@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.5 (versionCode 287)
+
+- Settings no longer rebuilds while you type. Settings shows the Lodica mark in the tab strip, and Google results follow the app theme on mobile and current desktop layouts.
+- Duplicate Tab on both platforms; new tabs from links open beside the opener. Android tab cards support Tinder-style swipe, and long URL selection handles scroll the address bar.
+- Local QR generator plus exact-URL hover preview. AI can make chat bubble styles, and AI answers have a one-tap copy button.
+- Bidirectional phone/PC remote control: the phone can view and control a linked PC from a desktop side panel, with landscape fullscreen on the phone.
+
 ## 1.20.4 (versionCode 286)
 
 - Settings button to update the server relay from the app when a newer version exists. Existing servers need one `install.sh` re-run as root to enable it.

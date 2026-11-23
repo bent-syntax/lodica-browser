@@ -74,6 +74,7 @@ function subscribe() {
   on("toast", onToast);
   on("prompt", onPrompt);
   on("context", openContext);
+  on("hover", showQrHover);
   on("clipboard", onClipboard);
   on("mail", onMail);
   on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: "sysAccent" in d ? d.sysAccent : S.prefs && S.prefs.sysAccent }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });

@@ -45,12 +45,29 @@ const P = { chats: [], cur: null, busy: false, browse: false, run: null };
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 
 function scroll() { $("thread").scrollTop = $("thread").scrollHeight; }
+function message(m) {
+  const row = el("div", m.role === "user" ? "q" : "a");
+  row.append(el("span", "msg-text", m.text));
+  if (m.role !== "user") {
+    const b = el("button", "msg-copy", "Copy");
+    b.title = "Copy this answer";
+    b.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(m.text);
+        b.textContent = "Copied";
+        setTimeout(() => { b.textContent = "Copy"; }, 1200);
+      } catch { b.textContent = "Failed"; setTimeout(() => { b.textContent = "Copy"; }, 1200); }
+    };
+    row.append(b);
+  }
+  return row;
+}
 function render() {
   const t = $("thread"); t.textContent = "";
   const c = P.chats.find(x => x.id === P.cur);
   $("title").textContent = c ? c.title || "Chat" : "Lodica AI";
   if (!c && !P.run) t.append(el("div", "empty", "Ask anything, or switch to Browse and let the AI use the browser for you."));
-  if (c) for (const m of c.messages) t.append(el("div", m.role === "user" ? "q" : "a", m.text));
+  if (c) for (const m of c.messages) t.append(message(m));
   if (P.run) for (const n of P.run.nodes) t.append(n);
   scroll();
 }
@@ -71,7 +88,7 @@ async function send() {
   const c = P.chats.find(x => x.id === P.cur);
   const shown = c ? c.messages.slice() : [];
   P.run = { agent: false, nodes: [el("div", "q", text), el("div", "step", "Thinking…")] };
-  const prior = shown.map(m => el("div", m.role === "user" ? "q" : "a", m.text));
+  const prior = shown.map(message);
   render(); $("thread").prepend(...prior); scroll();
   setBusy(true);
   const r = await inv("ai.chat.send", P.cur || "", text).catch(e => ({ error: String(e.message || e) }));

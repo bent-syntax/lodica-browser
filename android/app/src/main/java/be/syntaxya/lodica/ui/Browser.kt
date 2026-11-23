@@ -121,6 +121,8 @@ fun LodicaRoot() {
         Overlay(Ui.screen == Screen.Chats) { ChatsScreen() }
         Overlay(Ui.screen == Screen.Room) { RoomScreen() }
         Overlay(Ui.screen == Screen.Notebook) { NotebookScreen() }
+        Overlay(Ui.screen == Screen.PcScreen) { PcScreen() }
+        if (Ui.qrOpen) QrSheet()
         PromptDialogs()
         if (Ui.menuOpen) MenuSheet()
         if (Ui.siteOpen) SiteSheet()
@@ -223,8 +225,8 @@ private fun BrowserScreen() {
     }
     // After the keyboard (or find bar) goes away Gecko can keep the shrunken or widened viewport: resend the size.
     val imeUp = WindowInsets.isImeVisible
-    LaunchedEffect(imeUp, Ui.finding) {
-        if (imeUp) return@LaunchedEffect
+    LaunchedEffect(imeUp, Ui.finding, Ui.editing) {
+        if (imeUp || Ui.editing || Ui.finding) return@LaunchedEffect
         for (ms in longArrayOf(120, 400)) {
             kotlinx.coroutines.delay(ms)
             val g = Ui.gecko ?: return@LaunchedEffect
@@ -239,7 +241,7 @@ private fun BrowserScreen() {
     LaunchedEffect(tab) { Ui.showBar() }
     // A page (private, or one reloaded after sitting idle) can stay unpainted or leave a grey strip after a navigation: wake the compositor and re-send the toolbar height.
     LaunchedEffect(tab, tab?.url, tab?.session) {
-        if (tab == null || tab.locked) return@LaunchedEffect
+        if (tab == null || tab.locked || Ui.editing || Ui.finding) return@LaunchedEffect
         for (ms in longArrayOf(150, 600, 1500)) {
             delay(ms)
             tab.session?.setActive(true)

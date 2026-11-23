@@ -144,7 +144,18 @@ function roomPickColor(name) {
   dialog({ key: "bubble-style", title: name ? "Bubble of " + name : "Your bubble", cancelValue: null }, (d, L) => {
     const save = () => { setPref("chatColors", { ...(S.prefs.chatColors || {}), [name]: inp.value }); setPref("chatShapes", { ...(S.prefs.chatShapes || {}), [name]: sel.value }); L.close(true); };
     const reset = () => { const c = { ...(S.prefs.chatColors || {}) }, sh = { ...(S.prefs.chatShapes || {}) }; delete c[name]; delete sh[name]; setPref("chatColors", c); setPref("chatShapes", sh); L.close(true); };
-    d.append(h("label", { class: "muted", style: "font-size:12px" }, "Colour"), inp, h("label", { class: "muted", style: "font-size:12px" }, "Shape"), sel, btnRow(btn("Reset", reset, "muted"), btn("Cancel", () => L.close(null), "muted"), btn("Save", save)));
+    const idea = h("input", { class: "ct-idea", type: "text", placeholder: "Describe a bubble, like soft mint leaf", maxlength: "200" });
+    const aiBtn = h("button", { class: "ct-btn", text: "Make with AI", act: async (ev, b) => {
+      if (!idea.value.trim()) return;
+      b.disabled = true;
+      const r = await inv("bubble.ai", idea.value, name || "");
+      b.disabled = false;
+      if (r && r.ok) { inp.value = r.color; sel.value = r.radius; toast("Bubble made"); }
+      else toast((r && r.error) || "Could not make a bubble");
+    } });
+    d.append(h("label", { class: "muted", style: "font-size:12px" }, "Colour"), inp, h("label", { class: "muted", style: "font-size:12px" }, "Shape"), sel,
+      S.prefs.ai ? h("div", { class: "ct-row" }, idea, aiBtn) : null,
+      btnRow(btn("Reset", reset, "muted"), btn("Cancel", () => L.close(null), "muted"), btn("Save", save)));
   });
 }
 // Black or white text, whichever reads on the given #rrggbb.

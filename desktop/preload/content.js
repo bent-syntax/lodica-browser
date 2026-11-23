@@ -1783,7 +1783,7 @@ const lodicaMain = () => {
   }
 
   function googleTheme() {
-    const G = /(^|\.)google\.[a-z.]+$/.test(location.hostname) && location.pathname === "/search" && TOP;
+    const G = /(^|\.)google\.[a-z.]+$/.test(location.hostname) && /^\/(search|\?|$)/.test(location.pathname) && TOP;
     let st = document.getElementById("lodica-gtheme");
     const t = page.theme;
     if (!G || !t) { if (st) st.remove(); return; }
@@ -1791,9 +1791,15 @@ const lodicaMain = () => {
     st.textContent = `html,body,#main,#cnt,#rcnt,#center_col,#search,#appbar,#hdtb,#hdtb-msb,#top_nav,.main,header,#searchform,form{background:${t.bg}!important;color:${t.text}!important}
 .g,.MjjYud>div,.related-question-pair,.cUnQKe,.RzdJxc,.ULSxyf{background:transparent!important;color:${t.text}!important}
 a h3,h3,.LC20lb{color:${t.amber}!important}
-a:link,a:visited{color:${t.amber}}
+a:link,a:visited{color:${t.amber}!important}
 cite,.VuuXrf,.byrV5b,.tjvcx,.TbwUpd{color:${t.muted}!important}
-.VwiC3b,.lEBKkf,span,div{color:${t.text}}
+.VwiC3b,.lEBKkf,.hgKElc,.MUxGbd,.lyLwlc,span,div{color:${t.text}}
+/* Mobile and current desktop SERPs use different containers than the old #main/.g skin. */
+#rso,#search,.MjjYud,.Gx5Zad,.N54PNb,.kbwPne,.wDYxjb,.UUbT9,.hlcw0c,.D0JrFf,[role=main],[role=tablist],button{background:transparent!important;color:${t.text}!important;border-color:${t.raised}!important}
+#rso a h3,#rso h3,.Gx5Zad h3,.MjjYud h3,[role=heading] a{color:${t.amber}!important}
+.VwiC3b,.lEBKkf,.hgKElc,.MUxGbd,.lyLwlc,.aCOpRe{color:${t.text}!important}
+#rso a:link,#rso a:visited,.MjjYud a:link,.MjjYud a:visited{color:${t.amber}!important}
+input,button{border-radius:8px!important}
 input,textarea{background:transparent!important;color:${t.text}!important}
 .RNNXgb,.SDkEP,.a4bIc{background:${t.raised}!important;color:${t.text}!important}
 .RNNXgb{border-color:${t.raised}!important;box-shadow:none!important}
@@ -1824,7 +1830,7 @@ a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color
       if (imgTab) { a.className = imgTab.className; imgTab.insertAdjacentElement("afterend", a); } else bar.appendChild(a);
     }
   }
-  new MutationObserver(() => { if (page.theme && !document.getElementById("lodica-shop")) googleTheme(); }).observe(document, { childList: true, subtree: true });
+  new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme") || !document.getElementById("lodica-shop"))) googleTheme(); }).observe(document, { childList: true, subtree: true });
 
   function usePage(p) {
     const prev = page;
@@ -1839,7 +1845,7 @@ a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color
   }
 
   // Late retries: the page options can arrive after the first paint.
-  for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) applyDark(); }, t);
+  for (const t of [500, 1500, 4000]) setTimeout(() => { if (TOP) { applyDark(); googleTheme(); } }, t);
 
   // Smartschool login page: click its Microsoft button once, only when a Microsoft session exists.
   let msTried = false;

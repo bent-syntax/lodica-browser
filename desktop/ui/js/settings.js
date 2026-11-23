@@ -38,15 +38,22 @@ function setSlash(e) {
   const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
   e.preventDefault(); SET.L.findEl.focus();
 }
+// A rebuild destroys every row. While the user is typing or has a drop-down open, defer it until focus leaves.
+const SETTINGS_FIELD = "input,textarea,select,[contenteditable='true']";
+function deferSettingsRender(a) {
+  if (!a || a === SET.L.findEl || !a.matches || !a.matches(SETTINGS_FIELD) || !SET.L.el.contains(a)) return false;
+  a.addEventListener("blur", refreshSettings, { once: true });
+  return true;
+}
 const refreshSettings = debounce(() => {
   if (!SET.L) return;
-  const a = document.activeElement;
-  // an open drop-down closes on re-render: retry once it loses focus
-  if (a && a.tagName === "SELECT" && SET.L.body.contains(a)) { a.addEventListener("blur", refreshSettings, { once: true }); return; }
+  if (deferSettingsRender(document.activeElement)) return;
   renderSettings();
 }, 50);
 
 function renderSettings() {
+  if (!SET.L) return;
+  if (deferSettingsRender(document.activeElement)) return;
   const b = SET.L.body, top = b.scrollTop;
   clear(b); clear(SET.L.nav);
   $("#sp-title", SET.L.el).textContent = SET.find ? "Search results" : (SET_TABS.find((t) => t[0] === SET.tab) || SET_TABS[0])[1];
@@ -233,6 +240,7 @@ function secPcTabs() {
     }),
     enterCodeBtn()));
   out.push(...linkRows());
+  out.push(setRow("Allow phone to control this PC", "Needed to show this screen on the phone and let it tap or type here. Sharing stops when you close the panel", toggleEl(!!S.prefs.pcRemote), () => setPref("pcRemote", !S.prefs.pcRemote)));
   out.push(setRow("Control the phone", "Open a page on the linked phone. The phone must allow control in its settings", null));
   out.push(h("div", { class: "chips" },
     btn("Open page on phone", async () => {

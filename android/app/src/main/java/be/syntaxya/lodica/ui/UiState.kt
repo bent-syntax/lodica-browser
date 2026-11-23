@@ -7,7 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import org.mozilla.geckoview.GeckoView
 
-enum class Screen { Browser, Tabs, Settings, Passwords, History, Inbox, Chats, Room, Notebook, Downloads }
+enum class Screen { Browser, Tabs, Settings, Passwords, History, Inbox, Chats, Room, Notebook, Downloads, PcScreen }
 
 enum class Picker { Speed, Quality, Remind, RemindAt, Closed }
 
@@ -26,6 +26,7 @@ object Ui {
     var menuOpen by mutableStateOf(false)
     /** Site / security sheet opened from the lock in the address bar. */
     var siteOpen by mutableStateOf(false)
+    var qrOpen by mutableStateOf(false)
     var editing by mutableStateOf(false)
     /** otpauth-migration:// link waiting for the import dialog in Settings. */
     var pendingMigration by mutableStateOf<String?>(null)
@@ -102,10 +103,12 @@ object Ui {
         preview != null -> { preview = null; true }
         menuOpen -> { menuOpen = false; true }
         siteOpen -> { siteOpen = false; true }
+        qrOpen -> { qrOpen = false; true }
         finding -> { stopFind(); true }
         editing -> { editing = false; true }
         screen == Screen.Inbox && be.syntaxya.lodica.engine.Relay.selected != null -> { be.syntaxya.lodica.engine.Relay.selected = null; true }
         screen == Screen.Downloads -> { screen = Screen.Browser; true }
+        screen == Screen.PcScreen -> { be.syntaxya.lodica.engine.PcRemote.stop(); screen = returnTo; true }
         screen == Screen.Passwords || screen == Screen.History || screen == Screen.Inbox || screen == Screen.Chats || screen == Screen.Room || screen == Screen.Notebook -> { screen = returnTo; true }
         screen != Screen.Browser -> { screen = Screen.Browser; true }
         else -> false

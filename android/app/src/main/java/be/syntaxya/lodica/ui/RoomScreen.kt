@@ -397,6 +397,7 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reaction
     if (look) {
         var col by remember { mutableStateOf(parts?.getOrNull(0).orEmpty()) }
         var shp by remember { mutableStateOf(parts?.getOrNull(1) ?: "Round") }
+        var idea by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { look = false },
             title = { Text(if (mine) "Your bubble" else "Bubble of ${m.name}", color = Mist) },
@@ -413,6 +414,19 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reaction
                             Text(s, color = if (s == shp) Amber else Mist, fontSize = 13.sp, modifier = Modifier.clickable { shp = s }.padding(4.dp))
                         }
                     }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = idea, onValueChange = { idea = it }, singleLine = true,
+                        label = { Text("Describe a bubble") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                    TextButton(onClick = {
+                        be.syntaxya.lodica.engine.Ai.makeBubble(idea) { result ->
+                            result.onSuccess { (c, s) ->
+                                col = c; shp = s
+                                android.widget.Toast.makeText(ctx, "Bubble made", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                            result.onFailure { android.widget.Toast.makeText(ctx, it.message ?: "Could not make a bubble", android.widget.Toast.LENGTH_SHORT).show() }
+                        }
+                    }) { Text("Make with AI", color = Amber) }
                 }
             },
             confirmButton = { TextButton(onClick = { Prefs.updateBubbleStyle(key, "$col|$shp"); look = false }) { Text("Save", color = Amber) } },

@@ -13,6 +13,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitPointerEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.type
@@ -62,8 +64,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -77,6 +81,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -319,6 +324,18 @@ private val PATH_START = Regex("^(?:[a-zA-Z][a-zA-Z0-9+.-]*://[^/?#\\s]+|[^/?#\\
 /** Start of the path (the "/" after the host, scheme ignored) in typed URL text, or -1. */
 internal fun pathStart(t: String): Int = if (t.any { it.isWhitespace() }) -1 else PATH_START.find(t)?.value?.length ?: -1
 
+/** Clamp a text offset and scroll the field when a selection handle is dragged past its visible edge. */
+internal fun edgeScrollOffset(text: String, offset: Int, handleX: Float, width: Float, edge: Float): Int {
+    val px = when {
+        width <= 0f || edge <= 0f -> 0f
+        handleX < edge -> -((edge - handleX) / edge).coerceAtMost(1f)
+        handleX > width - edge -> ((handleX - (width - edge)) / edge).coerceAtMost(1f)
+        else -> 0f
+    }
+    val charsPerPx = text.length.coerceAtLeast(1) / width.coerceAtLeast(1f)
+    return (offset + px * 3f * charsPerPx).roundToInt().coerceIn(0, text.length)
+}
+
 /** A double-tap that picks a word inside the path widens to the whole path and query, so Backspace leaves the bare domain. */
 internal fun selectPathOnWordPick(old: TextFieldValue, new: TextFieldValue): TextFieldValue {
     if (new.text != old.text || !old.selection.collapsed || new.selection.collapsed) return new
@@ -332,6 +349,11 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     var focused by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var fieldWidth by remember { mutableFloatStateOf(0f) }
     LaunchedEffect(Unit) {
         focus.requestFocus()
         // Show the keyboard explicitly: the focus request alone can leave it hidden when the bar is opened from a widget or shortcut.
@@ -353,6 +375,8 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                 value = query,
                 onValueChange = { onQuery(selectPathOnWordPick(query, it)) },
                 singleLine = true,
+                scrollState = scroll,
+                onTextLayout = { layout = it },
                 textStyle = TextStyle(color = Mist, fontSize = 15.sp),
                 cursorBrush = SolidColor(Amber),
                 keyboardOptions = KeyboardOptions(
@@ -378,7 +402,40 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
                     .pointerInput(Unit) { awaitEachGesture { awaitFirstDown(requireUnconsumed = false); if (!focused) keyboard?.show() } },
                 // Wrap in a Box: the field scrolls its text to keep the cursor visible, which breaks when the placeholder shares the slot unwrapped.
                 decorationBox = { inner ->
-                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    Box(
+                        Modifier.fillMaxWidth().onSizeChanged { fieldWidth = it.width.toFloat() }
+                            // Dragging a selection handle to the edge scrolls long URLs instead of stopping at the visible edge.
+                            .pointerInput(query.text, fieldWidth, scroll.value) {
+                                val edge = with(density) { 24.dp.toPx() }
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    val l = layout ?: return@awaitEachGesture
+                                    if (fieldWidth <= 0f || l.size.width <= 0) return@awaitEachGesture
+                                    val startX = l.getCursorRect(query.selection.start).left - scroll.value
+                                    val endX = l.getCursorRect(query.selection.end).left - scroll.value
+                                    val movingEnd = kotlin.math.abs(down.position.x - endX) <= kotlin.math.abs(down.position.x - startX)
+                                    while (true) {
+                                        val event = awaitPointerEvent()
+                                        if (event.changes.none { it.pressed }) break
+                                        val x = event.changes.last().position.x
+                                        val dx = when {
+                                            x < edge -> -(edge - x)
+                                            x > fieldWidth - edge -> x - (fieldWidth - edge)
+                                            else -> 0f
+                                        }
+                                        if (dx != 0f) {
+                                            scope.launch { scroll.scrollBy(dx) }
+                                            val at = l.getOffsetForPosition(Offset((x + scroll.value).coerceIn(0f, l.size.width.toFloat()), l.size.height / 2f))
+                                            val fixed = edgeScrollOffset(query.text, at, x, fieldWidth, edge)
+                                            onQuery(query.copy(selection = if (movingEnd)
+                                                TextRange(query.selection.start, fixed.coerceAtLeast(query.selection.start))
+                                            else TextRange(fixed.coerceAtMost(query.selection.end), query.selection.end)))
+                                        }
+                                    }
+                                }
+                            },
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
                         if (query.text.isEmpty()) Text("Search with ${Prefs.search.label} or type URL", color = Muted, fontSize = 15.sp, maxLines = 1)
                         inner()
                     }
