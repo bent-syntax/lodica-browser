@@ -414,7 +414,7 @@ mod tests {
         assert_eq!(sh.call("keys:valid", &json!({"combo": "Ctrl"}), 0), json!(false));
         assert_eq!(sh.call("keys:map", &json!({}), 0)["F12"], "devtools");
         assert_eq!(sh.call("keys:bind", &json!({"id": "find", "combos": ["F12"]}), 0)["devtools"], json!([]));
-        assert_eq!(sh.call("keys:list", &json!({}), 0).as_array().unwrap().len(), 26);
+        assert_eq!(sh.call("keys:list", &json!({}), 0).as_array().unwrap().len(), 27);
     }
 
     #[test]
