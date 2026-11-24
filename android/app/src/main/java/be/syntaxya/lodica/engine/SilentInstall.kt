@@ -32,14 +32,17 @@ object SilentInstall {
     var state by mutableStateOf(State.Missing)
         private set
 
-    private lateinit var app: Context
+    // Settings reads nextStep() during composition, before the DisposableEffect calls init().
+    // Keep this nullable so an early or failed init can never produce a lateinit crash.
+    private var app: Context? = null
     private var started = false
 
     /** Registers the Shizuku listeners once. Call on the main thread. */
     fun init(ctx: Context) {
+        val base = ctx.applicationContext ?: ctx
+        if (app == null) app = base
         if (started) return
         started = true
-        app = ctx.applicationContext
         Shizuku.addBinderReceivedListenerSticky { refresh() }
         Shizuku.addBinderDeadListener { refresh() }
         Shizuku.addRequestPermissionResultListener { _, _ -> refresh() }
@@ -47,21 +50,25 @@ object SilentInstall {
     }
 
     fun refresh() {
-        if (!started) return
+        val context = app ?: return
         state = when {
-            !installed() -> State.Missing
+            !installed(context) -> State.Missing
             !runCatching { Shizuku.pingBinder() }.getOrDefault(false) -> State.Stopped
             runCatching { Shizuku.checkSelfPermission() }.getOrDefault(-1) != PackageManager.PERMISSION_GRANTED -> State.Denied
             else -> State.Ready
         }
     }
 
-    val ready get() = started && state == State.Ready
+    val ready get() = app != null && started && state == State.Ready
 
-    private fun installed() = runCatching { app.packageManager.getPackageInfo(SHIZUKU, 0) }.isSuccess
+    private fun installed(context: Context) = runCatching { context.packageManager.getPackageInfo(SHIZUKU, 0) }.isSuccess
 
-    private fun developerOptions() =
-        Settings.Global.getInt(app.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+    private fun developerOptions(): Boolean {
+        val context = app ?: return false
+        return runCatching {
+            Settings.Global.getInt(context.contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+        }.getOrDefault(false)
+    }
 
     /** Label of the next setup step, or null when setup is done. */
     fun nextStep(): String? = when (state) {

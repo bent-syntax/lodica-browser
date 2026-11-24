@@ -24,8 +24,10 @@ object LinkedDevices {
     private const val PREF = "remoteDevices"
     private const val HEARTBEAT_MS = 30_000L
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val prefs get() = app.getSharedPreferences(PREF, Context.MODE_PRIVATE)
-    private lateinit var app: Context
+    // Settings renders the device list in Composition before its LaunchedEffect can call init().
+    // Keep this nullable so name()/id() can render a safe placeholder until init has run.
+    private val prefs get() = app?.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+    private var app: Context? = null
     private var job: kotlinx.coroutines.Job? = null
 
     val devices = mutableStateListOf<LinkedDevice>()
@@ -33,11 +35,11 @@ object LinkedDevices {
     private var idCache = ""
 
     fun init(ctx: Context) {
-        if (::app.isInitialized) return
-        app = ctx.applicationContext
+        val base = ctx.applicationContext ?: ctx
+        if (app == null) app = base
+        if (job?.isActive == true) return
         id()
         refresh()
-        if (job?.isActive == true) return
         job = scope.launch {
             while (isActive) {
                 delay(HEARTBEAT_MS)
@@ -49,33 +51,38 @@ object LinkedDevices {
     /** Stable per-install id, kept even when the relay link changes. */
     fun id(): String {
         if (idCache.isNotEmpty()) return idCache
-        val saved = prefs.getString("id", null)
+        val p = prefs ?: return ""
+        val saved = p.getString("id", null)
         idCache = if (saved.isNullOrBlank()) UUID.randomUUID().toString().replace("-", "") else saved
-        if (saved.isNullOrBlank()) prefs.edit().putString("id", idCache).apply()
+        if (saved.isNullOrBlank()) p.edit().putString("id", idCache).apply()
         return idCache
     }
 
-    fun name(): String = Room.deviceName(app).take(80).ifBlank { "Phone" }
+    fun name(): String {
+        val context = app ?: return "Phone"
+        return Room.deviceName(context).take(80).ifBlank { "Phone" }
+    }
 
     /** Remembered target id for one platform ("desktop" for PC screen, "android" for phone screen). */
     fun target(platform: String): String {
-        if (!::app.isInitialized) return ""
+        val p = prefs ?: return ""
         val key = if (platform == "desktop") "targetDesktop" else "targetAndroid"
-        val saved = prefs.getString(key, null).orEmpty()
+        val saved = p.getString(key, null).orEmpty()
         val pool = devices.filter { it.platform == platform && it.id != id() }
         if (saved.isNotEmpty() && pool.any { it.id == saved }) return saved
         return (pool.firstOrNull { it.online } ?: pool.firstOrNull())?.id.orEmpty()
     }
 
     fun setTarget(platform: String, deviceId: String) {
+        val p = prefs ?: return
         val key = if (platform == "desktop") "targetDesktop" else "targetAndroid"
-        prefs.edit().putString(key, deviceId).apply()
+        p.edit().putString(key, deviceId).apply()
         revision.value++
     }
 
     /** Registers this phone and refreshes the list. Safe to call from an IO coroutine. */
     fun refresh() {
-        if (!::app.isInitialized || !Relay.available) return
+        if (app == null || !Relay.available) return
         val me = JSONObject()
             .put("id", id())
             .put("name", name())
