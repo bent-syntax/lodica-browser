@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.0 (versionCode 292)
+
+- QR hover tooltips stay put while the pointer moves over the decoded QR, and clicking the QR now opens its decoded link. Non-link payloads still show exact text with Copy.
+- Wireless ADB asks for the phone's six-digit pairing code once, remembers the phone and reconnects it automatically. Paired phones stay in the device list and can be selected even while offline.
+- Spotify plays from a browser tab with a lyrics toggle that follows the song on every tab; lyrics are fetched locally from LRCLIB.
+- Fixed the Android Settings crash when opening a linked PC tab with an invalid address. The message reaction menu now opens to the left and stays inside the window.
+
 ## 1.20.9 (versionCode 291)
 
 - Hovering a QR code now shows the decoded payload as a clickable link: web and Lodica URLs open in a new tab, mail and phone links use the OS handler.

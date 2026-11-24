@@ -1,3 +1,8 @@
+## 1.21.0
+
+- Settings no longer crashes when a linked PC sends a malformed tab address; invalid links are ignored and a failed open leaves no broken tab behind.
+- The message reaction row opens on the left, scrolls when it does not fit and keeps its full tap target.
+
 ## 1.20.9
 
 - Desktop QR hover now opens decoded links directly and no longer shows a QR preview while hovering a link. No Android-side change in this release; multi-device remote control from 1.20.8 is unchanged.

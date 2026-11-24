@@ -1,3 +1,10 @@
+## 1.21.0
+
+- QR hover tooltips no longer flash at the edge of a code. Clicking a decoded QR opens its link in the browser (email and phone links use the system handler); plain text still shows exactly as decoded with a Copy button.
+- Wireless ADB now pairs once with the six-digit code shown on the phone, then remembers and reconnects that phone automatically. Paired phones remain selectable from the device list even when they are offline.
+- Play Spotify from the browser and turn on a lyrics panel that follows the current song on every tab. Lyrics come from LRCLIB; only the Spotify tab's title is read to identify the track.
+- The reaction menu for chat bubbles now opens to the left so it is no longer cut off by the window edge.
+
 ## 1.20.9
 
 - Hovering a QR code on a page or in the generator now turns the decoded URL into a clickable link: web and Lodica links open in a new tab, email and phone links open in your system app.
