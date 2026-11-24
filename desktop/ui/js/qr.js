@@ -1,38 +1,20 @@
 "use strict";
-// Local QR generator, link-hover preview and local decode tooltip. Nothing is uploaded.
+// Local QR generator and local decode tooltip. Nothing is uploaded.
 
-let QR_HOVER = null, QR_HOVER_TIMER = 0, QR_HOVER_URL = "", QR_DECODE = null;
+let QR_DECODE = null;
 
 function qrLink(url) {
   const u = String(url || "").trim();
   return /^(https?:|lodica:|mailto:|tel:)/i.test(u) && u.length <= 2000 ? u : "";
 }
 
-function hideQrHover() {
-  clearTimeout(QR_HOVER_TIMER);
-  if (QR_HOVER) { QR_HOVER.close(); QR_HOVER = null; }
-  QR_HOVER_URL = "";
+function openDecoded(url) {
+  if (!url) return;
+  // Web and Lodica links belong in a new Lodica tab; mail and phone links go to the OS handler.
+  if (/^(https?:|lodica:)/i.test(url)) inv("tab.new", { url });
+  else inv("openExternal", url);
 }
 
-function showQrHover(d) {
-  const url = qrLink(d && d.url);
-  if (!url) { QR_HOVER_TIMER = setTimeout(hideQrHover, 350); return; }
-  clearTimeout(QR_HOVER_TIMER);
-  if (QR_HOVER && QR_HOVER_URL === url) return;
-  if (QR_HOVER) QR_HOVER.close();
-  QR_HOVER_URL = url;
-  QR_HOVER = openLayer({ key: "hoverqr", dim: false, cls: "hoverqr-layer", onClose: () => { QR_HOVER = null; QR_HOVER_URL = ""; } }, () => {
-    const img = h("img", { class: "qr-img", alt: "QR code", width: 144, height: 144 });
-    const root = h("div", { class: "hoverqr" },
-      img,
-      h("div", { class: "t2", text: "Link to scan" }),
-      h("div", { class: "qr-url", text: url }));
-    inv("qr", url).then((src) => { if (src && img.isConnected) img.src = src; }).catch(() => {});
-    return root;
-  });
-}
-
-// Decoded payloads from a hovered page QR or from the generator preview: exact text, cursor-positioned.
 function hideQrDecoded() {
   if (QR_DECODE) { QR_DECODE.close(); QR_DECODE = null; }
 }
@@ -56,26 +38,52 @@ function placeQrDecoded(x, y) {
   el.style.bottom = "auto";
 }
 
+/** Decoded payloads become a real anchor when they are a safe URL; other payloads stay exact text. */
+function decodedPayload(text) {
+  const url = qrLink(text);
+  if (!url) return h("div", { class: "qr-url", text });
+  return h("a", {
+    class: "qr-url qr-open",
+    href: url,
+    title: "Open " + url,
+    text: url,
+    rel: "noopener noreferrer",
+    on: { click: (e) => {
+      e.preventDefault();
+      const target = QR_DECODE && QR_DECODE.openUrl;
+      hideQrDecoded();
+      openDecoded(target);
+    } },
+  });
+}
+
+/** Decoded payload from a hovered page QR or from the generator preview: exact text and a clickable link, cursor-positioned. */
 function showQrDecoded(d) {
   if (!d || typeof d.url !== "string" || !d.url) { hideQrDecoded(); return; }
   const text = d.url;
+  const link = qrLink(text);
   const x = Number.isFinite(d.x) ? d.x : (innerWidth || 0) / 2;
   const y = Number.isFinite(d.y) ? d.y : (innerHeight || 0) / 2;
   if (QR_DECODE && !QR_DECODE.closed) {
     if (QR_DECODE.decodedText !== text && QR_DECODE.urlEl) {
-      QR_DECODE.urlEl.textContent = text;
+      const next = decodedPayload(text);
+      if (QR_DECODE.urlEl.parentNode) QR_DECODE.urlEl.parentNode.replaceChild(next, QR_DECODE.urlEl);
+      QR_DECODE.urlEl = next;
       QR_DECODE.decodedText = text;
     }
+    QR_DECODE.openUrl = link;
     placeQrDecoded(x, y);
     return;
   }
+  const payload = decodedPayload(text);
   QR_DECODE = openLayer({ key: "qrdecoded", dim: false, cls: "hoverqr-layer qr-decoded-layer", onClose: () => { QR_DECODE = null; } }, () =>
     h("div", { class: "hoverqr qr-decoded" },
       h("div", { class: "t2", text: "Decoded QR" }),
-      h("div", { class: "qr-url", text }),
+      payload,
       h("button", { class: "chip", text: "Copy", act: () => copyQrText(QR_DECODE && QR_DECODE.decodedText || "") })));
   QR_DECODE.decodedText = text;
-  QR_DECODE.urlEl = QR_DECODE.el.querySelector(".qr-url");
+  QR_DECODE.urlEl = payload;
+  QR_DECODE.openUrl = link;
   placeQrDecoded(x, y);
 }
 

@@ -65,7 +65,7 @@ Bridge (`preload/ui.js`, contextIsolation on):
 - `prompt` {id, kind:"confirm"|"auth"|"pin"|"color"|"select", title, message, ok, cancel, extra?, options?}
 - `context` {x, y, linkURL, srcURL, mediaType, selectionText, editable}
 - `clipboard` {url}
-- `qrDecoded` {url,x,y}: exact decoded QR payload at the cursor position (window coordinates); `url:""` clears the tooltip. Hover decoding is local: the page preload reports only a clamped element rect and cursor point, main crops the trusted tab and decodes with jsQR.
+- `qrDecoded` {url,x,y}: exact decoded QR payload at the cursor position (window coordinates); `url:""` clears the tooltip. Safe URLs render as a clickable link (new Lodica tab for web/Lodica, OS handler for mail/phone); other payloads stay exact text with a Copy button. Hover decoding is local: the page preload reports only a clamped element rect and cursor point, main crops the trusted tab and decodes with jsQR. Link hover no longer generates a QR preview.
 - `mail` {site, link, alias}
 - `prefs` full prefs object; `relay` state; `downloads` list; `ai` status
 - `shortcut` name: "address" | "find" | "switcher" | "menu" | "escape"

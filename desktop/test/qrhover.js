@@ -208,6 +208,79 @@ function overlayTests() {
   assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110 }]);
 }
 
+function uiDecodedLinkTests() {
+  const calls = [];
+  function node(tag, attrs, kids) {
+    const el = {
+      tag, attrs: { ...(attrs || {}) }, kids: [], listeners: {}, parentNode: null,
+      style: {}, offsetWidth: 260, offsetHeight: 72,
+      append(...items) { for (const k of items) if (k && typeof k === "object") { k.parentNode = el; el.kids.push(k); } },
+      replaceChild(next, old) { const i = el.kids.indexOf(old); if (i >= 0) el.kids[i] = next; next.parentNode = el; old.parentNode = null; },
+      querySelector(sel) {
+        const want = sel.split(".").filter(Boolean).filter(c => c !== "hoverqr" && c !== "qr-decoded");
+        return want.every(c => (el.attrs.class || "").split(/\s+/).includes(c)) ? el : null;
+      },
+      addEventListener(n, f) { (el.listeners[n] = el.listeners[n] || []).push(f); },
+      removeAttribute(n) { delete el.attrs[n]; },
+      setAttribute(k, v) { el.attrs[k] = v; },
+      focus() {}, select() {},
+    };
+    for (const k of kids || []) if (k && typeof k === "object") el.append(k);
+    return el;
+  }
+  function h(tag, attrs, ...kids) {
+    const el = node(tag, {}, kids);
+    for (const k in attrs || {}) {
+      const v = attrs[k];
+      if (v == null || v === false) continue;
+      if (k === "on") for (const ev in v) el.addEventListener(ev, v[ev]);
+      else if (k === "act") el.act = v;
+      else if (k === "data") el.dataset = { ...v };
+      else el.attrs[k] = v; // class, text, href, title, rel, style, ...
+    }
+    return el;
+  }
+  const sandbox = {
+    h,
+    openLayer(opts, build) {
+      const el = build();
+      const layer = { el, body: el, closed: false, close() { layer.closed = true; if (opts.onClose) opts.onClose(); } };
+      return layer;
+    },
+    inv(...args) { calls.push(args); return Promise.resolve(null); },
+    toast() {}, console, Math, Number, String, Promise, setTimeout, clearTimeout,
+    innerWidth: 800, innerHeight: 600,
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "ui", "js", "qr.js"), "utf8"), sandbox);
+  const read = expr => vm.runInContext(expr, sandbox);
+  assert.strictEqual(typeof sandbox.showQrHover, "undefined"); // link hover no longer renders a QR
+  assert.strictEqual(typeof sandbox.showQrDecoded, "function");
+
+  sandbox.showQrDecoded({ url: QR_TEXT, x: 10, y: 20 });
+  let layer = read("QR_DECODE");
+  let anchor = layer.el.kids.find(k => k.tag === "a");
+  assert.ok(anchor, "decoded URL must be a real anchor");
+  assert.strictEqual(anchor.attrs.href, QR_TEXT);
+  assert.strictEqual(anchor.attrs.class, "qr-url qr-open");
+  anchor.listeners.click[0]({ preventDefault() {} });
+  assert.deepStrictEqual(plain(calls.pop()), ["tab.new", { url: QR_TEXT }]);
+  assert.strictEqual(layer.closed, true);
+
+  sandbox.showQrDecoded({ url: "not a link", x: 30, y: 40 });
+  layer = read("QR_DECODE");
+  assert.ok(layer.el.kids.every(k => k.tag !== "a"), "plain QR text stays exact text");
+
+  sandbox.showQrDecoded({ url: "mailto:someone@example.com", x: 40, y: 50 });
+  anchor = read("QR_DECODE").el.kids.find(k => k.tag === "a");
+  assert.ok(anchor);
+  anchor.listeners.click[0]({ preventDefault() {} });
+  assert.deepStrictEqual(plain(calls.pop()), ["openExternal", "mailto:someone@example.com"]);
+
+  sandbox.showQrDecoded({ url: "", x: 0, y: 0 });
+  assert.strictEqual(read("QR_DECODE"), null);
+}
+
 function staticGuards() {
   const read = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
   const overlay = read("scripts/overlay/qrhover.js");
@@ -219,11 +292,17 @@ function staticGuards() {
   assert.ok(main.includes("tabs.byContents(e.sender)"));
   assert.ok(main.includes("capturePage(job.rect)"));
   assert.ok(main.includes('ui.push("qrDecoded"'));
+  const ui = read("ui/js/qr.js");
+  assert.ok(!/function showQrHover/.test(ui));
+  assert.ok(!read("ui/js/main.js").includes('on("hover", showQrHover)'));
+  assert.ok(!read("main/tabs.js").includes("update-target-url"));
+  assert.ok(ui.includes('inv("tab.new"') && ui.includes('inv("openExternal"'));
 }
 
 (async () => {
   await mainHandlerTests();
   overlayTests();
+  uiDecodedLinkTests();
   staticGuards();
   // qrcode is a runtime dependency that is not installed in every test checkout; stub only that module.
   const Module = require("module");

@@ -261,8 +261,6 @@ function wire(t, wc) {
     });
   });
   wc.on("found-in-page", (_, r) => { if (t === cur) deps.ui.push("find", { cur: r.activeMatchOrdinal, total: r.matches }); });
-  // Hover preview shows the exact target URL, not just its host, with a locally rendered QR code.
-  wc.on("update-target-url", (_, url) => { if (t === cur) deps.ui.push("hover", { url: String(url || "") }); });
 }
 
 function capture(t) {

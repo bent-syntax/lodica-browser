@@ -74,7 +74,6 @@ function subscribe() {
   on("toast", onToast);
   on("prompt", onPrompt);
   on("context", openContext);
-  on("hover", showQrHover);
   on("qrDecoded", showQrDecoded);
   on("clipboard", onClipboard);
   on("mail", onMail);
