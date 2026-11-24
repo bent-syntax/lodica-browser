@@ -407,6 +407,22 @@ fun SettingsScreen() {
             if (!Relay.available) LinkRow("No server linked. Set one up") { Ui.screen = Screen.Browser; Relay.reopenSetup() }
             if (Relay.available) {
                 Section("Linked devices")
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    be.syntaxya.lodica.engine.LinkedDevices.init(ctx)
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        be.syntaxya.lodica.engine.LinkedDevices.refresh()
+                    }
+                }
+                @Suppress("UNUSED_VARIABLE") val linkedRevision by be.syntaxya.lodica.engine.LinkedDevices.revision
+                Text("Remote control devices", color = Mist, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp, top = 4.dp))
+                Text("This phone: ${be.syntaxya.lodica.engine.LinkedDevices.name()} (${be.syntaxya.lodica.engine.LinkedDevices.id().take(8)})", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                if (be.syntaxya.lodica.engine.LinkedDevices.devices.isEmpty()) {
+                    Text("Link a PC with the code below, then it appears here", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp))
+                } else be.syntaxya.lodica.engine.LinkedDevices.devices.forEach { dev ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${dev.name} (${dev.platform})${if (dev.online) " • online" else " • offline"}", color = Mist, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    }
+                }
                 SwitchRow("Tabs on PC", "Open tabs on an encrypted page you can read on a computer", PcTabs.enabled) { PcTabs.toggle(it) }
                 val link = PcTabs.link
                 if (!PcTabs.enabled) TextButton(onClick = { codeText = ""; enterCode = true }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("Enter link code", color = Amber) }
@@ -536,6 +552,17 @@ fun SettingsScreen() {
                         val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
                             val grant = r.data
                             if (r.resultCode == android.app.Activity.RESULT_OK && grant != null) { ScreenShare.start(ctx, r.resultCode, grant); sharing = true }
+                        }
+                        val targetPcs = be.syntaxya.lodica.engine.LinkedDevices.devices.filter { it.platform == "desktop" }
+                        if (targetPcs.isNotEmpty()) {
+                            Text("Show phone screen on", color = Mist, fontSize = 13.sp, modifier = Modifier.padding(start = 20.dp, top = 8.dp))
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp).horizontalScroll(rememberScrollState())) {
+                                targetPcs.forEach { pc ->
+                                    FilterChip(selected = pc.id == be.syntaxya.lodica.engine.LinkedDevices.target("desktop"), onClick = {
+                                        be.syntaxya.lodica.engine.LinkedDevices.setTarget("desktop", pc.id)
+                                    }, label = { Text(pc.name + if (pc.online) "" else " (offline)", fontSize = 12.sp, maxLines = 1) }, modifier = Modifier.padding(end = 4.dp))
+                                }
+                            }
                         }
                         SwitchRow("Share phone screen", "Shows this screen in the browser on your computer, for example to play a phone game there. Needs your OK each time and shows an ongoing notification", sharing) {
                             if (it) runCatching { consent.launch(ScreenShare.consentIntent(ctx)) } else { ScreenShare.stop(ctx); sharing = false }

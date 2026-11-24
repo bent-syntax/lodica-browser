@@ -401,6 +401,18 @@ body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
 .layer.settings-tab.pc-dock .spage{height:100%}
 .layer.settings-tab.pc-dock .empty{text-align:left}
 .layer.settings-tab.pc-dock .phone-keys{justify-content:flex-start}
+/* Linked-device target pickers and ADB controls in both remote-control panels */
+.layer.settings-tab.phone-dock .remote-targets-wrap,
+.layer.settings-tab.pc-dock .remote-targets-wrap{display:flex;align-items:flex-start;gap:8px;padding:6px 12px}
+.layer.settings-tab.phone-dock .remote-targets-wrap .muted,
+.layer.settings-tab.pc-dock .remote-targets-wrap .muted{flex:none;padding-top:6px;font-size:12px}
+.remote-targets{display:flex;flex:1;min-width:0;flex-wrap:wrap;gap:4px}
+.remote-targets .chip.sel,.remote-adb .chip.sel{border-color:var(--accent-ink);color:var(--accent-ink)}
+.layer.settings-tab.phone-dock .remote-adb-wrap{display:flex;align-items:flex-start;gap:8px;padding:0 12px 8px;flex-wrap:wrap}
+.layer.settings-tab.phone-dock .remote-adb-wrap .muted{flex:none;padding-top:6px;font-size:12px}
+.remote-adb{display:flex;flex:1;min-width:0;flex-wrap:wrap;gap:4px}
+.remote-adb-connect{display:flex;gap:4px;width:100%}
+.remote-adb-connect .field{flex:1;min-width:0}
 /* Phone screen: the docked portrait view and its full-window rotated landscape view */
 .layer.settings-tab.phone-dock .spage{height:100%}
 .layer.settings-tab.phone-dock .phone-keys{display:flex;flex:none;flex-wrap:wrap;gap:8px;padding:0 12px 8px}

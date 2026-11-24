@@ -81,6 +81,12 @@ class ScreenShare : Service() {
 
     private fun shutdown() { teardown(); stopForeground(STOP_FOREGROUND_REMOVE); stopSelf() }
 
+    /** The relay channel is addressed to the selected desktop, so several linked PCs cannot receive the same frames. */
+    private fun screenPath(): String {
+        val target = LinkedDevices.target("desktop")
+        return if (target.isEmpty()) "" else "?deviceId=$target"
+    }
+
     private fun teardown() {
         val was = running
         running = false
@@ -91,7 +97,7 @@ class ScreenShare : Service() {
         runCatching { projection?.stop() }; projection = null
         scope.coroutineContext[Job]?.cancel()
         // Tells the server to drop the last frame so the desktop shows "not sharing" right away.
-        if (was) Thread { runCatching { Relay.request("DELETE", "/api/screen") } }.start()
+        if (was) Thread { runCatching { Relay.request("DELETE", "/api/screen" + screenPath()) } }.start()
     }
 
     private fun goForeground(): Boolean {
@@ -117,6 +123,7 @@ class ScreenShare : Service() {
     /** Sends the newest frame about five times a second, and the last one again every few seconds while the screen is still. */
     private suspend fun send(r: ImageReader, w: Int, h: Int) {
         Relay.init(applicationContext)
+        LinkedDevices.init(applicationContext)
         var jpeg: ByteArray? = null
         var sentAt = 0L
         var fails = 0
@@ -141,7 +148,7 @@ class ScreenShare : Service() {
             // The server refuses frames over 1 MB.
             if (data.size > 1_000_000) { jpeg = null; continue }
             try {
-                val (code, _) = Relay.request("PUT", "/api/screen", data, "image/jpeg")
+                val (code, _) = Relay.request("PUT", "/api/screen" + screenPath(), data, "image/jpeg")
                 if (code !in 200..299) throw java.io.IOException("status $code")
                 fails = 0; sentAt = now
             } catch (e: Exception) {
@@ -157,7 +164,8 @@ class ScreenShare : Service() {
         var fails = 0
         while (scope.isActive) {
             try {
-                val (code, body) = Relay.request("GET", "/api/screen/input?wait=20", readTimeoutMs = 30_000)
+                val q = "?deviceId=" + LinkedDevices.id() + "&wait=20"
+                val (code, body) = Relay.request("GET", "/api/screen/input$q", readTimeoutMs = 30_000)
                 if (code !in 200..299) throw java.io.IOException("status $code")
                 fails = 0
                 val events = org.json.JSONObject(body).optJSONArray("events") ?: continue

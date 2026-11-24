@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.8 (versionCode 290)
+
+- Multiple PCs and phones can be linked at once. Each device has a stable id, name, platform and online state, and remote-control panels let you choose the target device.
+- Relay screen, input and share-request channels are routed to the selected `deviceId`, so streams and controls no longer cross between linked devices.
+- The desktop phone controller now captures the full Android screen with ADB `screencap` and sends taps, swipes, scrolls, text and navigation keys through ADB `input`. USB and Wireless ADB devices can be connected and paired with a linked phone.
+- The Android "PC screen" view now shows the entire OS desktop: Electron captures full screens with `desktopCapturer`, and phone input is injected into the host OS with mouse, keyboard and scroll actions.
+
 ## 1.20.7 (versionCode 289)
 
 - The PC-to-phone controller is a dedicated opaque docked panel, separate from the Lodica AI view; the control permission remains in Settings.

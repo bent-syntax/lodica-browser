@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import be.syntaxya.lodica.engine.LinkedDevices
 import be.syntaxya.lodica.engine.PcRemote
 import be.syntaxya.lodica.ui.theme.Graphite
 import be.syntaxya.lodica.ui.theme.Mist
@@ -46,9 +48,12 @@ fun PcScreen() {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
     val bitmap by PcRemote.frame
+    val seq by PcRemote.frameSeq
     val live by PcRemote.live
+    @Suppress("UNUSED_VARIABLE") val revision by LinkedDevices.revision
     var full by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("") }
+    val image = remember(bitmap, seq) { bitmap?.asImageBitmap() }
 
     DisposableEffect(Unit) {
         PcRemote.init(ctx)
@@ -71,9 +76,24 @@ fun PcScreen() {
     }
 
     Column(Modifier.fillMaxSize().background(Graphite).then(if (full) Modifier else Modifier.padding(16.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
-        if (!full) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("PC screen", color = Mist, fontSize = 20.sp, modifier = Modifier.weight(1f))
-            Button(onClick = { full = !full }) { Text(if (full) "Exit full screen" else "Full screen") }
+        if (!full) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("PC screen", color = Mist, fontSize = 20.sp, modifier = Modifier.weight(1f))
+                Button(onClick = { full = !full }) { Text(if (full) "Exit full screen" else "Full screen") }
+            }
+            val pcs = LinkedDevices.devices.filter { it.platform == "desktop" }
+            if (pcs.isNotEmpty()) {
+                Text("Control PC", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                    pcs.forEach { pc ->
+                        FilterChip(selected = pc.id == LinkedDevices.target("desktop"), onClick = {
+                            LinkedDevices.setTarget("desktop", pc.id)
+                            PcRemote.stop(); PcRemote.start()
+                        }, label = { Text(pc.name + if (pc.online) "" else " (offline)", fontSize = 12.sp, maxLines = 1) },
+                            modifier = Modifier.padding(end = 4.dp))
+                    }
+                }
+            }
         }
         Box(
             Modifier.fillMaxWidth().weight(1f)
@@ -90,8 +110,8 @@ fun PcScreen() {
                 },
             contentAlignment = Alignment.Center,
         ) {
-            val frame = bitmap
-            if (frame != null) Image(frame.asImageBitmap(), "Linked PC screen", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+            val picture = image
+            if (picture != null) Image(picture, "Linked PC screen", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
             else Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(if (live) "Waiting for the first frame" else "Start “PC to phone” on the desktop, or ask below", color = Muted, fontSize = 13.sp)
                 if (!live) Button(onClick = { PcRemote.request() }, modifier = Modifier.padding(top = 10.dp)) {
@@ -111,6 +131,9 @@ fun PcScreen() {
                     Text(it, fontSize = 12.sp, maxLines = 1, softWrap = false)
                 }
             }
+            Button(onClick = { PcRemote.right(0.5f, 0.5f) }, modifier = Modifier.padding(end = 4.dp)) { Text("right click", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            Button(onClick = { PcRemote.scroll(0.5f, 0.5f, 1) }, modifier = Modifier.padding(end = 4.dp)) { Text("scroll ↓", fontSize = 12.sp, maxLines = 1, softWrap = false) }
+            Button(onClick = { PcRemote.scroll(0.5f, 0.5f, -1) }, modifier = Modifier.padding(end = 4.dp)) { Text("scroll ↑", fontSize = 12.sp, maxLines = 1, softWrap = false) }
         }
     }
 }

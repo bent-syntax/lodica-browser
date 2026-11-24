@@ -22,6 +22,7 @@ const chatfile = require('./chatfile');
 const notebook = require('./notebook');
 const screen = require('./screen');
 const pcscreen = require('./pcscreen');
+const devices = require('./devices');
 const enroll = require('./enroll');
 const { cleanTheme } = require('./theme');
 const gatePage = require('fs').readFileSync(require('path').join(__dirname, 'gate-page.html'), 'utf8');
@@ -611,6 +612,21 @@ async function route(req, res) {
     if (m === 'POST') return notebook.create(req, res, h);
     if (m === 'DELETE') return notebook.remove(req, res, h);
     return m === 'GET' ? notebook.get(req, res, h) : notebook.put(req, res, h);
+  }
+  if (p === '/api/devices') {
+    if (m !== 'GET' && m !== 'POST') return not('GET, HEAD, POST');
+    if (!authed(req, res)) return;
+    if (m === 'GET') return sendJson(req, res, 200, { devices: devices.list() });
+    let b;
+    try { b = JSON.parse((await readBody(req, 4096)).toString('utf8')); }
+    catch (e) { return sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+    const d = devices.register(b);
+    return d ? sendJson(req, res, 200, d) : sendText(req, res, 400, 'bad device');
+  }
+  if ((r = /^\/api\/devices\/([A-Za-z0-9_-]{1,64})$/.exec(p))) {
+    if (m !== 'DELETE') return not('DELETE');
+    if (!authed(req, res)) return;
+    return devices.remove(r[1]) ? send(req, res, 204, null) : sendText(req, res, 404, 'unknown device');
   }
   if (p === '/api/screen') {
     if (m !== 'GET' && m !== 'PUT' && m !== 'DELETE') return not('GET, HEAD, PUT, DELETE');

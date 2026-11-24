@@ -1,34 +1,44 @@
 'use strict';
-// Live view of a linked phone's screen. The phone sends JPEG frames, a desktop browser shows them. Only the newest frame is
-// kept, in memory, and it expires a few seconds after the phone stops sending. Nothing is written to disk.
-//   PUT    /api/screen               body: one JPEG -> { seq }
-//   GET    /api/screen?after=<seq>&wait=<s> -> the JPEG (header X-Frame-Seq) when newer than `after`; 204 when nothing new
-//                                       within `wait` seconds (max 25) or no one is sharing
-//   GET    /api/screen?status=1      -> { live, seq }
-//   DELETE /api/screen               -> drops the frame and queues one stop event so the phone ends the share
-//   POST   /api/screen/input         body: { events: [...] } from the desktop -> { queued }. Event kinds: tap, swipe, key, text, stop (see cleanEvent)
-//   GET    /api/screen/input?wait=<s> -> { events: [...] } for the phone; long-polls up to `wait` seconds (max 25)
+// Live view of a linked phone's screen, used by the desktop phone controller. The phone sends JPEG frames (the desktop app
+// produces them from ADB screencap), a desktop shows them. Every target device has its own channel; the empty id is the legacy
+// channel used by older clients. Only the newest frame per channel is kept, in memory, and it expires when sharing stops.
+//   PUT    /api/screen?deviceId=<desktop>     body: one JPEG -> { seq }
+//   GET    /api/screen?deviceId=<desktop>&after=<seq>&wait=<s> -> JPEG (header X-Frame-Seq) or 204
+//   GET    /api/screen?deviceId=<desktop>&status=1 -> { live, seq }
+//   DELETE /api/screen?deviceId=<desktop>     -> queues one stop event for that phone
+//   POST   /api/screen/input                  body: { deviceId: <phone>, events: [...] } -> { queued }
+//   GET    /api/screen/input?deviceId=<phone>&wait=<s> -> { events: [...] }
 const FRAME_MAX = 1024 * 1024;
 const EXPIRE_MS = 10000;
 const TEXT_MAX = 500;
 const KEYS = new Set(['back', 'home', 'recents', 'notifications']);
 const QUEUE_MAX = 50;
-let frame = null; // { seq, at, data }
-let seq = 0;
-let waiters = [];
-let queue = [];
-let inWaiters = [];
+const channels = new Map();
 
-const live = () => !!frame && Date.now() - frame.at < EXPIRE_MS;
-
-function wake() {
-  const w = waiters; waiters = [];
-  for (const f of w) f();
+const cleanId = (v) => {
+  const s = String(v == null ? '' : v).trim();
+  return /^[A-Za-z0-9_-]{1,64}$/.test(s) ? s : '';
+};
+function channelOf(req, body) {
+  const q = new URL(req.url, 'http://x').searchParams;
+  return cleanId(q.get('deviceId') || q.get('target') || (body && (body.deviceId || body.target)));
 }
+function channel(id) {
+  const key = cleanId(id);
+  let c = channels.get(key);
+  if (!c) {
+    c = { frame: null, seq: 0, waiters: [], queue: [], inWaiters: [] };
+    channels.set(key, c);
+  }
+  return c;
+}
+const live = (c) => !!c.frame && Date.now() - c.frame.at < EXPIRE_MS;
 
-function sendFrame(req, res) {
-  res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': frame.data.length, 'X-Frame-Seq': String(frame.seq), 'Cache-Control': 'no-store' });
-  res.end(req.method === 'HEAD' ? undefined : frame.data);
+function wake(c) { const w = c.waiters; c.waiters = []; for (const f of w) f(); }
+function wakeInput(c) { const w = c.inWaiters; c.inWaiters = []; for (const f of w) f(); }
+function sendFrame(req, res, c) {
+  res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': c.frame.data.length, 'X-Frame-Seq': String(c.frame.seq), 'Cache-Control': 'no-store' });
+  res.end(req.method === 'HEAD' ? undefined : c.frame.data);
 }
 
 async function put(req, res, h) {
@@ -37,44 +47,47 @@ async function put(req, res, h) {
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
   // JPEG files start with FF D8 FF.
   if (!b || b.length < 4 || b[0] !== 0xff || b[1] !== 0xd8 || b[2] !== 0xff) return h.sendText(req, res, 400, 'not a jpeg');
-  frame = { seq: ++seq, at: Date.now(), data: b };
+  const c = channel(channelOf(req));
+  c.frame = { seq: ++c.seq, at: Date.now(), data: b };
   // A new frame starts a new share; a stop left over from the previous one must not shut this one down.
-  queue = queue.filter((e) => e.t !== 'stop');
-  wake();
-  h.sendJson(req, res, 200, { seq });
+  c.queue = c.queue.filter((e) => e.t !== 'stop');
+  wake(c);
+  h.sendJson(req, res, 200, { seq: c.seq });
 }
 
 function get(req, res, h) {
   const q = new URL(req.url, 'http://x').searchParams;
-  if (q.get('status') === '1') return h.sendJson(req, res, 200, { live: live(), seq: live() ? frame.seq : 0 });
+  const c = channel(channelOf(req));
+  if (q.get('status') === '1') return h.sendJson(req, res, 200, { live: live(c), seq: live(c) ? c.frame.seq : 0 });
   const after = Number(q.get('after')) || 0;
   const wait = Math.min(25, Math.max(0, Number(q.get('wait')) || 0));
   // A cursor ahead of the relay means the relay restarted, so any frame counts as new.
-  const fresh = () => live() && (frame.seq > after || after > seq);
-  if (fresh()) return sendFrame(req, res);
+  const fresh = () => live(c) && (c.frame.seq > after || after > c.seq);
+  if (fresh()) return sendFrame(req, res, c);
   if (!wait) { res.writeHead(204); return res.end(); }
   const timer = setTimeout(done, wait * 1000);
   function done() {
     clearTimeout(timer);
-    waiters = waiters.filter((f) => f !== done);
+    c.waiters = c.waiters.filter((f) => f !== done);
     if (res.writableEnded || res.destroyed) return;
-    if (fresh()) sendFrame(req, res); else { res.writeHead(204); res.end(); }
+    if (fresh()) sendFrame(req, res, c); else { res.writeHead(204); res.end(); }
   }
-  waiters.push(done);
-  req.on('close', () => { clearTimeout(timer); waiters = waiters.filter((f) => f !== done); });
+  c.waiters.push(done);
+  req.on('close', () => { clearTimeout(timer); c.waiters = c.waiters.filter((f) => f !== done); });
 }
 
 function remove(req, res) {
-  frame = null;
+  const c = channel(channelOf(req));
+  c.frame = null;
   // The relay has no separate control channel: the phone sees the stop in the same event stream as taps and keys.
-  queue = [{ t: 'stop' }];
-  wake();
-  wakeInput();
+  c.queue = [{ t: 'stop' }];
+  wake(c);
+  wakeInput(c);
   res.writeHead(204); res.end();
 }
 
 /** Test hook. */
-function reset() { frame = null; seq = 0; queue = []; wake(); wakeInput(); }
+function reset() { channels.clear(); }
 
 // Remote control: the desktop queues input events, the phone fetches them. Coordinates are fractions (0..1) of the shared screen.
 const frac = (v) => (typeof v === 'number' && v >= 0 && v <= 1 ? v : null);
@@ -98,36 +111,36 @@ function cleanEvent(e) {
   return null;
 }
 
-function wakeInput() { const w = inWaiters; inWaiters = []; for (const f of w) f(); }
-
 async function inputPost(req, res, h) {
   let b;
   try { b = JSON.parse((await h.readBody(req, 16384)).toString('utf8')); }
   catch (e) { return h.sendText(req, res, e.status || 400, 'bad body', { Connection: 'close' }); }
+  const c = channel(channelOf(req, b));
   const list = Array.isArray(b && b.events) ? b.events.slice(0, 20) : [];
   const ok = list.map(cleanEvent).filter(Boolean);
-  // Controls only make sense while a phone is sharing.
-  if (!live()) return h.sendJson(req, res, 200, { queued: 0 });
-  queue.push(...ok);
-  if (queue.length > QUEUE_MAX) queue = queue.slice(-QUEUE_MAX);
-  wakeInput();
+  // Controls only make sense while that phone is sharing.
+  if (!live(c)) return h.sendJson(req, res, 200, { queued: 0 });
+  c.queue.push(...ok);
+  if (c.queue.length > QUEUE_MAX) c.queue = c.queue.slice(-QUEUE_MAX);
+  wakeInput(c);
   h.sendJson(req, res, 200, { queued: ok.length });
 }
 
 function inputGet(req, res, h) {
   const q = new URL(req.url, 'http://x').searchParams;
+  const c = channel(channelOf(req));
   const wait = Math.min(25, Math.max(0, Number(q.get('wait')) || 0));
-  const take = () => { const events = queue; queue = []; h.sendJson(req, res, 200, { events }); };
-  if (queue.length || !wait) return take();
+  const take = () => { const events = c.queue; c.queue = []; h.sendJson(req, res, 200, { events }); };
+  if (c.queue.length || !wait) return take();
   const timer = setTimeout(done, wait * 1000);
   function done() {
     clearTimeout(timer);
-    inWaiters = inWaiters.filter((f) => f !== done);
+    c.inWaiters = c.inWaiters.filter((f) => f !== done);
     if (res.writableEnded || res.destroyed) return;
     take();
   }
-  inWaiters.push(done);
-  req.on('close', () => { clearTimeout(timer); inWaiters = inWaiters.filter((f) => f !== done); });
+  c.inWaiters.push(done);
+  req.on('close', () => { clearTimeout(timer); c.inWaiters = c.inWaiters.filter((f) => f !== done); });
 }
 
-module.exports = { put, get, remove, reset, inputPost, inputGet, cleanEvent };
+module.exports = { put, get, remove, reset, inputPost, inputGet, cleanEvent, channelOf, live: (id) => live(channel(id)) };

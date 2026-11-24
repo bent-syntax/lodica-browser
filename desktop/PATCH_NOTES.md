@@ -1,3 +1,10 @@
+## 1.20.8
+
+- Settings and both remote-control panels show all linked devices with names, platform and online state. Pick the phone or PC you want before starting a session.
+- The Phone screen panel captures the whole Android screen through ADB instead of an in-app view. Connect USB or Wireless ADB, pair the device with a linked phone, then use taps, drags, right click, scroll, text and phone navigation keys.
+- "Phone controls this PC" captures the full Windows/Linux desktop with `desktopCapturer`, not just the browser tab. Phone taps, drags, right clicks, scrolling and typing move the real OS cursor and keyboard.
+- Streams, control events and share requests are routed by `deviceId`, so several PCs and phones can stay linked and control the right device.
+
 ## 1.20.7
 
 - "Phone controls this PC" is now an opaque docked side panel of its own; it never overlaps the Lodica AI chat view. The permission stays a clean toggle in Settings → Link.

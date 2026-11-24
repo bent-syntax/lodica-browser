@@ -28,15 +28,18 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(js.includes('classList.toggle("phone-full", on)'));
   assert.ok(js.includes('inv("ui.dock", on ? 0 : 360)'));
   assert.ok(js.includes('phonePointer(') && js.includes('phoneContent('));
-  assert.ok(js.includes('inv("screen.text", v)'));
-  assert.ok(js.includes('inv("screen.stop")'));
-  assert.ok(js.includes('inv("screen.frame", after)'));
+  assert.ok(js.includes('inv("screen.text", v, L.target)'));
+  assert.ok(js.includes('inv("screen.stop", L.target)'));
+  assert.ok(js.includes('inv("screen.frame", after, L.target)'));
+  assert.ok(js.includes('inv("devices.list", "android")') && js.includes('inv("devices.setTarget", "android", d.id)'));
+  assert.ok(js.includes('inv("adb.devices")') && js.includes('inv("adb.connect", L.adbAddress.value)'));
   assert.ok(js.includes('key("back"') && js.includes('key("home"') && js.includes('key("recents"'));
 
   const main = read('desktop/main/screen.js');
-  assert.ok(main.includes('async function text(value)'));
+  assert.ok(main.includes('async function text(value, target)'));
   assert.ok(main.includes('value.slice(0, 500)'));
-  assert.ok(main.includes('module.exports = { frame, stop, input, text }'));
+  assert.ok(main.includes('api.frame(serial)') && main.includes('"/api/screen?deviceId="'));
+  assert.ok(main.includes('adb.serialFor(getTarget())') && main.includes('adb.pairSerial'));
 
   const css = read('desktop/ui/polish.css') + read('desktop/ui/ui.css');
   const phoneCss = (css.match(/\/\* Phone screen[\s\S]*?body\.keep\.bt\.ov #dock/) || [''])[0];
@@ -62,12 +65,14 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(pc.includes('cls: "spage-layer settings-tab nb-dock pc-dock"'));
   assert.ok(pc.includes('inv("ai.panel.close")') && pc.includes('inv("ui.dock", 360)'));
   assert.ok(pc.includes('inv("pcscreen.stop")') && pc.includes('inv("ui.dock", 0)'));
+  assert.ok(pc.includes('inv("devices.list", "android")') && pc.includes('inv("pcscreen.start", d.id)'));
   assert.ok(!pc.includes('pc-panel-layer'));
   const pcm = read('desktop/main/pcscreen.js');
   assert.ok(pcm.includes('async function checkRequest()'));
-  assert.ok(pcm.includes('"/api/pcscreen/request"'));
+  assert.ok(pcm.includes('/api/pcscreen/request'));
   assert.ok(!pcm.includes('setPanelWidth'));
-  assert.ok(pcm.includes('Math.round(Number(x) * b.width)'));
+  assert.ok(pcm.includes('types: ["screen"]'));
+  assert.ok(pcm.includes('osinput.create()') && pcm.includes('inputApi.apply(events)'));
   const rp = read('relay/src/pcscreen.js');
   assert.ok(rp.includes('function requestPost') && rp.includes('function requestGet') && rp.includes('function requestDelete'));
 

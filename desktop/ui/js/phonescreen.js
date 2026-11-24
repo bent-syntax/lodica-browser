@@ -1,7 +1,6 @@
 "use strict";
-// Phone screen: shows the screen of a linked phone that is sharing it (Android Settings > Server, chat & mail > Share phone screen).
-// The phone sends frames through the relay; this page waits for each new one. Clicks, drags and the buttons on top control the phone
-// (the phone needs the Lodica accessibility service switched on).
+// Phone screen: shows the full Android screen of a linked phone, captured by ADB on the desktop and relayed to this panel.
+// The panel stays docked in portrait and rotates to landscape in fullscreen. Taps, drags, text and keys go back through ADB.
 const PS = { L: null };
 
 /**
@@ -38,8 +37,10 @@ function openPhoneScreen() {
   PS.L = openLayer({ key: "phonescreen", cls: "spage-layer settings-tab nb-dock phone-dock", dim: false, onClose: () => { inv("ui.dock", 0); const L = PS.L; PS.L = null; L.dead = true; } }, (L) => {
     L.dead = false;
     L.rotated = false;
+    L.target = "";
     L.status = h("div", { class: "empty", style: "padding:6px 12px", text: "Looking for your phone..." });
     L.img = h("img", { alt: "Phone screen", class: "phone-img" });
+    const send = (events) => inv("screen.input", events, L.target);
     // Pointer on the picture: a short press is a tap, a drag is a swipe. Positions are sent as fractions of the captured frame.
     const at = (e) => {
       const box = phoneContent(L.img.getBoundingClientRect(), L.img.naturalWidth, L.img.naturalHeight, L.rotated);
@@ -59,15 +60,25 @@ function openPhoneScreen() {
       if (!u) return;
       const far = Math.hypot(u.x - d.x, u.y - d.y) > 0.02;
       const ms = Math.min(1500, Math.max(50, u.t - d.t));
-      inv("screen.input", [far ? { t: "swipe", x: d.x, y: d.y, x2: u.x, y2: u.y, ms } : { t: "tap", x: d.x, y: d.y, ms: Math.min(ms, 400) }]);
+      send(far ? [{ t: "swipe", x: d.x, y: d.y, x2: u.x, y2: u.y, ms }] : [{ t: "tap", x: d.x, y: d.y, ms: Math.min(ms, 400) }]);
     });
     L.img.addEventListener("pointercancel", () => { down = null; });
-    const key = (k, label, tip) => h("button", { class: "chip", text: label, title: tip, act: () => inv("screen.input", [{ t: "key", key: k }]) });
+    L.img.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const p = at(e);
+      if (p) send([{ t: "right", x: p.x, y: p.y }]);
+    });
+    L.img.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const p = at(e);
+      if (p) send([{ t: "scroll", x: p.x, y: p.y, steps: e.deltaY > 0 ? 1 : -1 }]);
+    }, { passive: false });
+    const key = (k, label, tip) => h("button", { class: "chip", text: label, title: tip, act: () => send([{ t: "key", key: k }]) });
     L.text = h("input", { class: "field", maxlength: "500", placeholder: "Type on the phone", autocomplete: "off" });
     const sendText = async () => {
       const v = L.text.value;
       if (!v.trim()) return;
-      const ok = await inv("screen.text", v);
+      const ok = await inv("screen.text", v, L.target);
       if (ok) L.text.value = "";
       else toast("Couldn't send text to your phone");
       L.text.focus();
@@ -82,19 +93,66 @@ function openPhoneScreen() {
       L.expand.setAttribute("aria-label", label);
     };
     L.expand = ib("expand", "Fullscreen landscape", () => setFull(!L.rotated));
+
+    // Linked device picker. Multiple phones can be linked; the selected id routes every frame and input event.
+    L.picker = h("div", { class: "remote-targets" });
+    const renderTargets = async () => {
+      if (L.dead) return;
+      const list = await inv("devices.list", "android") || [];
+      clear(L.picker);
+      if (!list.length) L.picker.append(h("span", { class: "muted", text: "No linked phones yet" }));
+      for (const d of list) L.picker.append(h("button", {
+        class: "chip" + (d.selected ? " sel" : ""),
+        text: d.name + (d.online ? "" : " (offline)"),
+        act: async () => {
+          await inv("devices.setTarget", "android", d.id);
+          L.target = await inv("devices.target", "android") || d.id;
+          renderTargets();
+          await inv("screen.stop", L.target);
+          await inv("screen.start", L.target);
+          after = 0;
+        },
+      }));
+    };
+    renderTargets();
+
+    // ADB discovery and Wireless ADB connection. Pairing remembers which serial belongs to the linked phone id.
+    L.adb = h("div", { class: "remote-adb" });
+    const refreshAdb = async () => {
+      if (L.dead) return;
+      const r = await inv("adb.devices") || {};
+      clear(L.adb);
+      L.adb.append(h("span", { class: "muted", text: r.error || "ADB devices: " + ((r.devices || []).length) }));
+      for (const dev of r.devices || []) L.adb.append(h("button", {
+        class: "chip" + (r.paired === dev.serial ? " sel" : ""),
+        text: (dev.model || dev.serial) + (dev.online ? "" : " (" + dev.state + ")"),
+        act: async () => { await inv("adb.pair", dev.serial); renderTargets(); refreshAdb(); },
+      }));
+    };
+    L.adbAddress = h("input", { class: "field", placeholder: "192.168.1.20:5555", "aria-label": "Wireless ADB address" });
+    const adbConnect = async () => {
+      const r = await inv("adb.connect", L.adbAddress.value);
+      toast(r && r.ok ? "Connected" : (r && (r.error || r.output)) || "Could not connect");
+      if (r && r.ok) { L.adbAddress.value = ""; refreshAdb(); }
+    };
+    L.adbAddress.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adbConnect(); } });
+    refreshAdb();
+
     L.frame = h("div", { class: "phone-frame" }, h("div", { class: "phone-frame-box" }, L.img));
     // Keeps one request open; the relay answers as soon as the phone sends the next frame.
+    let after = 0;
     (async () => {
-      let after = 0;
+      L.target = await inv("devices.target", "android") || "";
+      await inv("screen.start", L.target);
       while (!L.dead) {
-        const r = await inv("screen.frame", after);
+        const r = await inv("screen.frame", after, L.target);
         if (L.dead) return;
         if (!r) { L.img.style.display = "none"; L.status.textContent = "Can't reach the server. Will try again."; await new Promise((ok) => setTimeout(ok, 3000)); continue; }
         if (r.idle) {
           // A relay that restarted counts frames from 1 again.
           after = 0;
           L.img.style.display = "none";
-          L.status.textContent = "Your phone is not sharing its screen. On the phone open Settings > Server, chat & mail > Share phone screen.";
+          L.status.textContent = "Connect the phone with USB/Wireless ADB, or start sharing in Settings on the phone.";
           await new Promise((ok) => setTimeout(ok, 2000));
           continue;
         }
@@ -107,8 +165,11 @@ function openPhoneScreen() {
       h("div", { class: "sp-main", style: "display:flex;flex-direction:column;height:100%" },
         h("div", { class: "sp-head" }, h("h2", { text: "Phone screen" }),
           L.expand,
-          h("button", { class: "chip", text: "Stop sharing", act: async () => { await inv("screen.stop"); L.close(); } }),
+          h("button", { class: "chip", text: "Stop sharing", act: async () => { await inv("screen.stop", L.target); L.close(); } }),
           ib("close", "Close phone screen", () => L.close())),
+        h("div", { class: "remote-targets-wrap" }, h("span", { class: "muted", text: "Control phone:" }), L.picker),
+        h("div", { class: "remote-adb-wrap" }, h("span", { class: "muted", text: "ADB:" }), L.adb,
+          h("div", { class: "remote-adb-connect" }, L.adbAddress, h("button", { class: "chip", text: "Connect", act: adbConnect }))),
         h("div", { class: "phone-keys" }, key("back", "Back", "Phone back button"), key("home", "Home", "Phone home button"), key("recents", "Recent apps", "Phone recent apps"), key("notifications", "Notifications", "Pull down the notifications")),
         L.status, L.frame,
         h("div", { class: "phone-send" }, L.text, h("button", { class: "chip", text: "Send", act: sendText }))));

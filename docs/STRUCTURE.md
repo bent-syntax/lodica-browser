@@ -25,6 +25,8 @@ Where things live and what they do. Start here.
 | `app/src/main/AndroidManifest.xml` | Manifest, activities, permissions. |
 | `app/src/main/java/be/syntaxya/lodica/ui/` | All Compose UI (see below). |
 | `app/src/main/java/be/syntaxya/lodica/ui/theme/` | `Theme.kt` (colour palettes, dark and light, wallpaper and custom themes) and `LauncherIcon.kt`. |
+| `app/src/main/java/be/syntaxya/lodica/engine/LinkedDevices.kt` | Remote-control device registry: stable phone id, linked PC/phone list, online state and selected target. |
+| `app/src/main/java/be/syntaxya/lodica/engine/PcRemote.kt` | Android "PC screen" viewer: frames and device-routed input for the selected PC. |
 | `app/src/main/assets/extensions/` | Bundled WebExtensions: `helper/` (search, theme, mobile and NFC helpers; `instant.js` builds the instant answer cards on the search page; `predark.js` paints the page dark before it shows) and `ubo/` (uBlock Origin with filter lists). |
 | `app/src/main/assets/ai/bridge.js` | AI page bridge. |
 | `app/src/main/res/` | Resources (xml, icons, strings). |
@@ -52,7 +54,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | Path | What it is |
 | --- | --- |
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
-| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`. |
+| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`, `devices.js` (linked-device registry and target selection), `adb.js` (ADB capture/pair/input), `osinput.js` (OS-level mouse and keyboard injection), `pcscreen.js` (full-OS desktop sharing), `screen.js` (ADB phone screen). |
 | `preload/` | Preload scripts exposing IPC to the UI. |
 | `installer.nsh` | NSIS include (: removes older Lodica installs, adds the Start menu entry). |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
@@ -75,6 +77,7 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `src/testsession.js` | Remote test session: `/api/support/test` (client) and `/api/support/admin/test` (support). Code, 15 minute expiry, command allowlist. Optional permanent session that stays open while the app polls; `GET /api/support/admin/test` lists open sessions. |
 | `src/chat.js`, `src/chatfile.js` | Chat rooms and files. |
 | `src/notebook.js` | The shared notebook notes (`/api/notebook`). |
+| `src/devices.js`, `src/screen.js`, `src/pcscreen.js` | Remote-control registry and per-`deviceId` frame, input and share-request channels. |
 | `src/theme.js` | Checks custom themes (colours, tab texture, animation) before they sync or come back from the AI. |
 | `src/enroll.js`, `src/fcm.js` | Device enrollment and push messages. |
 | `src/updates.js` | Update checks. |

@@ -196,6 +196,7 @@ function initPayload() {
 
 function init(deps) {
   d = deps;
+  require("./devices").init();
   require("./pcscreen").init(d);
   const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support, testsession } = d;
   const on = (cmd, fn) => ui.handle(cmd, fn);
@@ -538,16 +539,26 @@ function init(deps) {
   on("notebook.create", () => require("./notebook").create());
   on("notebook.remove", (id) => require("./notebook").remove(str(id)));
   on("notebook.put", (id, text, base) => require("./notebook").put(str(id), str(text), base));
-  on("screen.frame", (after) => require("./screen").frame(after));
-  on("screen.stop", () => require("./screen").stop());
-  on("screen.input", (events) => require("./screen").input(Array.isArray(events) ? events : []));
-  on("screen.text", (text) => require("./screen").text(str(text)));
+  on("devices.list", (platform) => require("./devices").list(platform));
+  on("devices.id", () => require("./devices").id());
+  on("devices.target", (platform) => require("./devices").target(platform));
+  on("devices.setTarget", (platform, id) => require("./devices").setTarget(platform, id));
+  on("screen.frame", (after, target) => require("./screen").frame(after, target));
+  on("screen.stop", (target) => require("./screen").stop(target));
+  on("screen.input", (events, target) => require("./screen").input(Array.isArray(events) ? events : [], target));
+  on("screen.text", (text, target) => require("./screen").text(str(text), target));
+  on("screen.start", (target) => require("./screen").start(target));
+  on("screen.target", () => require("./screen").target());
+  on("adb.devices", () => require("./screen").adbDevices());
+  on("adb.connect", (address) => require("./screen").adbConnect(str(address)));
+  on("adb.pair", (serial) => require("./screen").adbPair(str(serial)));
   on("qr", (url) => require("./qr").data(url));
   on("qr.svg", (url) => require("./qr").svg(url));
   on("qr.decode", (dataUrl) => require("./qrdecode").decodeDataUrl(str(dataUrl)));
-  on("pcscreen.start", () => require("./pcscreen").start());
+  on("pcscreen.start", (phoneId) => require("./pcscreen").start(phoneId));
   on("pcscreen.stop", () => require("./pcscreen").stop());
   on("pcscreen.state", () => require("./pcscreen").on());
+  on("pcscreen.target", () => require("./pcscreen").target());
   on("relay.delete", id => relay.deleteMail(id));
   on("relay.own", email => relay.addOwn(email));
   on("relay.forget", address => relay.forget(str(address)));

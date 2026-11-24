@@ -1,3 +1,9 @@
+## 1.20.8
+
+- Linked devices now include every PC and phone on the server. Settings shows their names, platforms and online state, and "PC screen" has a picker when more than one PC is linked.
+- "PC screen" receives frames for the selected PC only, redraws every frame, and sends back taps, drags, right clicks, scrolls, text and navigation keys.
+- Screen sharing to a PC is addressed to the selected desktop, so two phones or two PCs can share at the same time without mixing frames.
+
 ## 1.20.7
 
 - "PC screen" can ask the linked desktop to start sharing directly; frames arrive and render live in the canvas.
