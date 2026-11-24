@@ -2,6 +2,11 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.20.9 (versionCode 291)
+
+- Hovering a QR code now shows the decoded payload as a clickable link: web and Lodica URLs open in a new tab, mail and phone links use the OS handler.
+- Hovering a normal link no longer generates a QR preview. Local decoding, the exact-text display and one-click Copy are unchanged.
+
 ## 1.20.8 (versionCode 290)
 
 - Multiple PCs and phones can be linked at once. Each device has a stable id, name, platform and online state, and remote-control panels let you choose the target device.

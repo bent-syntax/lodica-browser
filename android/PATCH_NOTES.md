@@ -1,3 +1,7 @@
+## 1.20.9
+
+- Desktop QR hover now opens decoded links directly and no longer shows a QR preview while hovering a link. No Android-side change in this release; multi-device remote control from 1.20.8 is unchanged.
+
 ## 1.20.8
 
 - Linked devices now include every PC and phone on the server. Settings shows their names, platforms and online state, and "PC screen" has a picker when more than one PC is linked.

@@ -1,3 +1,8 @@
+## 1.20.9
+
+- Hovering a QR code on a page or in the generator now turns the decoded URL into a clickable link: web and Lodica links open in a new tab, email and phone links open in your system app.
+- Hovering a regular link no longer shows a generated QR code. QR decoding stays local on this device, and non-link payloads still show the exact text with a Copy button.
+
 ## 1.20.8
 
 - Settings and both remote-control panels show all linked devices with names, platform and online state. Pick the phone or PC you want before starting a session.
