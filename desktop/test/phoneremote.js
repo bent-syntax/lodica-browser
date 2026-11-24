@@ -32,7 +32,7 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(js.includes('inv("screen.stop", L.target)'));
   assert.ok(js.includes('inv("screen.frame", after, L.target)'));
   assert.ok(js.includes('inv("devices.list", "android")') && js.includes('inv("devices.setTarget", "android", d.id)'));
-  assert.ok(js.includes('inv("adb.devices")') && js.includes('inv("adb.connect", L.adbAddress.value)'));
+  assert.ok(js.includes('inv("adb.devices")') && js.includes('inv("adb.pairWireless"') && js.includes('inv("adb.select"'));
   assert.ok(js.includes('key("back"') && js.includes('key("home"') && js.includes('key("recents"'));
 
   const main = read('desktop/main/screen.js');
@@ -50,6 +50,14 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   assert.ok(phoneCss.includes('rotate(90deg)'));
   assert.ok(phoneCss.includes('var(--raised)') && phoneCss.includes('var(--line)'));
   assert.ok(!/(gradient|box-shadow|text-shadow|filter\s*:)/.test(phoneCss));
+
+  const settings = read('android/app/src/main/java/be/syntaxya/lodica/ui/Settings.kt');
+  assert.ok(settings.includes('val url = PcTabs.safeUrl(t.url)'));
+  assert.ok(settings.includes('runCatching { TabManager.open(url); Ui.screen = Screen.Browser }'));
+  assert.ok(settings.includes('val stray = TabManager.tabs.firstOrNull { it !in before }'));
+  assert.ok(settings.includes('"That tab has an invalid address"'));
+  const pcTabs = read('android/app/src/main/java/be/syntaxya/lodica/engine/PcTabs.kt');
+  assert.ok(pcTabs.includes('fun safeUrl(raw: String?): String') && pcTabs.includes('s.length > 2000'));
 
   const rc = read('android/app/src/main/java/be/syntaxya/lodica/engine/RemoteControl.kt');
   assert.ok(rc.includes('ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE'));

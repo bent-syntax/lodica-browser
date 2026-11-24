@@ -116,26 +116,52 @@ function openPhoneScreen() {
     };
     renderTargets();
 
-    // ADB discovery and Wireless ADB connection. Pairing remembers which serial belongs to the linked phone id.
+    // ADB: pair once with the phone's six-digit wireless code. That phone is remembered and reconnects itself later.
     L.adb = h("div", { class: "remote-adb" });
+    const chooseAdb = async (serial) => {
+      const r = await inv("adb.select", serial);
+      if (!r || !r.ok) { toast(r && r.error || "Could not select that phone"); return false; }
+      L.target = await inv("devices.target", "android") || L.target;
+      renderTargets();
+      after = 0;
+      refreshAdb();
+      return true;
+    };
     const refreshAdb = async () => {
       if (L.dead) return;
       const r = await inv("adb.devices") || {};
       clear(L.adb);
-      L.adb.append(h("span", { class: "muted", text: r.error || "ADB devices: " + ((r.devices || []).length) }));
-      for (const dev of r.devices || []) L.adb.append(h("button", {
-        class: "chip" + (r.paired === dev.serial ? " sel" : ""),
-        text: (dev.model || dev.serial) + (dev.online ? "" : " (" + dev.state + ")"),
-        act: async () => { await inv("adb.pair", dev.serial); renderTargets(); refreshAdb(); },
-      }));
+      const list = r.devices || [];
+      L.adb.append(h("span", { class: "muted", text: r.error || (list.length ? "Paired devices" : "No paired devices yet") }));
+      for (const dev of list) {
+        const row = h("div", { class: "adb-device" });
+        row.append(h("button", {
+          class: "chip" + (r.paired === dev.serial ? " sel" : ""),
+          text: (dev.model || dev.serial) + (dev.online ? "" : " (" + (dev.state || "offline") + ")"),
+          act: () => chooseAdb(dev.serial),
+        }));
+        row.append(h("button", { class: "ib", title: "Forget this phone", text: "✕", act: async () => { await inv("adb.forget", dev.serial); refreshAdb(); } }));
+        L.adb.append(row);
+      }
     };
-    L.adbAddress = h("input", { class: "field", placeholder: "192.168.1.20:5555", "aria-label": "Wireless ADB address" });
+    L.adbAddress = h("input", { class: "field", placeholder: "Pairing address 192.168.1.20:4444", "aria-label": "Wireless pairing address" });
+    L.adbCode = h("input", { class: "field", placeholder: "Code (6 digits)", "aria-label": "Wireless pairing code", maxlength: "6", inputmode: "numeric", autocomplete: "one-time-code" });
+    L.adbConnectAddress = h("input", { class: "field", placeholder: "Connection address (if needed)", "aria-label": "Wireless connection address" });
+    const adbPairWireless = async () => {
+      const r = await inv("adb.pairWireless", L.adbAddress.value, L.adbCode.value, L.adbConnectAddress.value);
+      toast(r && r.ok ? "Paired. Select this phone any time." : (r && (r.error || r.output)) || "Could not pair");
+      if (r && r.ok) {
+        L.adbAddress.value = ""; L.adbCode.value = ""; L.adbConnectAddress.value = "";
+        await chooseAdb(r.serial);
+      } else refreshAdb();
+    };
     const adbConnect = async () => {
-      const r = await inv("adb.connect", L.adbAddress.value);
+      const r = await inv("adb.connect", L.adbConnectAddress.value);
       toast(r && r.ok ? "Connected" : (r && (r.error || r.output)) || "Could not connect");
-      if (r && r.ok) { L.adbAddress.value = ""; refreshAdb(); }
+      if (r && r.ok) { L.adbConnectAddress.value = ""; await chooseAdb(r.serial); }
     };
-    L.adbAddress.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adbConnect(); } });
+    L.adbCode.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adbPairWireless(); } });
+    L.adbConnectAddress.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); adbConnect(); } });
     refreshAdb();
 
     L.frame = h("div", { class: "phone-frame" }, h("div", { class: "phone-frame-box" }, L.img));
@@ -169,7 +195,9 @@ function openPhoneScreen() {
           ib("close", "Close phone screen", () => L.close())),
         h("div", { class: "remote-targets-wrap" }, h("span", { class: "muted", text: "Control phone:" }), L.picker),
         h("div", { class: "remote-adb-wrap" }, h("span", { class: "muted", text: "ADB:" }), L.adb,
-          h("div", { class: "remote-adb-connect" }, L.adbAddress, h("button", { class: "chip", text: "Connect", act: adbConnect }))),
+          h("div", { class: "muted adb-hint", text: "On the phone: Developer options → Wireless debugging → Pair device using pairing code. Pair once; it reconnects itself after that." }),
+          h("div", { class: "remote-adb-connect" }, L.adbAddress, L.adbCode, h("button", { class: "chip", text: "Pair", act: adbPairWireless })),
+          h("div", { class: "remote-adb-connect" }, L.adbConnectAddress, h("button", { class: "chip", text: "Connect", act: adbConnect }))),
         h("div", { class: "phone-keys" }, key("back", "Back", "Phone back button"), key("home", "Home", "Phone home button"), key("recents", "Recent apps", "Phone recent apps"), key("notifications", "Notifications", "Pull down the notifications")),
         L.status, L.frame,
         h("div", { class: "phone-send" }, L.text, h("button", { class: "chip", text: "Send", act: sendText }))));

@@ -125,13 +125,24 @@ function roomReplyTo(m) {
   ROOM.L.ta.focus();
 }
 
-// Reaction picker: a small row of emoji at the pointer; picking one sends it as a reaction to the message.
+// Reaction picker: a small row of emoji to the LEFT of the pointer; opening rightwards clipped it at the window edge.
 function roomReactMenu(m, e) {
   document.querySelector(".react-menu")?.remove();
-  const bar = h("div", { class: "react-menu", style: "position:fixed;z-index:9999;display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--raised,#2B2E33);border:1px solid var(--line,#33363C);left:" + Math.max(8, Math.min(e.clientX, innerWidth - 220)) + "px;top:" + Math.max(8, e.clientY - 44) + "px" });
+  const bar = h("div", { class: "react-menu", style: "position:fixed;z-index:9999;display:flex;gap:4px;padding:4px;border-radius:12px;background:var(--raised,#2B2E33);border:1px solid var(--line,#33363C);left:8px;top:8px" });
   for (const x of ["👍", "❤️", "😂", "😮", "😢", "🔥"]) bar.append(h("button", { class: "ib", text: x, act: () => { bar.remove(); inv("room.send", x, m.id); } }));
   bar.append(h("button", { class: "btn", text: "Reply", act: () => { bar.remove(); roomReplyTo(m); } }));
   document.body.append(bar);
+  // Measure after it is in the DOM: the row is wider than 220px with the Reply button on smaller translations.
+  const place = () => {
+    if (!bar.isConnected) return;
+    const w = Math.min(bar.offsetWidth || 260, innerWidth - 16), hh = Math.min(bar.offsetHeight || 44, innerHeight - 16);
+    const x = Number(e.clientX) || 0, y = Number(e.clientY) || 0;
+    // Left of the pointer, but never past either window edge (the row is wider than 220px in some languages).
+    bar.style.left = Math.max(8, Math.min(Math.round(x - w - 8), innerWidth - w - 8)) + "px";
+    bar.style.top = Math.max(8, Math.min(Math.round(y - hh / 2), innerHeight - hh - 8)) + "px";
+  };
+  place();
+  requestAnimationFrame(place);
   setTimeout(() => document.addEventListener("click", () => bar.remove(), { once: true }), 0);
 }
 // Per-user bubble colour, kept in prefs.chatColors by username ("" is your own bubble).

@@ -191,6 +191,7 @@ function wire(t, wc) {
     snapshot(t);
     if (!t.private && !isErr) history.add(url);
     persist(); pushTab(t);
+    require("./qrhover").invalidate(wc); // a decoded QR belongs to the old page, never reuse it after navigation
   });
   wc.on("did-navigate-in-page", (_, url, isMainFrame) => {
     if (!isMainFrame) return;
@@ -200,6 +201,7 @@ function wire(t, wc) {
     snapshot(t);
     if (!t.private) history.add(url, t.title);
     persist(); pushTab(t);
+    require("./qrhover").invalidate(wc);
   });
   wc.on("did-start-loading", () => { t.loading = true; t.progress = 0.1; pushTab(t); });
   wc.on("dom-ready", () => { t.progress = 0.7; pushTab(t); });

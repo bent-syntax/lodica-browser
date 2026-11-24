@@ -94,6 +94,17 @@ body.ov #layers{z-index:60}
 .hoverqr.qr-decoded .qr-url{max-width:320px;max-height:160px;overflow:hidden;color:var(--text);font-size:13px;white-space:pre-wrap;word-break:break-word}
 .hoverqr.qr-decoded .qr-open{color:var(--accent-ink);text-decoration:underline;cursor:pointer;pointer-events:auto}
 .hoverqr.qr-decoded .qr-open:hover{text-decoration:none}
+.hoverqr.qr-decoded.qr-page{pointer-events:none}
+.hoverqr.qr-decoded.qr-page .qr-open,.hoverqr.qr-decoded.qr-page .chip{pointer-events:auto}
+.lyrics-panel{position:fixed;right:16px;bottom:72px;width:min(380px,calc(100vw - 32px));max-height:min(52vh,460px);display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--surface,#202226);border:1px solid var(--line,#33363C);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:55;pointer-events:none}
+.lyrics-panel button,.lyrics-panel .lyrics-lines{pointer-events:auto}
+.lyrics-head{display:flex;align-items:center;gap:8px}
+.lyrics-title{flex:1;min-width:0;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lyrics-lines{display:flex;flex-direction:column;gap:6px;overflow:auto;max-height:360px}
+.lyrics-line{font-size:15px;line-height:1.35;color:var(--muted)}
+.lyrics-line.cur{color:var(--accent-ink);font-weight:600}
+.lyrics-line.past{opacity:.5}
+.lyrics-muted{font-size:12px;color:var(--muted)}
 /* dialog (prompts) */
 .dialog{position:absolute;left:50%;top:50%;width:calc(100% - 48px);max-width:400px;transform:translate(-50%,-46%) scale(.98);background:var(--raised);
   border-radius:10px;padding:22px 22px 14px;box-shadow:var(--shadow,0 8px 24px rgba(0,0,0,.22));transition:transform var(--t-slow) var(--ease);max-height:calc(100% - 80px);overflow:auto}

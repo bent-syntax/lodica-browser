@@ -55,6 +55,10 @@ async function start(target) {
   if (!getTarget()) return false;
   if (running) return true;
   running = true;
+  // A phone paired once reconnects itself; no address entry is needed on later launches. Wait briefly so the first frame can use it.
+  try {
+    await Promise.race([adb.create().autoConnect(), new Promise((ok) => setTimeout(ok, 1500))]);
+  } catch {}
   const api = runner();
   try { const serial = await ensureSerial(api); if (serial) size = await api.size(serial).catch(() => null); } catch {}
   upload();
@@ -113,13 +117,55 @@ async function text(value, target) {
 }
 
 async function adbDevices() {
-  try { return { devices: await runner().devices(), paired: adb.serialFor(getTarget()) }; }
-  catch (e) { return { devices: [], paired: "", error: String(e && e.message || e).slice(0, 300) }; }
+  try {
+    const live = await runner().devices();
+    const bySerial = new Map(live.map((d) => [d.serial, d]));
+    // Paired phones stay in the list even while asleep/offline, so a remembered device can always be selected.
+    for (const p of adb.pairedList()) if (!bySerial.has(p.serial)) bySerial.set(p.serial, {
+      serial: p.serial, model: p.name || p.serial, state: "offline", online: false, paired: true,
+    });
+    return { devices: [...bySerial.values()], paired: adb.serialFor(getTarget()), error: "" };
+  } catch (e) {
+    const devices = adb.pairedList().map((p) => ({ serial: p.serial, model: p.name || p.serial, state: "offline", online: false, paired: true }));
+    return { devices, paired: adb.serialFor(getTarget()), error: String(e && e.message || e).slice(0, 300) };
+  }
 }
-async function adbConnect(address) { return runner().connect(address); }
-function adbPair(serial) { const ok = adb.pairSerial(getTarget(), serial); if (ok) size = null; return ok; }
+async function adbConnect(address) {
+  const r = await runner().connect(address);
+  if (r && r.ok) {
+    const existing = adb.pairedList().find((p) => p.serial === address);
+    adb.rememberPaired(address, existing && existing.name);
+    return { ...r, serial: address };
+  }
+  return r;
+}
+function adbPair(serial) {
+  if (!getTarget()) return false;
+  const ok = adb.pairSerial(getTarget(), serial);
+  if (ok) { adb.rememberPaired(serial); size = null; }
+  return ok;
+}
+async function adbPairWireless(address, code, connectionAddress) {
+  if (!getTarget()) return { ok: false, error: "Link a phone first" };
+  const r = await runner().pairWireless(address, code, connectionAddress);
+  if (r && r.ok) {
+    adb.pairSerial(getTarget(), r.serial);
+    adb.rememberPaired(r.serial, r.model);
+    size = null;
+  }
+  return r;
+}
+async function adbSelect(serial) {
+  const s = adb.cleanSerial(serial);
+  if (!s || !getTarget()) return { ok: false, error: "Link a phone first" };
+  adb.pairSerial(getTarget(), s);
+  const conn = adb.isWirelessSerial(s) ? await adb.create().connectSerial(s) : { ok: true };
+  size = null;
+  return { ok: !!conn.ok, error: conn.error || "", serial: s };
+}
+function adbForget(serial) { return adb.forgetPaired(serial); }
 
 module.exports = {
   frame, stop, input, text, start, target: getTarget, setTarget,
-  adbDevices, adbConnect, adbPair,
+  adbDevices, adbConnect, adbPair, adbPairWireless, adbSelect, adbForget,
 };

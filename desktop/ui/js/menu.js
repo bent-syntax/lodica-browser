@@ -139,6 +139,7 @@ function openMenuList() {
         relay ? row("inbox", "Inbox", () => openInbox()) : null),
       group(
         row("chat", "Server chat", () => openRoom(), { dis: !relay }),
+        row("music", "Spotify & lyrics", () => openMusic()),
         row("edit", "Notebook", () => openNotebook(), { dis: !relay }),
         row("phone", "Phone screen", () => openPhoneScreen(), { dis: !relay }),
         row("desktop", "PC to phone", () => openPcScreen(), { dis: !relay || !S.prefs.pcRemote }),

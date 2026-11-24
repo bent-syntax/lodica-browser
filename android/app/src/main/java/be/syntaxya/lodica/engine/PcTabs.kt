@@ -2,6 +2,7 @@ package be.syntaxya.lodica.engine
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -133,6 +134,17 @@ object PcTabs {
     private val DEFAULT_SHARE = setOf("tabs", "settings", "shortcuts", "sites", "passwords", "totp", "character", "notes")
     private val SHARE_IDS = listOf("tabs", "history", "totp", "passwords", "bluetooth", "shortcuts", "settings", "sites", "character", "notes")
     private val LINK = Regex("([A-Za-z0-9_-]{22})#([A-Za-z0-9_-]{43})")
+
+    /** Relay data is untrusted: only bounded, well-formed http(s) addresses may become tabs. */
+    fun safeUrl(raw: String?): String {
+        val s = raw?.trim().orEmpty()
+        if (s.isEmpty() || s.length > 2000 || s.any { it.isWhitespace() || it.isISOControl() }) return ""
+        val u = runCatching { Uri.parse(s) }.getOrNull() ?: return ""
+        val scheme = u.scheme?.lowercase()
+        if (scheme != "https" && scheme != "http") return ""
+        if (u.host.isNullOrEmpty()) return ""
+        return s
+    }
 
     private lateinit var sp: SharedPreferences
     private lateinit var app: Context
@@ -435,13 +447,12 @@ object PcTabs {
                     json.decodeFromString<PcList>(String(c.doFinal(bytes, 12, bytes.size - 12), Charsets.UTF_8))
                 }.onFailure { Log.w(TAG, "decrypt failed", it) }.getOrNull() ?: return@launch
             }
-            val tabs = list.tabs
-                .filter { it.url.startsWith("https://") || it.url.startsWith("http://") }
-                .take(200)
-                .map { RemoteTab(it.title.take(300), it.url) }
-            val hist = list.history.orEmpty().take(1000)
-                .filter { it.url.startsWith("https://") || it.url.startsWith("http://") }
-                .map { Visit(it.url.take(2000), it.title.take(300), it.visits.coerceIn(1, 100000), it.time) }
+            val tabs = list.tabs.mapNotNull { t ->
+                safeUrl(t.url).takeIf { it.isNotEmpty() }?.let { RemoteTab(t.title.take(300), it) }
+            }.take(200)
+            val hist = list.history.orEmpty().mapNotNull { h ->
+                safeUrl(h.url).takeIf { it.isNotEmpty() }?.let { Visit(it, h.title.take(300), h.visits.coerceIn(1, 100000), h.time) }
+            }.take(1000)
             val chats = list.chats.take(100).map { c -> Chat(c.id, c.title.take(80), c.updated, c.messages.takeLast(200).map { ChatMsg(it.role, it.text.take(8000), it.t) }, c.deleted) }
             withContext(Dispatchers.Main) {
                 if (!enabled || rid != readId()) return@withContext

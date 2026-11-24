@@ -19,6 +19,17 @@ function hideQrDecoded() {
   if (QR_DECODE) { QR_DECODE.close(); QR_DECODE = null; }
 }
 
+/** A page QR tooltip is click-through so it cannot steal the hover that created it; its controls re-enable pointer events. */
+function bindQrHold() {
+  if (!QR_DECODE || !QR_DECODE.el) return;
+  for (const b of QR_DECODE.el.querySelectorAll(".qr-open, .chip")) {
+    if (b._qrHold) continue;
+    b._qrHold = true;
+    b.addEventListener("pointerenter", () => inv("qrHold", true));
+    b.addEventListener("pointerleave", () => inv("qrHold", false));
+  }
+}
+
 async function copyQrText(text) {
   if (!text) return;
   try { await navigator.clipboard.writeText(text); toast("Copied QR text"); }
@@ -62,6 +73,7 @@ function showQrDecoded(d) {
   if (!d || typeof d.url !== "string" || !d.url) { hideQrDecoded(); return; }
   const text = d.url;
   const link = qrLink(text);
+  const page = !!d.page;
   const x = Number.isFinite(d.x) ? d.x : (innerWidth || 0) / 2;
   const y = Number.isFinite(d.y) ? d.y : (innerHeight || 0) / 2;
   if (QR_DECODE && !QR_DECODE.closed) {
@@ -72,15 +84,21 @@ function showQrDecoded(d) {
       QR_DECODE.decodedText = text;
     }
     QR_DECODE.openUrl = link;
+    // openLayer's `el` is the wrapper; the click-through class lives on the card inside it.
+    QR_DECODE.el.classList.toggle("qr-page-layer", page);
+    const card = QR_DECODE.el.querySelector(".hoverqr.qr-decoded");
+    if (card) card.classList.toggle("qr-page", page);
+    bindQrHold();
     placeQrDecoded(x, y);
     return;
   }
   const payload = decodedPayload(text);
-  QR_DECODE = openLayer({ key: "qrdecoded", dim: false, cls: "hoverqr-layer qr-decoded-layer", onClose: () => { QR_DECODE = null; } }, () =>
-    h("div", { class: "hoverqr qr-decoded" },
+  QR_DECODE = openLayer({ key: "qrdecoded", dim: false, cls: "hoverqr-layer qr-decoded-layer" + (page ? " qr-page-layer" : ""), onClose: () => { QR_DECODE = null; inv("qrHold", false); } }, () =>
+    h("div", { class: "hoverqr qr-decoded" + (page ? " qr-page" : "") },
       h("div", { class: "t2", text: "Decoded QR" }),
       payload,
       h("button", { class: "chip", text: "Copy", act: () => copyQrText(QR_DECODE && QR_DECODE.decodedText || "") })));
+  bindQrHold();
   QR_DECODE.decodedText = text;
   QR_DECODE.urlEl = payload;
   QR_DECODE.openUrl = link;

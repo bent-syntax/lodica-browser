@@ -84,7 +84,8 @@ function setRow(title, sub, side, act, cls) {
 }
 function setToggle(key, title, sub) {
   const on = !!S.prefs[key];
-  return setRow(title, sub, toggleEl(on), () => setPref(key, !on));
+  // Lyrics are owned by the music module so main starts/stops polling with the toggle.
+  return setRow(title, sub, toggleEl(on), () => key === "musicLyrics" ? inv("music.toggle") : setPref(key, !on));
 }
 function setPref(key, v) { S.prefs[key] = v; inv("prefs.set", key, v); refreshSettings(); }
 function setSelect(title, sub, src, key, conv) {
@@ -113,7 +114,8 @@ function secBrowsing() {
     setToggle("showRedirectOrigin", "Show original domain after redirects", "Address bar shows the site you started from, not the one you were sent to. Lock and security always use the real site"),
     setToggle("desktopDefault", "Desktop sites", "Request desktop pages in new tabs"),
     setSelect("Video quality", "YouTube default. Change per site from the site menu", qs, "quality", Number),
-    setSelect("Site language", null, S.languages, "language")];
+    setSelect("Site language", null, S.languages, "language"),
+    setToggle("musicLyrics", "Spotify lyrics on every tab", "Show a small lyrics panel for the song playing in the Spotify web player")];
 }
 function secDarkPages() {
   return [secHead("Page colours", "pages"), setToggle("darkPages", "Dark mode", "Sites that have a dark mode switch to it"),

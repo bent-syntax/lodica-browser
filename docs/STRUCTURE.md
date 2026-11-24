@@ -54,10 +54,10 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | Path | What it is |
 | --- | --- |
 | `package.json`, `package-lock.json` | Version and scripts. `version` must match the tag on release. |
-| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`, `devices.js` (linked-device registry and target selection), `adb.js` (ADB capture/pair/input), `osinput.js` (OS-level mouse and keyboard injection), `pcscreen.js` (full-OS desktop sharing), `screen.js` (ADB phone screen). |
+| `main/` | Electron main process: `main.js` (entry), `tabs.js`, `store.js`, `relay.js`, `support.js`, `testsession.js` (opt-in remote test session), `search.js`, `downloads.js`, `ai.js`, `aiagent.js` (AI browsing agent), `aitheme.js` (AI theme colours), `keys.js`, `prefs.js`, `devices.js` (linked-device registry and target selection), `adb.js` (ADB capture/pair/input), `osinput.js` (OS-level mouse and keyboard injection), `pcscreen.js` (full-OS desktop sharing), `screen.js` (ADB phone screen), `music.js` (Spotify playback and LRCLIB lyrics state), `qrdecode.js`/`qrhover.js` (local QR decode and hover/click). |
 | `preload/` | Preload scripts exposing IPC to the UI. |
 | `installer.nsh` | NSIS include (: removes older Lodica installs, adds the Start menu entry). |
-| `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/`. |
+| `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/music.js` (Spotify sheet and all-tab lyrics panel), `js/qr.js` (QR tooltip), `js/`. |
 | `pdf/` | Built-in PDF viewer. |
 | `search/` | Search support. `instant.js` builds the instant answer cards (speed test, date, countdowns, timers, converters, calculator). `customtheme.js` applies the custom theme. |
 | `linux/`, `flatpak/` | Linux packaging (AppImage, deb, Flatpak). |

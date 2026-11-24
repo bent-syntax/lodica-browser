@@ -38,6 +38,7 @@ function openSheet(d) {
     aichat: () => openAiChat(),
     ai: () => openAiAnswer(data.q || data.text || "", data.ctx || ""),
     preview: () => data.url && openPreview(data.url),
+    music: () => openMusic(),
   };
   const fn = map[name];
   if (fn) fn(); else console.warn("unknown sheet", name);
@@ -75,6 +76,8 @@ function subscribe() {
   on("prompt", onPrompt);
   on("context", openContext);
   on("qrDecoded", showQrDecoded);
+  on("qrDecodedOpen", openDecoded);
+  on("music", renderMusic);
   on("clipboard", onClipboard);
   on("mail", onMail);
   on("prefs", (d) => { if (d) S.prefs = Object.assign({}, d, { sysAccent: "sysAccent" in d ? d.sysAccent : S.prefs && S.prefs.sysAccent }); loadKeys(); applyTheme(); refreshSettings(); renderBar(); });
@@ -187,6 +190,7 @@ async function start() {
     S.relay = Object.assign({}, S.relay, r.relay || {});
     S.locked = !!r.locked;
     S.pinSet = !!r.pinSet;
+    if (r.music) renderMusic(r.music); // main emits at startup, before this renderer subscribes
   }
   applyTheme();
   renderBar();

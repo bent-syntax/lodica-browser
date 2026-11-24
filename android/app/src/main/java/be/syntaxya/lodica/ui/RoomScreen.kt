@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -373,12 +375,12 @@ private fun Bubble(m: RoomMsg, mine: Boolean, waiting: Boolean = false, reaction
         title = { Text("Message", color = Mist) },
         text = {
             Column {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     REACTIONS.forEach { e ->
-                        Text(e, fontSize = 24.sp, modifier = Modifier.clickable {
+                        Text(e, fontSize = 24.sp, modifier = Modifier.padding(4.dp).clickable {
                             menu = false
                             Room.send(ctx, Room.name(ctx), e, re = m.id) { }
-                        }.padding(4.dp))
+                        })
                     }
                 }
                 if (m.fileId == null) TextButton(onClick = {

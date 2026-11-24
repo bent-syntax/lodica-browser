@@ -413,6 +413,8 @@ body.keep.bt .layer.settings-tab{top:var(--bar-h,44px)}
 .remote-adb{display:flex;flex:1;min-width:0;flex-wrap:wrap;gap:4px}
 .remote-adb-connect{display:flex;gap:4px;width:100%}
 .remote-adb-connect .field{flex:1;min-width:0}
+.adb-device{display:flex;align-items:center;gap:2px}
+.remote-adb-wrap>.adb-hint{width:100%;padding:0;white-space:normal;line-height:1.3}
 /* Phone screen: the docked portrait view and its full-window rotated landscape view */
 .layer.settings-tab.phone-dock .spage{height:100%}
 .layer.settings-tab.phone-dock .phone-keys{display:flex;flex:none;flex-wrap:wrap;gap:8px;padding:0 12px 8px}

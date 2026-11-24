@@ -51,4 +51,15 @@ assert.ok(!read("ui/js/main.js").includes('on("hover", showQrHover)'));
 assert.ok(!read("main/tabs.js").includes("update-target-url"));
 assert.ok(read("ui/ui.css").includes(".hoverqr.qr-decoded .qr-open"));
 assert.ok(read("ui/ui.css").includes(".hoverqr.qr-decoded{") && read("ui/ui.css").includes("pointer-events:auto"));
+assert.ok(read("ui/ui.css").includes(".hoverqr.qr-decoded.qr-page{pointer-events:none}"));
+assert.ok(read("ui/js/main.js").includes('on("qrDecodedOpen", openDecoded)'));
+assert.ok(read("main/commands.js").includes('on("qrHold"'));
+
+const roomUi = read("ui/js/room.js");
+assert.ok(roomUi.includes("to the LEFT of the pointer"));
+assert.ok(roomUi.includes("Math.round(x - w - 8)") && roomUi.includes("innerHeight - hh - 8") && roomUi.includes("innerWidth - w - 8"));
+assert.ok(!roomUi.includes("innerWidth - 220"));
+const roomKt = fs.readFileSync(path.join(__dirname, "..", "..", "android/app/src/main/java/be/syntaxya/lodica/ui/RoomScreen.kt"), "utf8");
+assert.ok(roomKt.includes("horizontalScroll(rememberScrollState())") && roomKt.includes("horizontalArrangement = Arrangement.spacedBy(4.dp)"));
+assert.ok(roomKt.includes("Modifier.padding(4.dp).clickable"));
 console.log("feature batch ok");

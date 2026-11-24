@@ -32,7 +32,7 @@ const DEFAULTS = {
   quality: 720, qualities: {}, userAgent: "DEFAULT", lite: [], compat: [], language: "EN",
   pcTabs: false, pcRemote: false, pcUnlock: "pinphone", themeFrom: "newest", shareHistory: false, linkShare: { tabs: true }, ai: false, aiAlways: false, aiModel: "claude-haiku-5-5", aiAgentMode: "edit", aiAgentMaxSteps: 20, aiChatDir: "", trusted: [], showRedirectOrigin: false,
   siteOverrides: {}, quickSites: [], quickHidden: [],dnsRules: [], searchWords: [], menuPins: null, menuGrid: false, customTheme: null, savedThemes: [], themePlugin: "", autoTop: true, shortcutNames: true, startNotes: true, startPlanner: false, notesBook: "", plannerIcs: "", plannerColors: true, plannerTz: "", plannerSlots: "", plannerPos: "below", notesPos: "left", bgHistory: [], noDummy: [], totpSkip: [],
-  emojiPicker: true, claimedThemes: [], holidayFx: true,
+  emojiPicker: true, claimedThemes: [], holidayFx: true, musicLyrics: false,
   betaUnlocked: false, betaEnabled: false,
   uiAlpha: 100, uiBlur: false,
   theme: "system", vertTabs: false, barBottom: false, vertWidth: 256, vertCollapsed: true, historySuggest: true, ramSaving: true,

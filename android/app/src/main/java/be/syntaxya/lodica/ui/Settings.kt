@@ -507,9 +507,27 @@ fun SettingsScreen() {
                             modifier = Modifier.padding(start = 20.dp, top = 8.dp, bottom = 2.dp),
                         )
                         PcTabs.remote.take(40).forEach { t ->
+                            // Linked tab titles and URLs are untrusted relay data: validate before a Gecko session is created.
+                            val url = PcTabs.safeUrl(t.url)
+                            val openable = url.isNotEmpty()
                             Column(
                                 Modifier.fillMaxWidth()
-                                    .clickable { TabManager.open(t.url); Ui.screen = Screen.Browser }
+                                    .clickable {
+                                        if (!openable) {
+                                            Toast.makeText(ctx, "That tab has an invalid address", Toast.LENGTH_SHORT).show()
+                                            return@clickable
+                                        }
+                                        // open() adds the tab before select() creates its session. Roll back that half-open tab.
+                                        val before = TabManager.tabs.toList()
+                                        val previous = TabManager.current
+                                        val failed = runCatching { TabManager.open(url); Ui.screen = Screen.Browser }.isFailure
+                                        if (failed) {
+                                            val stray = TabManager.tabs.firstOrNull { it !in before }
+                                            if (stray != null) TabManager.close(stray)
+                                            else if (previous != null && previous in TabManager.tabs) runCatching { TabManager.select(previous) }
+                                            Toast.makeText(ctx, "Could not open that tab", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                     .padding(horizontal = 20.dp, vertical = 6.dp),
                             ) {
                                 Text(t.title.ifBlank { t.url }, color = Mist, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)

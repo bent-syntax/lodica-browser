@@ -83,6 +83,8 @@ assert.strictEqual(qrhover.clampRect({ x: 0, y: 0, width: 10, height: 10 }), nul
 assert.deepStrictEqual(qrhover.cursorPoint({ x: 5, y: 6, cx: 12, cy: 34 }, { x: 0, y: 44 }, { width: 1000, height: 800 }), { x: 12, y: 78 });
 
 const flush = () => new Promise(r => setImmediate(() => setImmediate(r)));
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const stripNonce = (v) => { const c = plain(v); if (c[1] && c[1].nonce) delete c[1].nonce; return c; };
 
 async function mainHandlerTests() {
   let now = 1000;
@@ -94,14 +96,30 @@ async function mainHandlerTests() {
     capturePage: async rect => { captures++; captureRects.push(rect); return fakeImage(FIXTURE); },
   };
   const tab = { view: { webContents: wc, getBounds: () => ({ x: 0, y: 44, width: 800, height: 600 }) } };
-  const sender = {};
-  qrhover.init({ tabs: { byContents: s => s === sender ? tab : null }, ui: { push: (ev, d) => pushes.push({ ev, d }) }, now: () => now });
+  const echoes = [], sender = { send: (...a) => echoes.push(a) };
+  qrhover.init({ tabs: { byContents: s => s === sender ? tab : null }, ui: { push: (ev, d) => pushes.push({ ev, d }) }, now: () => now, clearDelay: 0 });
 
-  handlers.qrHover({ sender }, { x: 5, y: 6, width: 200, height: 200, tag: "img", cx: 10, cy: 20 });
+  handlers.qrHover({ sender }, { x: 5, y: 6, width: 200, height: 200, tag: "img", cx: 10, cy: 20, key: "img|5|6|200|200|", nonce: "1000|1" });
   await flush();
   assert.strictEqual(captures, 1);
   assert.deepStrictEqual(captureRects[0], { x: 5, y: 6, width: 200, height: 200 });
-  assert.deepStrictEqual(pushes.pop(), { ev: "qrDecoded", d: { url: QR_TEXT, x: 10, y: 64 } });
+  assert.deepStrictEqual(pushes.pop(), { ev: "qrDecoded", d: { url: QR_TEXT, x: 10, y: 64, page: true } });
+  const echo = echoes.pop();
+  assert.strictEqual(echo[0], "qrResult");
+  assert.strictEqual(echo[1].url, QR_TEXT);
+  assert.ok(echo[1].key && echo[1].nonce, "the echo identifies the exact crop");
+
+  // Clicking the decoded QR opens the payload; an undecoded sender cannot trigger an open.
+  handlers.qrClick({ sender: {} });
+  assert.strictEqual(pushes.length, 0);
+  handlers.qrClick({ sender });
+  assert.deepStrictEqual(pushes.pop(), { ev: "qrDecodedOpen", d: QR_TEXT });
+
+  // A page navigation drops the cached payload so an old QR link cannot open on the new page.
+  qrhover.invalidate(wc);
+  assert.deepStrictEqual(pushes.pop().d, { url: "", x: 0, y: 0, page: true });
+  handlers.qrClick({ sender });
+  assert.strictEqual(pushes.length, 0);
 
   now += 10;
   handlers.qrHover({ sender }, { x: 5, y: 6, width: 200, height: 200, tag: "svg", cx: 11, cy: 21 });
@@ -112,7 +130,7 @@ async function mainHandlerTests() {
   handlers.qrHover({ sender }, { x: 7, y: 8, width: 200, height: 200, tag: "canvas", cx: 30, cy: 40 });
   await flush();
   assert.strictEqual(captures, 2);
-  assert.deepStrictEqual(pushes.pop().d, { url: QR_TEXT, x: 30, y: 84 });
+  assert.deepStrictEqual(pushes.pop().d, { url: QR_TEXT, x: 30, y: 84, page: true });
 
   const before = pushes.length;
   handlers.qrHover({ sender: {} }, { x: 1, y: 1, width: 100, height: 100, tag: "img", cx: 1, cy: 1 });
@@ -120,13 +138,13 @@ async function mainHandlerTests() {
   assert.strictEqual(pushes.length, before); // unknown sender never reaches capturePage
 
   handlers.qrHover({ sender }, { clear: true });
-  assert.deepStrictEqual(pushes.pop().d, { url: "", x: 0, y: 0 });
+  assert.deepStrictEqual(pushes.pop().d, { url: "", x: 0, y: 0, page: true });
 
   // Latest wins while a capture is in flight: only the newest rect may publish.
   const s2 = {}, resolvers = [], pushes2 = [];
   const wc2 = { isDestroyed: () => false, getSize: () => ({ width: 800, height: 600 }), capturePage: () => new Promise(r => resolvers.push(r)) };
   const tab2 = { view: { webContents: wc2, getBounds: () => ({ x: 0, y: 44, width: 800, height: 600 }) } };
-  qrhover.init({ tabs: { byContents: s => s === s2 ? tab2 : null }, ui: { push: (ev, d) => pushes2.push(d) }, now: () => now });
+  qrhover.init({ tabs: { byContents: s => s === s2 ? tab2 : null }, ui: { push: (ev, d) => pushes2.push(d) }, now: () => now, clearDelay: 0 });
   handlers.qrHover({ sender: s2 }, { x: 1, y: 1, width: 100, height: 100, tag: "img", cx: 1, cy: 1 });
   await flush();
   assert.strictEqual(resolvers.length, 1);
@@ -140,13 +158,49 @@ async function mainHandlerTests() {
   assert.strictEqual(resolvers.length, 1);
   resolvers.shift()(fakeImage(FIXTURE));
   await flush();
-  assert.deepStrictEqual(pushes2, [{ url: QR_TEXT, x: 2, y: 46 }]);
+  assert.deepStrictEqual(pushes2, [{ url: QR_TEXT, x: 2, y: 46, page: true }]);
+}
+
+/** The delayed clear must survive a throttled re-hover and respect the tooltip's Copy/Open controls. */
+async function delayedClearTests() {
+  let now = 5000;
+  const pushes = [];
+  const wc = { isDestroyed: () => false, getSize: () => ({ width: 800, height: 600 }), capturePage: async () => fakeImage(FIXTURE) };
+  const tab = { view: { webContents: wc, getBounds: () => ({ x: 0, y: 44, width: 800, height: 600 }) } };
+  const sender = {};
+  qrhover.init({ tabs: { byContents: s => s === sender ? tab : null }, ui: { push: (ev, d) => pushes.push(d) }, now: () => now, clearDelay: 100 });
+  const hover = (x) => handlers.qrHover({ sender }, { x, y: 6, width: 100, height: 100, tag: "img", cx: x, cy: 20 });
+
+  hover(1);
+  await flush();
+  assert.strictEqual(pushes.pop().url, QR_TEXT);
+  qrhover.setHold(true);
+  handlers.qrHover({ sender }, { clear: true });
+  await sleep(150);
+  assert.strictEqual(pushes.length, 0, 'holding Copy/Open keeps the tooltip open');
+  qrhover.setHold(false);
+  await sleep(150);
+  assert.deepStrictEqual(pushes.pop(), { url: "", x: 0, y: 0, page: true });
+
+  // Clear → re-hover inside the throttle window: the pending timer must be cancelled even though no new crop is sent.
+  now += 10;
+  hover(2);
+  await flush();
+  pushes.length = 0;
+  now += 10;
+  handlers.qrHover({ sender }, { clear: true });
+  now += 10;
+  hover(2);
+  await flush();
+  await sleep(160);
+  assert.strictEqual(pushes.length, 0, 'a throttled re-hover must not let the old clear hide the tooltip');
+  qrhover.setHold(false);
 }
 
 function loadOverlay(nowRef) {
-  const sends = [], listeners = {};
+  const sends = [], listeners = {}, ipc = {};
   const sandbox = {
-    ipcRenderer: { send: (...a) => sends.push(a) },
+    ipcRenderer: { send: (...a) => sends.push(a), on: (n, f) => { ipc[n] = f; } },
     window: {}, location: { protocol: "https:" }, scrollX: 0, scrollY: 0,
     document: { addEventListener: (n, f) => { (listeners[n] = listeners[n] || []).push(f); } },
     addEventListener: (n, f) => { (listeners[n] = listeners[n] || []).push(f); },
@@ -156,7 +210,8 @@ function loadOverlay(nowRef) {
   sandbox.window.top = sandbox.window;
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "scripts", "overlay", "qrhover.js"), "utf8"), sandbox);
-  return { sends, sandbox, fire: (name, ev) => { for (const f of listeners[name] || []) f(ev); } };
+  return { sends, sandbox, fire: (name, ev) => { for (const f of listeners[name] || []) f(ev); },
+    emit: (name, d) => { if (ipc[name]) ipc[name]({}, d); } };
 }
 
 function element(tag, rect, src = "") {
@@ -181,7 +236,7 @@ function overlayTests() {
   const qr = element("qr", { left: 70, top: 80, width: 64, height: 64 });
 
   o.fire("pointermove", move(img, 12, 22));
-  assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22 }]);
+  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22, key: "img|10|20|100|100|https://example.com/qr.png" }]);
   o.fire("pointermove", move(canvas, 32, 42)); // throttled
   assert.strictEqual(o.sends.length, 0);
   now = 130;
@@ -205,7 +260,54 @@ function overlayTests() {
   now = 650;
   o.sandbox.scrollX = 100; o.sandbox.scrollY = 50;
   o.fire("pointermove", move(img, 100, 110)); // rect is in document coordinates, cursor stays in viewport coordinates
-  assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110 }]);
+  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110, key: "img|110|70|100|100|https://example.com/qr.png" }]);
+}
+
+function overlayClickTests() {
+  let now = 0;
+  const o = loadOverlay(() => now);
+  const img = element("img", { left: 10, top: 20, width: 100, height: 100 }, "https://example.com/qr.png");
+  const other = element("img", { left: 10, top: 20, width: 100, height: 100 }, "https://example.com/other.png");
+  const click = (el = img) => ({ target: el, composedPath: () => [el], clientX: 30, clientY: 40, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } });
+  o.fire("pointermove", move(img, 12, 22));
+  const hover = o.sends.pop()[1];
+
+  // A plain image click must pass through to the page.
+  let e = click();
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, undefined);
+  assert.strictEqual(o.sends.length, 0);
+
+  // A result for another crop or without a nonce must not be reused.
+  for (const bad of [
+    { key: "img|0|0|1|1|", nonce: hover.nonce, url: QR_TEXT },
+    { key: hover.key, url: QR_TEXT },
+    { key: "", nonce: hover.nonce, url: QR_TEXT },
+  ]) {
+    o.emit("qrResult", bad);
+    e = click();
+    o.fire("click", e);
+    assert.strictEqual(e.prevented, undefined);
+    assert.strictEqual(o.sends.length, 0);
+  }
+
+  // Only a confirmed link for the element under the pointer opens.
+  o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: QR_TEXT });
+  e = click(other);
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, undefined, 'a click on a replaced element is not intercepted');
+  e = click();
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, true);
+  assert.strictEqual(e.stopped, true);
+  assert.deepStrictEqual(plain(o.sends.pop()), ["qrClick", { url: QR_TEXT }]);
+
+  // A decoded non-link payload never opens or blocks a click.
+  o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: "plain text" });
+  e = click();
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, undefined);
+  assert.strictEqual(o.sends.length, 0);
 }
 
 function uiDecodedLinkTests() {
@@ -214,12 +316,21 @@ function uiDecodedLinkTests() {
     const el = {
       tag, attrs: { ...(attrs || {}) }, kids: [], listeners: {}, parentNode: null,
       style: {}, offsetWidth: 260, offsetHeight: 72,
+      classList: {
+        toggle(c, on) { const set = new Set(String(el.attrs.class || "").split(/\s+/).filter(Boolean)); const add = on === undefined ? !set.has(c) : !!on; if (add) set.add(c); else set.delete(c); el.attrs.class = [...set].join(" "); },
+        add(c) { this.toggle(c, true); }, remove(c) { this.toggle(c, false); },
+      },
       append(...items) { for (const k of items) if (k && typeof k === "object") { k.parentNode = el; el.kids.push(k); } },
       replaceChild(next, old) { const i = el.kids.indexOf(old); if (i >= 0) el.kids[i] = next; next.parentNode = el; old.parentNode = null; },
-      querySelector(sel) {
-        const want = sel.split(".").filter(Boolean).filter(c => c !== "hoverqr" && c !== "qr-decoded");
-        return want.every(c => (el.attrs.class || "").split(/\s+/).includes(c)) ? el : null;
+      querySelectorAll(sel) {
+        const want = sel.split(",").flatMap(s => s.trim().split(".").filter(Boolean));
+        const hit = (n) => want.every(c => String(n.attrs.class || "").split(/\s+/).includes(c));
+        const out = [];
+        const walk = (n) => { for (const k of n.kids || []) { if (hit(k)) out.push(k); walk(k); } };
+        walk(el);
+        return out;
       },
+      querySelector(sel) { return this.querySelectorAll(sel)[0] || null; },
       addEventListener(n, f) { (el.listeners[n] = el.listeners[n] || []).push(f); },
       removeAttribute(n) { delete el.attrs[n]; },
       setAttribute(k, v) { el.attrs[k] = v; },
@@ -243,8 +354,9 @@ function uiDecodedLinkTests() {
   const sandbox = {
     h,
     openLayer(opts, build) {
-      const el = build();
-      const layer = { el, body: el, closed: false, close() { layer.closed = true; if (opts.onClose) opts.onClose(); } };
+      const body = build();
+      const el = node("div", { class: "layer" }, [body]); // the real openLayer returns a wrapper around the card
+      const layer = { el, body, closed: false, close() { layer.closed = true; if (opts.onClose) opts.onClose(); } };
       return layer;
     },
     inv(...args) { calls.push(args); return Promise.resolve(null); },
@@ -259,7 +371,8 @@ function uiDecodedLinkTests() {
 
   sandbox.showQrDecoded({ url: QR_TEXT, x: 10, y: 20 });
   let layer = read("QR_DECODE");
-  let anchor = layer.el.kids.find(k => k.tag === "a");
+  const findAnchor = (l) => l.body.kids.find(k => k.tag === "a");
+  let anchor = findAnchor(layer);
   assert.ok(anchor, "decoded URL must be a real anchor");
   assert.strictEqual(anchor.attrs.href, QR_TEXT);
   assert.strictEqual(anchor.attrs.class, "qr-url qr-open");
@@ -269,10 +382,20 @@ function uiDecodedLinkTests() {
 
   sandbox.showQrDecoded({ url: "not a link", x: 30, y: 40 });
   layer = read("QR_DECODE");
-  assert.ok(layer.el.kids.every(k => k.tag !== "a"), "plain QR text stays exact text");
+  assert.ok(layer.body.kids.every(k => k.tag !== "a"), "plain QR text stays exact text");
+
+  // Switching between page and generator tooltips must not leave the click-through class on the card.
+  sandbox.showQrDecoded({ url: QR_TEXT, x: 10, y: 20, page: true });
+  layer = read("QR_DECODE");
+  assert.ok(layer.el.attrs.class.includes("qr-page-layer"));
+  assert.ok(layer.body.attrs.class.includes("qr-page"));
+  sandbox.showQrDecoded({ url: QR_TEXT, x: 10, y: 20, page: false });
+  layer = read("QR_DECODE");
+  assert.ok(!layer.el.attrs.class.includes("qr-page-layer"));
+  assert.ok(!layer.body.attrs.class.includes("qr-page"));
 
   sandbox.showQrDecoded({ url: "mailto:someone@example.com", x: 40, y: 50 });
-  anchor = read("QR_DECODE").el.kids.find(k => k.tag === "a");
+  anchor = findAnchor(read("QR_DECODE"));
   assert.ok(anchor);
   anchor.listeners.click[0]({ preventDefault() {} });
   assert.deepStrictEqual(plain(calls.pop()), ["openExternal", "mailto:someone@example.com"]);
@@ -292,6 +415,13 @@ function staticGuards() {
   assert.ok(main.includes("tabs.byContents(e.sender)"));
   assert.ok(main.includes("capturePage(job.rect)"));
   assert.ok(main.includes('ui.push("qrDecoded"'));
+  assert.ok(main.includes('ui.push("qrDecodedOpen"') && overlay.includes('send("qrClick"'));
+  assert.ok(!/pointerleave", clear, true/.test(overlay));
+  assert.ok(overlay.includes('lastNonce') && main.includes('job.nonce'));
+  assert.ok(main.includes('invalidate(wc)') && read("main/tabs.js").includes('require("./qrhover").invalidate(wc)'));
+  assert.ok(qrhover.safeLink(" https://example.com/a ") && !qrhover.safeLink("mailtoevil:x@y.z"));
+  const generated = read("preload/content.js");
+  assert.ok(generated.includes('send("qrClick"') && generated.includes('on("qrResult"'));
   const ui = read("ui/js/qr.js");
   assert.ok(!/function showQrHover/.test(ui));
   assert.ok(!read("ui/js/main.js").includes('on("hover", showQrHover)'));
@@ -301,7 +431,9 @@ function staticGuards() {
 
 (async () => {
   await mainHandlerTests();
+  await delayedClearTests();
   overlayTests();
+  overlayClickTests();
   uiDecodedLinkTests();
   staticGuards();
   // qrcode is a runtime dependency that is not installed in every test checkout; stub only that module.

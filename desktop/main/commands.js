@@ -1,6 +1,7 @@
 // Renderer commands (see IPC.md), registered on the ui dispatcher.
 const keys = require("./keys");
 const sysTheme = require("./sysaccent");
+const music = require("./music");
 const { app, clipboard, shell, session, net, WebContentsView, Menu, screen } = require("electron");
 
 const PANEL_W = 360;
@@ -190,15 +191,17 @@ function initPayload() {
     version: require("../package.json").lodicaVersion || app.getVersion(), chromium: process.versions.chrome, ghostery: d.net.VERSION,
     relay: { available: !!d.relay.available, domain: d.relay.DOMAIN }, ai: d.ai.status(),
     frameless: !!global.lodicaFrameless,
+    music: music.current(),
     locked: d.tabs.isLocked() && o.some(x => x.private), pinSet: d.vault.pinSet(),
   };
 }
 
 function init(deps) {
   d = deps;
-  require("./devices").init();
-  require("./pcscreen").init(d);
   const { ui, tabs, prefs, helper, relay, room, history, vault, ai, meter, downloads, pctabs, remind, webapps, perms, serial, updater, extensions, support, testsession } = d;
+  require("./devices").init();
+  music.init({ tabs, ui, prefs, fetch: (u, o) => net.fetch(u, o) });
+  require("./pcscreen").init(d);
   const on = (cmd, fn) => ui.handle(cmd, fn);
   on("drawTheme", v => { if (v && typeof v === "object") drawTheme = Object.fromEntries(Object.entries(v).filter(([k, x]) => typeof x === "string" && x.length < 200 && !/[;{}<]/.test(x))); });
   const host = () => cur()?.host || "";
@@ -552,9 +555,16 @@ function init(deps) {
   on("adb.devices", () => require("./screen").adbDevices());
   on("adb.connect", (address) => require("./screen").adbConnect(str(address)));
   on("adb.pair", (serial) => require("./screen").adbPair(str(serial)));
+  on("adb.pairWireless", (address, code, connectionAddress) => require("./screen").adbPairWireless(str(address), str(code), str(connectionAddress)));
+  on("adb.select", (serial) => require("./screen").adbSelect(str(serial)));
+  on("adb.forget", (serial) => require("./screen").adbForget(str(serial)));
+  on("music.play", (input) => music.play(str(input)));
+  on("music.toggle", () => music.setOn(!music.current().on));
+  on("music.state", () => music.current());
   on("qr", (url) => require("./qr").data(url));
   on("qr.svg", (url) => require("./qr").svg(url));
   on("qr.decode", (dataUrl) => require("./qrdecode").decodeDataUrl(str(dataUrl)));
+  on("qrHold", (v) => { require("./qrhover").setHold(!!v); return true; });
   on("pcscreen.start", (phoneId) => require("./pcscreen").start(phoneId));
   on("pcscreen.stop", () => require("./pcscreen").stop());
   on("pcscreen.state", () => require("./pcscreen").on());
