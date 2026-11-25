@@ -130,6 +130,17 @@ function pairedList() {
     .map(([serial, name]) => ({ serial, name: typeof name === "string" ? name : "", wireless: isWirelessSerial(serial) }));
 }
 
+/** Lines look like `adb-ABC-xyz  _adb-tls-connect._tcp  192.168.1.5:37123`. */
+function parseMdns(text) {
+  const out = [];
+  for (const line of String(text || "").split(/\r?\n/)) {
+    const m = /^\s*(\S+)\s+_adb-tls-connect\._tcp\.?\s+(\d{1,3}(?:\.\d{1,3}){3}:\d{1,5})/.exec(line);
+    const address = m && cleanAddress(m[2]);
+    if (address) out.push({ name: m[1], address });
+  }
+  return out;
+}
+
 function create(runner = defaultRunner, toJpeg = null, delay = (ms) => new Promise((r) => setTimeout(r, ms))) {
   const run = (args, options) => runner(args, options);
   async function connectRaw(value) {
@@ -184,6 +195,11 @@ function create(runner = defaultRunner, toJpeg = null, delay = (ms) => new Promi
     return null;
   }
 
+  /** `adb mdns services` -> [{ name, address }] for connect services. */
+  async function mdnsConnectServices() {
+    return parseMdns((await run(["mdns", "services"])).toString("utf8"));
+  }
+
   return {
     async devices() { return devices(); },
     async connect(address) { return connectAddress(address); },
@@ -215,7 +231,16 @@ function create(runner = defaultRunner, toJpeg = null, delay = (ms) => new Promi
     /** Reconnect remembered wireless phones. Best effort: a phone that is asleep simply fails this round. */
     async autoConnect() {
       const out = [];
-      for (const p of pairedList().filter((x) => x.wireless)) out.push({ serial: p.serial, ...(await connectRaw(p.serial)) });
+      const wireless = pairedList().filter((x) => x.wireless);
+      // The phone's wireless port changes on every toggle, so look up the current one by service name via mDNS.
+      const live = await mdnsConnectServices().catch(() => []);
+      for (const p of wireless) {
+        const name = p.serial.replace(/\._adb-tls-connect\._tcp$/, "");
+        const svc = live.find((l) => l.name === name);
+        let r = await connectRaw(p.serial);
+        if (!r.ok && svc) r = await connectRaw(svc.address); // shortcut: needs mDNS, blocked on client-isolated wifi, use a tunnel then
+        out.push({ serial: p.serial, ...r });
+      }
       return out;
     },
     /** One `screencap -p` frame. The caller converts the PNG to JPEG for the relay. */
@@ -241,7 +266,7 @@ function create(runner = defaultRunner, toJpeg = null, delay = (ms) => new Promi
 }
 
 module.exports = {
-  create, parseDevices, cleanAddress, cleanSerial, cleanPairCode, isWirelessSerial, escapeText, inputArgs, KEY,
+  create, parseDevices, parseMdns, cleanAddress, cleanSerial, cleanPairCode, isWirelessSerial, escapeText, inputArgs, KEY,
   pairSerial, serialFor, rememberPaired, forgetPaired, pairedList,
   devices: () => create().devices(),
 };

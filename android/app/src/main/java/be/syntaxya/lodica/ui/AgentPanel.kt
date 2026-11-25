@@ -67,7 +67,8 @@ import be.syntaxya.lodica.ui.theme.OnAmber
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun AgentPanel() {
-    if (!AiAgent.open) return
+    // Screens (chat, notebook, phone) and the panel never show together: a screen hides it, opening it returns to the browser.
+    if (!AiAgent.open || Ui.screen != Screen.Browser) return
     if (AiAgent.minimized) {
         val pulse = rememberInfiniteTransition(label = "agent").animateFloat(0.4f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "a")
         Box(Modifier.fillMaxSize().padding(end = 8.dp, bottom = 96.dp), contentAlignment = Alignment.BottomEnd) {

@@ -1,3 +1,9 @@
+## 1.21.1
+
+- Fixed a crash on link tap caused by a service reading the app context before startup finished.
+- The AI panel no longer overlaps other screens.
+- The start page side widgets no longer overlap the search bar.
+
 ## 1.21.0
 
 - Settings no longer crashes when a linked PC sends a malformed tab address; invalid links are ignored and a failed open leaves no broken tab behind.

@@ -10,5 +10,6 @@ class LodicaApp : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLog.install(this)
+        be.syntaxya.lodica.engine.Secret.init(this)
     }
 }

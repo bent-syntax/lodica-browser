@@ -16,14 +16,14 @@ import javax.crypto.spec.GCMParameterSpec
 object Secret {
     private const val TAG = "LodicaSecret"
     private const val KEY_ALIAS = "lodica_secret"
-    private lateinit var app: Context
+    private var app: Context? = null
 
-    fun init(ctx: Context) { app = ctx.applicationContext }
+    fun init(ctx: Context) { if (app == null) app = ctx.applicationContext ?: ctx }
 
-    private fun sp() = app.getSharedPreferences("secret", Context.MODE_PRIVATE)
+    private fun sp() = app?.getSharedPreferences("secret", Context.MODE_PRIVATE)
 
     fun get(name: String): String? = runCatching {
-        val s = sp()
+        val s = sp() ?: return null
         val ct = s.getString("$name.ct", null) ?: return null
         val iv = s.getString("$name.iv", null) ?: return null
         val c = Cipher.getInstance("AES/GCM/NoPadding")
@@ -32,10 +32,11 @@ object Secret {
     }.onFailure { Log.w(TAG, "unreadable: ${it.javaClass.simpleName}") }.getOrNull()
 
     /** True when a value is stored under [name], readable or not. */
-    fun has(name: String) = sp().contains("$name.ct")
+    fun has(name: String) = sp()?.contains("$name.ct") ?: false
 
     fun put(name: String, value: String?) {
-        val e = sp().edit()
+        val prefs = sp() ?: return
+        val e = prefs.edit()
         if (value == null) { e.remove("$name.ct").remove("$name.iv").apply(); return }
         fun seal() {
             val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
@@ -46,7 +47,7 @@ object Secret {
         // Some Samsung StrongBox keys generate fine but fail on use; drop the key and make a plain one.
         // Only when no other secret is sealed with it, or dropping it would make those unreadable (link key lost).
         runCatching { seal() }.recoverCatching { err ->
-            val others = sp().all.keys.any { it.endsWith(".ct") && it != "$name.ct" }
+            val others = prefs.all.keys.any { it.endsWith(".ct") && it != "$name.ct" }
             if (others) throw err
             KeyStore.getInstance("AndroidKeyStore").apply { load(null) }.deleteEntry(KEY_ALIAS)
             seal()

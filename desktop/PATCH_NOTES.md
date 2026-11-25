@@ -1,3 +1,7 @@
+## 1.21.1
+
+- Wireless ADB rescans the network by the phone's service name when the remembered port no longer works, so the phone reconnects after wireless debugging is toggled. Networks that block device discovery (client isolation) are not supported yet.
+
 ## 1.21.0
 
 - QR hover tooltips no longer flash at the edge of a code. Clicking a decoded QR opens its link in the browser (email and phone links use the system handler); plain text still shows exactly as decoded with a Copy button.

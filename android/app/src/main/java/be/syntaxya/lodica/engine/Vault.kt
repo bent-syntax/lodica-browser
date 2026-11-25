@@ -41,11 +41,11 @@ object Vault : Autocomplete.StorageDelegate {
     private const val TAG = "LodicaVault"
     private const val KEY_ALIAS = "lodica_vault"
     private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "lodica-vault") }
-    private lateinit var app: Context
+    private var app: Context? = null
     private var db: SQLiteDatabase? = null
 
     fun init(ctx: Context) {
-        app = ctx.applicationContext
+        if (app == null) app = ctx.applicationContext ?: ctx
     }
 
     private fun keystoreKey(): SecretKey {
@@ -72,7 +72,7 @@ object Vault : Autocomplete.StorageDelegate {
     }
 
     private fun dbKey(): ByteArray {
-        val sp = app.getSharedPreferences("vault", Context.MODE_PRIVATE)
+        val sp = (app ?: throw IllegalStateException("vault not initialised")).getSharedPreferences("vault", Context.MODE_PRIVATE)
         val key = keystoreKey()
         val wrapped = sp.getString("k", null)
         val iv = sp.getString("iv", null)
@@ -101,7 +101,7 @@ object Vault : Autocomplete.StorageDelegate {
         raw.fill(0)
         // Raw key syntax skips the passphrase KDF; the key is already random.
         val pass = "x'$hex'".toByteArray()
-        val file = File(app.noBackupFilesDir, "vault.db")
+        val file = File((app ?: throw IllegalStateException("vault not initialised")).noBackupFilesDir, "vault.db")
         val d = SQLiteDatabase.openOrCreateDatabase(file, pass, null, null)
         pass.fill(0)
         d.execSQL(

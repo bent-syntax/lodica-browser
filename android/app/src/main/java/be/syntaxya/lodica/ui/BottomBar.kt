@@ -255,7 +255,7 @@ private fun MainBar(tab: Tab?, onEdit: () -> Unit) {
         }
         if (be.syntaxya.lodica.engine.Ai.connected) {
             IconButton(onClick = {
-                be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false
+                Ui.screen = Screen.Browser; be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false
             }) {
                 Icon(LodicaIcons.Ai, "AI assistant", tint = Amber)
             }
@@ -434,7 +434,7 @@ private fun EditBar(query: TextFieldValue, onQuery: (TextFieldValue) -> Unit) {
         }
         if (Ai.connected) {
             IconButton(onClick = {
-                be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false; Ui.editing = false
+                Ui.screen = Screen.Browser; be.syntaxya.lodica.engine.AiAgent.open = true; be.syntaxya.lodica.engine.AiAgent.minimized = false; Ui.editing = false
             }) {
                 Icon(LodicaIcons.Ai, "AI assistant", tint = Amber)
             }

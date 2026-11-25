@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.1 (versionCode 293)
+
+- Link taps no longer crash on devices where a background service ran before the app finished starting; the remaining early-start paths are guarded.
+- Only one panel is visible at a time: the AI panel hides behind other screens, and opening it returns to the browser.
+- Start page planner and notes no longer overlap the search bar on narrow windows.
+- Wireless ADB finds a remembered phone again by its network name after the port changes. Networks that block device discovery still need a direct connection.
+
 ## 1.21.0 (versionCode 292)
 
 - QR hover tooltips stay put while the pointer moves over the decoded QR, and clicking the QR now opens its decoded link. Non-link payloads still show exact text with Copy.

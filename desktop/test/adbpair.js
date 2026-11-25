@@ -60,7 +60,7 @@ const reset = () => { delete disk.adbPaired; delete disk.adbSerials; };
   // Later launches reconnect the remembered serial itself, even when it is an mDNS service name.
   const reconnects = [];
   await adb.create(async (args) => { reconnects.push(args); return Buffer.from('already connected\n'); }, null, noDelay).autoConnect();
-  assert.deepStrictEqual(reconnects, [['connect', SERIAL]]);
+  assert.deepStrictEqual(reconnects, [['mdns', 'services'], ['connect', SERIAL]]);
 
   // Explicit connection address: used when mDNS auto-connect is blocked.
   reset();
@@ -131,5 +131,7 @@ const reset = () => { delete disk.adbPaired; delete disk.adbSerials; };
   for (const cmd of ['adb.devices', 'adb.connect', 'adb.pairWireless', 'adb.select', 'adb.forget']) {
     assert.ok(cmds.includes('on("' + cmd + '"'), cmd + ' handler is registered');
   }
+  const mdnsParsed = adb.parseMdns('List of discovered mdns services\nadb-ABC-xyz\t_adb-tls-connect._tcp\t192.168.1.5:37123\nadb-ABC-xyz\t_adb-tls-pairing._tcp\t192.168.1.5:40000\nbad\t_adb-tls-connect._tcp\t999.1.1.1:1\n');
+  assert.deepStrictEqual(mdnsParsed, [{ name: 'adb-ABC-xyz', address: '192.168.1.5:37123' }]);
   console.log('adb pairing ok');
 })().catch(e => { console.error(e); process.exitCode = 1; });

@@ -39,6 +39,7 @@ object Engine {
     private fun create(ctx: Context): GeckoRuntime {
         be.syntaxya.lodica.CrashLog.install(ctx)
         Prefs.init(ctx)
+        Secret.init(ctx)
         Vault.init(ctx)
         Meter.init(ctx)
         Playback.init(ctx)
