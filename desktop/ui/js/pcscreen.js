@@ -9,7 +9,7 @@ function openPcScreen() {
   if (S.mode !== "main") { exitEdit(); closeFind(); }
   if (PC.L) return PC.L;
   // The AI panel is a separate view on the right. Close it so the two never sit on top of each other.
-  inv("ai.panel.close");
+  closeSidePanels("pcscreen");
   inv("ui.dock", 360);
   PC.L = openLayer({
     key: "pcscreen", cls: "spage-layer settings-tab nb-dock pc-dock", dim: false,

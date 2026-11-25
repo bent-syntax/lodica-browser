@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.2 (versionCode 294)
+
+- Side panels (AI, chat, notes, phone screen) now replace each other instead of stacking, on desktop and Android.
+- Hovering a QR code shows the decoded link, and clicking it opens the decoded page.
+- The character maker can draw objects and shapes, and "no head or face" no longer turns an object into a headless person.
+
 ## 1.21.1 (versionCode 293)
 
 - Link taps no longer crash on devices where a background service ran before the app finished starting; the remaining early-start paths are guarded.

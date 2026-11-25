@@ -1,3 +1,9 @@
+## 1.21.2
+
+- Side panels replace each other instead of stacking.
+- QR hover shows the decoded link, and a click opens it.
+- The character maker accepts objects and shapes, and "no head or face" no longer makes a headless person.
+
 ## 1.21.1
 
 - Wireless ADB rescans the network by the phone's service name when the remembered port no longer works, so the phone reconnects after wireless debugging is toggled. Networks that block device discovery (client isolation) are not supported yet.

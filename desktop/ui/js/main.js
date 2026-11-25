@@ -92,8 +92,7 @@ function subscribe() {
   // Opening the dedicated AI view closes the docked remote panels; they are separate views and must not overlap.
   on("aipanel", (d) => {
     if (!d || !d.open) return;
-    try { if (typeof PC !== "undefined" && PC.L) PC.L.close(); } catch {}
-    try { if (typeof PS !== "undefined" && PS.L) PS.L.close(); } catch {}
+    closeSidePanels("aipanel");
   });
   on("shortcut", (d) => runShortcut(typeof d === "string" ? d : d && d.name));
   on("sheet", openSheet);

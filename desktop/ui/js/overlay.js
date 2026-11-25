@@ -67,6 +67,14 @@ function onMainOverlay(d) {
   else if (!STACK.length) { mainOverlay = false; ovOn = false; document.body.classList.remove("ov"); moveToastsToBar(); }
 }
 
+// Docked side panels (notes, server chat, phone/pc screen, AI panel) share the right edge: opening one replaces the others.
+function closeSidePanels(keep) {
+  for (const [k, g] of [["notebook", () => NB.L], ["room", () => ROOM.L], ["phonescreen", () => PS.L], ["pcscreen", () => PC.L], ["aichat", () => CHAT.L]]) {
+    try { const L = g(); if (k !== keep && L) L.close(); } catch {}
+  }
+  if (keep !== "aipanel") inv("ai.panel.close");
+}
+
 // opts: {cls, modal, dim (default true), above (keep bar visible), onClose(result), onEsc, key}
 function openLayer(opts, build) {
   opts = opts || {};

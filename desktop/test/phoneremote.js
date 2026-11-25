@@ -71,7 +71,7 @@ test('phone screen UI is docked, rotatable and wired to text/stop', () => {
   // PC controller is an opaque docked panel, not a transparent overlay above the AI view.
   const pc = read('desktop/ui/js/pcscreen.js');
   assert.ok(pc.includes('cls: "spage-layer settings-tab nb-dock pc-dock"'));
-  assert.ok(pc.includes('inv("ai.panel.close")') && pc.includes('inv("ui.dock", 360)'));
+  assert.ok(pc.includes('closeSidePanels("pcscreen")') && pc.includes('inv("ui.dock", 360)'));
   assert.ok(pc.includes('inv("pcscreen.stop")') && pc.includes('inv("ui.dock", 0)'));
   assert.ok(pc.includes('inv("devices.list", "android")') && pc.includes('inv("pcscreen.start", d.id)'));
   assert.ok(!pc.includes('pc-panel-layer'));

@@ -5,6 +5,7 @@ const NB = { L: null };
 function openNotebook() {
   if (NB.L) return NB.L;
   // Dock right like the AI panel so the page shrinks instead of being covered.
+  closeSidePanels("notebook");
   inv("ui.dock", 360);
   NB.L = openLayer({ key: "notebook", cls: "spage-layer settings-tab nb-dock", dim: false, onClose: () => { inv("ui.dock", 0); const L = NB.L; NB.L = null; clearInterval(L.poll); clearTimeout(L.timer); if (L.dirty && L.id) inv("notebook.put", L.id, L.ta.value, L.rev); } }, (L) => {
     L.id = null; L.notes = []; L.rev = 0; L.sent = ""; L.dirty = false; L.busy = false;

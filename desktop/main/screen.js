@@ -146,6 +146,7 @@ function adbPair(serial) {
   return ok;
 }
 async function adbPairWireless(address, code, connectionAddress) {
+  if (!getTarget()) await devices.refresh();
   if (!getTarget()) return { ok: false, error: "Link a phone first" };
   const r = await runner().pairWireless(address, code, connectionAddress);
   if (r && r.ok) {
@@ -157,6 +158,7 @@ async function adbPairWireless(address, code, connectionAddress) {
 }
 async function adbSelect(serial) {
   const s = adb.cleanSerial(serial);
+  if (s && !getTarget()) await devices.refresh();
   if (!s || !getTarget()) return { ok: false, error: "Link a phone first" };
   adb.pairSerial(getTarget(), s);
   const conn = adb.isWirelessSerial(s) ? await adb.create().connectSerial(s) : { ok: true };

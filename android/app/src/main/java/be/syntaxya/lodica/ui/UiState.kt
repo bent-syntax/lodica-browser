@@ -16,7 +16,12 @@ object Ui {
     var screen by mutableStateOf(Screen.Browser)
     /** Screen a sub-page returns to on back: the browser for menu links, Settings for Settings links. */
     var returnTo = Screen.Browser
-    fun go(s: Screen) { returnTo = if (screen == Screen.Settings) Screen.Settings else Screen.Browser; screen = s }
+    fun go(s: Screen) {
+        returnTo = if (screen == Screen.Settings) Screen.Settings else Screen.Browser
+        // Side panels replace each other: opening a page puts the AI panel away.
+        if (s != Screen.Browser && be.syntaxya.lodica.engine.AiAgent.open) be.syntaxya.lodica.engine.AiAgent.minimized = true
+        screen = s
+    }
     /** Settings page open (-1 = home) and the home scroll, kept while Settings is off screen. */
     var settingsTab by androidx.compose.runtime.mutableIntStateOf(-1)
     val settingsHomeScroll = androidx.compose.foundation.ScrollState(0)

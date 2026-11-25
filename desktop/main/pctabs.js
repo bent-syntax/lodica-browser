@@ -347,7 +347,9 @@ async function pairWithCode(code) {
   const j = await r.json().catch(() => null);
   if (!j || typeof j.link !== "string") return false;
   if (!prefs.p.pcTabs) prefs.set("pcTabs", true);
-  return pair(j.link);
+  const ok = await pair(j.link);
+  if (ok) require("./devices").refresh();
+  return ok;
 }
 
 // Phone control: commands for the linked phone ride in their own encrypted blob that only this side writes.

@@ -1,3 +1,9 @@
+## 1.21.2
+
+- Side panels replace each other instead of stacking.
+- QR hover shows the decoded link, and a click opens it.
+- The character maker accepts objects and shapes, and "no head or face" no longer makes a headless person.
+
 ## 1.21.1
 
 - Fixed a crash on link tap caused by a service reading the app context before startup finished.
