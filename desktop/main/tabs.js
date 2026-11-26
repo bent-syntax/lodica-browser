@@ -98,7 +98,7 @@ function pushCount() {
 function createView(t) {
   const view = new WebContentsView({
     webPreferences: {
-      preload: PRELOAD, sandbox: true, contextIsolation: true, nodeIntegrationInSubFrames: true,
+      preload: PRELOAD, sandbox: true, contextIsolation: true, nodeIntegrationInSubFrames: false,
       session: t.private ? privSession() : session.defaultSession,
       additionalArguments: t.private ? ["--lodica-private"] : [],
     },

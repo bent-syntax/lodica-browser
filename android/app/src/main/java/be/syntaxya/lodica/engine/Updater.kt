@@ -186,6 +186,8 @@ object Updater {
                     else { Log.w(TAG, "download failed", it); UpdateState.Failed(it.message ?: "Download failed") }
                 },
             )
+            // A finished download goes straight to the installer; the Install row stays as the retry.
+            if (state is UpdateState.Ready) runCatching { install(ctx.applicationContext) }.onFailure { Log.w(TAG, "auto install failed", it) }
         }
     }
 

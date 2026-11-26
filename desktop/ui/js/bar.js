@@ -34,7 +34,7 @@ function mainBar() {
     h("button", { class: "ib", title: "Forward (Alt+Right)", act: () => inv("forward") }, ico("forward")),
     h("button", { class: "ib", title: t.loading ? "Stop" : "Reload (F5)", act: (e) => inv(t.loading ? "stop" : "reload", e && e.shiftKey) }, ico(t.loading ? "close" : "reload"))];
   nav[0].disabled = !t.canBack; nav[1].disabled = !t.canForward;
-  const shield = h("button", { class: "shd" + (off ? " off" : ""), title: off ? "Protection off for this site" : "Site protection", act: (e) => { e.stopPropagation(); openSiteInfo(); } },
+  const shield = h("button", { class: "shd" + (off ? " off" : ""), title: off ? "Protection off for this site, click to turn on" : "Protection on, click to turn off for this site", act: (e) => { e.stopPropagation(); toggleShield(); } },
     ico(off ? "shieldOff" : "shield"), !off && n > 0 ? h("span", { text: cap(n, "99+") }) : null);
   if (t.home || t.locked) shield.disabled = true;
   const lead = t.home ? ico("search", "muted") : t.https === false ? ico("warning", "amber") : ico("lock", "ok");

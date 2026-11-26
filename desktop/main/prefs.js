@@ -24,7 +24,7 @@ const LANGUAGES = {
 };
 
 const QUALITIES = [144, 240, 360, 480, 720, 1080, 1440, 2160];
-const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com"]);
+const ALWAYS_COMPAT = new Set(["accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com", "gemini.google.com"]);
 
 const DEFAULTS = {
   search: "", searchFallback: "GOOGLE", darkPages: true, forceDark: false, chatScale: 100, remoteTest: false, remoteTestAlways: false, testUnlocked: false, chatEmojiScale: 150, chatColors: {}, chatShapes: {}, httpsOnly: true, dummyLogin: true, autoArchiveDays: 14,

@@ -5,6 +5,8 @@ const { decodeImage } = require("./qrdecode");
 
 const MIN_SIDE = 24, MAX_SIDE = 1024, THROTTLE_MS = 120, MAX_PER_SEC = 12;
 const TAGS = new Set(["img", "canvas", "svg", "qr"]);
+/** A QR holding a bare domain such as "beermap.be" is a web link: add the scheme so it opens like one. */
+const withScheme = (t) => (/^(?:[a-z0-9-]+\.)+[a-z]{2,}(?::\d+)?(?:[/?#]\S*)?$/i.test(t) ? "https://" + t : t);
 const safeLink = (u) => { const s = String(u || "").trim(); return s.length <= 2000 && /^(https?:|lodica:|mailto:|tel:)/i.test(s); };
 
 // The UI calls setHold while the pointer is on the tooltip's link/Copy button so a delayed clear cannot pull it away.
@@ -96,7 +98,7 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
     Promise.resolve().then(() => run(job)).then(
       raw => {
         if (latest.get(sender) !== job.seq) return; // a newer crop has already replaced this one
-        const text = String(raw || "").trim();
+        const text = withScheme(String(raw || "").trim());
         decoded.set(sender, text);
         echo(sender, job.key, text, job.nonce);
         cancelClear(sender);

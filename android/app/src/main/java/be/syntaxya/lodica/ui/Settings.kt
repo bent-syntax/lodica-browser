@@ -545,7 +545,15 @@ fun SettingsScreen() {
                     } else {
                         StatusCard(LodicaIcons.Globe, "lodica.${Relay.DOMAIN}", if (Relay.up) "Connected" else "Not reachable right now", ok = Relay.up)
                         androidx.compose.runtime.LaunchedEffect(Unit) { Relay.refreshServerUpdate() }
+                        var askServer by remember { mutableStateOf(true) }
                         Relay.serverUpdate?.let { u ->
+                            if (askServer && u.newer && !u.pending && !u.failed && !u.expired) AlertDialog(
+                                onDismissRequest = { askServer = false },
+                                title = { androidx.compose.material3.Text("Update the server too?") },
+                                text = { androidx.compose.material3.Text("Your server runs ${u.current}. ${u.latest} is available.") },
+                                confirmButton = { androidx.compose.material3.TextButton(onClick = { askServer = false; Relay.refreshServerUpdate(install = true) }) { androidx.compose.material3.Text("Update server") } },
+                                dismissButton = { androidx.compose.material3.TextButton(onClick = { askServer = false }) { androidx.compose.material3.Text("Not now") } },
+                            )
                             when {
                                 u.failed -> LinkRow("Server update check failed — check again", color = Danger) { Relay.refreshServerUpdate() }
                                 u.expired -> LinkRow("Server update did not finish (running ${u.current}) — check again", color = Danger) { Relay.refreshServerUpdate() }
