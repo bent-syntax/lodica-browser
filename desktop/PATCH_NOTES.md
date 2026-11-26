@@ -1,3 +1,9 @@
+## 1.21.6
+
+- The QR link box opens above the QR code, is opaque, and goes when the pointer leaves it.
+- Dark mode uses each site's own dark mode; Force dark only covers sites without one.
+- Desktop drawing (Ctrl+Alt+D) and global copy (Ctrl+Alt+C) work on Windows.
+
 ## 1.21.5
 
 - QR codes no longer flicker. Click one to see its link, click again to open it.

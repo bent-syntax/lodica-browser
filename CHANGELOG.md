@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.6 (versionCode 298)
+
+- The QR link box opens right above the QR code in the browser background colour, is no longer see-through, and goes when the pointer leaves the QR.
+- Dark mode makes every page see a dark scheme, so sites with their own dark mode use it. Force dark skips sites that already have one.
+- Ctrl+Alt+D draws over the desktop on Windows (the layer used to let clicks pass through). Ctrl+Alt+C also works on keyboards where Ctrl+Alt is AltGr.
+- Sites on your allow list get no injected filter scripts.
+
 ## 1.21.5 (versionCode 297)
 
 - QR codes no longer flicker on hover. Click a QR code to see its link, click it again to open it.
