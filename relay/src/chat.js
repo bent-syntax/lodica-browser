@@ -14,6 +14,9 @@ const { cleanArt } = require('./faceart');
 // names and "grp:<name>" a group. Rooms separate conversations; they are not access control, because every
 // device of a server holds the same token.
 const chatfile = require('./chatfile');
+const fs = require('fs');
+const path = require('path');
+const { cfg } = require('./config');
 const MAX_LOG = 200;
 const TTL = 24 * 3600e3;
 const WAIT_MAX = 25;
@@ -41,6 +44,50 @@ const TYPING = 6e3; // a device that reported typing within this window shows a 
 const FACE_RE = /^\p{Extended_Pictographic}[\p{Extended_Pictographic}\u200d\ufe0f\u{1f3fb}-\u{1f3ff}]{0,15}$/u;
 const OS_RE = /^(android|windows|macos|linux|ios|other)$/;
 const SEEN_TTL = 7 * 24 * 3600e3;
+
+// Chat survives a relay restart (an update restarts it): messages, read marks and costumes are saved to the data
+// directory. Nothing is written until load() ran, so tests and tools that only import this file never touch the disk.
+const STORE = process.env.LODICA_CHAT_STORE || path.join(cfg.dataDir, 'chat.json');
+let persist = false;
+let saveTimer = null;
+const entries = (m) => [...m];
+
+function save() {
+  if (!persist) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  const snap = {
+    v: 1, seq, log, osOf: entries(osOf), faceOf: entries(faceOf), artOf: entries(artOf), handsOf: entries(handsOf), bubbleOf: entries(bubbleOf),
+    reads: [...reads].map(([room, m]) => [room, entries(m)]),
+  };
+  try {
+    const tmp = STORE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(snap), { mode: 0o600 });
+    fs.renameSync(tmp, STORE);
+  } catch (e) { console.error('chat save failed: ' + e.message); }
+}
+
+function dirty() {
+  if (persist && !saveTimer) { saveTimer = setTimeout(save, 2000); saveTimer.unref(); }
+}
+
+/** Reads the saved chat (if any) and turns saving on. Call once at start. */
+function load() {
+  persist = true;
+  let s;
+  try { s = JSON.parse(fs.readFileSync(STORE, 'utf8')); } catch { return; }
+  if (!s || s.v !== 1 || !Array.isArray(s.log)) return;
+  const ok = (m) => m && Number.isInteger(m.id) && typeof m.name === 'string' && typeof m.text === 'string' && Number.isFinite(m.at);
+  // Attachments lived in the old process's temporary folder, so a restored message keeps its text but not the file.
+  for (const m of s.log.filter(ok)) { delete m.file; log.push(m); }
+  seq = Math.max(Number.isInteger(s.seq) ? s.seq : 0, ...log.map((m) => m.id));
+  prune();
+  const fill = (map, list) => { for (const e of Array.isArray(list) ? list : []) if (Array.isArray(e) && typeof e[0] === 'string') map.set(e[0], e[1]); };
+  fill(osOf, s.osOf); fill(faceOf, s.faceOf); fill(artOf, s.artOf); fill(handsOf, s.handsOf); fill(bubbleOf, s.bubbleOf);
+  for (const [room, list] of Array.isArray(s.reads) ? s.reads : []) {
+    if (typeof room !== 'string') continue;
+    const m = new Map(); fill(m, list); reads.set(room, m);
+  }
+}
 
 function touch(name) {
   seen.set(name, Date.now());
@@ -129,6 +176,7 @@ async function post(req, res, ip, h) {
   touch(name);
   log.push(msg);
   prune();
+  dirty();
   wake();
   h.sendJson(req, res, 200, msg);
 }
@@ -196,6 +244,7 @@ async function read(req, res, h) {
   if ((m.get(name) || 0) < b.id) m.set(name, b.id);
   reads.set(room, m);
   if (reads.size > 500) reads.delete(reads.keys().next().value);
+  dirty();
   h.sendJson(req, res, 200, { ok: true });
 }
 
@@ -211,6 +260,7 @@ async function face(req, res, h) {
   if (clean.some(([, svg, raw]) => raw !== '' && !svg)) return h.sendText(req, res, 400, 'bad art');
   touch(name);
   for (const [map, svg] of clean) { if (svg) map.set(name, svg); else map.delete(name); }
+  dirty();
   h.sendJson(req, res, 200, { ok: true });
 }
 
@@ -244,8 +294,9 @@ async function postFile(req, res, ip, url, h) {
   touch(name);
   log.push(msg);
   prune();
+  dirty();
   wake();
   h.sendJson(req, res, 200, msg);
 }
 
-module.exports = { get, post, postFile, rooms, users, claim, read, readsOf, face, reset };
+module.exports = { get, post, postFile, rooms, users, claim, read, readsOf, face, reset, load, save };

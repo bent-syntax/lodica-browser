@@ -112,6 +112,8 @@ swap("if (s.text.length > 200) return;", "if (s.text.length > 200 || page.selTra
 if (/browser\.storage|wrappedJSObject|openOrClosed/.test(js)) throw new Error("build-preload: Firefox API left");
 // Desktop-only code with no Android counterpart lives in scripts/overlay/ so regenerating keeps it.
 const overlay = (f) => fs.readFileSync(path.join(__dirname, "overlay", f), "utf8");
+// Only Google pages need the theme observer; elsewhere it would run on every page change.
+swap('new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme")', 'if (TOP && /(^|\\.)google\\.[a-z.]+$/.test(location.hostname)) new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme")');
 const ipcLine = 'const { ipcRenderer, webFrame } = require("electron");\n';
 swap(ipcLine, ipcLine + overlay("google-ua.js"));
 js += overlay("draw.js");

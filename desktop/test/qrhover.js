@@ -227,6 +227,8 @@ function element(tag, rect, src = "") {
 const move = (el, x, y) => ({ target: el, composedPath: () => [el], clientX: x, clientY: y });
 const plain = v => JSON.parse(JSON.stringify(v)); // VM objects have a different prototype.
 
+const press = (el, x, y) => ({ target: el, composedPath: () => [el], clientX: x, clientY: y, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } });
+
 function overlayTests() {
   let now = 0;
   const o = loadOverlay(() => now);
@@ -235,31 +237,32 @@ function overlayTests() {
   const svg = element("svg", { left: 50, top: 60, width: 140, height: 140 });
   const qr = element("qr", { left: 70, top: 80, width: 64, height: 64 });
 
+  // Hovering sends nothing: the decode only starts on a click.
   o.fire("pointermove", move(img, 12, 22));
-  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22, key: "img|10|20|100|100|https://example.com/qr.png" }]);
-  o.fire("pointermove", move(canvas, 32, 42)); // throttled
   assert.strictEqual(o.sends.length, 0);
-  now = 130;
-  o.fire("pointermove", move(canvas, 32, 42));
+
+  let e = press(img, 12, 22);
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, undefined, "the first click still reaches the page");
+  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22, key: "img|10|20|100|100|https://example.com/qr.png" }]);
+  o.fire("click", press(img, 13, 23)); // decode still running: no second request
+  assert.strictEqual(o.sends.length, 0);
+  o.fire("click", press(canvas, 32, 42));
   assert.strictEqual(o.sends.pop()[1].tag, "canvas");
-  now = 260;
-  o.fire("pointermove", move(svg, 52, 62));
+  o.fire("click", press(svg, 52, 62));
   assert.strictEqual(o.sends.pop()[1].tag, "svg");
-  now = 390;
-  o.fire("pointermove", move(qr, 72, 82));
+  o.fire("click", press(qr, 72, 82));
   assert.strictEqual(o.sends.pop()[1].tag, "qr");
-  now = 520;
-  o.fire("pointermove", move(element("div", { left: 0, top: 0, width: 200, height: 200 }), 90, 90));
+  o.fire("click", press(element("div", { left: 0, top: 0, width: 200, height: 200 }), 90, 90));
   assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { clear: true }]);
   o.fire("blur", {}); // already clear: no duplicate
   assert.strictEqual(o.sends.length, 0);
-  o.fire("pointermove", move(img, 92, 93));
+  o.fire("click", press(img, 92, 93));
   assert.strictEqual(o.sends.pop()[1].tag, "img");
-  o.fire("pointermove", move(img, 93, 94)); // dedupe/throttle
-  assert.strictEqual(o.sends.length, 0);
-  now = 650;
+  o.fire("scroll", {}); // scrolling hides the tooltip
+  assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { clear: true }]);
   o.sandbox.scrollX = 100; o.sandbox.scrollY = 50;
-  o.fire("pointermove", move(img, 100, 110)); // rect is in document coordinates, cursor stays in viewport coordinates
+  o.fire("click", press(img, 100, 110)); // rect is in document coordinates, cursor stays in viewport coordinates
   assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110, key: "img|110|70|100|100|https://example.com/qr.png" }]);
 }
 
@@ -268,15 +271,13 @@ function overlayClickTests() {
   const o = loadOverlay(() => now);
   const img = element("img", { left: 10, top: 20, width: 100, height: 100 }, "https://example.com/qr.png");
   const other = element("img", { left: 10, top: 20, width: 100, height: 100 }, "https://example.com/other.png");
-  const click = (el = img) => ({ target: el, composedPath: () => [el], clientX: 30, clientY: 40, preventDefault() { this.prevented = true; }, stopPropagation() { this.stopped = true; } });
-  o.fire("pointermove", move(img, 12, 22));
-  const hover = o.sends.pop()[1];
+  const click = (el = img) => press(el, 30, 40);
 
-  // A plain image click must pass through to the page.
+  // First click: asks main to decode, and the click passes through to the page.
   let e = click();
   o.fire("click", e);
   assert.strictEqual(e.prevented, undefined);
-  assert.strictEqual(o.sends.length, 0);
+  const hover = o.sends.pop()[1];
 
   // A result for another crop or without a nonce must not be reused.
   for (const bad of [
@@ -291,19 +292,25 @@ function overlayClickTests() {
     assert.strictEqual(o.sends.length, 0);
   }
 
-  // Only a confirmed link for the element under the pointer opens.
+  // Second click on the confirmed image opens the link.
   o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: QR_TEXT });
-  e = click(other);
-  o.fire("click", e);
-  assert.strictEqual(e.prevented, undefined, 'a click on a replaced element is not intercepted');
   e = click();
   o.fire("click", e);
   assert.strictEqual(e.prevented, true);
   assert.strictEqual(e.stopped, true);
   assert.deepStrictEqual(plain(o.sends.pop()), ["qrClick", { url: QR_TEXT }]);
 
+  // A different image is a first click of its own: not intercepted, decode requested.
+  e = click(other);
+  o.fire("click", e);
+  assert.strictEqual(e.prevented, undefined, "a click on another element is not intercepted");
+  assert.strictEqual(o.sends.pop()[0], "qrHover");
+
   // A decoded non-link payload never opens or blocks a click.
-  o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: "plain text" });
+  e = click();
+  o.fire("click", e);
+  const again = o.sends.pop()[1];
+  o.emit("qrResult", { key: again.key, nonce: again.nonce, url: "plain text" });
   e = click();
   o.fire("click", e);
   assert.strictEqual(e.prevented, undefined);
@@ -408,7 +415,7 @@ function staticGuards() {
   const read = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
   const overlay = read("scripts/overlay/qrhover.js");
   assert.ok(overlay.includes('typeof ipcRenderer !== "undefined"'));
-  assert.ok(overlay.includes('document.addEventListener("pointermove"'));
+  assert.ok(overlay.includes('document.addEventListener("click"') && !overlay.includes('"pointermove"'));
   assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|innerHTML/.test(overlay));
   assert.ok(read("scripts/build-preload.js").includes('js += overlay("qrhover.js");'));
   const main = read("main/qrhover.js");

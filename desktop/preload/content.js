@@ -2337,29 +2337,16 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
   }
   // Main echoes the decode with a nonce for the exact crop it belongs to, so only a real QR blocks a page click.
   if (ipcRenderer.on) ipcRenderer.on("qrResult", (_e, d) => { result = d || null; });
-  function onClick(e) {
-    if (!result || !lastKey || result.key !== lastKey || !result.nonce || result.nonce !== lastNonce) return;
-    if (!SAFE.test(String(result.url || ""))) return;
-    // The click must land on the element that was decoded, not on some control that replaced it without a new hover.
-    if (lastEl && targetOf(e) !== lastEl) return;
-    if (lastRect && Number.isFinite(e.clientX) && Number.isFinite(e.clientY)) {
-      const pad = 4;
-      if (e.clientX < lastRect.left - pad || e.clientX > lastRect.right + pad ||
-          e.clientY < lastRect.top - pad || e.clientY > lastRect.bottom + pad) return;
-    }
-    if (e.defaultPrevented) return;
-    e.preventDefault();
-    if (e.stopPropagation) e.stopPropagation();
-    ipcRenderer.send("qrClick", { url: result.url });
-  }
-  function onMove(e) {
+  // Nothing happens on hover (hover decoding made the tooltip flicker). The first click decodes the image under the pointer
+  // and shows the link; the next click on the same image opens it. A click that is not on a QR hides the tooltip.
+  function describe(e) {
     const el = targetOf(e);
-    if (!el || !Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) { clear(); return; }
+    if (!el || !Number.isFinite(e.clientX) || !Number.isFinite(e.clientY)) return null;
     const r = el.getBoundingClientRect && el.getBoundingClientRect();
-    if (!r || !(r.width >= MIN) || !(r.height >= MIN) || r.width > MAX || r.height > MAX) { clear(); return; }
+    if (!r || !(r.width >= MIN) || !(r.height >= MIN) || r.width > MAX || r.height > MAX) return null;
     if (typeof getComputedStyle === "function") {
       const cs = getComputedStyle(el);
-      if (!cs || cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) { clear(); return; }
+      if (!cs || cs.display === "none" || cs.visibility === "hidden" || Number(cs.opacity) === 0) return null;
     }
     // capturePage takes document coordinates; the cursor stays in viewport coordinates for the tooltip.
     const x = Math.round(r.left + (typeof scrollX === "number" ? scrollX : 0));
@@ -2368,16 +2355,25 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
     const tag = el.hasAttribute && el.hasAttribute("data-qr") ? "qr" : (el.tagName ? String(el.tagName).toLowerCase() : "qr");
     const src = el.currentSrc || el.src || (el.getAttribute && el.getAttribute("href")) || "";
     const key = [tag, x, y, width, height, String(src).slice(0, 200)].join("|");
-    const at = Date.now();
-    if (key === lastKey || at - sentAt < THROTTLE) return;
-    cleared = false; sentAt = at; lastKey = key; lastEl = el; lastRect = r; result = null;
-    lastNonce = at + "|" + (++seq);
-    ipcRenderer.send("qrHover", { x, y, width, height, tag, cx: e.clientX, cy: e.clientY, key, nonce: lastNonce });
+    return { el, r, x, y, width, height, tag, key };
   }
-  document.addEventListener("pointermove", onMove, true);
-  // Only a pointer leaving the document clears. Capture-phase pointerleave fires on every child crossing and made the
-  // tooltip flash whenever the pointer crossed an element boundary inside the same QR image.
-  document.addEventListener("pointerleave", (e) => { if (!e || !e.relatedTarget) clear(); });
+  function onClick(e) {
+    const d = describe(e);
+    if (!d) { clear(); return; }
+    // Second click: main already confirmed this exact image is a QR with a safe link, so open it instead of the page's own click.
+    if (result && d.key === lastKey && result.key === lastKey && result.nonce && result.nonce === lastNonce && SAFE.test(String(result.url || ""))) {
+      if (e.defaultPrevented) return;
+      e.preventDefault();
+      if (e.stopPropagation) e.stopPropagation();
+      ipcRenderer.send("qrClick", { url: result.url });
+      return;
+    }
+    if (d.key === lastKey) return; // decode still running
+    cleared = false; sentAt = Date.now(); lastKey = d.key; lastEl = d.el; lastRect = d.r; result = null;
+    lastNonce = sentAt + "|" + (++seq);
+    ipcRenderer.send("qrHover", { x: d.x, y: d.y, width: d.width, height: d.height, tag: d.tag, cx: e.clientX, cy: e.clientY, key: d.key, nonce: lastNonce });
+  }
   addEventListener("blur", clear);
+  addEventListener("scroll", clear, { capture: true, passive: true });
   document.addEventListener("click", onClick, true);
 })();

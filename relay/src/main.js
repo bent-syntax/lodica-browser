@@ -8,6 +8,7 @@ const edge = require('./edge');
 const log = (msg) => console.log(msg);   // journald adds timestamps
 
 loadToken();
+require('./chat').load();
 setInterval(() => {
   try { loadToken(); } catch (e) { log('token reload failed: ' + e.message); }
 }, 3600e3).unref();
@@ -29,6 +30,7 @@ function shutdown(sig) {
   stopping = true;
   log(`${sig}: shutting down`);
   logStats();
+  require('./chat').save();
   apiServer.close();
   proxyServer.close();
   if (edgeServer) edgeServer.close();
