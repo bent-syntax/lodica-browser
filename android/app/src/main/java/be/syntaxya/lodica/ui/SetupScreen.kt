@@ -56,7 +56,7 @@ import be.syntaxya.lodica.ui.theme.Mist
 import be.syntaxya.lodica.ui.theme.Muted
 
 // Installer for the relay in this repository (relay/deploy/install.sh).
-private const val INSTALL_URL = "https://raw.githubusercontent.com/bent-syntax/lodica-browser/main/relay/deploy/install.sh"
+private val INSTALL_URL = "https://raw.githubusercontent.com/bent-syntax/lodica-browser/v${be.syntaxya.lodica.BuildConfig.VERSION_NAME}/relay/deploy/install.sh"
 
 /** First-run setup: browse without a server, or link the app to your own relay step by step. */
 @Composable
@@ -109,7 +109,7 @@ fun SetupScreen() {
                     4 -> {
                         Title("Run this on the server")
                         Body("Log in over SSH, then paste this one command. It installs Node and the Lodica relay, and Caddy if you do not have it. Caddy routes the domain and gets the certificates by itself. Sites you already run in Caddy are left alone.")
-                        Code(ctx, "curl -fsSL $INSTALL_URL | sudo bash -s -- ${d(clean)}")
+                        Code(ctx, "curl -fsSL $INSTALL_URL | sudo LODICA_REF=v${be.syntaxya.lodica.BuildConfig.VERSION_NAME} bash -s -- ${d(clean)}")
                         Body("When it finishes it prints your token, a long random string. Keep that screen open: you need it in the next step.")
                         Body("Everything runs over port 443, which restrictive networks allow, so open 80 and 443 in your host's firewall. The relay also keeps TCP ports 44741 and 44742 as a fallback and opens them in ufw if ufw is active. Running the command again is safe.")
                     }

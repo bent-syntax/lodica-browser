@@ -1827,7 +1827,7 @@ a[href*="accounts.google.com"][href*="ServiceLogin"] *,a.gb_Ka *,a.gb_Ea *{color
       if (imgTab) { a.className = imgTab.className; imgTab.insertAdjacentElement("afterend", a); } else bar.appendChild(a);
     }
   }
-  new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme") || !document.getElementById("lodica-shop"))) googleTheme(); }).observe(document, { childList: true, subtree: true });
+  if (TOP && /(^|\.)google\.[a-z.]+$/.test(location.hostname)) new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme") || !document.getElementById("lodica-shop"))) googleTheme(); }).observe(document, { childList: true, subtree: true });
 
   function usePage(p) {
     const prev = page;

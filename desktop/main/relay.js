@@ -349,7 +349,7 @@ function confirmLinkJs(m) {
 }
 
 const DIRECT_HOSTS = [
-  "accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "login.microsoftonline.com", "login.live.com",
+  "accounts.google.com", "gemini.google.com", "accounts.youtube.com", "myaccount.google.com", "login.microsoftonline.com", "login.live.com",
   "login.microsoft.com", "appleid.apple.com", "idmsa.apple.com", "id.apple.com", "auth0.com", "okta.com", "onelogin.com",
   "paypal.com", "stripe.com", "pay.google.com", "itsme.be", "itsme-id.com",
 ];

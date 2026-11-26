@@ -51,7 +51,10 @@ fi
 node_ok || die "Node 20+ is required"
 
 say "fetching Lodica relay"
-if [ -d "$DIR/.git" ]; then git -C "$DIR" pull -q --ff-only; else git clone -q --depth 1 "$REPO" "$DIR"; fi
+# LODICA_REF (a release tag such as v1.21.3) installs exactly that release; the apps show the command with it.
+if [ -d "$DIR/.git" ]; then
+  if [ -n "${LODICA_REF:-}" ]; then git -C "$DIR" fetch -q --depth 1 "$REPO" "refs/tags/$LODICA_REF:refs/tags/$LODICA_REF" && git -C "$DIR" reset -q --hard "$LODICA_REF"; else git -C "$DIR" pull -q --ff-only; fi
+else git clone -q --depth 1 ${LODICA_REF:+--branch "$LODICA_REF"} "$REPO" "$DIR"; fi
 
 id lodica-relay >/dev/null 2>&1 || useradd --system --home /var/lib/lodica-relay --shell /usr/sbin/nologin lodica-relay
 install -d -m 750 -o lodica-relay -g lodica-relay /var/lib/lodica-relay

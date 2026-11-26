@@ -156,7 +156,7 @@ function secVps() {
     SET.vpsMsg = "";
     textDialog({ title: "Link your server", message: "The domain you gave the installer, like example.com", ok: "Next", placeholder: "example.com" }).then((domain) => {
       if (!domain) return;
-      textDialog({ title: "Access token", message: "Run `sudo cat /etc/lodica-relay/token` on your server", ok: "Link", secret: true }).then(async (token) => {
+      textDialog({ title: "Access token", message: "On your server run: curl -fsSL https://raw.githubusercontent.com/bent-syntax/lodica-browser/v" + S.version + "/relay/deploy/install.sh | sudo LODICA_REF=v" + S.version + " bash -s -- " + domain.trim() + "   Then run `sudo cat /etc/lodica-relay/token` and paste the token here.", ok: "Link", secret: true }).then(async (token) => {
         if (!token) return;
         SET.vpsMsg = "Connecting...";
         refreshSettings();

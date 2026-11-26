@@ -146,7 +146,7 @@ pub fn search_query(url: &str) -> Option<String> {
 /// Sites that always need the compatibility user agent (Google sign-in, GoDaddy).
 pub fn is_forced_compat(host: &str) -> bool {
     let h = bare(host);
-    matches!(h, "accounts.google.com" | "accounts.youtube.com" | "myaccount.google.com" | "gds.google.com")
+    matches!(h, "accounts.google.com" | "accounts.youtube.com" | "myaccount.google.com" | "gds.google.com" | "gemini.google.com")
         || (h.starts_with("accounts.google.") && h["accounts.google.".len()..].bytes().all(|b| b.is_ascii_lowercase() || b == b'.') && h.len() > "accounts.google.".len())
         || ["godaddy.com", "secureserver.net"].iter().any(|d| h == *d || h.ends_with(&format!(".{d}")))
 }

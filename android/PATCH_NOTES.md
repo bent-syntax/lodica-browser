@@ -1,3 +1,8 @@
+## 1.21.4
+
+- Linking a server shows the exact install command for this release.
+- Gemini connects directly, never through your server.
+
 ## 1.21.3
 
 - Switch tabs and open a new tab while the address bar is focused.

@@ -610,7 +610,7 @@ object Prefs {
      * Google refuses sign-in ("browser or app may not be secure") when the user agent is spoofed or the
      * fingerprint is hidden, so its account pages always run in compatibility mode.
      */
-    private val ALWAYS_COMPAT = setOf("accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com")
+    private val ALWAYS_COMPAT = setOf("accounts.google.com", "accounts.youtube.com", "myaccount.google.com", "gds.google.com", "gemini.google.com")
     fun isForcedCompat(host: String): Boolean = host.removePrefix("www.").let { it in ALWAYS_COMPAT || Regex("accounts\\.google\\.[a-z.]+").matches(it) || Regex("(.*\\.)?(godaddy\\.com|secureserver\\.net)").matches(it) }
     fun isCompat(host: String): Boolean {
         val h = host.removePrefix("www.")

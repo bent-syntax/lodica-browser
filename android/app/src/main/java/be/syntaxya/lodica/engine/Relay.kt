@@ -668,7 +668,7 @@ object Relay {
 
     private val SENSITIVE = Regex("(log-?in|sign-?in|sign-?on|oauth|sso|checkout|bank)|(^|[^a-z])(auth|account|pay)", RegexOption.IGNORE_CASE)
     private val DIRECT_HOSTS = listOf(
-        "accounts.google.com", "accounts.youtube.com", "myaccount.google.com",
+        "accounts.google.com", "gemini.google.com", "accounts.youtube.com", "myaccount.google.com",
         "login.microsoftonline.com", "login.live.com", "login.microsoft.com",
         "appleid.apple.com", "idmsa.apple.com", "id.apple.com",
         "auth0.com", "okta.com", "onelogin.com", "paypal.com", "stripe.com", "pay.google.com",

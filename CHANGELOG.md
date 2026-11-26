@@ -2,6 +2,12 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.4 (versionCode 296)
+
+- Linking a server now shows the exact install command for this release, on desktop and Android. The installer accepts `LODICA_REF` to install that release.
+- Gemini always connects directly, never through your server.
+- Google pages no longer watch every page change on other sites.
+
 ## 1.21.3 (versionCode 295)
 
 - You can switch tabs and open a new tab while the address bar is focused.
