@@ -3,7 +3,7 @@ use regex::Regex;
 use std::sync::OnceLock;
 
 const PAIRS: [&str; 9] = ["co", "com", "org", "net", "ac", "gov", "edu", "ne", "or"];
-pub const DIRECT_HOSTS: [&str; 17] = [
+pub const DIRECT_HOSTS: [&str; 18] = [
     "accounts.google.com", "gemini.google.com", "accounts.youtube.com", "myaccount.google.com", "login.microsoftonline.com", "login.live.com",
     "login.microsoft.com", "appleid.apple.com", "idmsa.apple.com", "id.apple.com", "auth0.com", "okta.com", "onelogin.com",
     "paypal.com", "stripe.com", "pay.google.com", "itsme.be", "itsme-id.com",
