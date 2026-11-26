@@ -508,6 +508,9 @@ function wire(m) {
 if (process.platform === "linux") app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 // Windows: Chromium's own two-finger touchpad swipe for history back/forward (like Firefox).
 if (process.platform === "win32") app.commandLine.appendSwitch("enable-features", "TouchpadOverscrollHistoryNavigation,OverscrollHistoryNavigation");
+// Windows: Chromium's occlusion check can wrongly treat the window as covered and throttle timers and frames, which
+// halves benchmark scores. The window is always drawn by us, so skip the check.
+if (process.platform === "win32") { app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion"); app.commandLine.appendSwitch("disable-backgrounding-occluded-windows"); }
 
 app.whenReady().then(() => {
   require("./systheme").follow(nativeTheme); // Linux: follow Hyprland/KDE/GNOME/GTK dark-light preference
@@ -528,6 +531,8 @@ app.whenReady().then(() => {
   applyOpacity();
   m.prefs.events.on("change", (k) => { if (k === "uiAlpha") applyOpacity(); });
   require("./emojipicker").init(m.prefs);
+  require("./globalcopy").init();
+  require("./desktopdraw").init();
   try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
   uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));
   panelView.webContents.loadFile(path.join(ROOT, "ui", "aipanel.html")).catch(e => console.error("panel load", e.message));

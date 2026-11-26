@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>html,body{margin:0;height:100%;overflow:hidden;background:transparent;cursor:crosshair}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Drawing over the desktop. Nothing is stored: the strokes only exist in this window.
+const c = document.getElementById("c"), g = c.getContext("2d");
+c.width = innerWidth; c.height = innerHeight;
+g.lineWidth = 4; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#F59E0B";
+let down = false;
+c.addEventListener("pointerdown", (e) => {
+  if (e.button === 2) { g.clearRect(0, 0, c.width, c.height); return; }
+  down = true; c.setPointerCapture(e.pointerId); g.beginPath(); g.moveTo(e.clientX, e.clientY); g.lineTo(e.clientX + 0.1, e.clientY); g.stroke();
+});
+c.addEventListener("pointermove", (e) => { if (down) { g.lineTo(e.clientX, e.clientY); g.stroke(); } });
+c.addEventListener("pointerup", () => { down = false; });
+c.addEventListener("contextmenu", (e) => e.preventDefault());
+</script>
+</body>
+</html>

@@ -44,7 +44,9 @@ function textDialog(o) {
   return dialog(o, (d, L) => {
     const i = h("input", { class: "field", type: o.secret ? "password" : "text", placeholder: o.placeholder || "", value: o.value || "", autofocus: true });
     L.submit = () => L.close(i.value);
-    d.append(i, btnRow(btn("Cancel", () => L.close(null), "muted"), btn(o.ok || "OK", () => L.submit(), "fill")));
+    // o.copy: a button that puts this text on the clipboard without closing the dialog.
+    const cp = o.copy ? btn("Copy command", () => navigator.clipboard.writeText(o.copy).then(() => toast("Copied"), () => toast("Could not copy")), "muted") : null;
+    d.append(i, btnRow(...[btn("Cancel", () => L.close(null), "muted"), cp, btn(o.ok || "OK", () => L.submit(), "fill")].filter(Boolean)));
   });
 }
 // PIN entry (4-8 digits). confirm:true asks twice.
