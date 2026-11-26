@@ -907,7 +907,8 @@ const lodicaMain = () => {
     const bg = [document.body, document.documentElement].map((e) => e && luminance(getComputedStyle(e).backgroundColor)).find((l) => l >= 0);
     if (bg !== undefined && bg < 0.4) return true;
     const meta = document.querySelector("meta[name='color-scheme']");
-    if (meta && /^\s*dark\s*$/i.test(meta.content || "")) return true;
+    if (meta && /\bdark\b/i.test(meta.content || "")) return true;
+    if (/\bdark\b/.test(getComputedStyle(document.documentElement).colorScheme || "")) return true;
     // A dark media rule in a sheet is no proof: most light sites ship one that is not active here.
     return false;
   }
@@ -2371,8 +2372,14 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
     if (d.key === lastKey) return; // decode still running
     cleared = false; sentAt = Date.now(); lastKey = d.key; lastEl = d.el; lastRect = d.r; result = null;
     lastNonce = sentAt + "|" + (++seq);
-    ipcRenderer.send("qrHover", { x: d.x, y: d.y, width: d.width, height: d.height, tag: d.tag, cx: e.clientX, cy: e.clientY, key: d.key, nonce: lastNonce });
+    ipcRenderer.send("qrHover", { x: d.x, y: d.y, width: d.width, height: d.height, tag: d.tag, cx: e.clientX, cy: e.clientY, key: d.key, nonce: lastNonce, vx: d.r.left, vy: d.r.top });
   }
+  // The link box stays while the pointer is on the QR and goes as soon as it leaves it.
+  document.addEventListener("pointermove", (e) => {
+    if (cleared || !lastRect) return;
+    const pad = 2;
+    if (e.clientX < lastRect.left - pad || e.clientX > lastRect.right + pad || e.clientY < lastRect.top - pad || e.clientY > lastRect.bottom + pad) clear();
+  }, true);
   addEventListener("blur", clear);
   addEventListener("scroll", clear, { capture: true, passive: true });
   document.addEventListener("click", onClick, true);

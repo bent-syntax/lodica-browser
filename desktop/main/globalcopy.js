@@ -8,9 +8,9 @@ const KEY = "CommandOrControl+Alt+C";
 
 // Alt and Shift are still down from the shortcut; lift them first so the app sees a plain Ctrl+C.
 const WIN = "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class K{[DllImport(\"user32.dll\")]public static extern void keybd_event(byte v,byte s,uint f,UIntPtr e);}';" +
-  "foreach($k in 0x12,0x10){[K]::keybd_event($k,0,2,[UIntPtr]::Zero)};" +
-  "[K]::keybd_event(0x11,0,0,[UIntPtr]::Zero);[K]::keybd_event(0x43,0,0,[UIntPtr]::Zero);" +
-  "[K]::keybd_event(0x43,0,2,[UIntPtr]::Zero);[K]::keybd_event(0x11,0,2,[UIntPtr]::Zero)";
+  "foreach($k in 0xA4,0xA5,0xA0,0xA1,0xA3){[K]::keybd_event($k,0,2,[UIntPtr]::Zero)};" + // both Alt keys (AltGr is Ctrl+Alt), both Shift keys, right Ctrl
+  "[K]::keybd_event(0xA2,0,0,[UIntPtr]::Zero);[K]::keybd_event(0x43,0,0,[UIntPtr]::Zero);" +
+  "[K]::keybd_event(0x43,0,2,[UIntPtr]::Zero);[K]::keybd_event(0xA2,0,2,[UIntPtr]::Zero)";
 
 function sendCopy() {
   return new Promise((res) => {

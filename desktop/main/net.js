@@ -196,7 +196,13 @@ function init(d) {
     ses.webRequest.onBeforeSendHeaders({ urls: ["<all_urls>"] }, onBeforeSendHeaders);
     ses.webRequest.onCompleted({ urls: ["<all_urls>"] }, onCompleted);
   }
-  ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", (...a) => (fast() ? undefined : blocker?.onInjectCosmeticFilters(...a)));
+  // Sites on the allow lists get no injected hiding rules or scriptlets either (Gemini and other web apps break on them).
+  ipcMain.handle("@ghostery/adblocker/inject-cosmetic-filters", (e, url, ...a) => {
+    if (fast()) return undefined;
+    const host = hostOf(url);
+    if (host && (prefs.isTrusted(host) || prefs.isCompat(host))) return undefined;
+    return blocker?.onInjectCosmeticFilters(e, url, ...a);
+  });
   // Cosmetic filters keep watching the DOM only in the top frame. In embedded frames a DOM observer slowed every page script
   // (Speedometer runs each test in an iframe); their ads are mostly stopped by the network filters anyway.
   ipcMain.handle("@ghostery/adblocker/is-mutation-observer-enabled", (e, ...a) => (e.senderFrame && e.senderFrame.parent ? false : blocker?.onIsMutationObserverEnabled(e, ...a) ?? false));

@@ -36,13 +36,17 @@ async function copyQrText(text) {
   catch { toast("Could not copy"); }
 }
 
-function placeQrDecoded(x, y) {
+function placeQrDecoded(x, y, anchor) {
   if (!QR_DECODE || !QR_DECODE.el) return;
   const el = QR_DECODE.el.querySelector(".hoverqr.qr-decoded");
   if (!el) return;
   const w = el.offsetWidth || 260, hh = el.offsetHeight || 72;
-  const left = Math.min(Math.max(8, Math.round(x) + 16), Math.max(8, (innerWidth || 0) - w - 8));
-  const top = Math.min(Math.max(8, Math.round(y) + 16), Math.max(8, (innerHeight || 0) - hh - 8));
+  let left = Math.min(Math.max(8, Math.round(x) + 16), Math.max(8, (innerWidth || 0) - w - 8));
+  let top = Math.min(Math.max(8, Math.round(y) + 16), Math.max(8, (innerHeight || 0) - hh - 8));
+  if (anchor) { // right above the QR, centred on it; below it only when there is no room above
+    left = Math.min(Math.max(8, Math.round(anchor.x + anchor.w / 2 - w / 2)), Math.max(8, (innerWidth || 0) - w - 8));
+    top = anchor.y - hh - 6 >= 8 ? Math.round(anchor.y - hh - 6) : Math.round(anchor.y + anchor.h + 6);
+  }
   el.style.left = left + "px";
   el.style.top = top + "px";
   el.style.right = "auto";
@@ -89,7 +93,7 @@ function showQrDecoded(d) {
     const card = QR_DECODE.el.querySelector(".hoverqr.qr-decoded");
     if (card) card.classList.toggle("qr-page", page);
     bindQrHold();
-    placeQrDecoded(x, y);
+    placeQrDecoded(x, y, d.anchor);
     return;
   }
   const payload = decodedPayload(text);
@@ -102,7 +106,7 @@ function showQrDecoded(d) {
   QR_DECODE.decodedText = text;
   QR_DECODE.urlEl = payload;
   QR_DECODE.openUrl = link;
-  placeQrDecoded(x, y);
+  placeQrDecoded(x, y, d.anchor);
 }
 
 function openQr() {

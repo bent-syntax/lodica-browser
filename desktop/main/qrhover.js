@@ -41,7 +41,7 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
   const decoded = new WeakMap(), clearTimers = new Map(), byWc = new WeakMap();
   let inFlight = false, activeSender = null, heldSender = null;
 
-  const push = (url, point, page) => ui.push("qrDecoded", { url, x: point ? point.x : 0, y: point ? point.y : 0, page: !!page });
+  const push = (url, point, page, anchor) => ui.push("qrDecoded", Object.assign({ url, x: point ? point.x : 0, y: point ? point.y : 0, page: !!page }, anchor ? { anchor } : {}));
   const bump = sender => { const n = (latest.get(sender) || 0) + 1; latest.set(sender, n); return n; };
 
   holdSetter = (on) => {
@@ -102,7 +102,7 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
         decoded.set(sender, text);
         echo(sender, job.key, text, job.nonce);
         cancelClear(sender);
-        if (text) { activeSender = sender; push(text, job.point, true); }
+        if (text) { activeSender = sender; push(text, job.point, true, job.anchor); }
         else { if (activeSender === sender) activeSender = null; scheduleClear(sender); }
       },
       () => {
@@ -162,7 +162,9 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
     try { if (tab.view.getBounds) bounds = tab.view.getBounds() || bounds; } catch { /* gone */ }
     const point = cursorPoint(d, bounds, bounds);
     const seq = bump(e.sender);
-    pending.set(e.sender, { sender: e.sender, wc, rect, point, seq, key: String(d.key || ""), nonce: String(d.nonce || "") });
+    // Where the QR sits in window coordinates, so the link box can open right above it.
+    const anchor = Number.isFinite(d.vx) && Number.isFinite(d.vy) ? { x: Math.round(d.vx + (bounds.x || 0)), y: Math.round(d.vy + (bounds.y || 0)), w: rect.width, h: rect.height } : null;
+    pending.set(e.sender, { sender: e.sender, wc, rect, point, anchor, seq, key: String(d.key || ""), nonce: String(d.nonce || "") });
     pump();
   });
 

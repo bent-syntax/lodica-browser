@@ -220,7 +220,7 @@ function element(tag, rect, src = "") {
     nodeType: 1, tagName: qr ? "DIV" : tag, currentSrc: src, parentElement: null,
     matches(sel) { return sel.split(",").map(s => s.trim()).some(s => s === "[data-qr]" ? qr : s.toLowerCase() === String(this.tagName).toLowerCase()); },
     hasAttribute(n) { return qr && n === "data-qr"; },
-    getBoundingClientRect: () => rect,
+    getBoundingClientRect: () => ({ ...rect, right: rect.left + rect.width, bottom: rect.top + rect.height }),
     getAttribute: () => null,
   };
 }
@@ -244,7 +244,9 @@ function overlayTests() {
   let e = press(img, 12, 22);
   o.fire("click", e);
   assert.strictEqual(e.prevented, undefined, "the first click still reaches the page");
-  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22, key: "img|10|20|100|100|https://example.com/qr.png" }]);
+  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 10, y: 20, width: 100, height: 100, tag: "img", cx: 12, cy: 22, key: "img|10|20|100|100|https://example.com/qr.png", vx: 10, vy: 20 }]);
+  o.fire("pointermove", move(img, 40, 50)); // still on the QR: the box stays
+  assert.strictEqual(o.sends.length, 0);
   o.fire("click", press(img, 13, 23)); // decode still running: no second request
   assert.strictEqual(o.sends.length, 0);
   o.fire("click", press(canvas, 32, 42));
@@ -263,7 +265,9 @@ function overlayTests() {
   assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { clear: true }]);
   o.sandbox.scrollX = 100; o.sandbox.scrollY = 50;
   o.fire("click", press(img, 100, 110)); // rect is in document coordinates, cursor stays in viewport coordinates
-  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110, key: "img|110|70|100|100|https://example.com/qr.png" }]);
+  assert.deepStrictEqual(stripNonce(o.sends.pop()), ["qrHover", { x: 110, y: 70, width: 100, height: 100, tag: "img", cx: 100, cy: 110, key: "img|110|70|100|100|https://example.com/qr.png", vx: 10, vy: 20 }]);
+  o.fire("pointermove", move(img, 500, 500)); // the cursor left the QR
+  assert.deepStrictEqual(plain(o.sends.pop()), ["qrHover", { clear: true }]);
 }
 
 function overlayClickTests() {
@@ -415,7 +419,7 @@ function staticGuards() {
   const read = f => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
   const overlay = read("scripts/overlay/qrhover.js");
   assert.ok(overlay.includes('typeof ipcRenderer !== "undefined"'));
-  assert.ok(overlay.includes('document.addEventListener("click"') && !overlay.includes('"pointermove"'));
+  assert.ok(overlay.includes('document.addEventListener("click"') && overlay.includes('lastRect.left - pad'));
   assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|innerHTML/.test(overlay));
   assert.ok(read("scripts/build-preload.js").includes('js += overlay("qrhover.js");'));
   const main = read("main/qrhover.js");

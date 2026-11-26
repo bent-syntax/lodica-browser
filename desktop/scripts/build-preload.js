@@ -114,6 +114,9 @@ if (/browser\.storage|wrappedJSObject|openOrClosed/.test(js)) throw new Error("b
 const overlay = (f) => fs.readFileSync(path.join(__dirname, "overlay", f), "utf8");
 // Only Google pages need the theme observer; elsewhere it would run on every page change.
 swap('new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme")', 'if (TOP && /(^|\\.)google\\.[a-z.]+$/.test(location.hostname)) new MutationObserver(() => { if (page.theme && (!document.getElementById("lodica-gtheme")');
+// Dark mode: a site that declares a dark scheme (meta or color-scheme) has its own dark mode, so Force dark leaves it alone.
+swap(String.raw`if (meta && /^\s*dark\s*$/i.test(meta.content || "")) return true;`, String.raw`if (meta && /\bdark\b/i.test(meta.content || "")) return true;
+    if (/\bdark\b/.test(getComputedStyle(document.documentElement).colorScheme || "")) return true;`);
 const ipcLine = 'const { ipcRenderer, webFrame } = require("electron");\n';
 swap(ipcLine, ipcLine + overlay("google-ua.js"));
 js += overlay("draw.js");

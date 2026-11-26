@@ -160,11 +160,11 @@ function pageState(tab) {
 /** Per-site override for a hostname (exact or parent domain), or null. Used by the preload at document start. */
 function overrideFor(host) { return prefs.siteOverride(host); }
 
-/** With "Dark mode" and "Force dark" both off, pages see a light scheme even when the system is dark (nativeTheme follows the system). */
+/** "Dark mode" makes every page see a dark scheme, whatever the system uses, so sites with their own dark mode switch to it; off means light. */
 function syncScheme(wc) {
   try {
     if (!wc.debugger.isAttached()) wc.debugger.attach("1.3");
-    wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages || prefs.p.forceDark ? "" : "light" }] }).catch(() => {});
+    wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages ? "dark" : "light" }] }).catch(() => {});
   } catch { /* debugger busy or view gone */ }
 }
 
