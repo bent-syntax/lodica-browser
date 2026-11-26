@@ -2,6 +2,15 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.5 (versionCode 297)
+
+- QR codes no longer flicker on hover. Click a QR code to see its link, click it again to open it.
+- Ctrl+Alt+C copies the selected text in any app, even when Lodica is not in front.
+- Ctrl+Alt+D draws over the whole desktop. Desktop drawings are not saved; drawings on tabs still are.
+- The link-server dialog has a Copy command button.
+- Windows no longer throttles Lodica pages when it thinks the window is covered.
+- The server keeps its chat messages, read marks and costumes across a restart or update. Attached files are not kept.
+
 ## 1.21.4 (versionCode 296)
 
 - Linking a server now shows the exact install command for this release, on desktop and Android. The installer accepts `LODICA_REF` to install that release.

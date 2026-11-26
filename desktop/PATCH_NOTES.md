@@ -1,3 +1,10 @@
+## 1.21.5
+
+- QR codes no longer flicker. Click one to see its link, click again to open it.
+- Ctrl+Alt+C copies the selection in any app. Ctrl+Alt+D draws over the desktop without saving.
+- The link-server dialog has a Copy command button.
+- The server keeps its chat across updates.
+
 ## 1.21.4
 
 - Linking a server shows the exact install command for this release.

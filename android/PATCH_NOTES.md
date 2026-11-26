@@ -1,3 +1,7 @@
+## 1.21.5
+
+- The server keeps its chat across updates.
+
 ## 1.21.4
 
 - Linking a server shows the exact install command for this release.
