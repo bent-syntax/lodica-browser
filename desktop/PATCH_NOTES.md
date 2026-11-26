@@ -1,3 +1,11 @@
+## 1.21.3
+
+- Switch tabs and open a new tab while the address bar is focused.
+- QR codes with a bare domain open as web links.
+- The shield icon toggles protection in one click; the green lock opens the site info.
+- Gemini works with the ad blocker on.
+- Faster heavy web pages.
+
 ## 1.21.2
 
 - Side panels replace each other instead of stacking.

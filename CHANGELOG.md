@@ -2,6 +2,15 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.3 (versionCode 295)
+
+- You can switch tabs and open a new tab while the address bar is focused.
+- A QR code that holds a bare domain such as beermap.be now opens as a web link.
+- The desktop shield icon turns protection on or off for the site in one click; the green lock still opens the site info.
+- Gemini is no longer blocked by the ad blocker.
+- Pages in iframes no longer run the helper script, which speeds up heavy web apps.
+- Android installs an update right after downloading it, and asks whether to update the server too.
+
 ## 1.21.2 (versionCode 294)
 
 - Side panels (AI, chat, notes, phone screen) now replace each other instead of stacking, on desktop and Android.
