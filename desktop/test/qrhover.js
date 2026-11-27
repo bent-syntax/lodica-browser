@@ -103,10 +103,11 @@ async function mainHandlerTests() {
   await flush();
   assert.strictEqual(captures, 1);
   assert.deepStrictEqual(captureRects[0], { x: 5, y: 6, width: 200, height: 200 });
-  assert.deepStrictEqual(pushes.pop(), { ev: "qrDecoded", d: { url: QR_TEXT, x: 10, y: 64, page: true } });
+  assert.strictEqual(pushes.length, 0, "a page QR is drawn inside the page, not in an overlay layer");
   const echo = echoes.pop();
   assert.strictEqual(echo[0], "qrResult");
   assert.strictEqual(echo[1].url, QR_TEXT);
+  assert.ok(/^#[0-9a-f]{6}$/i.test(echo[1].theme.bg), "the echo carries the browser colours for the link box");
   assert.ok(echo[1].key && echo[1].nonce, "the echo identifies the exact crop");
 
   // Clicking the decoded QR opens the payload; an undecoded sender cannot trigger an open.
@@ -130,7 +131,7 @@ async function mainHandlerTests() {
   handlers.qrHover({ sender }, { x: 7, y: 8, width: 200, height: 200, tag: "canvas", cx: 30, cy: 40 });
   await flush();
   assert.strictEqual(captures, 2);
-  assert.deepStrictEqual(pushes.pop().d, { url: QR_TEXT, x: 30, y: 84, page: true });
+  assert.strictEqual(echoes.pop()[1].url, QR_TEXT);
 
   const before = pushes.length;
   handlers.qrHover({ sender: {} }, { x: 1, y: 1, width: 100, height: 100, tag: "img", cx: 1, cy: 1 });
@@ -158,7 +159,7 @@ async function mainHandlerTests() {
   assert.strictEqual(resolvers.length, 1);
   resolvers.shift()(fakeImage(FIXTURE));
   await flush();
-  assert.deepStrictEqual(pushes2, [{ url: QR_TEXT, x: 2, y: 46, page: true }]);
+  assert.deepStrictEqual(pushes2, []);
 }
 
 /** The delayed clear must survive a throttled re-hover and respect the tooltip's Copy/Open controls. */
@@ -173,7 +174,7 @@ async function delayedClearTests() {
 
   hover(1);
   await flush();
-  assert.strictEqual(pushes.pop().url, QR_TEXT);
+  assert.strictEqual(pushes.length, 0);
   qrhover.setHold(true);
   handlers.qrHover({ sender }, { clear: true });
   await sleep(150);
@@ -202,7 +203,11 @@ function loadOverlay(nowRef) {
   const sandbox = {
     ipcRenderer: { send: (...a) => sends.push(a), on: (n, f) => { ipc[n] = f; } },
     window: {}, location: { protocol: "https:" }, scrollX: 0, scrollY: 0,
-    document: { addEventListener: (n, f) => { (listeners[n] = listeners[n] || []).push(f); } },
+    document: {
+      addEventListener: (n, f) => { (listeners[n] = listeners[n] || []).push(f); },
+      createElement: () => ({ style: {}, kids: [], textContent: "", offsetWidth: 200, offsetHeight: 40, appendChild(k) { this.kids.push(k); }, remove() { this.removed = true; } }),
+      documentElement: { kids: [], appendChild(k) { this.kids.push(k); } },
+    },
     addEventListener: (n, f) => { (listeners[n] = listeners[n] || []).push(f); },
     getComputedStyle: () => ({ display: "block", visibility: "visible", opacity: "1" }),
     Date: { now: nowRef }, console, Math, Number, String,
@@ -296,8 +301,14 @@ function overlayClickTests() {
     assert.strictEqual(o.sends.length, 0);
   }
 
-  // Second click on the confirmed image opens the link.
-  o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: QR_TEXT });
+  // Second click on the confirmed image opens the link; the confirmed link shows in a box above the QR.
+  o.emit("qrResult", { key: hover.key, nonce: hover.nonce, url: QR_TEXT, theme: { bg: "#17181B", text: "#ECEDEE", muted: "#A0A4AB" } });
+  const boxEl = o.sandbox.document.documentElement.kids[0];
+  assert.ok(boxEl && boxEl.kids[0].textContent === QR_TEXT, "link box shown");
+  assert.strictEqual(boxEl.style.background, "#17181B", "opaque browser background");
+  assert.strictEqual(boxEl.style.top, "126px", "no room above: placed below the QR");
+  o.fire("pointermove", move(img, 40, 50)); // still on the QR
+  assert.ok(!boxEl.removed, "box stays while the pointer is on the QR");
   e = click();
   o.fire("click", e);
   assert.strictEqual(e.prevented, true);

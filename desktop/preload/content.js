@@ -4,7 +4,8 @@
 const { ipcRenderer, webFrame } = require("electron");
 
 // Google sign-in rejects embedded browsers: make the page-visible identity match the Chrome UA we send.
-if (/(^|\.)(google|youtube)\.[a-z.]+$/.test(location.hostname)) {
+// Only the sign-in pages: faking window.chrome and the client hints on apps like Gemini makes their scripts take extension code paths and stall.
+if (/^(accounts|myaccount)\.(google|youtube)\.[a-z.]+$/.test(location.hostname)) {
   try {
     webFrame.executeJavaScript(`(()=>{
       const v=(/Chrome\\/(\\d+)/.exec(navigator.userAgent)||[])[1]||"141";
@@ -2331,13 +2332,40 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
     }
     return null;
   }
+  // The decoded link, drawn above the QR inside the page. Opaque, never takes the pointer, gone when the pointer leaves the QR.
+  let box = null;
+  function hideBox() { if (box) { try { box.remove(); } catch (e) { /* gone */ } box = null; } }
+  function showBox(url, r, th) {
+    hideBox();
+    if (!document.createElement || !document.documentElement) return;
+    const col = (v, d) => (typeof v === "string" && /^#[0-9a-f]{3,8}$/i.test(v) ? v : d);
+    const bg = col(th && th.bg, "#17181B"), fg = col(th && th.text, "#ECEDEE"), mu = col(th && th.muted, "#A0A4AB");
+    const el = document.createElement("div");
+    const line = document.createElement("div"), hint = document.createElement("div");
+    line.textContent = url; hint.textContent = "Click the QR code again to open";
+    Object.assign(el.style, { all: "initial", position: "fixed", zIndex: "2147483647", pointerEvents: "none", boxSizing: "border-box", maxWidth: "340px",
+      padding: "8px 12px", borderRadius: "12px", background: bg, border: "1px solid " + mu + "55", boxShadow: "0 8px 24px rgba(0,0,0,.35)", fontFamily: "system-ui,Segoe UI,sans-serif", left: "0px", top: "0px" });
+    Object.assign(line.style, { all: "initial", display: "block", color: fg, font: "13px system-ui,Segoe UI,sans-serif", wordBreak: "break-all" });
+    Object.assign(hint.style, { all: "initial", display: "block", marginTop: "2px", color: mu, font: "12px system-ui,Segoe UI,sans-serif" });
+    el.appendChild(line); el.appendChild(hint);
+    document.documentElement.appendChild(el);
+    const w = el.offsetWidth || 260, h = el.offsetHeight || 48, vw = typeof innerWidth === "number" && innerWidth > 0 ? innerWidth : 1024;
+    const left = Math.min(Math.max(8, Math.round(r.left + r.width / 2 - w / 2)), Math.max(8, vw - w - 8));
+    const top = r.top - h - 6 >= 8 ? Math.round(r.top - h - 6) : Math.round(r.top + r.height + 6);
+    el.style.left = left + "px"; el.style.top = top + "px";
+    box = el;
+  }
   function clear() {
+    hideBox();
     if (cleared) return;
     cleared = true; lastKey = ""; lastNonce = ""; lastEl = null; lastRect = null; sentAt = -Infinity; result = null;
     ipcRenderer.send("qrHover", { clear: true });
   }
   // Main echoes the decode with a nonce for the exact crop it belongs to, so only a real QR blocks a page click.
-  if (ipcRenderer.on) ipcRenderer.on("qrResult", (_e, d) => { result = d || null; });
+  if (ipcRenderer.on) ipcRenderer.on("qrResult", (_e, d) => {
+    result = d || null;
+    if (result && lastRect && result.key === lastKey && result.nonce && result.nonce === lastNonce && SAFE.test(String(result.url || ""))) showBox(result.url, lastRect, result.theme);
+  });
   // Nothing happens on hover (hover decoding made the tooltip flicker). The first click decodes the image under the pointer
   // and shows the link; the next click on the same image opens it. A click that is not on a QR hides the tooltip.
   function describe(e) {
@@ -2367,6 +2395,7 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
       e.preventDefault();
       if (e.stopPropagation) e.stopPropagation();
       ipcRenderer.send("qrClick", { url: result.url });
+      hideBox();
       return;
     }
     if (d.key === lastKey) return; // decode still running
@@ -2380,7 +2409,6 @@ if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.t
     const pad = 2;
     if (e.clientX < lastRect.left - pad || e.clientX > lastRect.right + pad || e.clientY < lastRect.top - pad || e.clientY > lastRect.bottom + pad) clear();
   }, true);
-  addEventListener("blur", clear);
   addEventListener("scroll", clear, { capture: true, passive: true });
   document.addEventListener("click", onClick, true);
 })();

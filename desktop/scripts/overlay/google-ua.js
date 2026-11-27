@@ -1,6 +1,7 @@
 
 // Google sign-in rejects embedded browsers: make the page-visible identity match the Chrome UA we send.
-if (/(^|\.)(google|youtube)\.[a-z.]+$/.test(location.hostname)) {
+// Only the sign-in pages: faking window.chrome and the client hints on apps like Gemini makes their scripts take extension code paths and stall.
+if (/^(accounts|myaccount)\.(google|youtube)\.[a-z.]+$/.test(location.hostname)) {
   try {
     webFrame.executeJavaScript(`(()=>{
       const v=(/Chrome\\/(\\d+)/.exec(navigator.userAgent)||[])[1]||"141";

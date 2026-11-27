@@ -76,9 +76,12 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
     if (old) clearTimeout(old);
     clearTimers.delete(sender);
   }
+  // The link box is drawn inside the page (no overlay window, so the page keeps focus and pointer); it takes the browser colours.
+  const HEX = /^#[0-9a-f]{3,8}$/i;
+  const themeOf = () => { const t = global.lodicaTheme || {}; const c = (v, d) => (typeof v === "string" && HEX.test(v) ? v : d); return { bg: c(t.bg, "#17181B"), text: c(t.text, "#ECEDEE"), muted: c(t.muted, "#A0A4AB") }; };
   function echo(sender, key, text, nonce) {
     const url = safeLink(text) ? String(text).trim() : "";
-    try { if (sender && typeof sender.send === "function") sender.send("qrResult", { key: key || "", nonce: nonce || "", url }); } catch {}
+    try { if (sender && typeof sender.send === "function") sender.send("qrResult", { key: key || "", nonce: nonce || "", url, theme: themeOf() }); } catch {}
   }
 
   async function run(job) {
@@ -102,7 +105,7 @@ function init({ tabs, ui, now = Date.now, clearDelay = 300 } = {}) {
         decoded.set(sender, text);
         echo(sender, job.key, text, job.nonce);
         cancelClear(sender);
-        if (text) { activeSender = sender; push(text, job.point, true, job.anchor); }
+        if (text) activeSender = sender;
         else { if (activeSender === sender) activeSender = null; scheduleClear(sender); }
       },
       () => {

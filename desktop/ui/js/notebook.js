@@ -31,15 +31,22 @@ function openNotebook() {
       L.graph.style.display = f ? "block" : "none";
       if (f) drawGraph(L.graph, f);
       const a = !sel || f ? null : mathAnswer(sel);
-      if (a == null) { L.ans.style.display = "none"; return; }
-      const add = (a.includes("=") ? "\n" : " = ") + a;
-      L.ans.replaceChildren(h("span", { style: "flex:1", text: (a.includes("=") ? "" : "= ") + a }),
-        h("button", { class: "chip", text: "Insert", act: () => {
-          if (L.ta.value.length + add.length > 100000) return;
-          L.ta.focus(); L.ta.setSelectionRange(end, end);
-          if (!document.execCommand("insertText", false, add)) { L.ta.setRangeText(add, end, end, "end"); L.ta.dispatchEvent(new Event("input")); }
-          L.ans.style.display = "none";
-        } }));
+      const alt = a == null && sel && !f ? mathRearrange(sel) : null; // a formula with several letters: the same formula solved for each other letter
+      if (a == null && !alt) { L.ans.style.display = "none"; return; }
+      const insert = (add) => {
+        if (L.ta.value.length + add.length > 100000) return;
+        L.ta.focus(); L.ta.setSelectionRange(end, end);
+        if (!document.execCommand("insertText", false, add)) { L.ta.setRangeText(add, end, end, "end"); L.ta.dispatchEvent(new Event("input")); }
+        L.ans.style.display = "none";
+      };
+      if (alt) {
+        L.ans.replaceChildren(h("div", { style: "flex:1;display:flex;flex-direction:column;gap:4px" }, ...alt.map((line) => h("div", { style: "display:flex;align-items:center;gap:8px" },
+          h("span", { style: "flex:1", text: line }), h("button", { class: "chip", text: "Insert", act: () => insert("\n" + line) })))));
+      } else {
+        const add = (a.includes("=") ? "\n" : " = ") + a;
+        L.ans.replaceChildren(h("span", { style: "flex:1", text: (a.includes("=") ? "" : "= ") + a }),
+          h("button", { class: "chip", text: "Insert", act: () => insert(add) }));
+      }
       L.ans.style.display = "flex";
     };
     const adopt = (n) => { L.rev = n.rev; L.sent = n.text; };
