@@ -1,3 +1,7 @@
+## 1.22.0
+
+- The server keeps its chat user list across a restart or update.
+
 ## 1.21.7
 
 - Maintenance release; the desktop app has the changes.

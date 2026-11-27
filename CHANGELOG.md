@@ -2,6 +2,17 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.22.0 (versionCode 300)
+
+- A .docx opens with its own page layout, and every typed paragraph can be edited. Saving writes the changes into the original file. Paragraphs cannot be split, added or removed, and headers and footers are read only.
+- PDFs get an Edit text button: click a word, change it and save an edited copy. The old word is covered, not removed, so do not use it to redact.
+- Ctrl+Alt+C opens circle to search: draw a line over text to copy it (read locally), or circle a picture to search the web for it. It replaces the old global copy shortcut.
+- Reverse image search: right-click an image and choose Search image. Pick Google, Bing or Yandex in Settings, Search.
+- Settings, Chat has a Message time setting for how long short messages such as Saved stay on screen.
+- The server keeps its chat user list across a restart or update.
+- Gemini gets none of the browser's page scripts.
+- The clipboard link prompt and the password manager's clipboard clearing work again.
+
 ## 1.21.7 (versionCode 299)
 
 - The QR link box is drawn inside the page above the QR code, stays while the pointer is on the QR, and a second click on the QR opens the link.

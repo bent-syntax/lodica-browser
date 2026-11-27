@@ -1,3 +1,12 @@
+## 1.22.0
+
+- A .docx keeps its own layout and every paragraph can be edited; saving updates the original file.
+- PDFs: Edit text covers a word and writes a new one.
+- Ctrl+Alt+C: circle to search copies text from the screen or searches for a circled picture.
+- Right-click an image: Search image (Google, Bing or Yandex).
+- Settings, Chat: Message time.
+- The clipboard link prompt and the password clipboard clearing work again.
+
 ## 1.21.7
 
 - The QR link box stays above the QR while the pointer is on it; a second click opens the link.
