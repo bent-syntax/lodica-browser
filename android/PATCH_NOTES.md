@@ -1,3 +1,7 @@
+## 1.21.7
+
+- Maintenance release; the desktop app has the changes.
+
 ## 1.21.6
 
 - Maintenance release; the desktop app has the changes.

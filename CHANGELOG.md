@@ -2,6 +2,13 @@
 
 See `android/PATCH_NOTES.md` and `desktop/PATCH_NOTES.md` for older releases.
 
+## 1.21.7 (versionCode 299)
+
+- The QR link box is drawn inside the page above the QR code, stays while the pointer is on the QR, and a second click on the QR opens the link.
+- The notebook shows a formula solved for each other letter (for example n=m/M gives m = n*M and M = m/n), like the page bubble.
+- Gemini: the Chrome identity spoof now only runs on Google sign-in pages.
+- Ctrl+Alt+C copies through the page when Lodica is in front, and reports an error when copying from another app fails.
+
 ## 1.21.6 (versionCode 298)
 
 - The QR link box opens right above the QR code in the browser background colour, is no longer see-through, and goes when the pointer leaves the QR.

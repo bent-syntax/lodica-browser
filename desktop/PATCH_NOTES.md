@@ -1,3 +1,9 @@
+## 1.21.7
+
+- The QR link box stays above the QR while the pointer is on it; a second click opens the link.
+- The notebook solves a formula for each other letter.
+- Gemini loads further; Ctrl+Alt+C copies inside Lodica and reports errors elsewhere.
+
 ## 1.21.6
 
 - The QR link box opens above the QR code, is opaque, and goes when the pointer leaves it.
