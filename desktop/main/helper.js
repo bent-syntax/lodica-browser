@@ -163,6 +163,7 @@ function overrideFor(host) { return prefs.siteOverride(host); }
 /** "Dark mode" makes every page see a dark scheme, whatever the system uses, so sites with their own dark mode switch to it; off means light. */
 function syncScheme(wc) {
   try {
+    if (/^gemini\.google\.com$/.test(new URL(wc.getURL()).hostname)) return; // no debugger on web apps that cannot take any page tampering
     if (!wc.debugger.isAttached()) wc.debugger.attach("1.3");
     wc.debugger.sendCommand("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: prefs.p.darkPages ? "dark" : "light" }] }).catch(() => {});
   } catch { /* debugger busy or view gone */ }

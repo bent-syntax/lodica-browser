@@ -394,6 +394,8 @@ function secServer() {
   out.push(secHead("Chat", "chat"));
   out.push(setSelect("Chat size", "Size of server chat text and emojis", [
     { key: 100, label: "100%" }, { key: 125, label: "125%" }, { key: 150, label: "150%" }, { key: 200, label: "200%" }], "chatScale", Number));
+  out.push(setSelect("Message time", "How long short messages such as \"Saved\" stay on screen", [
+    { key: 2, label: "2 seconds" }, { key: 3, label: "3 seconds" }, { key: 5, label: "5 seconds" }, { key: 8, label: "8 seconds" }, { key: 15, label: "15 seconds" }], "toastSecs", Number));
   out.push(setSelect("Emoji size", "Size of server emojis in the chat, apart from the text size", [
     { key: 100, label: "Small" }, { key: 150, label: "Medium" }, { key: 200, label: "Large" }, { key: 300, label: "Extra large" }], "chatEmojiScale", Number));
   if (S.relayAvail) out.push(...serverUpdateRow());

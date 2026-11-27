@@ -1,7 +1,7 @@
 
 // Draw mode (Ctrl+Shift+G) and move mode (Ctrl+Shift+M). Strokes live in an SVG laid over the page, so they scroll with it.
 // Moves are saved as a CSS selector plus an offset. Both are stored per page address by the main process.
-if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
+if (window === window.top && /^https?:$/.test(location.protocol) && !/^gemini\.google\.com$/.test(location.hostname)) (() => {
   const NS = "http://www.w3.org/2000/svg";
   const pageKey = () => location.origin + location.pathname + location.search;
   let key = "", data = { strokes: [], moves: [], texts: [] };

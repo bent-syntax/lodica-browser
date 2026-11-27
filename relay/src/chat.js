@@ -56,7 +56,7 @@ function save() {
   if (!persist) return;
   clearTimeout(saveTimer); saveTimer = null;
   const snap = {
-    v: 1, seq, log, osOf: entries(osOf), faceOf: entries(faceOf), artOf: entries(artOf), handsOf: entries(handsOf), bubbleOf: entries(bubbleOf),
+    v: 1, seq, log, seen: entries(seen), osOf: entries(osOf), faceOf: entries(faceOf), artOf: entries(artOf), handsOf: entries(handsOf), bubbleOf: entries(bubbleOf),
     reads: [...reads].map(([room, m]) => [room, entries(m)]),
   };
   try {
@@ -82,7 +82,7 @@ function load() {
   seq = Math.max(Number.isInteger(s.seq) ? s.seq : 0, ...log.map((m) => m.id));
   prune();
   const fill = (map, list) => { for (const e of Array.isArray(list) ? list : []) if (Array.isArray(e) && typeof e[0] === 'string') map.set(e[0], e[1]); };
-  fill(osOf, s.osOf); fill(faceOf, s.faceOf); fill(artOf, s.artOf); fill(handsOf, s.handsOf); fill(bubbleOf, s.bubbleOf);
+  fill(seen, s.seen); fill(osOf, s.osOf); fill(faceOf, s.faceOf); fill(artOf, s.artOf); fill(handsOf, s.handsOf); fill(bubbleOf, s.bubbleOf);
   for (const [room, list] of Array.isArray(s.reads) ? s.reads : []) {
     if (typeof room !== 'string') continue;
     const m = new Map(); fill(m, list); reads.set(room, m);

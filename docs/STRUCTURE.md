@@ -58,7 +58,8 @@ Tokens: `ui/theme/Theme.kt` holds the colour roles (`raised`, `accent`, `muted`,
 | `preload/` | Preload scripts exposing IPC to the UI. |
 | `installer.nsh` | NSIS include (: removes older Lodica installs, adds the Start menu entry). |
 | `ui/` | Renderer UI: `index.html`, `top.html`, `ui.css`, `themes.css`, `polish.css`, `aipanel.html` + `js/aipanel.js` (right-side AI panel), `js/music.js` (Spotify sheet and all-tab lyrics panel), `js/qr.js` (QR tooltip), `js/`. |
-| `pdf/` | Built-in PDF viewer. |
+| `pdf/` | Built-in PDF viewer (pdf.js). `web/lodica-edit.js` adds "Edit text" (covers the old words and writes new ones with pdf-lib). `web/docxedit.*` opens a .docx with docx-preview and writes edited paragraphs back into the original file. `web/revsearch.*` posts an image to Google or Bing. `web/vendor/` holds docx-preview, jszip and pdf-lib. |
+| `ocr/` | Tesseract language files (eng, nld, fra, deu) used by `main/ocr.js`. `main/circlesearch.js` (Ctrl+Alt+C overlay) and `main/reverseimage.js` use them. |
 | `search/` | Search support. `instant.js` builds the instant answer cards (speed test, date, countdowns, timers, converters, calculator). `customtheme.js` applies the custom theme. |
 | `linux/`, `flatpak/` | Linux packaging (AppImage, deb, Flatpak). |
 | `scripts/` | Desktop helper scripts. |

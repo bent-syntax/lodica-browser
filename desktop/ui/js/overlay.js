@@ -157,7 +157,7 @@ function toast(opts) {
   b.append(t);
   barToast = t;
   requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add("on")));
-  const ms = opts.ms != null ? opts.ms : (acts.length ? 6000 : 3000);
+  const ms = opts.ms != null ? opts.ms : (acts.length ? 6000 : (Number(S.prefs.toastSecs) || 3) * 1000);
   if (ms > 0) timer = setTimeout(kill, ms);
   return { close: kill, el: t };
 }

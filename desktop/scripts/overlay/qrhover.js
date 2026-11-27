@@ -1,7 +1,7 @@
 
 // QR hover decode: report the element under the cursor so main can crop and decode it locally.
 // Top-frame http(s) pages only; this script never reads image bytes, uploads or fetches anything.
-if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.test(location.protocol)) (() => {
+if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.test(location.protocol) && !/^gemini\.google\.com$/.test(location.hostname)) (() => {
   const SEL = "img,canvas,svg,[data-qr]";
   const MIN = 24, MAX = 2048, THROTTLE = 120;
   const SAFE = /^(https?:|lodica:|mailto:|tel:)/i;

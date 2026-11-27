@@ -83,7 +83,7 @@ function copy(origin, user) {
   const e = all().find(x => x.origin === origin && x.user === (user || ""));
   if (!e) return false;
   clipboard.writeText(e.pass);
-  setTimeout(() => { if (clipboard.readText() === e.pass) clipboard.writeText(""); }, 30000);
+  setTimeout(async () => { try { if ((await clipboard.readText()) === e.pass) clipboard.writeText(""); } catch { /* no clipboard */ } }, 30000); // Electron 44: readText returns a promise
   return true;
 }
 

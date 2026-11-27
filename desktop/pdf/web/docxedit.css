@@ -1,6 +1,13 @@
-body{margin:0;background:#2a2a2e;font:12pt/1.45 Calibri,Arial,sans-serif}
-#bar{position:sticky;top:0;display:flex;gap:6px;align-items:center;padding:8px 12px;background:#1c1c1f;z-index:1}
-#bar button{background:#3a3a40;color:#eee;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}
+body{margin:0;background:#2a2a2e;font:13px system-ui,"Segoe UI",sans-serif}
+#bar{position:sticky;top:0;display:flex;gap:8px;align-items:center;padding:8px 12px;background:#1c1c1f;z-index:10;color:#ddd}
+#bar button{background:#3a3a40;color:#eee;border:0;border-radius:6px;padding:6px 12px;cursor:pointer;font:inherit}
+#bar button:disabled{opacity:.5;cursor:default}
 #bar .sp{flex:1}#msg{color:#bbb;font-size:12px}
-#page{box-sizing:border-box;max-width:794px;min-height:1000px;margin:20px auto;padding:72px;background:#fff;color:#111;outline:0}
-#page img{max-width:100%}#page table{border-collapse:collapse}#page td,#page th{border:1px solid #999;padding:4px 6px}
+#page{padding:8px 0 40px}
+/* docx-preview draws each page as a white section with the file's own size, margins, fonts and tables */
+#page .docx-wrapper{background:transparent!important;padding:12px 0!important}
+#page .docx-wrapper>section.docx{box-shadow:0 2px 12px rgba(0,0,0,.45)}
+#page [data-pi]{cursor:text;outline:0}
+#page [data-pi]:hover{background:rgba(245,158,11,.10)}
+#page [data-pi]:focus{background:rgba(245,158,11,.16);box-shadow:0 0 0 1px rgba(245,158,11,.5)}
+@media print{body{background:#fff}#bar{display:none}#page .docx-wrapper{padding:0!important}#page .docx-wrapper>section.docx{box-shadow:none;margin:0!important;break-after:page}}

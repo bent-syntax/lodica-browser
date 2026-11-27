@@ -1,0 +1,9 @@
+/* Edit text mode for the PDF viewer (lodica-edit.js). */
+#lodicaEditText{width:auto;padding:0 10px;font-size:13px;color:inherit}
+#lodicaEditText.on{background:#F59E0B;color:#1A1300}
+#lodicaSaveEdited{width:auto;padding:0 10px;font-size:13px;color:inherit}
+#lodicaSaveEdited[hidden]{display:none}
+.lodica-edit .textLayer span{cursor:text}
+.lodica-edit .textLayer span:hover{outline:1px solid rgba(245,158,11,.9);background:rgba(245,158,11,.15)}
+.textLayer span.lodica-editing{color:#000!important;background:#fff!important;outline:2px solid #F59E0B;cursor:text;user-select:text;z-index:5}
+#lodicaEditMsg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:#202226;color:#ECEDEE;font:13px system-ui,sans-serif;z-index:100000;pointer-events:none}

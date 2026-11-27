@@ -264,6 +264,17 @@ function init(deps) {
   on("home", () => tabs.home());
 
   on("tab.new", (o = {}) => tabs.create({ url: isWeb(o?.url) || str(o?.url).startsWith("lodica:") ? o.url : undefined, private: !!o?.private, background: !!o?.background, after: o?.after == null ? undefined : str(o.after) }));
+  // Reverse image search from the page context menu: the image bytes go to the engine chosen in Settings.
+  on("image.search", async (src) => {
+    const s = str(src);
+    let buf;
+    if (/^data:image\//i.test(s)) buf = Buffer.from(s.slice(s.indexOf(",") + 1), /;base64,/i.test(s.slice(0, s.indexOf(",") + 1)) ? "base64" : "utf8");
+    else if (isWeb(s)) { const r = await curSession().fetch(s); if (!r.ok) throw new Error("HTTP " + r.status); buf = Buffer.from(await r.arrayBuffer()); }
+    else throw new Error("This image cannot be searched");
+    const url = await require("./reverseimage").urlFor(buf, d.prefs.p.reverseEngine);
+    tabs.create({ url, private: !!cur()?.private });
+    return true;
+  });
   on("tab.duplicate", id => tabs.duplicate(id == null ? cur()?.id : str(id)));
   on("tab.select", id => tabs.select(str(id)));
   on("tab.move", (id, to) => tabs.move(str(id), str(to)));

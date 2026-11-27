@@ -179,6 +179,7 @@ function openContext(d) {
     items.push(["open", "Open " + kind + " in new tab", () => inv("link.open", src, sameTabPrivacy())],
       ["download", "Download " + kind, () => inv("link.download", src)],
       ["copy", "Copy " + kind + " address", () => inv("copyLink", src)]);
+    if (kind === "image") items.push(["search", "Search image", () => inv("image.search", src).then(null, () => toast("Could not search this image"))]);
   }
   const sel = (d.selectionText || "").trim();
   if (sel && !link) {

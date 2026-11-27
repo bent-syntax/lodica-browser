@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#000;cursor:crosshair;user-select:none;font:13px system-ui,"Segoe UI",sans-serif}
+canvas{display:block}
+#top{position:fixed;top:16px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:10px;background:#17181B;color:#ECEDEE;pointer-events:none}
+#bar{position:fixed;display:none;gap:8px;padding:8px;border-radius:12px;background:#17181B;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+#bar button{border:0;border-radius:8px;padding:8px 14px;background:#2B2E33;color:#ECEDEE;font:inherit;cursor:pointer}
+#bar button.go{background:#F59E0B;color:#1A1300;font-weight:600}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">Draw a line over text to copy it, or circle a picture to search for it. Esc closes.</div>
+<div id="bar"><button class="go" id="t">Copy text</button><button class="go" id="i">Search image</button></div>
+<script>
+// Everything stays in this window. The screenshot arrives from the app, nothing is stored or sent from here.
+const c = document.getElementById("c"), g = c.getContext("2d"), top_ = document.getElementById("top"), bar = document.getElementById("bar");
+let img = null, pts = [], down = false, sel = null, busy = false;
+const W = () => c.width, H = () => c.height;
+
+function base() {
+  g.drawImage(img, 0, 0, W(), H());
+  g.fillStyle = "rgba(0,0,0,.5)";
+  g.fillRect(0, 0, W(), H());
+}
+function redraw() {
+  base();
+  if (sel) { g.save(); g.beginPath(); g.rect(sel.x, sel.y, sel.w, sel.h); g.clip(); g.drawImage(img, 0, 0, W(), H()); g.restore(); g.strokeStyle = "#F59E0B"; g.lineWidth = 2; g.strokeRect(sel.x, sel.y, sel.w, sel.h); }
+  if (pts.length > 1) {
+    g.lineWidth = 5; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#F59E0B";
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) g.lineTo(p[0], p[1]);
+    g.stroke();
+  }
+}
+const say = (t) => { top_.textContent = t; };
+
+cs.onShot((d) => {
+  c.width = d.w; c.height = d.h;
+  img = new Image();
+  img.onload = redraw;
+  img.src = d.url;
+});
+
+function shape() {
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const w = x1 - x0, h = y1 - y0, diag = Math.hypot(w, h);
+  const gap = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]);
+  const loop = w > 40 && h > 40 && gap < diag * 0.3;
+  const pad = loop ? 0 : 16; // a line over text selects a band around it
+  const x = Math.max(0, x0 - pad), y = Math.max(0, y0 - pad);
+  return { loop, rect: { x, y, w: Math.min(W() - x, w + pad * 2), h: Math.min(H() - y, h + pad * 2) } };
+}
+
+async function go(kind, rect) {
+  if (busy) return;
+  busy = true; bar.style.display = "none";
+  say(kind === "text" ? "Reading text…" : "Searching for this image…");
+  const r = await cs.run(kind, rect).catch(() => ({ ok: false, error: "Something went wrong" }));
+  busy = false;
+  if (kind === "image" && r.ok) return;
+  if (r.ok) { say("Copied: " + r.text.replace(/\s+/g, " ").slice(0, 80)); setTimeout(() => cs.close(), 1300); return; }
+  say(r.error || "Nothing found. Draw again, or press Esc.");
+  sel = null; pts = []; redraw();
+}
+
+c.addEventListener("pointerdown", (e) => {
+  if (!img || busy || e.button !== 0) return;
+  down = true; sel = null; pts = [[e.clientX, e.clientY]]; bar.style.display = "none";
+  c.setPointerCapture(e.pointerId); say("Draw a line over text, or circle a picture");
+});
+c.addEventListener("pointermove", (e) => { if (down) { pts.push([e.clientX, e.clientY]); redraw(); } });
+c.addEventListener("pointerup", () => {
+  if (!down) return;
+  down = false;
+  if (pts.length < 3) { pts = []; redraw(); return; }
+  const s = shape();
+  sel = s.rect; redraw();
+  if (!s.loop) { go("text", s.rect); return; }
+  const bx = Math.min(Math.max(8, s.rect.x), W() - 280), below = s.rect.y + s.rect.h + 56 < H();
+  bar.style.left = bx + "px"; bar.style.top = (below ? s.rect.y + s.rect.h + 10 : Math.max(8, s.rect.y - 56)) + "px";
+  bar.style.display = "flex";
+  document.getElementById("t").onclick = () => go("text", s.rect);
+  document.getElementById("i").onclick = () => go("image", s.rect);
+});
+c.addEventListener("contextmenu", (e) => { e.preventDefault(); sel = null; pts = []; bar.style.display = "none"; if (img) redraw(); });
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 // runs in every frame. The selection is read with getSelection().toString(), which also works inside shadow DOM, and the
 // bubble sits in its own shadow root, so the page's styles cannot reach it.
 const { ipcRenderer } = require("electron");
-if (/^https?:$/.test(location.protocol)) {
+if (/^https?:$/.test(location.protocol) && !/^gemini\.google\.com$/.test(location.hostname)) {
   let timer = 0, host = null, shown = "", seq = 0, px = 0, py = 0;
   // Where the pointer last went up: the anchor when the page gives no usable selection rectangle.
   addEventListener("pointerup", (e) => { px = e.clientX; py = e.clientY; schedule(60); }, true);

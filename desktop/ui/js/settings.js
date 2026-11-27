@@ -105,6 +105,8 @@ function secSearch() {
   const out = [secHead("Search"), chips(optList(S.engines), cur, (k) => setPref("search", k))];
   out.push(setRow("Fallback search engine", S.relayAvail ? "Used when Lodica Search is chosen but the server cannot be reached" : "Lodica Search is not available on this computer, so this engine is used"),
     chips(optList(S.engines).filter((o) => o.key !== "LODICA"), S.prefs.searchFallback || "GOOGLE", (k) => setPref("searchFallback", k)));
+  out.push(setRow("Reverse image search", "Right-click an image and choose Search image, or circle one with Ctrl+Alt+C. The picture is sent to this engine"),
+    chips([{ key: "google", label: "Google" }, { key: "bing", label: "Bing" }, { key: "yandex", label: "Yandex" }], S.prefs.reverseEngine || "google", (k) => setPref("reverseEngine", k)));
   return out;
 }
 // 2. Browsing

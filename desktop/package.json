@@ -21,7 +21,8 @@
     "@ghostery/adblocker-electron": "2.18.2",
     "jsqr": "^1.4.0",
     "mammoth": "1.13.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "electron": "44.6.0",
@@ -40,10 +41,16 @@
       "pdf/**",
       "preload/**",
       "ui/**",
+      "ocr/**",
       "search/**",
       "config.json",
       "PATCH_NOTES.md",
       "package.json"
+    ],
+    "asarUnpack": [
+      "ocr/**",
+      "node_modules/tesseract.js/**",
+      "node_modules/tesseract.js-core/**"
     ],
     "extraResources": [
       { "from": "../android/app/src/main/assets/extensions/helper/dict", "to": "dict" },

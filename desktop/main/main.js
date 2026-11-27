@@ -106,6 +106,23 @@ async function saveDocx(req) {
   } catch (e) { return new Response(String(e.message), { status: 500 }); }
 }
 
+// Saves the edited original .docx bytes at a path the user picks.
+async function saveDocxRaw(req, u, kind = "docx") {
+  try {
+    const bytes = Buffer.from(await req.arrayBuffer());
+    const magic = kind === "pdf" ? "%P" : "PK";
+    if (!bytes.length || bytes.length > 200 * 1024 * 1024 || bytes.toString("latin1", 0, 2) !== magic) return new Response("Bad request", { status: 400 });
+    const r = await dialog.showSaveDialog({
+      defaultPath: path.join(app.getPath("documents"), (String(u.searchParams.get("name") || "Document").replace(/[\\/:*?"<>|]/g, "_") || "Document") + "." + kind),
+      filters: [kind === "pdf" ? { name: "PDF", extensions: ["pdf"] } : { name: "Word document", extensions: ["docx"] }],
+    });
+    if (r.canceled || !r.filePath) return new Response(null, { status: 204 });
+    const file = r.filePath.toLowerCase().endsWith("." + kind) ? r.filePath : r.filePath + "." + kind;
+    fs.writeFileSync(file, bytes);
+    return new Response(path.basename(file));
+  } catch (e) { return new Response(String(e.message), { status: 500 }); }
+}
+
 // Bundled pdf.js viewer. Remote and local PDFs go through /f?u=<url> so the viewer reads them same-origin.
 function servePdf(req, u) {
   if (u.pathname === "/docx-html") {
@@ -116,6 +133,22 @@ function servePdf(req, u) {
       .catch(e => new Response(String(e.message), { status: 500 }));
   }
   if (u.pathname === "/docx-save" && req.method === "POST") return saveDocx(req);
+  if (u.pathname === "/rev-image") {
+    const png = require("./reverseimage").take(u.searchParams.get("id") || "");
+    return png ? new Response(png, { headers: { "Content-Type": "image/png" } }) : new Response("Gone", { status: 404 });
+  }
+  if (u.pathname === "/docx-save-raw" && req.method === "POST") return saveDocxRaw(req, u);
+  if (u.pathname === "/pdf-save-raw" && req.method === "POST") return saveDocxRaw(req, u, "pdf");
+  if (u.pathname === "/docx-raw") {
+    const target = u.searchParams.get("u") || "";
+    if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
+    return net.fetch(target).then(async (r) => {
+      if (!r.ok) return new Response("HTTP " + r.status, { status: 502 });
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (buf.length > 50 * 1024 * 1024) return new Response("File too large", { status: 413 });
+      return new Response(buf, { headers: { "Content-Type": "application/octet-stream" } });
+    }).catch((e) => new Response(String(e.message), { status: 500 }));
+  }
   if (u.pathname === "/docx") {
     const target = u.searchParams.get("u") || "";
     if (!/^(https?|file):/i.test(target)) return new Response("Forbidden", { status: 403 });
@@ -362,10 +395,10 @@ function onView(t, wc) {
   });
 }
 
-function checkClipboard() {
+async function checkClipboard() {
   if (!M) return;
   let text = "";
-  try { text = clipboard.readText().trim(); } catch { return; }
+  try { text = (await clipboard.readText()).trim(); } catch { return; } // Electron 44: readText returns a promise
   if (!text || text === lastClip || text.length > 2000 || /\s/.test(text)) return;
   lastClip = text;
   if (!/^https?:\/\/[^\s]+$/i.test(text)) return;
@@ -531,9 +564,9 @@ app.whenReady().then(() => {
   applyOpacity();
   m.prefs.events.on("change", (k) => { if (k === "uiAlpha") applyOpacity(); });
   require("./emojipicker").init(m.prefs);
-  require("./globalcopy").init();
+  require("./circlesearch").init({ tabs: require("./tabs"), prefs: m.prefs, getWindow: () => win });
   require("./desktopdraw").init();
-  try { lastClip = clipboard.readText().trim(); } catch { /* no clipboard */ }
+  Promise.resolve().then(() => clipboard.readText()).then((t) => { lastClip = String(t || "").trim(); }).catch(() => { /* no clipboard */ });
   uiView.webContents.loadFile(path.join(ROOT, "ui", "index.html")).catch(e => console.error("ui load", e.message));
   panelView.webContents.loadFile(path.join(ROOT, "ui", "aipanel.html")).catch(e => console.error("panel load", e.message));
   dividerView.webContents.loadFile(path.join(ROOT, "ui", "divider.html")).catch(e => console.error("divider load", e.message));

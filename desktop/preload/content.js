@@ -56,7 +56,7 @@ const browser = { runtime: { connectNative() {
 // page; subframes connect once they hold a field.
 const lodicaMain = () => {
   // Features mode registers this file in every frame too, so a frame can get it twice.
-  if (window.__lodicaHelper) return;
+  if (window.__lodicaHelper || /^gemini\.google\.com$/.test(location.hostname)) return;
   window.__lodicaHelper = true;
   const TOP = window === window.top;
   const KEY = /e-?mail|user-?name|login|identifier|account/i;
@@ -2064,7 +2064,7 @@ if (/^https?:$/.test(location.protocol) || (location.protocol === "lodica:" && l
 
 // Draw mode (Ctrl+Shift+G) and move mode (Ctrl+Shift+M). Strokes live in an SVG laid over the page, so they scroll with it.
 // Moves are saved as a CSS selector plus an offset. Both are stored per page address by the main process.
-if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
+if (window === window.top && /^https?:$/.test(location.protocol) && !/^gemini\.google\.com$/.test(location.hostname)) (() => {
   const NS = "http://www.w3.org/2000/svg";
   const pageKey = () => location.origin + location.pathname + location.search;
   let key = "", data = { strokes: [], moves: [], texts: [] };
@@ -2316,7 +2316,7 @@ if (window === window.top && /^https?:$/.test(location.protocol)) (() => {
 
 // QR hover decode: report the element under the cursor so main can crop and decode it locally.
 // Top-frame http(s) pages only; this script never reads image bytes, uploads or fetches anything.
-if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.test(location.protocol)) (() => {
+if (typeof ipcRenderer !== "undefined" && window === window.top && /^https?:$/.test(location.protocol) && !/^gemini\.google\.com$/.test(location.hostname)) (() => {
   const SEL = "img,canvas,svg,[data-qr]";
   const MIN = 24, MAX = 2048, THROTTLE = 120;
   const SAFE = /^(https?:|lodica:|mailto:|tel:)/i;

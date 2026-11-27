@@ -117,6 +117,8 @@ swap('new MutationObserver(() => { if (page.theme && (!document.getElementById("
 // Dark mode: a site that declares a dark scheme (meta or color-scheme) has its own dark mode, so Force dark leaves it alone.
 swap(String.raw`if (meta && /^\s*dark\s*$/i.test(meta.content || "")) return true;`, String.raw`if (meta && /\bdark\b/i.test(meta.content || "")) return true;
     if (/\bdark\b/.test(getComputedStyle(document.documentElement).colorScheme || "")) return true;`);
+// Web apps that break under any page script (Gemini) get none of the helper's features.
+swap("if (window.__lodicaHelper) return;", String.raw`if (window.__lodicaHelper || /^gemini\.google\.com$/.test(location.hostname)) return;`);
 const ipcLine = 'const { ipcRenderer, webFrame } = require("electron");\n';
 swap(ipcLine, ipcLine + overlay("google-ua.js"));
 js += overlay("draw.js");
